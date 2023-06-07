@@ -215,4 +215,8 @@ GPC_TestAndSuiteData GPC_new_suite(const char* name, GPC_TestAndSuiteData* paren
 	}
 */
 
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
 #endif // GPC_ASSERT_H
