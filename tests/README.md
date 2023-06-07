@@ -1,0 +1,1 @@
+'make tests' command assumes that all .c files in the 'src' directory has a corresponding test file with 'test_' prefix and 'main' function defined in this directory. 

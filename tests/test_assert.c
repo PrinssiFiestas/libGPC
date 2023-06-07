@@ -6,7 +6,7 @@
 
 // This file tests the unit testing framework itself. On changes to the
 // to the framework, PASSING_TESTS should be commented out to test failing tests
-// and the results should be verified manually. 
+// and the results should be verified manually.
 
 #include "../include/assert.h"
 
@@ -21,7 +21,7 @@ int factorial(int x)
 int main()
 {
 
-//#define PASSING_TESTS
+#define PASSING_TESTS
 #ifndef PASSING_TESTS
 	EXPECT(0+0 EQ 1+1, "Example fail message");
 
