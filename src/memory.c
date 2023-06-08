@@ -4,12 +4,18 @@
  * https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
  */
 
-#include "../include/memory.h"
-#ifndef TESTS
 #include <stdlib.h>
-#else
-void* malloc(size_t);
-void free(void*);
+#include "../include/memory.h"
+
+#ifdef TESTS
+#define malloc(size)		test_malloc(size)
+#define free(p)				test_free(p)
+#define calloc(size, t)		test_calloc(size, t)
+#define realloc(p, size)	test_realloc(p, size)
+void* test_malloc(size_t);
+void  test_free(void*);
+void* test_calloc(size_t, size_t);
+void* test_realloc(void*, size_t);
 #endif
 
 struct DynamicObjectList
@@ -18,10 +24,11 @@ struct DynamicObjectList
 	struct DynamicObjectList* next;
 };
 
-// void* mallocAssign(size_t, DynamicObjOwner* owner)
-// {
-	// return NULL;
-// }
+void* mallocAssign(size_t size, DynamicObjOwner* owner)
+{
+	(void)owner;
+	return malloc(size);
+}
 
 // void moveOwnership(void* object, DynamicObjOwner* newOwner)
 // {
@@ -29,5 +36,5 @@ struct DynamicObjectList
 
 void freeAll(DynamicObjOwner* owner)
 {
-	
+	(void)owner;
 }

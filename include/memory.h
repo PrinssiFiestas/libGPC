@@ -14,7 +14,7 @@ extern "C" {
 #include <stddef.h>
 #include "overload.h"
 
-#define begin		{ DynamicObjOwner thisScope; (void)thisScope;
+#define begin		{ DynamicObjOwner thisScope = {NULL, NULL}; (void)thisScope;
 #define ret(obj)	moveOwnership(obj, callingScope); freeAll(&thisScope); return obj;
 #define end			freeAll(&thisScope); }
 
@@ -27,7 +27,7 @@ typedef struct DynamicObjOwner
 // malloc and assign ownership
 void* mallocAssign(size_t, DynamicObjOwner*);
 // malloc and assign ownership to current scope
-#define scopedAlloc(size) mallocAssign(size, thisScope)
+#define scopedAlloc(size) mallocAssign(size, &thisScope)
 // Prevent freeing by end or freeAll()
 void moveOwnership(void* object, DynamicObjOwner* newOwner);
 // Frees every object owned by owner
