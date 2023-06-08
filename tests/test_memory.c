@@ -17,6 +17,7 @@
 // fake heap
 static void** g_testHeap;
 static const size_t TEST_HEAP_SIZE = 100000;
+
 #define EMPTY_HEAP -1
 #define FREED (void*)0
 #define RESERVED (void*)1
@@ -32,13 +33,9 @@ long testHeapFirstObject()
 
 size_t objSize(void** p)
 {
-	printf("%p\n", p);
 	size_t size = 0;
-	while(p[size] != FREED)
-	{
-		printf("%p\n", p[size]);
+	while (p[size] != FREED)
 		size++;
-	}
 	return size;
 }
 
@@ -57,7 +54,7 @@ int main()
 			void** obj3 = scopedAlloc(4);
 			ASSERT(objSize(obj1) EQ 3);
 			ASSERT(objSize(obj2) EQ 5);
-			(void)obj3;
+			ASSERT(objSize(obj2) EQ 4);
 		end
 		ASSERT(testHeapFirstObject() EQ EMPTY_HEAP, "Heap not empty after scope!");
 	}
@@ -67,8 +64,9 @@ int main()
 }
 
 // --------------------------------------------------------------------------
+//		Fake allocators replacing malloc() etc. in memory.c
 
-// Populates testHeap with dummy data and moves freeSpace pointer
+// Populates testHeap with RESERVED and moves freeSpace pointer
 void* test_malloc(size_t size)
 {
 	// initialize freeSpace
@@ -87,17 +85,16 @@ void* test_malloc(size_t size)
 	return freeSpace - 100*sizeof(void*);
 }
 
-void test_free(void* ptr)
+void test_free(void* p)
 {
-	printf("FREE!\n");
-	ptr = (void**)ptr;
-	(void)ptr;
+	void** ptr = (void**)p;
+	for (size_t i = 0; ptr[i] != FREED; i++)
+		ptr[i] = FREED;
 }
 
 void* test_calloc(size_t nmemb, size_t size)
 {
-	(void)nmemb; (void)size;
-	return NULL;
+	return test_malloc(nmemb * size);
 }
 
 void* test_realloc(void* ptr, size_t size)
