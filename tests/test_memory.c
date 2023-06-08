@@ -79,7 +79,7 @@ void* test_malloc(size_t size)
 	// initialize freeSpace
 	static uint8_t* freeSpace = NULL;
 	if (freeSpace == NULL)
-		freeSpace = g_testHeap + 1;
+		freeSpace = g_testHeap + 8;
 	
 	printf("MALLOC %p\n", freeSpace);
 	for (size_t i = 0; i < size; i++)
@@ -88,8 +88,8 @@ void* test_malloc(size_t size)
 		printf("%2X %s", freeSpace[i], (i+1)%8 ? "" : "\n" );
 	}
 	printf("%2X\n\n", freeSpace[size]);
-	freeSpace += 100*sizeof(void*);
-	return freeSpace - 100*sizeof(void*);
+	freeSpace += 32;
+	return freeSpace - 32;
 }
 
 void test_free(void* p)
