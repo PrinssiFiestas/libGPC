@@ -97,8 +97,12 @@ void* test_calloc(size_t nmemb, size_t size)
 	return test_malloc(nmemb * size);
 }
 
-void* test_realloc(void* ptr, size_t size)
+void* test_realloc(void* p, size_t size)
 {
-	(void)ptr; (void)size;
+	void** ptr = (void**)p;
+	void** destination = test_malloc(size);
+	for (size_t i = 0; i < size; i++)
+		destination[i] = ptr[i];
+	test_free(p);
 	return NULL;
 }
