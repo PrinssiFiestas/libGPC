@@ -18,10 +18,12 @@ extern "C" {
 #define ret(obj)	moveOwnership(obj, callingScope); freeAll(&thisScope); return obj;
 #define end			freeAll(&thisScope); }
 
+struct DynamicObjectList;
+
 typedef struct DynamicObjOwner
 {
-	void* firstObject;
-	void* lastObject;
+	struct DynamicObjectList* firstObject;
+	struct DynamicObjectList* lastObject;
 } DynamicObjOwner;
 
 // malloc and assign ownership

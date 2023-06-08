@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include "../include/assert.h"
 #include "../src/memory.c"
@@ -15,12 +16,12 @@
 #undef realloc
 
 // fake heap
-static void** g_testHeap;
-static const size_t TEST_HEAP_SIZE = 100000;
+static uint8_t* g_testHeap;
+static const size_t TEST_HEAP_SIZE = 0xFE;
 
 #define EMPTY_HEAP -1
-#define FREED (void*)0
-#define RESERVED (void*)1
+#define FREED 0x00
+#define RESERVED 0xFF
 
 // Returns the memory location index of first object and -1 if heap is empty
 long testHeapFirstObject()
@@ -31,11 +32,17 @@ long testHeapFirstObject()
 	return -1;
 }
 
-size_t objSize(void** p)
+size_t objSize(void* p)
 {
 	size_t size = 0;
-	while (p[size] != FREED)
+	uint8_t* ptr = (uint8_t*)p;
+	printf("OBJSIZE %p\n", p);
+	while (ptr[size] != FREED)
+	{
+		printf("%2X %s", ptr[size], (size+1)%8 ? "" : "\n");
 		size++;
+	}
+	puts("\n");
 	return size;
 }
 
@@ -49,12 +56,12 @@ int main()
 	TEST(allocations)
 	{
 		begin
-			void** obj1 = scopedAlloc(3);
-			void** obj2 = scopedAlloc(5);
-			void** obj3 = scopedAlloc(4);
+			void* obj1 = scopedAlloc(3);
+			void* obj2 = scopedAlloc(5);
+			void* obj3 = scopedAlloc(4);
 			ASSERT(objSize(obj1) EQ 3);
 			ASSERT(objSize(obj2) EQ 5);
-			ASSERT(objSize(obj2) EQ 4);
+			ASSERT(objSize(obj3) EQ 4);
 		end
 		ASSERT(testHeapFirstObject() EQ EMPTY_HEAP, "Heap not empty after scope!");
 	}
@@ -70,24 +77,24 @@ int main()
 void* test_malloc(size_t size)
 {
 	// initialize freeSpace
-	static void** freeSpace = (void**)0;
-	if (freeSpace == (void**)0)
-		freeSpace = g_testHeap;
+	static uint8_t* freeSpace = NULL;
+	if (freeSpace == NULL)
+		freeSpace = g_testHeap + 1;
 	
 	printf("MALLOC %p\n", freeSpace);
 	for (size_t i = 0; i < size; i++)
 	{
 		freeSpace[i] = RESERVED;
-		printf("%p\n", freeSpace[i]);
+		printf("%2X %s", freeSpace[i], (i+1)%8 ? "" : "\n" );
 	}
-	printf("%p\n\n", freeSpace[size]);
+	printf("%2X\n\n", freeSpace[size]);
 	freeSpace += 100*sizeof(void*);
 	return freeSpace - 100*sizeof(void*);
 }
 
 void test_free(void* p)
 {
-	void** ptr = (void**)p;
+	uint8_t* ptr = (uint8_t*)p;
 	for (size_t i = 0; ptr[i] != FREED; i++)
 		ptr[i] = FREED;
 }
@@ -99,8 +106,8 @@ void* test_calloc(size_t nmemb, size_t size)
 
 void* test_realloc(void* p, size_t size)
 {
-	void** ptr = (void**)p;
-	void** destination = test_malloc(size);
+	uint8_t* ptr = (uint8_t*)p;
+	uint8_t* destination = test_malloc(size);
 	for (size_t i = 0; i < size; i++)
 		destination[i] = ptr[i];
 	test_free(p);

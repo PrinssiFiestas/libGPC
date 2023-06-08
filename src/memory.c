@@ -26,8 +26,20 @@ struct DynamicObjectList
 
 void* mallocAssign(size_t size, DynamicObjOwner* owner)
 {
-	(void)owner;
-	return malloc(size);
+	struct DynamicObjectList* p = malloc(sizeof(struct DynamicObjectList) + size);
+	
+	if (owner->firstObject == NULL)
+	{
+		owner->firstObject = owner->lastObject = p;
+	}
+	else
+	{
+		p->previous = owner->lastObject;
+		owner->lastObject->next = p;
+		p->next = NULL;
+		owner->lastObject = p;
+	}
+	return (void*)((char*)p + sizeof(struct DynamicObjectList));
 }
 
 // void moveOwnership(void* object, DynamicObjOwner* newOwner)
