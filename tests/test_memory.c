@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2022 Lauri Lorenzo Fiestas
+ * Copyright (c) 2023 Lauri Lorenzo Fiestas
  * https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
  */
 
@@ -29,6 +29,37 @@ static const uint8_t  RESERVED = 0x01;
 
 // Returns the memory location index of first object and -1 if heap is empty
 #define EMPTY_HEAP -1
+long testHeapFirstObject(void);
+size_t objSize(void* p);
+void printHeap(void);
+
+int main()
+{
+	// setup
+	g_testHeap = malloc(TEST_HEAP_SIZE * sizeof(void*));
+	for (size_t i = 0; i < TEST_HEAP_SIZE; i++)
+		g_testHeap[i] = FREED;
+	
+	TEST(allocations)
+	{
+		begin
+			double* obj1 = scopedAlloc(3 * sizeof(obj1[0]));
+			int*    obj2 = scopedAlloc(5 * sizeof(obj2[0]));
+			float*  obj3 = scopedAlloc(4 * sizeof(obj3[0]));
+			printHeap();
+			ASSERT(objSize(obj1) EQ 3 * sizeof(obj1[0]));
+			ASSERT(objSize(obj2) EQ 5 * sizeof(obj2[0]));
+			ASSERT(objSize(obj3) EQ 4 * sizeof(obj3[0]));
+		end
+		//ASSERT(testHeapFirstObject() EQ EMPTY_HEAP, "Heap not empty after scope!");
+	}
+	
+	// teardown
+	free(g_testHeap);
+}
+
+// --------------------------------------------------------------------------
+
 long testHeapFirstObject()
 {
 	uint32_t* heap32 = (uint32_t*)g_testHeap;
@@ -47,33 +78,12 @@ size_t objSize(void* p)
 	return size * sizeof(ptr[0]);
 }
 
-void printHeap(void);
-
-int main()
+void printHeap()
 {
-	// setup
-	g_testHeap = malloc(TEST_HEAP_SIZE * sizeof(void*));
+	puts("FULL HEAP");
 	for (size_t i = 0; i < TEST_HEAP_SIZE; i++)
-		g_testHeap[i] = FREED;
-	// pointless calloc() test because paranoia
-	ASSERT(testHeapFirstObject() EQ EMPTY_HEAP, "calloc() failed!");
-	
-	TEST(allocations)
-	{
-		begin
-			double* obj1 = scopedAlloc(3 * sizeof(obj1[0]));
-			int*    obj2 = scopedAlloc(5 * sizeof(obj2[0]));
-			float*  obj3 = scopedAlloc(4 * sizeof(obj3[0]));
-			printHeap();
-			ASSERT(objSize(obj1) EQ 3 * sizeof(obj1[0]));
-			ASSERT(objSize(obj2) EQ 5 * sizeof(obj2[0]));
-			ASSERT(objSize(obj3) EQ 4 * sizeof(obj3[0]));
-		end
-		//ASSERT(testHeapFirstObject() EQ EMPTY_HEAP, "Heap not empty after scope!");
-	}
-	
-	// teardown
-	free(g_testHeap);
+		printf("%2X %s", g_testHeap[i], (i+1)%8 ? "" : "\n");
+	puts("\n");
 }
 
 // --------------------------------------------------------------------------
@@ -118,12 +128,4 @@ void* test_realloc(void* p, size_t size)
 		destination[i] = ptr[i];
 	test_free(p);
 	return NULL;
-}
-
-void printHeap()
-{
-	puts("FULL HEAP");
-	for (size_t i = 0; i < TEST_HEAP_SIZE; i++)
-		printf("%2X %s", g_testHeap[i], (i+1)%8 ? "" : "\n");
-	puts("\n");
 }
