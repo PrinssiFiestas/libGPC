@@ -25,28 +25,55 @@ struct DynamicObjectList
 	DynamicObjOwner* owner;
 };
 
+static void assignOwner(struct DynamicObjectList* obj, DynamicObjOwner* owner)
+{
+	// TODO: check validity of owner and object
+	obj->owner = owner;
+	if (owner->firstObject == NULL)
+	{
+		owner->firstObject = owner->lastObject = obj;
+		obj->next = obj->previous = NULL;
+	}
+	else
+	{
+		obj->previous = owner->lastObject;
+		owner->lastObject->next = obj;
+		obj->next = NULL;
+		owner->lastObject = obj;
+	}
+}
+
 void* mallocAssign(size_t size, DynamicObjOwner* owner)
 {
 	struct DynamicObjectList* p = malloc(sizeof(struct DynamicObjectList) + size);
 	
-	if (owner->firstObject == NULL)
-	{
-		owner->firstObject = owner->lastObject = p;
-	}
-	else
-	{
-		p->owner = owner;
-		p->previous = owner->lastObject;
-		owner->lastObject->next = p;
-		p->next = NULL;
-		owner->lastObject = p;
-	}
+	assignOwner(p, owner);
+	printf("OBJECT %p\n\n", p + 1);
+	// TODO CLEANUP
 	return (void*)((char*)p + sizeof(struct DynamicObjectList));
 }
 
-// void moveOwnership(void* object, DynamicObjOwner* newOwner)
-// {
-// }
+void moveOwnership(void* object, DynamicObjOwner* newOwner)
+{
+	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
+	
+	// detach from list
+	if (me->previous != NULL)
+		me->previous->next = me->next;
+	if (me->next != NULL)
+		me->next->previous = me->previous;
+	
+	// update owner
+	bool onlyObject = me->owner->firstObject == me && me->owner->lastObject == me;
+	if (onlyObject)
+		me->owner->firstObject = me->owner->lastObject = NULL;
+	else if (me->owner->lastObject == me)
+		me->owner->lastObject = me->previous;
+	else if (me->owner->firstObject == me)
+		me->owner->firstObject = me->next;	
+	
+	assignOwner(me, newOwner);
+}
 
 void freeAll(DynamicObjOwner* owner)
 {
