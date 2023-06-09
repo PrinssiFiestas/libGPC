@@ -8,7 +8,7 @@
 // to the framework, PASSING_TESTS should be commented out to test failing tests
 // and the results should be verified manually.
 
-#include "../include/assert.h"
+#include "../include/gpc/assert.h"
 
 int factorial(int x)
 {

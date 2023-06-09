@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "../include/assert.h"
+#include "../include/gpc/assert.h"
 #include "../src/memory.c"
 
 #undef malloc
@@ -40,18 +40,31 @@ int main()
 	for (size_t i = 0; i < TEST_HEAP_SIZE; i++)
 		g_testHeap[i] = FREED;
 	
-	TEST(allocations)
+	TEST_SUITE(scoped_memory_management)
 	{
 		begin
 			double* obj1 = scopedAlloc(3 * sizeof(obj1[0]));
 			int*    obj2 = scopedAlloc(5 * sizeof(obj2[0]));
 			float*  obj3 = scopedAlloc(4 * sizeof(obj3[0]));
 			printHeap();
-			ASSERT(objSize(obj1) EQ 3 * sizeof(obj1[0]));
-			ASSERT(objSize(obj2) EQ 5 * sizeof(obj2[0]));
-			ASSERT(objSize(obj3) EQ 4 * sizeof(obj3[0]));
+			printf("\nOWNER\n%p, %p\n\n", &thisScope, getOwner(obj2));
+			TEST(get_owner)
+				ASSERT((size_t)getOwner(obj2) EQ (size_t)&thisScope);
+			
+			TEST(allocations)
+			{
+				ASSERT(objSize(obj1) EQ 3 * sizeof(obj1[0]));
+				ASSERT(objSize(obj2) EQ 5 * sizeof(obj2[0]));
+				ASSERT(objSize(obj3) EQ 4 * sizeof(obj3[0]));
+			}
+			//TEST(moved_ownership)
+			//	ASSERT(getOwner(returnValue) EQ &thisScope);
 		end
-		//ASSERT(testHeapFirstObject() EQ EMPTY_HEAP, "Heap not empty after scope!");
+		
+		TEST(automatic_freeing)
+			ASSERT(testHeapFirstObject() EQ EMPTY_HEAP, "Heap not empty after scope!");
+		
+		printHeap();
 	}
 	
 	// teardown

@@ -5,7 +5,7 @@
  */
 
 #include <stdlib.h>
-#include "../include/memory.h"
+#include "../include/gpc/memory.h"
 
 #ifdef TESTS
 #define malloc(size)		test_malloc(size)
@@ -22,6 +22,7 @@ struct DynamicObjectList
 {
 	struct DynamicObjectList* previous;
 	struct DynamicObjectList* next;
+	DynamicObjOwner* owner;
 };
 
 void* mallocAssign(size_t size, DynamicObjOwner* owner)
@@ -34,6 +35,7 @@ void* mallocAssign(size_t size, DynamicObjOwner* owner)
 	}
 	else
 	{
+		p->owner = owner;
 		p->previous = owner->lastObject;
 		owner->lastObject->next = p;
 		p->next = NULL;
@@ -48,5 +50,16 @@ void* mallocAssign(size_t size, DynamicObjOwner* owner)
 
 void freeAll(DynamicObjOwner* owner)
 {
-	(void)owner;
+	for (struct DynamicObjectList *obj = owner->firstObject, *next = NULL;
+		 obj != NULL; obj = next)
+	{
+		next = obj->next;
+		free(obj);
+	}
+}
+
+DynamicObjOwner* getOwner(void* object)
+{
+	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
+	return me->owner;
 }
