@@ -91,7 +91,7 @@ const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3] = {
 #undef X
 };
 
-bool GPC_compare(double a, enum GPC_BooleanOperator operation, double b)
+bool GPC_compareNumber(double a, enum GPC_BooleanOperator operation, double b)
 {
 	switch(operation)
 	{
@@ -101,9 +101,7 @@ bool GPC_compare(double a, enum GPC_BooleanOperator operation, double b)
 	#define X(OP_ENUM, OP) 	\
 		case GPC##OP_ENUM:	\
 			return a OP b;
-
 		OP_TABLE
-
 	#undef X
 
 	// Expands to
@@ -117,6 +115,22 @@ bool GPC_compare(double a, enum GPC_BooleanOperator operation, double b)
 		case GPC_OPS_LENGTH: {} // Suppress -Wswitch
 	}
 	return 0&&(a+b); // Gets rid of pointless compiler warnings
+}
+
+bool GPC_comparePointer(const void* a, enum GPC_BooleanOperator operation, const void* b)
+{
+	switch(operation)
+	{
+		case GPC_NO_OP:
+			return a;
+	#define X(OP_ENUM, OP) 	\
+		case GPC##OP_ENUM:	\
+			return a OP b;
+		OP_TABLE
+	#undef X
+		case GPC_OPS_LENGTH: {}
+	}
+	return 0&&(a-b);
 }
 
 // Finds suite by going trough all parent data
@@ -150,11 +164,22 @@ void GPC_printExpectationFail(struct GPC_ExpectationData* expectation,
 	fprintf(stderr, GPC_MAGENTA("%s"), expectation->str_a);
 	if (expectation->operation != GPC_NO_OP)
 		fprintf(stderr, GPC_MAGENTA(" %s %s"), expectation->str_operator, expectation->str_b);
-	fprintf(stderr, " evaluated to " GPC_RED("%g"), expectation->a);
-	if (expectation->operation != GPC_NO_OP)
-		fprintf(stderr, GPC_RED(" %s %g"), expectation->str_operator, expectation->b);
-	fprintf(stderr, ".\n");
-
+	
+	if (expectation->type == GPC_NUMBER)
+	{
+		fprintf(stderr, " evaluated to " GPC_RED("%g"), expectation->a);
+		if (expectation->operation != GPC_NO_OP)
+			fprintf(stderr, GPC_RED(" %s %g"), expectation->str_operator, expectation->b);
+		fprintf(stderr, ".\n");
+	}
+	else if (expectation->type == GPC_POINTER)
+	{
+		fprintf(stderr, " evaluated to " GPC_RED("%p"), expectation->pa);
+		if (expectation->operation != GPC_NO_OP)
+			fprintf(stderr, GPC_RED(" %s %p"), expectation->str_operator, expectation->pb);
+		fprintf(stderr, ".\n");
+	}
+	
 	if (expectation->additionalFailMessage != NULL)
 		printf("%s\n", expectation->additionalFailMessage);
 
@@ -180,9 +205,16 @@ int GPC_assert(struct GPC_ExpectationData expectation,
 				  struct GPC_TestAndSuiteData* data)
 {
 	GPC_globalData.expectationCount++;
-	bool passed = GPC_compare(expectation.a,
-								 expectation.operation,
-								 expectation.b);
+	bool passed = false;
+	if (expectation.type == GPC_NUMBER)
+		passed = GPC_compareNumber(expectation.a,
+									expectation.operation,
+									expectation.b);
+	else if (expectation.type == GPC_POINTER)
+		passed = GPC_comparePointer(expectation.pa,
+									expectation.operation,
+									expectation.pb);
+	
 	if ( ! passed)
 	{
 		GPC_addExpectationFail(data);
