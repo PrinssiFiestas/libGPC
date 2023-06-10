@@ -37,6 +37,11 @@ long long: IF_EXPRESSION, unsigned long long: IF_EXPRESSION, float: IF_EXPRESSIO
 double: IF_EXPRESSION, long double: IF_EXPRESSION __VA_OPT__(,)						\
 __VA_ARGS__)
 
+// Use this if int8_t or uint8_t needs to be considered as a number
+#define IF_IS_NUMBER_OR_CHAR(VARIABLE, IF_EXPRESSION, ...) 	IF_IS_NUMBER(VARIABLE,	\
+IF_EXPRESSION, char: IF_EXPRESSION, unsigned char: IF_EXPRESSION __VA_OPT__(,) 		\
+__VA_ARGS__)
+
 // Returns number of arguments
 #define COUNT_ARGS(...) OVERLOAD(64, __VA_ARGS__, 64, 63, 62, 61, 60, 59, 58, 57, 56, 	\
 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, \

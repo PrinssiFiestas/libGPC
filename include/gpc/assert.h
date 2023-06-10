@@ -148,54 +148,54 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 
 #define GPC_COMMON_DATA .line = __LINE__, .func = __func__, .file = __FILE__
 
-#define GPC_EXPECT_EXP(EXP, ADDITIONAL_MSG, IS_ASS)							\
-	GPC_assert																\
-	(																		\
-		(struct GPC_ExpectationData)										\
-		{																	\
-			.a 					 	= IF_IS_NUMBER(EXP, EXP, default: 0),	\
-			.b						= 0,									\
-			.pa						= IF_IS_NUMBER(EXP, NULL, default: EXP),\
-			.pb						= NULL,									\
-			.str_a				 	= #EXP,									\
-			.str_b					= NULL,									\
-			.str_operator			= NULL,									\
-			.additionalFailMessage 	= ADDITIONAL_MSG,						\
-			.operation	 			= GPC_NO_OP,							\
-			.isAssertion 			= IS_ASS,								\
-			.type					= IF_IS_NUMBER(EXP,						\
-										GPC_NUMBER,							\
-										const char*: GPC_CHAR_POINTER,		\
-										char*: GPC_CHAR_POINTER,			\
-										default: GPC_POINTER),				\
-			GPC_COMMON_DATA													\
-		},																	\
-		GPC_currentTestOrSuite												\
+#define GPC_EXPECT_EXP(EXP, ADDITIONAL_MSG, IS_ASS)									\
+	GPC_assert																		\
+	(																				\
+		(struct GPC_ExpectationData)												\
+		{																			\
+			.a 					 	= IF_IS_NUMBER_OR_CHAR(EXP, EXP, default: 0),	\
+			.b						= 0,											\
+			.pa						= IF_IS_NUMBER_OR_CHAR(EXP, NULL, default: EXP),\
+			.pb						= NULL,											\
+			.str_a				 	= #EXP,											\
+			.str_b					= NULL,											\
+			.str_operator			= NULL,											\
+			.additionalFailMessage 	= ADDITIONAL_MSG,								\
+			.operation	 			= GPC_NO_OP,									\
+			.isAssertion 			= IS_ASS,										\
+			.type					= IF_IS_NUMBER_OR_CHAR(EXP,						\
+										GPC_NUMBER,									\
+										const char*: GPC_CHAR_POINTER,				\
+										char*: GPC_CHAR_POINTER,					\
+										default: GPC_POINTER),						\
+			GPC_COMMON_DATA															\
+		},																			\
+		GPC_currentTestOrSuite														\
 	)
 
-#define GPC_EXPECT_CMP(A, OP, B, ADDITIONAL_MSG, IS_ASS)					\
-	GPC_assert																\
-	(																		\
-	 	(struct GPC_ExpectationData)										\
-		{																	\
-			.a 	   		  			= IF_IS_NUMBER(A, A, default: 0),		\
-			.b 			  			= IF_IS_NUMBER(B, B, default: 0),		\
-			.pa						= IF_IS_NUMBER(A, NULL, default: A),	\
-			.pb						= IF_IS_NUMBER(B, NULL, default: B),	\
-			.str_a 		  			= #A,									\
-			.str_b 		  			= #B,									\
-			.str_operator 			= GPC_STR_OPERATORS[OP],				\
-			.additionalFailMessage 	= ADDITIONAL_MSG,						\
-			.operation	  			= OP,									\
-			.isAssertion  			= IS_ASS,								\
-			.type					= IF_IS_NUMBER(A,						\
-										GPC_NUMBER,							\
-										const char*: GPC_CHAR_POINTER,		\
-										char*: GPC_CHAR_POINTER,			\
-										default: GPC_POINTER),				\
-			GPC_COMMON_DATA													\
-		},																	\
-		GPC_currentTestOrSuite												\
+#define GPC_EXPECT_CMP(A, OP, B, ADDITIONAL_MSG, IS_ASS)							\
+	GPC_assert																		\
+	(																				\
+	 	(struct GPC_ExpectationData)												\
+		{																			\
+			.a 	   		  			= IF_IS_NUMBER_OR_CHAR(A, A, default: 0),		\
+			.b 			  			= IF_IS_NUMBER_OR_CHAR(B, B, default: 0),		\
+			.pa						= IF_IS_NUMBER_OR_CHAR(A, NULL, default: A),	\
+			.pb						= IF_IS_NUMBER_OR_CHAR(B, NULL, default: B),	\
+			.str_a 		  			= #A,											\
+			.str_b 		  			= #B,											\
+			.str_operator 			= GPC_STR_OPERATORS[OP],						\
+			.additionalFailMessage 	= ADDITIONAL_MSG,								\
+			.operation	  			= OP,											\
+			.isAssertion  			= IS_ASS,										\
+			.type					= IF_IS_NUMBER_OR_CHAR(A,						\
+										GPC_NUMBER,									\
+										const char*: GPC_CHAR_POINTER,				\
+										char*: GPC_CHAR_POINTER,					\
+										default: GPC_POINTER),						\
+			GPC_COMMON_DATA															\
+		},																			\
+		GPC_currentTestOrSuite														\
 	)
 
 #define GPC_NOT_ASS 0

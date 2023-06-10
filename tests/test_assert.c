@@ -21,7 +21,7 @@ int factorial(int x)
 
 int main()
 {
-//#define PASSING_TESTS
+#define PASSING_TESTS
 #ifndef PASSING_TESTS
 	EXPECT(0+0 EQ 1+1, "Example fail message");
 	
