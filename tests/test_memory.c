@@ -20,13 +20,15 @@
 #undef realloc
 
 // fake heap
-static uint8_t* g_testHeap;
-static const size_t TEST_HEAP_SIZE = 0x200;
+static uint8_t* g_testHeap = NULL;
+//static const size_t TEST_HEAP_SIZE = 0x200;
 
 // The test allocator does not look for free block but rather it just moves the
 // 'freeSpace' pointer this amount. Make sure that the test allocations fit this
 // space!
 static const size_t ALLOC_OFFSET = 64;
+
+static size_t g_testHeapSize = 0;
 
 static const uint8_t  FREED    = 0xFF;
 static const uint32_t FREED4   = 0xFFFFFFFF;
@@ -48,9 +50,9 @@ end
 
 int main()
 {
-	// setup
-	g_testHeap = malloc(TEST_HEAP_SIZE * sizeof(void*));
-	for (size_t i = 0; i < TEST_HEAP_SIZE; i++)
+	const size_t TEST_HEAP_CAPACITY = 0x100000;
+	g_testHeap = malloc(TEST_HEAP_CAPACITY);
+	for (size_t i = 0; i < TEST_HEAP_CAPACITY; i++)
 		g_testHeap[i] = FREED;
 	
 	TEST_SUITE(scoped_memory_management)
@@ -78,7 +80,7 @@ int main()
 				printHeap();
 				TEST(function_cleaned_its_allocations)
 					EXPECT(*(returnValue + ALLOC_OFFSET) EQ FREED);
-				ASSERT((size_t)getOwner(returnValue) EQ (size_t)&thisScope);
+				ASSERT((uintptr_t)getOwner(returnValue) EQ (uintptr_t)&thisScope);
 			}
 		end
 		
@@ -97,15 +99,15 @@ int main()
 long testHeapFirstObject()
 {
 	uint32_t* heap32 = (uint32_t*)g_testHeap;
-	for (size_t i = 0; i < TEST_HEAP_SIZE/sizeof(FREED4); i++)
+	for (size_t i = 0; i < g_testHeapSize/4; i++)
 		if (heap32[i] != FREED4)
 			return i;
 	return EMPTY_HEAP;
 }
 
 size_t objSize(void* p)
-{
-	uint32_t* ptr = (uint32_t*)p;
+{	
+	uint32_t* ptr = p;
 	size_t size = 0;
 	while (ptr[size] != FREED4)
 		size++;
@@ -114,8 +116,8 @@ size_t objSize(void* p)
 
 void printHeap()
 {
-	puts("FULL HEAP");
-	for (size_t i = 0; i < TEST_HEAP_SIZE; i++)
+	puts("");
+	for (size_t i = 0; i < g_testHeapSize; i++)
 		printf("%2X %s", g_testHeap[i], (i+1)%8 ? "" : "\n");
 	puts("\n");
 	fflush(stdout);
@@ -127,6 +129,8 @@ void printHeap()
 // Populates testHeap with RESERVED and moves freeSpace pointer
 void* test_malloc(size_t size)
 {
+	g_testHeapSize += ALLOC_OFFSET;
+	
 	// initialize freeSpace
 	static uint8_t* freeSpace = NULL;
 	if (freeSpace == NULL)
@@ -140,9 +144,9 @@ void* test_malloc(size_t size)
 
 void test_free(void* p)
 {
-	uint32_t* ptr = (uint32_t*)p;
-	for (size_t i = 0; ptr[i] != FREED4; i++)
-		ptr[i] = FREED4;
+	uint8_t* ptr = p;
+	for (size_t i = 0; i < ALLOC_OFFSET; i++)
+		ptr[i] = FREED;
 }
 
 void* test_calloc(size_t nmemb, size_t size)
@@ -152,10 +156,10 @@ void* test_calloc(size_t nmemb, size_t size)
 
 void* test_realloc(void* p, size_t size)
 {
-	uint8_t* ptr = (uint8_t*)p;
+	uint8_t* ptr = p;
 	uint8_t* destination = test_malloc(size);
 	for (size_t i = 0; i < size; i++)
 		destination[i] = ptr[i];
 	test_free(p);
-	return NULL;
+	return destination;
 }
