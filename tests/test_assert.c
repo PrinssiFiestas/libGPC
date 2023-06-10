@@ -8,6 +8,7 @@
 // to the framework, PASSING_TESTS should be commented out to test failing tests
 // and the results should be verified manually.
 
+#include <stdlib.h>
 #include "../include/gpc/assert.h"
 
 int factorial(int x)
@@ -20,7 +21,6 @@ int factorial(int x)
 
 int main()
 {
-
 #define PASSING_TESTS
 #ifndef PASSING_TESTS
 	EXPECT(0+0 EQ 1+1, "Example fail message");
@@ -88,6 +88,28 @@ int main()
 			ASSERT(-1 LT 0);
 		}
 	}
+	TEST(types)
+	{
+		ASSERT((uint32_t)5 EQ 5.f);
+	}
+	TEST(pointerComparison)
+	{
+		void* ptr1 = malloc(1);
+		void* ptr2 = ptr1;
+		void* ptr3 = ptr1 + 1;
+		ASSERT(ptr1 EQ ptr2);
+		ASSERT(ptr1 NE ptr3);
+		free(ptr1);
+	}
+	// TEST(stringComparison)
+	// {
+		// const char* str1 = "Same string";
+		// char str2[]      = "Xame string"; // typo to prevent pointing to same literal
+		// const char *str3 = "Different string";
+		// str2[0] = 'S';
+		// ASSERT(str1 EQ str2);
+		// ASSERT(str1 NE str3);
+	// }
 #endif // PASSING_TESTS
 
 //#define ASSERT_TEST
