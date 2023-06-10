@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define GPC_IS_TEST true
 
@@ -133,6 +134,22 @@ bool GPC_comparePointer(const void* a, enum GPC_BooleanOperator operation, const
 	return 0&&(a-b);
 }
 
+bool GPC_compareCharPointer(const char* a, enum GPC_BooleanOperator operation, const char* b)
+{
+	switch(operation)
+	{
+		case GPC_NO_OP:
+			return a;
+	#define X(OP_ENUM, OP) 	\
+		case GPC##OP_ENUM:	\
+			return strcmp(a, b) OP 0;
+		OP_TABLE
+	#undef X
+		case GPC_OPS_LENGTH: {}
+	}
+	return 0&&(a-b);
+}
+
 // Finds suite by going trough all parent data
 struct GPC_TestAndSuiteData* findSuite(struct GPC_TestAndSuiteData* data)
 {
@@ -208,12 +225,16 @@ int GPC_assert(struct GPC_ExpectationData expectation,
 	bool passed = false;
 	if (expectation.type == GPC_NUMBER)
 		passed = GPC_compareNumber(expectation.a,
-									expectation.operation,
-									expectation.b);
+								   expectation.operation,
+								   expectation.b);
 	else if (expectation.type == GPC_POINTER)
 		passed = GPC_comparePointer(expectation.pa,
 									expectation.operation,
 									expectation.pb);
+	else if (expectation.type == GPC_CHAR_POINTER)
+		passed = GPC_compareCharPointer(expectation.pa,
+										expectation.operation,
+										expectation.pb);
 	
 	if ( ! passed)
 	{

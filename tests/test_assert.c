@@ -91,6 +91,7 @@ int main()
 	TEST(types)
 	{
 		ASSERT((uint32_t)5 EQ 5.f);
+		ASSERT((const int)6 NE 9);
 	}
 	TEST(pointerComparison)
 	{
@@ -101,15 +102,17 @@ int main()
 		ASSERT(ptr1 NE ptr3);
 		free(ptr1);
 	}
-	// TEST(stringComparison)
-	// {
-		// const char* str1 = "Same string";
-		// char str2[]      = "Xame string"; // typo to prevent pointing to same literal
-		// const char *str3 = "Different string";
-		// str2[0] = 'S';
-		// ASSERT(str1 EQ str2);
-		// ASSERT(str1 NE str3);
-	// }
+	TEST(stringComparison)
+	{
+		const char* str1 = "Same string";
+		char str2[]      = "Xame string"; // typo to prevent pointing to same literal
+		str2[0] = 'S';
+		ASSERT(str1 EQ str2);
+		ASSERT(str1 NE "Different string");
+		ASSERT("1" LT "2");
+		ASSERT("0" GE "0");
+		ASSERT("4" GT "2");
+	}
 #endif // PASSING_TESTS
 
 //#define ASSERT_TEST
