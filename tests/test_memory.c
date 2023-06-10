@@ -38,9 +38,9 @@ long testHeapFirstObject(void);
 size_t objSize(void* p);
 void printHeap(void);
 
-char* func(DynamicObjOwner* callingScope)
+unsigned char* func(DynamicObjOwner* callingScope)
 begin
-	char* returnValue = scopedAlloc(4 * sizeof(returnValue[0]));
+	unsigned char* returnValue = scopedAlloc(4 * sizeof(returnValue[0]));
 	char* dummy = scopedAlloc(12 * sizeof(dummy[0]));
 	printHeap();
 	ret(returnValue);
@@ -132,13 +132,8 @@ void* test_malloc(size_t size)
 	if (freeSpace == NULL)
 		freeSpace = g_testHeap;
 	
-	printf("MALLOC %p\n", freeSpace);
 	for (size_t i = 0; i < size; i++)
-	{
 		freeSpace[i] = RESERVED;
-		printf("%2X %s", freeSpace[i], (i+1)%8 ? "" : "\n" );
-	}
-	printf("%2X\n\n", freeSpace[size]);
 	freeSpace += ALLOC_OFFSET;
 	return freeSpace - ALLOC_OFFSET;
 }

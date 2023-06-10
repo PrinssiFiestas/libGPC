@@ -45,19 +45,16 @@ static void assignOwner(struct DynamicObjectList* obj, DynamicObjOwner* owner)
 
 void* mallocAssign(size_t size, DynamicObjOwner* owner)
 {
-	struct DynamicObjectList* p = malloc(sizeof(struct DynamicObjectList) + size);
-	
+	struct DynamicObjectList* p = malloc(sizeof(p[0]) + size);
 	assignOwner(p, owner);
-	printf("OBJECT %p\n\n", p + 1);
-	// TODO CLEANUP
-	return (void*)((char*)p + sizeof(struct DynamicObjectList));
+	return p + 1;
 }
 
 void moveOwnership(void* object, DynamicObjOwner* newOwner)
 {
 	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
 	
-	// detach from list
+	// detach from current list
 	if (me->previous != NULL)
 		me->previous->next = me->next;
 	if (me->next != NULL)
