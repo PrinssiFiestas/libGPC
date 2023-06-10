@@ -310,7 +310,3 @@ void GPC_printTestOrSuiteResult(struct GPC_TestAndSuiteData* data)
 				testOrSuite, data->name);
 	}
 }
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
