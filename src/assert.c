@@ -196,6 +196,13 @@ void GPC_printExpectationFail(struct GPC_ExpectationData* expectation,
 			fprintf(stderr, GPC_RED(" %s %p"), expectation->str_operator, expectation->pb);
 		fprintf(stderr, ".\n");
 	}
+	else if (expectation->type == GPC_CHAR_POINTER)
+	{
+		fprintf(stderr, " evaluated to " GPC_RED("%s"), (char*)expectation->pa);
+		if (expectation->operation != GPC_NO_OP)
+			fprintf(stderr, GPC_RED(" %s %s"), expectation->str_operator, (char*)expectation->pb);
+		fprintf(stderr, ".\n");
+	}
 	
 	if (expectation->additionalFailMessage != NULL)
 		printf("%s\n", expectation->additionalFailMessage);

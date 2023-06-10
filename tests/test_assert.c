@@ -24,6 +24,11 @@ int main()
 //#define PASSING_TESTS
 #ifndef PASSING_TESTS
 	EXPECT(0+0 EQ 1+1, "Example fail message");
+	
+	TEST(string)
+	{
+		EXPECT("bad""append" EQ "bad append");
+	}
 
 	TEST_SUITE(factorial)
 	{
