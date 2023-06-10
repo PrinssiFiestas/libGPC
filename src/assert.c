@@ -240,10 +240,7 @@ int GPC_assert(struct GPC_ExpectationData expectation,
 	{
 		GPC_addExpectationFail(data);
 		GPC_printExpectationFail(&expectation, data);
-		// if(expectation.isAssertion)
-			// exit(1);
-		// else 
-			// return 1;
+		
 		if(expectation.isAssertion)
 		{
 			GPC_addTestOrSuiteFailToParentAndGlobalIfFailed(data);
