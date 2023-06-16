@@ -38,11 +38,11 @@ int main()
 			
 			TEST(get_owner)
 				ASSERT((size_t)getOwner(obj2) EQ (size_t)&thisScope);
-			
+				
 			TEST(allocations)
 			{
 				ASSERT(fakeHeapObjectSize(obj1) EQ 3 * sizeof(obj1[0]));
-				ASSERT(fakeHeapObjectSize(obj2) EQ 5 * sizeof(obj2[0]));
+				ASSERT(*((size_t*)obj2-1) EQ 5 * sizeof(obj2[0]));
 				ASSERT(fakeHeapObjectSize(obj3) EQ 4 * sizeof(obj3[0]));
 			}
 			

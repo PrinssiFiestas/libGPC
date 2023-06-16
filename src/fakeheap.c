@@ -197,7 +197,7 @@ void* fakeHeapMalloc(size_t size)
 	return out;
 }
 
-void  fakeHeapFree(void* p)
+void fakeHeapFree(void* p)
 {
 	uint8_t* ptr = p;
 	for (size_t i = 0; i < ALLOC_OFFSET; i++)

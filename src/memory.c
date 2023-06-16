@@ -17,6 +17,7 @@ struct DynamicObjectList
 	struct DynamicObjectList* previous;
 	struct DynamicObjectList* next;
 	DynamicObjOwner* owner;
+	size_t size;
 };
 
 static void assignOwner(struct DynamicObjectList* obj, DynamicObjOwner* owner)
@@ -41,6 +42,7 @@ void* mallocAssign(size_t size, DynamicObjOwner* owner)
 {
 	struct DynamicObjectList* p = malloc(sizeof(p[0]) + size);
 	assignOwner(p, owner);
+	p->size = size;
 	return p + 1;
 }
 
