@@ -4,11 +4,11 @@
  * https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
  */
 
-#include "../include/gpc/assert.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../include/gpc/assert.h"
+#include "terminalcolors.h"
 
 #define GPC_IS_TEST true
 
@@ -40,12 +40,6 @@ GPC_TestAndSuiteData GPC_new_suite(const char* name, GPC_TestAndSuiteData* paren
 
 struct GPC_TestAndSuiteData GPC_gTestData = {};
 struct GPC_TestAndSuiteData *const GPC_currentTestOrSuite = &GPC_gTestData;
-
-#define GPC_RED(STR_LITERAL)		"\033[0;31m"			STR_LITERAL "\033[0m"
-#define GPC_GREEN(STR_LITERAL)		"\033[0;92m"			STR_LITERAL "\033[0m"
-#define GPC_MAGENTA(STR_LITERAL)	"\033[0;95m"			STR_LITERAL "\033[0m"
-#define GPC_CYAN(STR_LITERAL)		"\033[0;96m"			STR_LITERAL "\033[0m"
-#define GPC_WHITE_BG(STR_LITERAL)	"\033[0;47m\033[30m"	STR_LITERAL "\033[0m"
 
 bool GPC_anyFails(struct GPC_TestAndSuiteData* data)
 {

@@ -1,7 +1,7 @@
 EXTENSION = .exe
 CC = gcc
 
-.Phony: tests
+.PHONY: tests
 
 tests: $(patsubst src/%.c,tests/test_%$(EXTENSION),$(wildcard src/*.c))
 

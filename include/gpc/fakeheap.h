@@ -21,6 +21,9 @@ void fakeHeapDestroy(void);
 long   fakeHeapFindFirstReserved(void);
 size_t fakeHeapObjectSize(void* object);
 
+// If called, every malloc, calloc, realloc, and free calls print out to destination
+void fakeHeapSetAutoLog(FILE* destination);
+
 // Prints fake heap contents
 // Array printed left is heap as hex bytes
 // Array printed right is same data but as characters

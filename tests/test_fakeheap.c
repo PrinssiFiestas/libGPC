@@ -4,9 +4,12 @@
  * https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
  */
 
+#include "../include/gpc/assert.h"
 #include "../src/fakeheap.c"
 
 int main()
 {
-	//ASSERT(getLastMemoryOperationInfo() EQ "whatever");
+	fakeHeapInit();
+	
+	fakeHeapDestroy();
 }

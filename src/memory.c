@@ -7,17 +7,6 @@
 #include <stdlib.h>
 #include "../include/gpc/memory.h"
 
-// #ifdef TESTS
-// #define malloc(size)		test_malloc(size)
-// #define free(p)				test_free(p)
-// #define calloc(size, t)		test_calloc(size, t)
-// #define realloc(p, size)	test_realloc(p, size)
-// void* test_malloc(size_t);
-// void  test_free(void*);
-// void* test_calloc(size_t, size_t);
-// void* test_realloc(void*, size_t);
-// #endif
-
 #ifdef TESTS
 #define GPC_FAKEHEAP_REPLACE_ALLOCATOR
 #include "../include/gpc/fakeheap.h"

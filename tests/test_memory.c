@@ -22,6 +22,8 @@ end
 int main()
 {
 	fakeHeapInit();
+	fakeHeapSetAutoLog(stdout);
+	//atexitWhenFailed(printHeapHistory);
 	
 	TEST_SUITE(scoped_memory_management)
 	{
