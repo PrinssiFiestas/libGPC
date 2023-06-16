@@ -60,7 +60,7 @@ long fakeHeapFindFirstReserved()
 	return EMPTY_HEAP;
 }
 
-static char lastHeapOperation[200];
+static char lastHeapOperation[500];
 static char currentHeap[5000];
 static char currentHeapColored[50000];
 static char heapHistory[10000000];
@@ -176,8 +176,38 @@ void autoLog()
 // --------------------------------------------------------------------------
 //		Fake allocators replacing malloc() etc.
 
-// Populates testHeap with RESERVED and moves freeSpace pointer
-void* fakeHeapMalloc(size_t size)
+void updateLastHeapOperation(const char* operation, struct FakeHeapCallData data, void* arg1, void* arg2, void* returnValue)
+{
+	char args[255] = {};
+	char ret[64] = {};
+	if (operation[0] == 'm')
+	{
+		snprintf(args, sizeof(args), "%lli", *(size_t*)arg1);
+		snprintf(ret, sizeof(ret), " -> %p", returnValue);
+	}
+	else if (operation[0] == 'f')
+	{
+		snprintf(args, sizeof(args), "%p", arg1);
+		snprintf(ret, sizeof(ret), " ");
+	}	
+	else if (operation[0] == 'c')
+	{
+		snprintf(args, sizeof(args), "%lli, %lli", *(size_t*)arg1, *(size_t*)arg2);
+		snprintf(ret, sizeof(ret), " -> %p", returnValue);
+	}
+	else
+	{
+		snprintf(args, sizeof(args), "%p, %lli", arg1, *(size_t*)arg2);
+		snprintf(ret, sizeof(ret), " -> %p", returnValue);
+	}
+	
+	snprintf(lastHeapOperation, sizeof(lastHeapOperation), "%s%s%i%s%s%s%s%s%s%s%s%s%s%s%s\n",
+			 data.file, " line ", data.line, "\n",
+			 operation, "(", data.callArgs, ") at function \'", data.func, "\'\n",
+			 operation, "(", args, ")", ret);
+}
+
+void* fakeHeapAllocate(size_t size)
 {
 	fakeHeapSize += ALLOC_OFFSET;
 	
@@ -189,43 +219,54 @@ void* fakeHeapMalloc(size_t size)
 	for (size_t i = 0; i < size; i++)
 		freeSpace[i] = RESERVED;
 	freeSpace += ALLOC_OFFSET;
-	uint8_t* out = freeSpace - ALLOC_OFFSET;
+	return freeSpace - ALLOC_OFFSET;
+}
+
+void* fakeHeapMalloc(size_t size, struct FakeHeapCallData data)
+{
+	void* out = fakeHeapAllocate(size);
 	
-	snprintf(lastHeapOperation, 200, "malloc(%lli) -> %p", size, out);
+	updateLastHeapOperation("malloc", data, &size, NULL, out);
 	updateCurrentHeap();
 	autoLog();
 	return out;
 }
 
-void fakeHeapFree(void* p)
+void fakeHeapFreeMemory(void* p)
 {
 	uint8_t* ptr = p;
 	for (size_t i = 0; i < ALLOC_OFFSET; i++)
 		ptr[i] = FREED;
-	snprintf(lastHeapOperation, 200, "free(%p)", p);
+}
+
+void fakeHeapFree(void* p, struct FakeHeapCallData data)
+{
+	fakeHeapFreeMemory(p);
+
+	updateLastHeapOperation("free", data, p, NULL, NULL);
 	updateCurrentHeap();
 	autoLog();
 }
 
-void* fakeHeapCalloc(size_t nmemb, size_t size)
+void* fakeHeapCalloc(size_t nmemb, size_t size, struct FakeHeapCallData data)
 {
-	uint8_t* out = fakeHeapMalloc(nmemb * size);
+	uint8_t* out = fakeHeapAllocate(nmemb * size);
 	for (size_t i = 0; i < nmemb * size; i++)
 		out[i] = 0;
-	snprintf(lastHeapOperation, 200, "calloc(%lli, %lli) -> %p", nmemb, size, out);
+	updateLastHeapOperation("calloc", data, &nmemb, &size, out);
 	updateCurrentHeap();
 	autoLog();
 	return out;
 }
 
-void* fakeHeapRealloc(void* p, size_t size)
+void* fakeHeapRealloc(void* p, size_t size, struct FakeHeapCallData data)
 {
 	uint8_t* ptr = p;
-	uint8_t* destination = fakeHeapMalloc(size);
+	uint8_t* destination = fakeHeapAllocate(size);
 	for (size_t i = 0; i < size; i++)
 		destination[i] = ptr[i];
-	fakeHeapFree(p);
-	snprintf(lastHeapOperation, 200, "fakeHeapRealloc(%p, %lli)", p, size);
+	fakeHeapFreeMemory(p);
+	updateLastHeapOperation("realloc", data, p, &size, destination);
 	updateCurrentHeap();
 	autoLog();
 	return destination;
