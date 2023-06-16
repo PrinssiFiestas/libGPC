@@ -207,10 +207,15 @@ void  fakeHeapFree(void* p)
 	autoLog();
 }
 
-// TODO FIX THIS
 void* fakeHeapCalloc(size_t nmemb, size_t size)
 {
-	return fakeHeapMalloc(nmemb * size);
+	uint8_t* out = fakeHeapMalloc(nmemb * size);
+	for (size_t i = 0; i < nmemb * size; i++)
+		out[i] = 0;
+	snprintf(lastHeapOperation, 200, "calloc(%lli, %lli) -> %p", nmemb, size, out);
+	updateCurrentHeap();
+	autoLog();
+	return out;
 }
 
 void* fakeHeapRealloc(void* p, size_t size)

@@ -22,7 +22,6 @@ end
 int main()
 {
 	fakeHeapInit();
-	fakeHeapSetAutoLog(true);
 	//#define OUTFILE
 	#ifdef OUTFILE
 	FILE* f = fopen("test_memory_log.txt", "w");

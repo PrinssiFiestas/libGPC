@@ -11,5 +11,12 @@ int main()
 {
 	fakeHeapInit();
 	
+	TEST(fakeHeapCalloc)
+	{
+		uint8_t* p = fakeHeapCalloc(12, 1);
+		ASSERT(p[1] EQ 0);
+		ASSERT(p[11] EQ 0);
+	}
+	
 	fakeHeapDestroy();
 }
