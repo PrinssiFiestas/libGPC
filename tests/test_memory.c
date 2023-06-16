@@ -22,7 +22,12 @@ end
 int main()
 {
 	fakeHeapInit();
-	fakeHeapSetAutoLog(stdout);
+	fakeHeapSetAutoLog(true);
+	//#define OUTFILE
+	#ifdef OUTFILE
+	FILE* f = fopen("test_memory_log.txt", "w");
+	fakeHeapSetLogOut(f);
+	#endif
 	//atexitWhenFailed(printHeapHistory);
 	
 	TEST_SUITE(scoped_memory_management)
@@ -54,6 +59,9 @@ int main()
 		TEST(automatic_freeing)
 			ASSERT(fakeHeapFindFirstReserved() EQ EMPTY_HEAP, "Heap not empty after scope!");
 	}
+	#ifdef OUTFILE
+	fclose(f);
+	#endif
 	fakeHeapDestroy();
 }
 

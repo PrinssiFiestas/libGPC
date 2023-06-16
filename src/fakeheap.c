@@ -24,8 +24,12 @@ const uint32_t  FREED4    = 0xFFFFFFFF;
 const uint8_t   RESERVED  = 0x01;
 const uint32_t  RESERVED4 = 0x01010101;
 
+static FILE* logOut = NULL;
+static bool autoLogEnabled = false;
+
 void fakeHeapInit()
 {
+	logOut = stdout;
 	const size_t TEST_HEAP_CAPACITY = 0x100000;
 	fakeHeap = malloc(TEST_HEAP_CAPACITY);
 	for (size_t i = 0; i < TEST_HEAP_CAPACITY; i++)
@@ -144,22 +148,28 @@ void updateCurrentHeap()
 	strcat(heapHistoryColored, currentHeapColored);
 }
 
-static FILE* autoLogOut = NULL;
-
-void fakeHeapSetAutoLog(FILE* destination)
+void fakeHeapSetLogOut(FILE* destination)
 {
-	autoLogOut = destination;
+	logOut = destination;
+}
+
+void fakeHeapSetAutoLog(bool b)
+{
+	autoLogEnabled = b;
 }
 
 void autoLog()
 {
-	if (autoLogOut != NULL)
+	if (logOut == NULL)
+		logOut = stdout;
+	
+	if (autoLogEnabled)
 	{
-		fprintf(autoLogOut, "%s\n", lastHeapOperation);
-		if (autoLogOut == stdout || autoLogOut == stderr)
-			fprintf(autoLogOut, "%s", currentHeapColored);
+		fprintf(logOut, "%s\n", lastHeapOperation);
+		if (logOut == stdout || logOut == stderr)
+			fprintf(logOut, "%s", currentHeapColored);
 		else
-			fprintf(autoLogOut, "%s", currentHeap);
+			fprintf(logOut, "%s", currentHeap);
 	}
 }
 
