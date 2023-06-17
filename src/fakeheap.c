@@ -13,8 +13,7 @@
 // fake heap
 static uint8_t* fakeHeap = NULL;
 // The test allocator does not look for free block but rather it just moves the
-// 'freeSpace' pointer this amount. Make sure that the test allocations fit this
-// space!
+// 'freeSpace' pointer in multiples of ALLOC_OFFSET
 const size_t ALLOC_OFFSET = 64;
 
 static size_t fakeHeapSize = 0;
@@ -24,22 +23,44 @@ const uint32_t  FREED4    = 0xFFFFFFFF;
 const uint8_t   RESERVED  = 0x01;
 const uint32_t  RESERVED4 = 0x01010101;
 
+static size_t fakeHeapCapacity = 0;
+
+static char lastHeapOperation[500];
+
+static char* currentHeap;
+static char* currentHeapColored;
+static size_t heapHistoryCapacity = 0;
+static char* heapHistory;
+static char* heapHistoryColored;
+
 static FILE* logOut = NULL;
 static bool autoLogEnabled = false;
 
 void fakeHeapInit()
 {
 	logOut = stdout;
-	const size_t TEST_HEAP_CAPACITY = 0x100000;
-	fakeHeap = malloc(TEST_HEAP_CAPACITY);
-	for (size_t i = 0; i < TEST_HEAP_CAPACITY; i++)
+	const size_t FAKE_HEAP_INITIAL_CAPACITY = 0x100000;
+	fakeHeapCapacity = FAKE_HEAP_INITIAL_CAPACITY;
+	fakeHeap = malloc(FAKE_HEAP_INITIAL_CAPACITY);
+	for (size_t i = 0; i < FAKE_HEAP_INITIAL_CAPACITY; i++)
 		fakeHeap[i] = FREED;
+	
+	currentHeap 		= malloc(0x1000);
+	currentHeapColored 	= malloc(0x1000);
+	const size_t HEAP_HISTORY_INITIAL_CAPACITY = 0x10000;
+	heapHistoryCapacity = HEAP_HISTORY_INITIAL_CAPACITY;
+	heapHistoryColored 	= malloc(HEAP_HISTORY_INITIAL_CAPACITY);
+	heapHistory 		= malloc(HEAP_HISTORY_INITIAL_CAPACITY);
 }
 
 void fakeHeapDestroy()
 {
 	fakeHeapSize = 0;
 	free(fakeHeap);
+	free(currentHeap);
+	free(currentHeapColored);
+	free(heapHistory);
+	free(heapHistoryColored);
 }
 
 size_t fakeHeapObjectSize(void* p)
@@ -59,12 +80,6 @@ long fakeHeapFindFirstReserved()
 			return i;
 	return EMPTY_HEAP;
 }
-
-static char lastHeapOperation[500];
-static char currentHeap[5000];
-static char currentHeapColored[50000];
-static char heapHistory[10000000];
-static char heapHistoryColored[50000000];
 
 enum FormatMode
 {
@@ -118,11 +133,19 @@ void appendFormattedBytes(char* out, char* outColored, uint32_t bytes, enum Form
 
 void updateCurrentHeap()
 {
-	for (size_t i = 0; i < 5000; i++)
-		currentHeap[i] = '\0';
-	for (size_t i = 0; i < 50000; i++)
-		currentHeapColored[i] = '\0';
-	
+	free(currentHeap);
+	free(currentHeapColored);
+	const size_t POSSIBLE_BYTE_STR_SIZE = 0x10;
+	const size_t SAFETY_MARGIN = 0x100;
+	const size_t SIZE = fakeHeapSize * POSSIBLE_BYTE_STR_SIZE * sizeof(GPC_WHITE_BG("")) + SAFETY_MARGIN;
+	currentHeap = calloc(SIZE, 1);
+	currentHeapColored = calloc(SIZE, 1);
+	if ( !currentHeap || !currentHeapColored)
+	{
+		perror("calloc failed for currentHeap!");
+		exit(EXIT_FAILURE);
+	}
+
 	uint32_t* fakeHeap32 = (uint32_t*)fakeHeap;
 	for (size_t i = 0; i < fakeHeapSize/4; i++)
 	{
@@ -144,6 +167,14 @@ void updateCurrentHeap()
 	strcat(currentHeap, "\n\n");
 	strcat(currentHeapColored, "\n\n");
 	
+	if (strlen(heapHistoryColored) + 1 + SIZE > heapHistoryCapacity)
+	{
+		heapHistoryCapacity *= 2;
+		heapHistory        = realloc(heapHistory, heapHistoryCapacity);
+		heapHistoryColored = realloc(heapHistory, heapHistoryCapacity);
+		for (size_t i = heapHistoryCapacity/2; i < heapHistoryCapacity; i++)
+			heapHistory[i] = heapHistoryColored[i] = '\0';
+	}
 	strcat(heapHistory, currentHeap);
 	strcat(heapHistoryColored, currentHeapColored);
 }
@@ -209,7 +240,18 @@ void updateLastHeapOperation(const char* operation, struct FakeHeapCallData data
 
 void* fakeHeapAllocate(size_t size)
 {
-	fakeHeapSize += ALLOC_OFFSET;
+	const size_t OFFSET = (size/ALLOC_OFFSET + 1) * ALLOC_OFFSET;
+	fakeHeapSize += OFFSET;
+	
+	if (fakeHeapSize > fakeHeapCapacity)
+	{
+		fakeHeapCapacity *= 2;
+		fakeHeap = realloc(fakeHeap, fakeHeapCapacity);
+		if ( ! fakeHeap)
+			perror("Failed to reallocate fakeHeap!");
+		for (size_t i = fakeHeapCapacity/2; i < fakeHeapCapacity; i++)
+			fakeHeap[i] = FREED;
+	}
 	
 	// initialize freeSpace
 	static uint8_t* freeSpace = NULL;
@@ -218,8 +260,8 @@ void* fakeHeapAllocate(size_t size)
 	
 	for (size_t i = 0; i < size; i++)
 		freeSpace[i] = RESERVED;
-	freeSpace += ALLOC_OFFSET;
-	return freeSpace - ALLOC_OFFSET;
+	freeSpace += OFFSET;
+	return freeSpace - OFFSET;
 }
 
 void* fakeHeapMalloc(size_t size, struct FakeHeapCallData data)

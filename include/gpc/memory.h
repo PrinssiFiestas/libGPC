@@ -32,5 +32,7 @@ void moveOwnership(void* object, DynamicObjOwner* newOwner);
 void freeAll(DynamicObjOwner* owner);
 // Self explanatory
 DynamicObjOwner* getOwner(void* object);
+// Gets size of object excluding it's metadata
+size_t getSize(void* object);
 
 #endif // GPC_MEMORY_H
