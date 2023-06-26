@@ -12,14 +12,6 @@
 #include "../include/gpc/fakeheap.h"
 #endif
 
-struct DynamicObjectList
-{
-	struct DynamicObjectList* previous;
-	struct DynamicObjectList* next;
-	DynamicObjOwner* owner;
-	size_t size;
-};
-
 static void assignOwner(struct DynamicObjectList* obj, DynamicObjOwner* owner)
 {
 	// TODO: check validity of owner and object

@@ -171,7 +171,7 @@ void updateCurrentHeap()
 	{
 		heapHistoryCapacity *= 2;
 		heapHistory        = realloc(heapHistory, heapHistoryCapacity);
-		heapHistoryColored = realloc(heapHistory, heapHistoryCapacity);
+		heapHistoryColored = realloc(heapHistoryColored, heapHistoryCapacity);
 		for (size_t i = heapHistoryCapacity/2; i < heapHistoryCapacity; i++)
 			heapHistory[i] = heapHistoryColored[i] = '\0';
 	}
