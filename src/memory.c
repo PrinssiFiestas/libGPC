@@ -80,5 +80,4 @@ size_t getSize(void* object)
 {
 	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
 	return me->size;
-
 }

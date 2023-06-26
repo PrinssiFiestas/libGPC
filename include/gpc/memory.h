@@ -10,10 +10,6 @@
 #include <stddef.h>
 #include "overload.h"
 
-#define begin		{ DynamicObjOwner thisScope = {NULL, NULL}; (void)thisScope;
-#define ret(obj)	moveOwnership(obj, callingScope); freeAll(&thisScope); return obj;
-#define end			freeAll(&thisScope); }
-
 typedef struct DynamicObjOwner
 {
 	struct DynamicObjectList* firstObject;
@@ -40,10 +36,6 @@ void* mallocAssign(size_t, DynamicObjOwner*);
 void* callocAssign(size_t, DynamicObjOwner*);
 // reallocate object
 void* reallocate(void* object, size_t);
-// malloc and assign ownership to current scope
-#define scopedMalloc(size) mallocAssign(size, &thisScope)
-// calloc and assign ownership to current scope
-#define scopedCalloc(members, elementSize) mallocAssign(members * elementSize, &thisScope)
 // Prevent freeing by end or freeAll()
 void moveOwnership(void* object, DynamicObjOwner* newOwner);
 // Frees every object owned by owner
