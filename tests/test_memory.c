@@ -18,14 +18,26 @@
 int main()
 {
 	fakeHeapInit();
-	
-	// fakeHeapSetAutoLog(true);
+	fakeHeapSetAutoLog(true);
 	
 	NEW_OWNER(thisScope);
 	
-	void* obj0 = mallocAssign(4, thisScope);
+	const size_t obj0Cap = 4;
+	char* obj0 = mallocAssign(obj0Cap, thisScope);
+	obj0[0] = 'X';
+	obj0[1] = '\0';
+	int* obj1 = callocAssign(3, sizeof(obj1[0]), thisScope);
 	
-	//freeAll(thisScope);
+	TEST(reallocate)
+	{
+		uint32_t* obj0Original = (uint32_t*)obj0;
+		obj0 = reallocate(obj0, obj0Cap);
+		ASSERT(obj0 EQ "X");
+		ASSERT(*obj0Original EQ FREED4);
+		ASSERT(getCapacity(obj0) EQ obj0Cap);
+	}
+	
+	freeAll(thisScope);
 	TEST(automatic_freeing)
 		ASSERT(fakeHeapFindFirstReserved() EQ EMPTY_HEAP, "Heap not empty after scope!");
 	

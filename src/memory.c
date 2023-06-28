@@ -9,7 +9,6 @@
 
 static void assignOwner(struct DynamicObjectList* obj, DynamicObjOwner* owner)
 {
-	// TODO: check validity of owner and object
 	obj->owner = owner;
 	if (owner->firstObject == NULL)
 	{
@@ -25,12 +24,53 @@ static void assignOwner(struct DynamicObjectList* obj, DynamicObjOwner* owner)
 	}
 }
 
-void* mallocAssign(size_t size, DynamicObjOwner* owner)
+[[nodiscard]] void* mallocAssign(size_t size, DynamicObjOwner* owner)
 {
 	struct DynamicObjectList* p = malloc(sizeof(p[0]) + size);
+	if (p == NULL)
+		return NULL;
 	assignOwner(p, owner);
-	p->size = size;
+	p->size = 0;
+	p->capacity = size;
 	return p + 1;
+}
+
+[[nodiscard]] void* callocAssign(size_t nmemb, size_t size, DynamicObjOwner* owner)
+{
+	struct DynamicObjectList* p = calloc(sizeof(p[0]) + nmemb * size, 1);
+	if (p == NULL)
+		return NULL;
+	assignOwner(p, owner);
+	p->size = 0;
+	p->capacity = nmemb * size;
+	return p + 1;
+}
+
+#undef reallocate
+[[nodiscard]] void* reallocate(void* object, size_t newSize)
+{
+	// TODO add stack object handling
+	
+	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
+	
+	// detach from current list in case of allocation failure
+	if (me->previous != NULL)
+		me->previous->next = me->next;
+	if (me->next != NULL)
+		me->next->previous = me->previous;
+	
+	// prevent owner pointing directly to object in case of allocation failure
+	if (me->owner->firstObject == me)
+		me->owner->firstObject = me->next;
+	if (me->owner->lastObject == me)
+		me->owner->lastObject = me->previous;
+	
+	me = realloc(me, sizeof(me[0]) + newSize);
+	if (me == NULL)
+		return NULL;
+	
+	assignOwner(me, me->owner);
+	return me + 1;
 }
 
 void moveOwnership(void* object, DynamicObjOwner* newOwner)
@@ -76,3 +116,29 @@ size_t getSize(void* object)
 	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
 	return me->size;
 }
+
+#undef setSize
+[[nodiscard]] void* setSize(void* object, size_t newSize)
+{
+	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
+	me->size = newSize;
+	if (newSize > me->capacity)
+		me = reallocate(me, newSize);
+	return me;
+}
+
+size_t getCapacity(void* object)
+{
+	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
+	return me->capacity;
+}
+
+// void* setCapacity(void* object, size_t newCapacity)
+// {
+	
+// }
+
+// void* duplicate(void* object)
+// {
+	
+// }

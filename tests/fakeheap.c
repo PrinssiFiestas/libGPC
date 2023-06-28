@@ -361,4 +361,5 @@ void* fakeHeapRealloc(void* p, size_t size, struct FakeHeapCallData data)
 #define calloc(nmemb, size)	fakeHeapCalloc(nmemb, size, (struct FakeHeapCallData)\
 	{__FILE__, __LINE__, __func__, #nmemb ", " #size })
 
-#define realloc(p, size)	fakeHeapRealloc(p, size, (struct Fak
+#define realloc(p, size)	fakeHeapRealloc(p, size, (struct FakeHeapCallData)	\
+	{__FILE__, __LINE__, __func__, #p ", " #size })

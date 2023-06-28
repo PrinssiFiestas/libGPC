@@ -33,16 +33,18 @@ struct DynamicObjectList
 };
 
 // malloc and assign ownership
-void* mallocAssign(size_t, DynamicObjOwner*);
+// Returns NULL on failure
+[[nodiscard]] void* mallocAssign(size_t, DynamicObjOwner*);
 
 // calloc and assign ownership
-void* callocAssign(size_t, DynamicObjOwner*);
+// Returns NULL on failure
+[[nodiscard]] void* callocAssign(size_t nmemb, size_t size, DynamicObjOwner*);
 
 // Reallocate object
 // Returns pointer to newly allocated block
-// 'object' will be mutated to new memory so return value can be ignored. 
-// Can be used for stack allocated objects to reallocate them on heap. 
-void* reallocate(void* object, size_t newSize);
+// Returns NULL on failure
+[[nodiscard]] void* reallocate(void* object, size_t newSize);
+#define reallocate(object, newSize) ((object) = reallocate(object, newSize))
 
 // Assign a new owner
 void moveOwnership(void* object, DynamicObjOwner* newOwner);
@@ -58,16 +60,18 @@ size_t getSize(void* object);
 
 // Sets size of object excluding it's metadata
 // Reallocates if 'newSize' exceeds size of block allocated for object
-void* setSize(void* object, size_t newSize);
+[[nodiscard]] void* setSize(void* object, size_t newSize);
+#define setSize(object, newSize) ((object) = setSize(object, newSize))
 
 // Gets size of memory block allocated for 'object'
 size_t getCapacity(void* object);
 
 // Sets size of memory block allocated for 'object'
 // Reallocates if 'newCapacity' exceeds size of block allocated for object
-void* setCapacity(void* object, size_t newCapacity);
+[[nodiscard]] void* setCapacity(void* object, size_t newCapacity);
+#define setCapacity(object, newCapacity) ((object) = setCapacity(object, newCapacity))
 
 // Returns a copy of 'object'
-void* duplicate(void* object);
+[[nodiscard]] void* duplicate(void* object);
 
 #endif // GPC_MEMORY_H
