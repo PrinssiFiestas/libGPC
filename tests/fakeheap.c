@@ -312,9 +312,9 @@ void* fakeHeapMalloc(size_t size, struct FakeHeapCallData data)
 
 void fakeHeapFreeMemory(void* p)
 {
-	uint8_t* ptr = p;
-	for (size_t i = 0; i < ALLOC_OFFSET; i++)
-		ptr[i] = FREED;
+	uint32_t* ptr = p;
+	for (size_t i = 0; ptr[i] != FREED4; i++)
+		ptr[i] = FREED4;
 }
 
 void fakeHeapFree(void* p, struct FakeHeapCallData data)
@@ -341,7 +341,7 @@ void* fakeHeapRealloc(void* p, size_t size, struct FakeHeapCallData data)
 {
 	uint8_t* ptr = p;
 	uint8_t* destination = fakeHeapAllocate(size);
-	for (size_t i = 0; i < size; i++)
+	for (size_t i = 0; i < size && ((uint32_t*)p)[i/4] != FREED4; i++)
 		destination[i] = ptr[i];
 	fakeHeapFreeMemory(p);
 	updateLastHeapOperation("realloc", data, p, &size, destination);

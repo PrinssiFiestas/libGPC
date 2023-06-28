@@ -22,24 +22,44 @@ int main()
 	
 	NEW_OWNER(thisScope);
 	
+	TEST(nextPowerOf2)
+	{
+		ASSERT(nextPowerOf2(3) EQ 4);
+		ASSERT(nextPowerOf2(4) EQ 4, "Prevent needless allocations!");
+		ASSERT(nextPowerOf2(28) EQ 32);
+	}
+	
 	const size_t obj0Cap = 4;
 	char* obj0 = mallocAssign(obj0Cap, thisScope);
 	obj0[0] = 'X';
 	obj0[1] = '\0';
 	int* obj1 = callocAssign(3, sizeof(obj1[0]), thisScope);
+	obj1[1] = 0xEFBE;
 	
 	TEST(reallocate)
 	{
 		uint32_t* obj0Original = (uint32_t*)obj0;
-		obj0 = reallocate(obj0, obj0Cap);
+		obj0 = reallocate(obj0, obj0Cap * 2);
 		ASSERT(obj0 EQ "X");
 		ASSERT(*obj0Original EQ FREED4);
-		ASSERT(getCapacity(obj0) EQ obj0Cap);
+		ASSERT(getCapacity(obj0) EQ obj0Cap * 2);
+	}
+	
+	TEST(setCapacity_and_setSize)
+	{
+		uint32_t* obj1Original = (uint32_t*)obj1;
+		size_t oldCapacity = getCapacity(obj1);
+		obj1 = setCapacity(obj1, oldCapacity + 1);
+		ASSERT(*obj1Original EQ FREED4);
+		ASSERT(getCapacity(obj1) EQ nextPowerOf2(oldCapacity + 1));
+		
+		typeof(obj1) obj1NonMoved = obj1;
+		ASSERT(obj1 = setSize(obj1, getCapacity(obj1)) EQ obj1NonMoved);
 	}
 	
 	freeAll(thisScope);
 	TEST(automatic_freeing)
-		ASSERT(fakeHeapFindFirstReserved() EQ EMPTY_HEAP, "Heap not empty after scope!");
+		ASSERT(fakeHeapFindFirstReserved() EQ EMPTY_HEAP, "Heap not empty after killing owner!");
 	
 	fakeHeapDestroy();
 }
