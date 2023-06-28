@@ -7,11 +7,6 @@
 #include <stdlib.h>
 #include "../include/gpc/memory.h"
 
-#ifdef TESTS
-#define GPC_FAKEHEAP_REPLACE_ALLOCATOR
-#include "../include/gpc/fakeheap.h"
-#endif
-
 static void assignOwner(struct DynamicObjectList* obj, DynamicObjOwner* owner)
 {
 	// TODO: check validity of owner and object

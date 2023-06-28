@@ -4,11 +4,47 @@
  * https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
  */
 
-#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include "../include/gpc/fakeheap.h"
-#include "terminalcolors.h"
+
+#include "../src/terminalcolors.h"
+#include <stdlib.h>
+#include <stdio.h>
+
+void fakeHeapInit(void);
+void fakeHeapDestroy(void);
+
+#define EMPTY_HEAP -1
+long   fakeHeapFindFirstReserved(void);
+size_t fakeHeapObjectSize(void* object);
+
+// If called, every malloc, calloc, realloc, and free calls print out to destination
+void fakeHeapSetAutoLog(bool);
+void fakeHeapSetLogOut(FILE* destination);
+
+// Prints fake heap contents
+// Array printed left is heap as hex bytes
+// Array printed right is same data but as characters
+void  fakeHeapPrint(void);
+void  fakeHeapPrintStderr(void);
+void  fakeHeapPrintToFile(FILE*);
+char* fakeHeapContents(void);
+
+// Prints full heap history with all allocations
+void  fakeHeapPrintHistory(void);
+void  fakeHeapPrintHistoryStderr(void);
+void  fakeHeapPrintHistoryToFile(FILE*);
+char* fakeHeapHistoryContents(void);
+
+struct FakeHeapCallData
+{
+	const char* file;
+	const int line;
+	const char* func;
+	const char* callArgs;
+};
+
+// ---------------------------------------------------------------------------
 
 // fake heap
 static uint8_t* fakeHeap = NULL;
@@ -313,3 +349,16 @@ void* fakeHeapRealloc(void* p, size_t size, struct FakeHeapCallData data)
 	autoLog();
 	return destination;
 }
+
+// ---------------------------------------------------------------------------
+
+#define malloc(size)		fakeHeapMalloc(size, (struct FakeHeapCallData)		\
+	{__FILE__, __LINE__, __func__, #size })
+
+#define free(p)				fakeHeapFree(p, (struct FakeHeapCallData)			\
+	{__FILE__, __LINE__, __func__, #p })
+
+#define calloc(nmemb, size)	fakeHeapCalloc(nmemb, size, (struct FakeHeapCallData)\
+	{__FILE__, __LINE__, __func__, #nmemb ", " #size })
+
+#define realloc(p, size)	fakeHeapRealloc(p, size, (struct Fak

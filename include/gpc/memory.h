@@ -8,13 +8,15 @@
 #define GPC_MEMORY_H
 
 #include <stddef.h>
-#include "overload.h"
 
 typedef struct DynamicObjOwner
 {
 	struct DynamicObjectList* firstObject;
 	struct DynamicObjectList* lastObject;
 } DynamicObjOwner;
+
+// Use this macro to safely create a new owner on stack
+#define NEW_OWNER(name) DynamicObjOwner* const name = &(DynamicObjOwner){};
 
 struct DynamicObjectList
 {
@@ -32,23 +34,40 @@ struct DynamicObjectList
 
 // malloc and assign ownership
 void* mallocAssign(size_t, DynamicObjOwner*);
+
 // calloc and assign ownership
 void* callocAssign(size_t, DynamicObjOwner*);
-// reallocate object
-void* reallocate(void* object, size_t);
-// Prevent freeing by end or freeAll()
+
+// Reallocate object
+// Returns pointer to newly allocated block
+// 'object' will be mutated to new memory so return value can be ignored. 
+// Can be used for stack allocated objects to reallocate them on heap. 
+void* reallocate(void* object, size_t newSize);
+
+// Assign a new owner
 void moveOwnership(void* object, DynamicObjOwner* newOwner);
-// Frees every object owned by owner
+
+// Frees every heap allocated object owned by owner
 void freeAll(DynamicObjOwner* owner);
-// Self explanatory
+
+// Returns pointer to object's owner
 DynamicObjOwner* getOwner(void* object);
+
 // Gets size of object excluding it's metadata
 size_t getSize(void* object);
 
-void* setSize(void* object);
+// Sets size of object excluding it's metadata
+// Reallocates if 'newSize' exceeds size of block allocated for object
+void* setSize(void* object, size_t newSize);
 
+// Gets size of memory block allocated for 'object'
 size_t getCapacity(void* object);
 
-void* setCapacity(void* object);
+// Sets size of memory block allocated for 'object'
+// Reallocates if 'newCapacity' exceeds size of block allocated for object
+void* setCapacity(void* object, size_t newCapacity);
+
+// Returns a copy of 'object'
+void* duplicate(void* object);
 
 #endif // GPC_MEMORY_H
