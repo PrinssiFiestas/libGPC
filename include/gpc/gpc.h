@@ -7,6 +7,8 @@
 #ifndef GPC_H
 #define GPC_H
 
+#include <stdbool.h>
+
 // Functions check validity of their inputs in various ways. User can set the 
 // default error handling behaviour with gpc_setErrorHandlingMode(). 
 enum gpc_ErrorHandling
@@ -35,14 +37,15 @@ enum gpc_ErrorHandling
 };
 void gpc_setErrorHandlingMode(enum gpc_ErrorHandling);
 
-// perror() by default
+// perror()-like function by default
 // Disable error messages with NULL
 // Argument to callback may be NULL
 void gpc_setDebugMessageCallback(void (*callback)(const char*));
 
+// Does nothing when condition == false
 // Calls callback set by gpc_setDebugMessageCallback()
 // Aborts based on setting set by gpc_setErrorHandlingMode()
-enum gpc_ErrorHandling gpc_handleError(const char* errorMessage);
+enum gpc_ErrorHandling gpc_handleError(bool condition, const char* errorMessage);
 
 #include "memory.h"
 

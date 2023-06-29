@@ -1,1 +1,1 @@
-'make tests' command assumes that all .c files in the 'src' directory has a corresponding test file with 'test_' prefix and 'main' function defined in this directory. 
+'make tests' command assumes that all .c files in the 'src' directory has a corresponding test file with 'test_' prefix and 'main' function defined in this directory. Test files should include their corresponding .c file on top and any dependencies on bottom. 

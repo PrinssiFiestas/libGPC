@@ -6,10 +6,23 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <string.h>
 #include "../include/gpc/gpc.h"
 
+// Same as perror() but doesn't print "No error" when no errors
+static void perror2(const char* msg)
+{
+	const char* errorString = strerror(errno);
+	if ( ! errno)
+		errorString = "";
+	if ( ! msg)
+		msg = "";
+	fprintf(stderr, "%s\n%s\n", errorString, msg);
+}
+
 static enum gpc_ErrorHandling gpc_gErrorHandlingMode = GPC_ERROR_NO_HANDLING;
-static void (*gpc_gDebugMessageCallback)(const char*) = perror;
+static void (*gpc_gDebugMessageCallback)(const char*) = perror2;
 
 void gpc_setErrorHandlingMode(enum gpc_ErrorHandling i)
 {
@@ -26,8 +39,11 @@ void gpc_setDebugMessageCallback(void (*callback)(const char*))
 	gpc_gDebugMessageCallback = callback ? callback : doNothing;
 }
 
-enum gpc_ErrorHandling gpc_handleError(const char* errorMessage)
+enum gpc_ErrorHandling gpc_handleError(bool condition, const char* errorMessage)
 {
+	if (!!condition == false)
+		return GPC_ERROR_NO_HANDLING;
+	
 	switch (gpc_gErrorHandlingMode)
 	{
 		case GPC_ERROR_NO_HANDLING:

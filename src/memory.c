@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../include/gpc/gpc.h"
+#include "terminalcolors.h"
 
 static void assignOwner(struct gpc_DynamicObjectList* obj, gpc_DynamicObjOwner* owner)
 {
@@ -57,6 +58,11 @@ static void* handleAllocNull()
 
 [[nodiscard]] void* gpc_mallocAssign(size_t size, gpc_DynamicObjOwner* owner)
 {
+	if (gpc_handleError(owner == NULL, GPC_RED("ERROR:") " owner is NULL in mallocAssign. Every object requires an owner!"))
+		return NULL;
+	if (gpc_handleError(size == 0, GPC_RED("ERROR:") " trying to allocate 0 bytes in mallocAssign"))
+		return NULL;
+	
 	size = nextPowerOf2(size);
 	struct gpc_DynamicObjectList* p = malloc(sizeof(p[0]) + size);
 	if (p == NULL)
