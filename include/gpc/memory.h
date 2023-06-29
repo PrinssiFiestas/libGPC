@@ -9,28 +9,10 @@
 
 #include <stddef.h>
 
-typedef struct DynamicObjOwner
-{
-	struct DynamicObjectList* firstObject;
-	struct DynamicObjectList* lastObject;
-} DynamicObjOwner;
+typedef struct DynamicObjOwner DynamicObjOwner;
 
-// Use this macro to safely create a new owner on stack
+// New owner on stack
 #define NEW_OWNER(name) DynamicObjOwner* const name = &(DynamicObjOwner){};
-
-struct DynamicObjectList
-{
-	// previous and next being NULL indicates stack allocated object
-	struct DynamicObjectList* previous;
-	struct DynamicObjectList* next;
-	
-	// Owner is required even for stack allocated objects so they can be 
-	// assigned properly if capacity needs to be exceeded
-	DynamicObjOwner* owner;
-	
-	size_t size;
-	size_t capacity;
-};
 
 // malloc and assign ownership
 // Returns NULL on failure
@@ -73,5 +55,27 @@ size_t getCapacity(void* object);
 
 // Returns a copy of 'object'
 [[nodiscard]] void* duplicate(void* object);
+
+// ---------------------------------------------------------------------------
+
+typedef struct DynamicObjOwner
+{
+	struct DynamicObjectList* firstObject;
+	struct DynamicObjectList* lastObject;
+} DynamicObjOwner;
+
+struct DynamicObjectList
+{
+	// previous and next being NULL indicates stack allocated object
+	struct DynamicObjectList* previous;
+	struct DynamicObjectList* next;
+	
+	// Owner is required even for stack allocated objects so they can be 
+	// assigned properly if capacity needs to be exceeded
+	DynamicObjOwner* owner;
+	
+	size_t size;
+	size_t capacity;
+};
 
 #endif // GPC_MEMORY_H
