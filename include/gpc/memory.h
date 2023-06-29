@@ -18,10 +18,15 @@
 // Define these macros before including this header in case of namespacing problems. 
 #if !defined(GPC_MEMORY_NAMESPACING) && !defined(GPC_NAMESPACING)
 
+// Every dynamic object needs to be assigned to an owner on creation.
+// Owners should ALWAYS be zero initialized
+// NEW_OWNER() macro is recommended to create a zero initialized pointer on stack
+// Use freeAll() for each owner
+// freeAll() is always safe even when there's no objects on heap or at all
 typedef struct gpc_DynamicObjOwner DynamicObjOwner;
 
-// New owner on stack
-#define NEW_OWNER(name) DynamicObjOwner* const name = &(DynamicObjOwner){};
+// New zero initialized owner on stack
+#define NEW_OWNER(name)						GPC_NEW_OWNER(name)
 
 // malloc and assign ownership
 // Returns NULL on failure
@@ -40,6 +45,7 @@ typedef struct gpc_DynamicObjOwner DynamicObjOwner;
 #define moveOwnership(object, newOwner)		gpc_moveOwnership(object, newOwner)
 
 // Frees every heap allocated object owned by owner
+// Does nothing if owner only has objects on stack or no objects at all
 #define freeAll(owner)						gpc_freeAll(owner)
 
 // Returns pointer to object's owner
@@ -66,49 +72,31 @@ typedef struct gpc_DynamicObjOwner DynamicObjOwner;
 
 typedef struct gpc_DynamicObjOwner gpc_DynamicObjOwner;
 
-// New owner on stack
 #define GPC_NEW_OWNER(name) gpc_DynamicObjOwner* const name = &(DynamicObjOwner){};
 
-// malloc and assign ownership
-// Returns NULL on failure
 [[nodiscard]] void* gpc_mallocAssign(size_t, gpc_DynamicObjOwner*);
 
-// calloc and assign ownership
-// Returns NULL on failure
 [[nodiscard]] void* gpc_callocAssign(size_t nmemb, size_t size, gpc_DynamicObjOwner*);
 
-// Reallocate object
-// Returns pointer to newly allocated block
-// Returns NULL on failure
 [[nodiscard]] void* gpc_reallocate(void* object, size_t newSize);
 #define gpc_reallocate(object, newSize) ((object) = gpc_reallocate(object, newSize))
 
-// Assign a new owner
 void gpc_moveOwnership(void* object, gpc_DynamicObjOwner* newOwner);
 
-// Frees every heap allocated object owned by owner
 void gpc_freeAll(gpc_DynamicObjOwner* owner);
 
-// Returns pointer to object's owner
 gpc_DynamicObjOwner* gpc_getOwner(void* object);
 
-// Gets size of object excluding it's metadata
 size_t gpc_getSize(void* object);
 
-// Sets size of object excluding it's metadata
-// Reallocates if 'newSize' exceeds size of block allocated for object
 [[nodiscard]] void* gpc_setSize(void* object, size_t newSize);
 #define gpc_setSize(object, newSize) ((object) = gpc_setSize(object, newSize))
 
-// Gets size of memory block allocated for object
 size_t gpc_getCapacity(void* object);
 
-// Sets size of memory block allocated for object
-// Reallocates if newCapacity exceeds size of block allocated for object
 [[nodiscard]] void* gpc_setCapacity(void* object, size_t newCapacity);
 #define gpc_setCapacity(object, newCapacity) ((object) = gpc_setCapacity(object, newCapacity))
 
-// Returns a copy of object on heap
 [[nodiscard]] void* gpc_duplicate(void* object);
 
 //----------------------------------------------------------------------------
@@ -118,6 +106,19 @@ size_t gpc_getCapacity(void* object);
 //		Structs, functions and macros below are for internal or advanced use
 //
 //----------------------------------------------------------------------------
+
+
+enum gpc_MemoryFailBehaviour
+{
+	GPC_MEM_FAIL_ABORT,				// aborts execution with error message
+	GPC_MEM_FAIL_RETURN_NULL,		// allows user to handle failure
+	
+	GPC_MEM_FAIL_SIZE				// for internal use
+};
+
+// Sets behaviour on failed malloc(), calloc(), and realloc()
+// Default behaviour is GPC_MEM_FAIL_ABORT
+void gpc_setMemoryFailBehaviour(enum gpc_MemoryFailBehaviour);
 
 typedef struct gpc_DynamicObjOwner
 {

@@ -149,7 +149,7 @@ struct gpc_ExpectationData
 // Allows macros EQ, NE, etc. to be used like operators
 bool gpc_compare(double expression_a, enum gpc_BooleanOperator, double expression_b);
 
-void gpc_printStartingMessageAndInitExitMessage();
+void gpc_printStartingMessageAndInitExitMessage(void);
 
 void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData*);
 

@@ -20,9 +20,11 @@ int main()
 	fakeHeapInit();
 	// Uncomment for heap visualization in stdout
 	// fakeHeapSetAutoLog(true);
+
+	gpc_setErrorHandlingMode(GPC_ERROR_STRICT);
 	
 	NEW_OWNER(thisScope);
-	
+
 	TEST(nextPowerOf2)
 	{
 		ASSERT(nextPowerOf2(3) EQ 4);
@@ -78,3 +80,5 @@ int main()
 	
 	fakeHeapDestroy();
 }
+
+#include "../src/gpc.c"

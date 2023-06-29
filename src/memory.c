@@ -4,9 +4,10 @@
  * https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../include/gpc/memory.h"
+#include "../include/gpc/gpc.h"
 
 static void assignOwner(struct gpc_DynamicObjectList* obj, gpc_DynamicObjOwner* owner)
 {
@@ -34,12 +35,32 @@ static size_t nextPowerOf2(size_t i)
 	return result;
 }
 
+static enum gpc_MemoryFailBehaviour gMemoryFailBehaviour = GPC_MEM_FAIL_ABORT;
+
+void gpc_setMemoryFailBehaviour(enum gpc_MemoryFailBehaviour i)
+{
+	gMemoryFailBehaviour = i < GPC_MEM_FAIL_SIZE ? i : GPC_MEM_FAIL_ABORT;
+}
+
+static void* handleAllocNull()
+{
+	if (gMemoryFailBehaviour == GPC_MEM_FAIL_ABORT)
+	{
+		perror(NULL);
+		abort();
+	}
+	#ifndef NDEBUG
+	perror(NULL);
+	#endif
+	return NULL;
+}
+
 [[nodiscard]] void* gpc_mallocAssign(size_t size, gpc_DynamicObjOwner* owner)
 {
 	size = nextPowerOf2(size);
 	struct gpc_DynamicObjectList* p = malloc(sizeof(p[0]) + size);
 	if (p == NULL)
-		return NULL;
+		return handleAllocNull();
 	assignOwner(p, owner);
 	p->size = 0;
 	p->capacity = size;
@@ -51,17 +72,25 @@ static size_t nextPowerOf2(size_t i)
 	size_t blockSize = nextPowerOf2(nmemb * size);
 	struct gpc_DynamicObjectList* p = calloc(sizeof(p[0]) + blockSize, 1);
 	if (p == NULL)
-		return NULL;
+		return handleAllocNull();
 	assignOwner(p, owner);
 	p->size = 0;
 	p->capacity = blockSize;
 	return p + 1;
 }
 
+static struct gpc_DynamicObjectList* listData(void* object)
+{
+	return ((struct gpc_DynamicObjectList*)object) - 1;
+}
+
 #undef gpc_reallocate
 [[nodiscard]] void* gpc_reallocate(void* object, size_t newCapacity)
 {
-	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
+	if (object == NULL)
+		return NULL;
+	
+	struct gpc_DynamicObjectList* me = listData(object);
 	if (newCapacity <= me->capacity)
 		return object;
 	
@@ -84,7 +113,7 @@ static size_t nextPowerOf2(size_t i)
 	
 	me = realloc(me, sizeof(me[0]) + newCapacity);
 	if (me == NULL)
-		return NULL;
+		return handleAllocNull();
 	
 	assignOwner(me, me->owner);
 	return me + 1;
@@ -92,7 +121,7 @@ static size_t nextPowerOf2(size_t i)
 
 void gpc_moveOwnership(void* object, gpc_DynamicObjOwner* newOwner)
 {
-	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
+	struct gpc_DynamicObjectList* me = listData(object);
 	
 	// detach from current list
 	if (me->previous != NULL)
@@ -114,6 +143,8 @@ void gpc_moveOwnership(void* object, gpc_DynamicObjOwner* newOwner)
 
 void gpc_freeAll(gpc_DynamicObjOwner* owner)
 {
+	if (owner == NULL)
+		return;
 	for (struct gpc_DynamicObjectList *obj = owner->firstObject, *next = NULL;
 		 obj != NULL; obj = next)
 	{
@@ -124,20 +155,20 @@ void gpc_freeAll(gpc_DynamicObjOwner* owner)
 
 DynamicObjOwner* gpc_getOwner(void* object)
 {
-	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
+	struct gpc_DynamicObjectList* me = listData(object);
 	return me->owner;
 }
 
 size_t gpc_getSize(void* object)
 {
-	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
+	struct gpc_DynamicObjectList* me = listData(object);
 	return me->size;
 }
 
 #undef gpc_setSize
 [[nodiscard]] void* gpc_setSize(void* object, size_t newSize)
 {
-	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
+	struct gpc_DynamicObjectList* me = listData(object);
 	me->size = newSize;
 	object = gpc_reallocate(object, newSize);
 	return object;
@@ -145,7 +176,7 @@ size_t gpc_getSize(void* object)
 
 size_t gpc_getCapacity(void* object)
 {
-	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
+	struct gpc_DynamicObjectList* me = listData(object);
 	return me->capacity;
 }
 
