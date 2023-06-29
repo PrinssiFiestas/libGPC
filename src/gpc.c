@@ -41,7 +41,7 @@ void gpc_setDebugMessageCallback(void (*callback)(const char*))
 
 enum gpc_ErrorHandling gpc_handleError(bool condition, const char* errorMessage)
 {
-	if (!!condition == false)
+	if (condition != true)
 		return GPC_ERROR_NO_HANDLING;
 	
 	switch (gpc_gErrorHandlingMode)

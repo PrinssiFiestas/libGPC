@@ -5,9 +5,16 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <stdbool.h>
 #include "../include/gpc/assert.h"
 #include "../src/gpc.c"
+
+char gstr[200];
+void debugMessageCallback(const char* str)
+{
+	strcpy(gstr, str);
+}
  
 int main()
 {
@@ -19,6 +26,10 @@ int main()
 		ASSERT(gpc_handleError(p == NULL, NULL) EQ GPC_ERROR_NO_HANDLING);
 		gpc_setErrorHandlingMode(GPC_ERROR_DEBUG);
 		ASSERT(gpc_handleError(p == NULL, "Error message!") EQ GPC_ERROR_SHOULD_HANDLE);
+		gpc_setDebugMessageCallback(debugMessageCallback);
+		const char* msg = "To callback";
+		gpc_handleError(p == NULL, msg);
+		ASSERT(gstr EQ msg);
 	}
 	
 	// #define TEST_ERROR

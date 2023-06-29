@@ -58,9 +58,9 @@ static void* handleAllocNull()
 
 [[nodiscard]] void* gpc_mallocAssign(size_t size, gpc_DynamicObjOwner* owner)
 {
-	if (gpc_handleError(owner == NULL, GPC_RED("ERROR:") " owner is NULL in mallocAssign. Every object requires an owner!"))
+	if (gpc_handleError(owner == NULL, "Owner is NULL in mallocAssign(). Every object requires an owner!"))
 		return NULL;
-	if (gpc_handleError(size == 0, GPC_RED("ERROR:") " trying to allocate 0 bytes in mallocAssign"))
+	if (gpc_handleError(size == 0, "Trying to allocate 0 bytes in mallocAssign()"))
 		return NULL;
 	
 	size = nextPowerOf2(size);
@@ -75,6 +75,11 @@ static void* handleAllocNull()
 
 [[nodiscard]] void* gpc_callocAssign(size_t nmemb, size_t size, gpc_DynamicObjOwner* owner)
 {
+	if (gpc_handleError(owner == NULL, "Owner is NULL in callocAssign(). Every object requires an owner!"))
+		return NULL;
+	if (gpc_handleError(size == 0, "Trying to allocate 0 bytes in callocAssign()"))
+		return NULL;
+	
 	size_t blockSize = nextPowerOf2(nmemb * size);
 	struct gpc_DynamicObjectList* p = calloc(sizeof(p[0]) + blockSize, 1);
 	if (p == NULL)
@@ -93,7 +98,7 @@ static struct gpc_DynamicObjectList* listData(void* object)
 #undef gpc_reallocate
 [[nodiscard]] void* gpc_reallocate(void* object, size_t newCapacity)
 {
-	if (object == NULL)
+	if (gpc_handleError(object == NULL, "NULL passed to reallocate()"))
 		return NULL;
 	
 	struct gpc_DynamicObjectList* me = listData(object);
@@ -127,6 +132,11 @@ static struct gpc_DynamicObjectList* listData(void* object)
 
 void gpc_moveOwnership(void* object, gpc_DynamicObjOwner* newOwner)
 {
+	if (gpc_handleError(object == NULL, "Object is NULL in moveOwnership()."))
+		return;
+	if (gpc_handleError(newOwner == NULL, "New owner is NULL in moveOwnership(). Every object requires an owner!"))
+		return;
+	
 	struct gpc_DynamicObjectList* me = listData(object);
 	
 	// detach from current list
@@ -149,8 +159,9 @@ void gpc_moveOwnership(void* object, gpc_DynamicObjOwner* newOwner)
 
 void gpc_freeAll(gpc_DynamicObjOwner* owner)
 {
-	if (owner == NULL)
+	if (gpc_handleError(owner == NULL, "Passed NULL to freeAll()."))
 		return;
+	
 	for (struct gpc_DynamicObjectList *obj = owner->firstObject, *next = NULL;
 		 obj != NULL; obj = next)
 	{
@@ -161,12 +172,18 @@ void gpc_freeAll(gpc_DynamicObjOwner* owner)
 
 DynamicObjOwner* gpc_getOwner(void* object)
 {
+	if (gpc_handleError(object == NULL, "Passed NULL to getOwner()."))
+		return NULL;
+	
 	struct gpc_DynamicObjectList* me = listData(object);
 	return me->owner;
 }
 
 size_t gpc_getSize(void* object)
 {
+	if (gpc_handleError(object == NULL, "Passed NULL to getSize()."))
+		return 0;
+	
 	struct gpc_DynamicObjectList* me = listData(object);
 	return me->size;
 }
@@ -174,6 +191,9 @@ size_t gpc_getSize(void* object)
 #undef gpc_setSize
 [[nodiscard]] void* gpc_setSize(void* object, size_t newSize)
 {
+	if (gpc_handleError(object == NULL, "Passed NULL to setSize()."))
+		return NULL;
+	
 	struct gpc_DynamicObjectList* me = listData(object);
 	me->size = newSize;
 	object = gpc_reallocate(object, newSize);
@@ -182,6 +202,9 @@ size_t gpc_getSize(void* object)
 
 size_t gpc_getCapacity(void* object)
 {
+	if (gpc_handleError(object == NULL, "Passed NULL to getCapacity()."))
+		return 0;
+	
 	struct gpc_DynamicObjectList* me = listData(object);
 	return me->capacity;
 }
@@ -189,12 +212,18 @@ size_t gpc_getCapacity(void* object)
 #undef gpc_setCapacity
 [[nodiscard]] void* gpc_setCapacity(void* object, size_t newCapacity)
 {
+	if (gpc_handleError(object == NULL, "Passed NULL to setCapacity()."))
+		return NULL;
+	
 	object = gpc_reallocate(object, newCapacity);
 	return object;
 }
 
-[[nodiscard]] void* duplicate(void* object)
+[[nodiscard]] void* gpc_duplicate(void* object)
 {
+	if (gpc_handleError(object == NULL, "Passed NULL to duplicate()."))
+		return NULL;
+	
 	void* copy = gpc_mallocAssign(gpc_getCapacity(object), gpc_getOwner(object));
 	if (copy == NULL)
 		return NULL;
