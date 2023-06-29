@@ -41,20 +41,20 @@ int main() // function scope required!
 // Does nothing when expression is true.
 // Exits program and prints failure message when expression is false.
 // Assertions are counted as expectations.
-#define ASSERT(/*bool expression, char* failMessage = NULL*/...) GPC_ASSERT(__VA_ARGS__)
+#define ASSERT(/*bool expression, char* failMessage = NULL*/...) GPC_ASSERT_OL(__VA_ARGS__)
 
 // Returns 0 when expression is true.
 // Prints failure message and returns 1 when expression is false.
-#define EXPECT(/*bool expression, char* failMessage = NULL*/...) GPC_EXPECT(__VA_ARGS__)
+#define EXPECT(/*bool expression, char* failMessage = NULL*/...) GPC_EXPECT_OL(__VA_ARGS__)
 
 // 'Pseudo-operators' to be used in argument for ASSERT() or EXPECT().
 // Use ASSERT(A EQ B) instead of ASSERT(A == B) for more info at failure.
-#define EQ ,GPC_EQ, // ==
-#define NE ,GPC_NE, // !=
-#define GT ,GPC_GT, // >
-#define LT ,GPC_LT, // <
-#define GE ,GPC_GE, // >=
-#define LE ,GPC_LE, // <=
+#define EQ ,GPC_OP_EQ, // ==
+#define NE ,GPC_OP_NE, // !=
+#define GT ,GPC_OP_GT, // >
+#define LT ,GPC_OP_LT, // <
+#define GE ,GPC_OP_GE, // >=
+#define LE ,GPC_OP_LE, // <=
 
 //----------------------------------------------------------------------------
 //
@@ -64,7 +64,7 @@ int main() // function scope required!
 //
 //----------------------------------------------------------------------------
 
-typedef struct GPC_TestAndSuiteData
+typedef struct gpc_TestAndSuiteData
 {
 	const char* name;
 	int testFails, suiteFails, expectationFails/*includes assertion fails*/;
@@ -72,25 +72,25 @@ typedef struct GPC_TestAndSuiteData
 	const union {bool isTest;  bool testDefined;};
 	const union {bool isSuite; bool suiteDefined;};
 	bool testOrSuiteRunning;
-	struct GPC_TestAndSuiteData* parent;
-} GPC_TestAndSuiteData;
+	struct gpc_TestAndSuiteData* parent;
+} gpc_TestAndSuiteData;
 
-extern GPC_TestAndSuiteData GPC_gTestData;
+extern gpc_TestAndSuiteData gpc_gTestData;
 
-#define OP_TABLE	\
-	X(_EQ, ==)		\
-	X(_NE, !=)		\
-	X(_GT, >)		\
-	X(_LT, <)		\
-	X(_GE, >=)		\
-	X(_LE, <=)		\
+#define GPC_OP_TABLE	\
+	X(_OP_EQ, ==)		\
+	X(_OP_NE, !=)		\
+	X(_OP_GT, >)		\
+	X(_OP_LT, <)		\
+	X(_OP_GE, >=)		\
+	X(_OP_LE, <=)		\
 
-enum GPC_BooleanOperator
+enum gpc_BooleanOperator
 {
 	GPC_NO_OP = -1,
 
 #define X(OP, DUMMY) GPC##OP,
-	OP_TABLE
+	GPC_OP_TABLE
 #undef X
 
 // Expands to
@@ -105,53 +105,53 @@ enum GPC_BooleanOperator
 	GPC_OPS_LENGTH
 };
 
-enum GPC_Datatype
+enum gpc_Datatype
 {
 	GPC_NUMBER,
 	GPC_POINTER,
 	GPC_CHAR_POINTER
 };
 
-struct GPC_ExpectationData
+struct gpc_ExpectationData
 {
 	const double a, b;
 	const void *pa, *pb;
 	const char *str_a, *str_b, *str_operator, *additionalFailMessage;
-	const enum GPC_BooleanOperator operation;
+	const enum gpc_BooleanOperator operation;
 	const bool isAssertion;
 	const int line;
 	const char *func, *file;
-	const enum GPC_Datatype type;
+	const enum gpc_Datatype type;
 };
 
 // Boolean operations as a function
 // Allows macros EQ, NE, etc. to be used like operators
-bool GPC_compare(double expression_a, enum GPC_BooleanOperator, double expression_b);
+bool gpc_compare(double expression_a, enum gpc_BooleanOperator, double expression_b);
 
-void GPC_printStartingMessageAndInitExitMessage();
+void gpc_printStartingMessageAndInitExitMessage();
 
-void GPC_printTestOrSuiteResult(struct GPC_TestAndSuiteData*);
+void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData*);
 
-void GPC_printExpectationFail(struct GPC_ExpectationData*, struct GPC_TestAndSuiteData*);
+void gpc_printExpectationFail(struct gpc_ExpectationData*, struct gpc_TestAndSuiteData*);
 
-int GPC_assert(struct GPC_ExpectationData, struct GPC_TestAndSuiteData*);
+int gpc_assert(struct gpc_ExpectationData, struct gpc_TestAndSuiteData*);
 
-bool GPC_testOrSuiteRunning(struct GPC_TestAndSuiteData*);
+bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData*);
 
-void GPC_printTestOrSuiteResult(struct GPC_TestAndSuiteData*);
+void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData*);
 
-void GPC_addTestOrSuiteFailToParentAndGlobalIfFailed(struct GPC_TestAndSuiteData*);
+void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData*);
 
-extern struct GPC_TestAndSuiteData *const GPC_currentTestOrSuite;
+extern struct gpc_TestAndSuiteData *const gpc_currentTestOrSuite;
 
 extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 
 #define GPC_COMMON_DATA .line = __LINE__, .func = __func__, .file = __FILE__
 
 #define GPC_EXPECT_EXP(EXP, ADDITIONAL_MSG, IS_ASS)									\
-	GPC_assert																		\
+	gpc_assert																		\
 	(																				\
-		(struct GPC_ExpectationData)												\
+		(struct gpc_ExpectationData)												\
 		{																			\
 			.a 					 	= IF_IS_NUMBER_OR_CHAR(EXP, EXP, default: 0),	\
 			.b						= 0,											\
@@ -170,13 +170,13 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 										default: GPC_POINTER),						\
 			GPC_COMMON_DATA															\
 		},																			\
-		GPC_currentTestOrSuite														\
+		gpc_currentTestOrSuite														\
 	)
 
 #define GPC_EXPECT_CMP(A, OP, B, ADDITIONAL_MSG, IS_ASS)							\
-	GPC_assert																		\
+	gpc_assert																		\
 	(																				\
-	 	(struct GPC_ExpectationData)												\
+	 	(struct gpc_ExpectationData)												\
 		{																			\
 			.a 	   		  			= IF_IS_NUMBER_OR_CHAR(A, A, default: 0),		\
 			.b 			  			= IF_IS_NUMBER_OR_CHAR(B, B, default: 0),		\
@@ -195,7 +195,7 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 										default: GPC_POINTER),						\
 			GPC_COMMON_DATA															\
 		},																			\
-		GPC_currentTestOrSuite														\
+		gpc_currentTestOrSuite														\
 	)
 
 #define GPC_NOT_ASS 0
@@ -206,25 +206,26 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 #define GPC_EXPECT_CMP_WITH_MSG(A, OP, B, MSG, IS_ASS)	GPC_EXPECT_CMP(A, OP, B, MSG, IS_ASS)
 #define GPC_EXPECT_CMP_WOUT_MSG(A, OP, B, IS_ASS)		GPC_EXPECT_CMP(A, OP, B, NULL,IS_ASS)
 
-#define GPC_EXPECT(...) OVERLOAD(4, __VA_ARGS__,	\
-						GPC_EXPECT_CMP_WITH_MSG,	\
-						GPC_EXPECT_CMP_WOUT_MSG,	\
-						GPC_EXPECT_WITH_MSG,		\
-						GPC_EXPECT_WOUT_MSG,)	(__VA_ARGS__, GPC_NOT_ASS)
+#define GPC_EXPECT_OL(...) OVERLOAD(4, __VA_ARGS__,				\
+									GPC_EXPECT_CMP_WITH_MSG,	\
+									GPC_EXPECT_CMP_WOUT_MSG,	\
+									GPC_EXPECT_WITH_MSG,		\
+									GPC_EXPECT_WOUT_MSG,)	(__VA_ARGS__, GPC_NOT_ASS)
 
-#define GPC_ASSERT(...) OVERLOAD(4, __VA_ARGS__,	\
-						GPC_EXPECT_CMP_WITH_MSG,	\
-						GPC_EXPECT_CMP_WOUT_MSG,	\
-						GPC_EXPECT_WITH_MSG,		\
-						GPC_EXPECT_WOUT_MSG,)	(__VA_ARGS__, GPC_IS_ASS)
+#define GPC_ASSERT_OL(...) OVERLOAD(4, __VA_ARGS__,				\
+									GPC_EXPECT_CMP_WITH_MSG,	\
+									GPC_EXPECT_CMP_WOUT_MSG,	\
+									GPC_EXPECT_WITH_MSG,		\
+									GPC_EXPECT_WOUT_MSG,)	(__VA_ARGS__, GPC_IS_ASS)
 
-GPC_TestAndSuiteData GPC_new_test( const char* name, GPC_TestAndSuiteData* parent);
-GPC_TestAndSuiteData GPC_new_suite(const char* name, GPC_TestAndSuiteData* parent);
+gpc_TestAndSuiteData gpc_new_test( const char* name, gpc_TestAndSuiteData* parent);
+gpc_TestAndSuiteData gpc_new_suite(const char* name, gpc_TestAndSuiteData* parent);
 
-#define GPC_TEST_OR_SUITE(NAME, TEST_OR_SUITE)													\
-	struct GPC_TestAndSuiteData GPC_##TEST_OR_SUITE##_##NAME = GPC_new_##TEST_OR_SUITE(#NAME, GPC_currentTestOrSuite);	\
-	for(struct GPC_TestAndSuiteData* GPC_currentTestOrSuite = &GPC_##TEST_OR_SUITE##_##NAME;	\
-		GPC_testOrSuiteRunning(GPC_currentTestOrSuite);)
+#define GPC_TEST_OR_SUITE(NAME, TEST_OR_SUITE)												\
+	struct gpc_TestAndSuiteData GPC_##TEST_OR_SUITE##_##NAME = 								\
+		gpc_new_##TEST_OR_SUITE(#NAME, gpc_currentTestOrSuite);								\
+	for(struct gpc_TestAndSuiteData* gpc_currentTestOrSuite = &GPC_##TEST_OR_SUITE##_##NAME;\
+		gpc_testOrSuiteRunning(gpc_currentTestOrSuite);)
 /*	{
 		// user defined test or suite code
 	}

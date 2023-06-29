@@ -12,10 +12,10 @@
 
 #define GPC_IS_TEST true
 
-GPC_TestAndSuiteData GPC_newTestOrSuite(const char* name, GPC_TestAndSuiteData* parent,
+gpc_TestAndSuiteData gpc_newTestOrSuite(const char* name, gpc_TestAndSuiteData* parent,
 										  bool isTest)
 {
-	GPC_TestAndSuiteData D =
+	gpc_TestAndSuiteData D =
 	{
 		.name				= name,
 		.testFails			= 0,		.suiteFails =	0,	.expectationFails =	0,
@@ -28,33 +28,33 @@ GPC_TestAndSuiteData GPC_newTestOrSuite(const char* name, GPC_TestAndSuiteData* 
 	return D;
 }
 
-GPC_TestAndSuiteData GPC_new_test(const char* name, GPC_TestAndSuiteData* parent)
+gpc_TestAndSuiteData gpc_new_test(const char* name, gpc_TestAndSuiteData* parent)
 {
-	return GPC_newTestOrSuite(name, parent, GPC_IS_TEST);
+	return gpc_newTestOrSuite(name, parent, GPC_IS_TEST);
 }
 
-GPC_TestAndSuiteData GPC_new_suite(const char* name, GPC_TestAndSuiteData* parent)
+gpc_TestAndSuiteData gpc_new_suite(const char* name, gpc_TestAndSuiteData* parent)
 {
-	return GPC_newTestOrSuite(name, parent, ! GPC_IS_TEST);
+	return gpc_newTestOrSuite(name, parent, ! GPC_IS_TEST);
 }
 
-struct GPC_TestAndSuiteData GPC_gTestData = {};
-struct GPC_TestAndSuiteData *const GPC_currentTestOrSuite = &GPC_gTestData;
+struct gpc_TestAndSuiteData gpc_gTestData = {};
+struct gpc_TestAndSuiteData *const gpc_currentTestOrSuite = &gpc_gTestData;
 
-bool GPC_anyFails(struct GPC_TestAndSuiteData* data)
+bool gpc_anyFails(struct gpc_TestAndSuiteData* data)
 {
 	return data->expectationFails || data->testFails || data->suiteFails;
 }
 
 #define PRINT_DATA(DATA)												\
 	printf("A total of " GPC_CYAN("%i") " " #DATA "s completed, ",		\
-			GPC_gTestData. DATA##Count );								\
-	if (GPC_gTestData. DATA##Fails)										\
-		printf(GPC_RED("%i failed")"\n", GPC_gTestData. DATA##Fails);	\
+			gpc_gTestData. DATA##Count );								\
+	if (gpc_gTestData. DATA##Fails)										\
+		printf(GPC_RED("%i failed")"\n", gpc_gTestData. DATA##Fails);	\
 	else																\
-		printf(GPC_GREEN("%i failed")"\n", GPC_gTestData. DATA##Fails);
+		printf(GPC_GREEN("%i failed")"\n", gpc_gTestData. DATA##Fails);
 
-void GPC_printExitMessageAndAddExitStatus()
+void gpc_printExitMessageAndAddExitStatus()
 {
 	printf("\n");
 
@@ -62,19 +62,19 @@ void GPC_printExitMessageAndAddExitStatus()
 	PRINT_DATA(test);
 	PRINT_DATA(suite);
 
-	if (GPC_anyFails(&GPC_gTestData))
+	if (gpc_anyFails(&gpc_gTestData))
 		exit(1);
 }
 
 #undef PRINT_DATA
 
-void GPC_printStartingMessageAndInitExitMessage()
+void gpc_printStartingMessageAndInitExitMessage()
 {
 	static bool initialized = false;
 	if ( ! initialized)
 	{
 		printf("\n\tStarting tests...\n");
-		atexit(GPC_printExitMessageAndAddExitStatus);
+		atexit(gpc_printExitMessageAndAddExitStatus);
 		initialized = true;
 	}
 }
@@ -82,11 +82,11 @@ void GPC_printStartingMessageAndInitExitMessage()
 //const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3] = {"==", "!=", ">", "<", ">=", "<="};
 const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3] = {
 #define X(DUMMY, OP) #OP,
-	OP_TABLE
+	GPC_OP_TABLE
 #undef X
 };
 
-bool GPC_compareNumber(double a, enum GPC_BooleanOperator operation, double b)
+bool gpc_compareNumber(double a, enum gpc_BooleanOperator operation, double b)
 {
 	switch(operation)
 	{
@@ -96,7 +96,7 @@ bool GPC_compareNumber(double a, enum GPC_BooleanOperator operation, double b)
 	#define X(OP_ENUM, OP) 	\
 		case GPC##OP_ENUM:	\
 			return a OP b;
-		OP_TABLE
+		GPC_OP_TABLE
 	#undef X
 
 	// Expands to
@@ -112,7 +112,7 @@ bool GPC_compareNumber(double a, enum GPC_BooleanOperator operation, double b)
 	return 0&&(a+b); // Gets rid of pointless compiler warnings
 }
 
-bool GPC_comparePointer(const void* a, enum GPC_BooleanOperator operation, const void* b)
+bool gpc_comparePointer(const void* a, enum gpc_BooleanOperator operation, const void* b)
 {
 	switch(operation)
 	{
@@ -121,14 +121,14 @@ bool GPC_comparePointer(const void* a, enum GPC_BooleanOperator operation, const
 	#define X(OP_ENUM, OP) 	\
 		case GPC##OP_ENUM:	\
 			return a OP b;
-		OP_TABLE
+		GPC_OP_TABLE
 	#undef X
 		case GPC_OPS_LENGTH: {}
 	}
 	return 0&&(a-b);
 }
 
-bool GPC_compareCharPointer(const char* a, enum GPC_BooleanOperator operation, const char* b)
+bool gpc_compareCharPointer(const char* a, enum gpc_BooleanOperator operation, const char* b)
 {
 	switch(operation)
 	{
@@ -137,7 +137,7 @@ bool GPC_compareCharPointer(const char* a, enum GPC_BooleanOperator operation, c
 	#define X(OP_ENUM, OP) 	\
 		case GPC##OP_ENUM:	\
 			return strcmp(a, b) OP 0;
-		OP_TABLE
+		GPC_OP_TABLE
 	#undef X
 		case GPC_OPS_LENGTH: {}
 	}
@@ -145,10 +145,10 @@ bool GPC_compareCharPointer(const char* a, enum GPC_BooleanOperator operation, c
 }
 
 // Finds suite by going trough all parent data
-struct GPC_TestAndSuiteData* findSuite(struct GPC_TestAndSuiteData* data)
+struct gpc_TestAndSuiteData* findSuite(struct gpc_TestAndSuiteData* data)
 {
 	bool suiteFound 	= data->isSuite;
-	bool suiteNotFound	= data == &GPC_gTestData;
+	bool suiteNotFound	= data == &gpc_gTestData;
 
 	if (suiteFound)
 		return data;
@@ -158,8 +158,8 @@ struct GPC_TestAndSuiteData* findSuite(struct GPC_TestAndSuiteData* data)
 		return findSuite(data->parent);
 }
 
-void GPC_printExpectationFail(struct GPC_ExpectationData* expectation,
-								 struct GPC_TestAndSuiteData* data)
+void gpc_printExpectationFail(struct gpc_ExpectationData* expectation,
+								 struct gpc_TestAndSuiteData* data)
 {
 	const char* finalTestName = data->isTest || data->isSuite ? data->name : expectation->func;
 
@@ -204,47 +204,47 @@ void GPC_printExpectationFail(struct GPC_ExpectationData* expectation,
 	if (expectation->isAssertion) // print test and suite results early before exiting
 	{
 		if (data->isTest)
-			GPC_printTestOrSuiteResult(data);
-		struct GPC_TestAndSuiteData* suite = findSuite(data);
+			gpc_printTestOrSuiteResult(data);
+		struct gpc_TestAndSuiteData* suite = findSuite(data);
 		if (suite != NULL)
-			GPC_printTestOrSuiteResult(suite);
+			gpc_printTestOrSuiteResult(suite);
 	}
 }
 
-// Adds one fail to all parents all the way to GPC_gTestData
-void GPC_addExpectationFail(struct GPC_TestAndSuiteData* data)
+// Adds one fail to all parents all the way to gpc_gTestData
+void gpc_addExpectationFail(struct gpc_TestAndSuiteData* data)
 {
 	data->expectationFails++;
-	if (data != &GPC_gTestData)
-		GPC_addExpectationFail(data->parent);
+	if (data != &gpc_gTestData)
+		gpc_addExpectationFail(data->parent);
 }
 
-int GPC_assert(struct GPC_ExpectationData expectation,
-				  struct GPC_TestAndSuiteData* data)
+int gpc_assert(struct gpc_ExpectationData expectation,
+				  struct gpc_TestAndSuiteData* data)
 {
-	GPC_gTestData.expectationCount++;
+	gpc_gTestData.expectationCount++;
 	bool passed = false;
 	if (expectation.type == GPC_NUMBER)
-		passed = GPC_compareNumber(expectation.a,
+		passed = gpc_compareNumber(expectation.a,
 								   expectation.operation,
 								   expectation.b);
 	else if (expectation.type == GPC_POINTER)
-		passed = GPC_comparePointer(expectation.pa,
+		passed = gpc_comparePointer(expectation.pa,
 									expectation.operation,
 									expectation.pb);
 	else if (expectation.type == GPC_CHAR_POINTER)
-		passed = GPC_compareCharPointer(expectation.pa,
+		passed = gpc_compareCharPointer(expectation.pa,
 										expectation.operation,
 										expectation.pb);
 	
 	if ( ! passed)
 	{
-		GPC_addExpectationFail(data);
-		GPC_printExpectationFail(&expectation, data);
+		gpc_addExpectationFail(data);
+		gpc_printExpectationFail(&expectation, data);
 		
 		if(expectation.isAssertion)
 		{
-			GPC_addTestOrSuiteFailToParentAndGlobalIfFailed(data);
+			gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(data);
 			exit(1);
 		}
 		else
@@ -255,46 +255,46 @@ int GPC_assert(struct GPC_ExpectationData expectation,
 	return 0;
 }
 
-bool GPC_testOrSuiteRunning(struct GPC_TestAndSuiteData* data)
+bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData* data)
 {
 	bool testOrSuiteHasRan = data->testOrSuiteRunning;
 
 	if ( ! testOrSuiteHasRan)
 	{
-		GPC_printStartingMessageAndInitExitMessage();
+		gpc_printStartingMessageAndInitExitMessage();
 	}
 	else
 	{
 		if (data->isTest)
-			GPC_gTestData.testCount++;
+			gpc_gTestData.testCount++;
 		else
-			GPC_gTestData.suiteCount++;
+			gpc_gTestData.suiteCount++;
 
-		GPC_addTestOrSuiteFailToParentAndGlobalIfFailed(data);
-		GPC_printTestOrSuiteResult(data);
+		gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(data);
+		gpc_printTestOrSuiteResult(data);
 	}
 
 	return data->testOrSuiteRunning = ! testOrSuiteHasRan;
 }
 
-void GPC_addTestOrSuiteFailToParentAndGlobalIfFailed(struct GPC_TestAndSuiteData* data)
+void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData* data)
 {
-	bool anyFails = GPC_anyFails(data);
+	bool anyFails = gpc_anyFails(data);
 	if (anyFails && data->isTest)
 	{
 		data->parent->testFails++;
-		if (data->parent != &GPC_gTestData)
-			GPC_gTestData.testFails++;
+		if (data->parent != &gpc_gTestData)
+			gpc_gTestData.testFails++;
 	}
 	if (anyFails && data->isSuite)
 	{
 		data->parent->suiteFails++;
-		if (data->parent != &GPC_gTestData)
-			GPC_gTestData.suiteFails++;
+		if (data->parent != &gpc_gTestData)
+			gpc_gTestData.suiteFails++;
 	}
 }
 
-void GPC_printTestOrSuiteResult(struct GPC_TestAndSuiteData* data)
+void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData* data)
 {
 	const char* testOrSuite = data->isTest ? "Test" : "Suite";
 
