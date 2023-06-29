@@ -8,7 +8,7 @@
 #include <string.h>
 #include "../include/gpc/memory.h"
 
-static void assignOwner(struct DynamicObjectList* obj, DynamicObjOwner* owner)
+static void assignOwner(struct gpc_DynamicObjectList* obj, gpc_DynamicObjOwner* owner)
 {
 	obj->owner = owner;
 	if (owner->firstObject == NULL)
@@ -34,10 +34,10 @@ static size_t nextPowerOf2(size_t i)
 	return result;
 }
 
-[[nodiscard]] void* mallocAssign(size_t size, DynamicObjOwner* owner)
+[[nodiscard]] void* gpc_mallocAssign(size_t size, gpc_DynamicObjOwner* owner)
 {
 	size = nextPowerOf2(size);
-	struct DynamicObjectList* p = malloc(sizeof(p[0]) + size);
+	struct gpc_DynamicObjectList* p = malloc(sizeof(p[0]) + size);
 	if (p == NULL)
 		return NULL;
 	assignOwner(p, owner);
@@ -46,10 +46,10 @@ static size_t nextPowerOf2(size_t i)
 	return p + 1;
 }
 
-[[nodiscard]] void* callocAssign(size_t nmemb, size_t size, DynamicObjOwner* owner)
+[[nodiscard]] void* gpc_callocAssign(size_t nmemb, size_t size, gpc_DynamicObjOwner* owner)
 {
 	size_t blockSize = nextPowerOf2(nmemb * size);
-	struct DynamicObjectList* p = calloc(sizeof(p[0]) + blockSize, 1);
+	struct gpc_DynamicObjectList* p = calloc(sizeof(p[0]) + blockSize, 1);
 	if (p == NULL)
 		return NULL;
 	assignOwner(p, owner);
@@ -58,10 +58,10 @@ static size_t nextPowerOf2(size_t i)
 	return p + 1;
 }
 
-#undef reallocate
-[[nodiscard]] void* reallocate(void* object, size_t newCapacity)
+#undef gpc_reallocate
+[[nodiscard]] void* gpc_reallocate(void* object, size_t newCapacity)
 {
-	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
+	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
 	if (newCapacity <= me->capacity)
 		return object;
 	
@@ -90,9 +90,9 @@ static size_t nextPowerOf2(size_t i)
 	return me + 1;
 }
 
-void moveOwnership(void* object, DynamicObjOwner* newOwner)
+void gpc_moveOwnership(void* object, gpc_DynamicObjOwner* newOwner)
 {
-	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
+	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
 	
 	// detach from current list
 	if (me->previous != NULL)
@@ -112,9 +112,9 @@ void moveOwnership(void* object, DynamicObjOwner* newOwner)
 	assignOwner(me, newOwner);
 }
 
-void freeAll(DynamicObjOwner* owner)
+void gpc_freeAll(gpc_DynamicObjOwner* owner)
 {
-	for (struct DynamicObjectList *obj = owner->firstObject, *next = NULL;
+	for (struct gpc_DynamicObjectList *obj = owner->firstObject, *next = NULL;
 		 obj != NULL; obj = next)
 	{
 		next = obj->next;
@@ -122,45 +122,45 @@ void freeAll(DynamicObjOwner* owner)
 	}
 }
 
-DynamicObjOwner* getOwner(void* object)
+DynamicObjOwner* gpc_getOwner(void* object)
 {
-	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
+	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
 	return me->owner;
 }
 
-size_t getSize(void* object)
+size_t gpc_getSize(void* object)
 {
-	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
+	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
 	return me->size;
 }
 
-#undef setSize
-[[nodiscard]] void* setSize(void* object, size_t newSize)
+#undef gpc_setSize
+[[nodiscard]] void* gpc_setSize(void* object, size_t newSize)
 {
-	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
+	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
 	me->size = newSize;
-	object = reallocate(object, newSize);
+	object = gpc_reallocate(object, newSize);
 	return object;
 }
 
-size_t getCapacity(void* object)
+size_t gpc_getCapacity(void* object)
 {
-	struct DynamicObjectList* me = ((struct DynamicObjectList*)object) - 1;
+	struct gpc_DynamicObjectList* me = ((struct gpc_DynamicObjectList*)object) - 1;
 	return me->capacity;
 }
 
-#undef setCapacity
-[[nodiscard]] void* setCapacity(void* object, size_t newCapacity)
+#undef gpc_setCapacity
+[[nodiscard]] void* gpc_setCapacity(void* object, size_t newCapacity)
 {
-	object = reallocate(object, newCapacity);
+	object = gpc_reallocate(object, newCapacity);
 	return object;
 }
 
 [[nodiscard]] void* duplicate(void* object)
 {
-	void* copy = mallocAssign(getCapacity(object), getOwner(object));
+	void* copy = gpc_mallocAssign(gpc_getCapacity(object), gpc_getOwner(object));
 	if (copy == NULL)
 		return NULL;
-	memcpy(copy, object, getSize(object));
+	memcpy(copy, object, gpc_getSize(object));
 	return copy;
 }
