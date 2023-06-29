@@ -220,10 +220,9 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 
 GPC_TestAndSuiteData GPC_new_test( const char* name, GPC_TestAndSuiteData* parent);
 GPC_TestAndSuiteData GPC_new_suite(const char* name, GPC_TestAndSuiteData* parent);
-#define GPC_new(test_or_suite, name) GPC_new_##test_or_suite(name, GPC_currentTestOrSuite)
 
 #define GPC_TEST_OR_SUITE(NAME, TEST_OR_SUITE)													\
-	struct GPC_TestAndSuiteData GPC_##TEST_OR_SUITE##_##NAME = GPC_new(TEST_OR_SUITE, #NAME);	\
+	struct GPC_TestAndSuiteData GPC_##TEST_OR_SUITE##_##NAME = GPC_new_##TEST_OR_SUITE(#NAME, GPC_currentTestOrSuite);	\
 	for(struct GPC_TestAndSuiteData* GPC_currentTestOrSuite = &GPC_##TEST_OR_SUITE##_##NAME;	\
 		GPC_testOrSuiteRunning(GPC_currentTestOrSuite);)
 /*	{
