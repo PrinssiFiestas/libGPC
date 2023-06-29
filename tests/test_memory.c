@@ -18,7 +18,8 @@
 int main()
 {
 	fakeHeapInit();
-	fakeHeapSetAutoLog(true);
+	// Uncomment for heap visualization in stdout
+	// fakeHeapSetAutoLog(true);
 	
 	NEW_OWNER(thisScope);
 	

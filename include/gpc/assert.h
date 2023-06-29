@@ -18,7 +18,7 @@
 //
 //----------------------------------------------------------------------------
 
-// Define the macros below before including this header in case of namespacing problems. 
+// Define these macros before including this header in case of namespacing problems. 
 #if !defined(GPC_ASSERT_NAMESPACING) && !defined(GPC_NAMESPACING)
 
 // Use these macros to define tests and suites.
