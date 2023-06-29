@@ -11,6 +11,12 @@
 
 typedef struct DynamicObjOwner DynamicObjOwner;
 
+//----------------------------------------------------------------------------
+//
+//		CORE API
+//
+//----------------------------------------------------------------------------
+
 // New owner on stack
 #define NEW_OWNER(name) DynamicObjOwner* const name = &(DynamicObjOwner){};
 
@@ -31,7 +37,7 @@ typedef struct DynamicObjOwner DynamicObjOwner;
 // Assign a new owner
 void moveOwnership(void* object, DynamicObjOwner* newOwner);
 
-// Frees every heap allocated object owned by owner
+// Frees every heap allocated object owned by 'owner'
 void freeAll(DynamicObjOwner* owner);
 
 // Returns pointer to object's owner
@@ -53,10 +59,16 @@ size_t getCapacity(void* object);
 [[nodiscard]] void* setCapacity(void* object, size_t newCapacity);
 #define setCapacity(object, newCapacity) ((object) = setCapacity(object, newCapacity))
 
-// Returns a copy of 'object'
+// Returns a copy of 'object' on heap
 [[nodiscard]] void* duplicate(void* object);
 
-// ---------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+//
+//		END OF CORE API
+//
+//		Structs, functions and macros below are for internal or advanced use
+//
+//----------------------------------------------------------------------------
 
 typedef struct DynamicObjOwner
 {
