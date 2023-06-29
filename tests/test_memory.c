@@ -33,8 +33,14 @@ int main()
 	char* obj0 = mallocAssign(obj0Cap, thisScope);
 	obj0[0] = 'X';
 	obj0[1] = '\0';
+	obj0 = setSize(obj0, 2);
 	int* obj1 = callocAssign(3, sizeof(obj1[0]), thisScope);
-	obj1[1] = 0xEFBE;
+	
+	TEST(callocAssign)
+		ASSERT(obj1[2] EQ 0);
+	
+	// To help debugging
+	obj1[1] = 0xEFBE; // BEEF
 	
 	TEST(reallocate)
 	{
@@ -55,6 +61,14 @@ int main()
 		
 		typeof(obj1) obj1NonMoved = obj1;
 		ASSERT(obj1 = setSize(obj1, getCapacity(obj1)) EQ obj1NonMoved);
+	}
+	
+	TEST(duplicate)
+	{
+		char* copy = duplicate(obj0);
+		obj0[0] = 'Y';
+		ASSERT(obj0 EQ "Y");
+		ASSERT(copy EQ "X");
 	}
 	
 	freeAll(thisScope);

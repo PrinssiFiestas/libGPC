@@ -156,7 +156,11 @@ size_t getCapacity(void* object)
 	return object;
 }
 
-// [[nodiscard]] void* duplicate(void* object)
-// {
-	
-// }
+[[nodiscard]] void* duplicate(void* object)
+{
+	void* copy = mallocAssign(getCapacity(object), getOwner(object));
+	if (copy == NULL)
+		return NULL;
+	memcpy(copy, object, getSize(object));
+	return copy;
+}
