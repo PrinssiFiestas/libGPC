@@ -134,7 +134,7 @@ void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData*);
 
 void gpc_printExpectationFail(struct gpc_ExpectationData*, struct gpc_TestAndSuiteData*);
 
-int gpc_assert(struct gpc_ExpectationData, struct gpc_TestAndSuiteData*);
+int gpc_assert_internal(struct gpc_ExpectationData, struct gpc_TestAndSuiteData*);
 
 bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData*);
 
@@ -149,7 +149,7 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 #define GPC_COMMON_DATA .line = __LINE__, .func = __func__, .file = __FILE__
 
 #define GPC_EXPECT_EXP(EXP, ADDITIONAL_MSG, IS_ASS)									\
-	gpc_assert																		\
+	gpc_assert_internal																\
 	(																				\
 		(struct gpc_ExpectationData)												\
 		{																			\
@@ -174,7 +174,7 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 	)
 
 #define GPC_EXPECT_CMP(A, OP, B, ADDITIONAL_MSG, IS_ASS)							\
-	gpc_assert																		\
+	gpc_assert_internal																\
 	(																				\
 	 	(struct gpc_ExpectationData)												\
 		{																			\

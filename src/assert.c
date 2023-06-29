@@ -219,8 +219,8 @@ void gpc_addExpectationFail(struct gpc_TestAndSuiteData* data)
 		gpc_addExpectationFail(data->parent);
 }
 
-int gpc_assert(struct gpc_ExpectationData expectation,
-				  struct gpc_TestAndSuiteData* data)
+int gpc_assert_internal(struct gpc_ExpectationData expectation,
+						struct gpc_TestAndSuiteData* data)
 {
 	gpc_gTestData.expectationCount++;
 	bool passed = false;
