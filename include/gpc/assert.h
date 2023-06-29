@@ -18,6 +18,7 @@
 //
 //----------------------------------------------------------------------------
 
+// Define the macros below before including this header in case of namespacing problems. 
 #if !defined(GPC_ASSERT_NAMESPACING) && !defined(GPC_NAMESPACING)
 
 // Use these macros to define tests and suites.
@@ -43,12 +44,14 @@ int main() // function scope required!
 
 // Does nothing when expression is true.
 // Exits program and prints failure message when expression is false.
+// Optional detail can be added to failure message with FAIL_MESSAGE
 // Assertions are counted as expectations.
-#define ASSERT(/*bool expression, char* failMessage = NULL*/...) GPC_ASSERT_OL(__VA_ARGS__)
+#define ASSERT(EXPRESSION, FAIL_MESSAGE...) GPC_ASSERT(EXPRESSION, ##FAIL_MESSAGE)
 
 // Returns 0 when expression is true.
 // Prints failure message and returns 1 when expression is false.
-#define EXPECT(/*bool expression, char* failMessage = NULL*/...) GPC_EXPECT_OL(__VA_ARGS__)
+// Optional detail can be added to failure message with FAIL_MESSAGE
+#define EXPECT(EXPRESSION, FAIL_MESSAGE...) GPC_EXPECT(EXPRESSION, ##FAIL_MESSAGE)
 
 // 'Pseudo-operators' to be used in argument for ASSERT() or EXPECT().
 // Use ASSERT(A EQ B) instead of ASSERT(A == B) for more info at failure.
