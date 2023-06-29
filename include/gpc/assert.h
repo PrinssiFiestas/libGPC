@@ -18,12 +18,15 @@
 //
 //----------------------------------------------------------------------------
 
+#if !defined(GPC_ASSERT_NAMESPACING) && !defined(GPC_NAMESPACING)
+
 // Use these macros to define tests and suites.
 // Tests and suites have to be defined in function scope so they can be run automatically.
 // Tests and suites are optional: EXPECT() and ASSERT() can be used anywhere in your code.
 // Tests and suites can be nested arbitrarily.
-#define TEST(NAME)			GPC_TEST_OR_SUITE(NAME,test)
-#define TEST_SUITE(NAME)	GPC_TEST_OR_SUITE(NAME,suite)
+// NAME will be namespaced so it can share it's name with existing functions or variables. 
+#define TEST(NAME)			GPC_TEST(NAME)
+#define TEST_SUITE(NAME)	GPC_TEST_SUITE(NAME)
 // Example use:
 /*
 int main() // function scope required!
@@ -49,12 +52,27 @@ int main() // function scope required!
 
 // 'Pseudo-operators' to be used in argument for ASSERT() or EXPECT().
 // Use ASSERT(A EQ B) instead of ASSERT(A == B) for more info at failure.
-#define EQ ,GPC_OP_EQ, // ==
-#define NE ,GPC_OP_NE, // !=
-#define GT ,GPC_OP_GT, // >
-#define LT ,GPC_OP_LT, // <
-#define GE ,GPC_OP_GE, // >=
-#define LE ,GPC_OP_LE, // <=
+#define EQ GPC_EQ // ==
+#define NE GPC_NE // !=
+#define GT GPC_GT // >
+#define LT GPC_LT // <
+#define GE GPC_GE // >=
+#define LE GPC_LE // <=
+
+#endif // GPC_NAMESPACING ----------------------------------------------------
+
+#define GPC_TEST(NAME)			GPC_TEST_OR_SUITE(NAME, test)
+#define GPC_TEST_SUITE(NAME)	GPC_TEST_OR_SUITE(NAME, suite)
+
+#define GPC_ASSERT(...) GPC_ASSERT_OL(__VA_ARGS__)
+#define GPC_EXPECT(...) GPC_EXPECT_OL(__VA_ARGS__)
+
+#define GPC_EQ ,GPC_OP_EQ, // ==
+#define GPC_NE ,GPC_OP_NE, // !=
+#define GPC_GT ,GPC_OP_GT, // >
+#define GPC_LT ,GPC_OP_LT, // <
+#define GPC_GE ,GPC_OP_GE, // >=
+#define GPC_LE ,GPC_OP_LE, // <=
 
 //----------------------------------------------------------------------------
 //
