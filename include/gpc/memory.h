@@ -103,7 +103,12 @@ typedef struct gpc_DynamicObjOwner gpc_DynamicObjOwner;
 
 #define gpc_newH(type, owner) gpc_buildHeapObject(sizeof(type), owner)
 
-//#define gpc_allocaAssign(capacity, owner)		gpc_allocaAssign(capacity, owner)
+#define gpc_allocaAssign(capacity, owner)													\
+	gpc_buildStackObject(																	\
+		(uint8_t[sizeof(struct gpc_DynamicObjectList) + gpc_nextPowerOf2(capacity)]){},		\
+		0,																					\
+		gpc_nextPowerOf2(capacity),															\
+		owner)
 
 [[nodiscard]] void* gpc_mallocAssign(size_t, gpc_DynamicObjOwner*);
 

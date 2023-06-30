@@ -85,9 +85,12 @@ int main()
 		ASSERT(getCapacity(newH(int8_t[15], thisScope)) EQ gpc_nextPowerOf2(sizeof(int8_t[15])));
 	}
 	
-	//TEST(allocaAssign)
+	TEST(allocaAssign)
 	{
-		
+		ASSERT(onStack(allocaAssign(4, thisScope)));
+		ASSERT(!onHeap(allocaAssign(4, thisScope)));
+		ASSERT(getSize(allocaAssign(15, thisScope)) EQ 0);
+		ASSERT(getCapacity(allocaAssign(15, thisScope)) EQ gpc_nextPowerOf2(15));
 	}
 	
 	TEST(callocAssign)
