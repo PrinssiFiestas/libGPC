@@ -183,6 +183,18 @@ void gpc_printExpectationFail(struct gpc_ExpectationData* expectation,
 			fprintf(stderr, GPC_RED(" %s %g"), expectation->str_operator, expectation->b);
 		fprintf(stderr, ".\n");
 	}
+	else if (expectation->type == GPC_BOOL)
+	{
+		fprintf(stderr, " evaluated to ");
+		// When using operators (EQ, NE etc.) failure message should not print 
+		// "true" or "false" to prevent printing "true == true" on 2 different
+		// non-zero values
+		if (expectation->operation == GPC_NO_OP)
+			fprintf(stderr, GPC_RED("%s"), expectation->a ? "true" : "false");
+		else
+			fprintf(stderr, GPC_RED("%g %s %g"), expectation->a, expectation->str_operator, expectation->b);
+		fprintf(stderr, ".\n");
+	}
 	else if (expectation->type == GPC_POINTER)
 	{
 		fprintf(stderr, " evaluated to " GPC_RED("%p"), expectation->pa);

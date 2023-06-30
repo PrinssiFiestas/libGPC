@@ -129,6 +129,7 @@ enum gpc_BooleanOperator
 enum gpc_Datatype
 {
 	GPC_NUMBER,
+	GPC_BOOL,
 	GPC_POINTER,
 	GPC_CHAR_POINTER
 };
@@ -174,9 +175,15 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 	(																				\
 		(struct gpc_ExpectationData)												\
 		{																			\
-			.a 					 	= IF_IS_NUMBER_OR_CHAR(EXP, EXP, default: 0),	\
+			.a 					 	= GPC_IF_IS_NUMBER_OR_CHAR(EXP,					\
+										EXP,										\
+										bool: EXP,									\
+										default: 0),								\
 			.b						= 0,											\
-			.pa						= IF_IS_NUMBER_OR_CHAR(EXP, NULL, default: EXP),\
+			.pa						= GPC_IF_IS_NUMBER_OR_CHAR(EXP,					\
+										NULL,										\
+										bool: NULL,									\
+										default: EXP),								\
 			.pb						= NULL,											\
 			.str_a				 	= #EXP,											\
 			.str_b					= NULL,											\
@@ -184,8 +191,9 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 			.additionalFailMessage 	= ADDITIONAL_MSG,								\
 			.operation	 			= GPC_NO_OP,									\
 			.isAssertion 			= IS_ASS,										\
-			.type					= IF_IS_NUMBER_OR_CHAR(EXP,						\
+			.type					= GPC_IF_IS_NUMBER_OR_CHAR(EXP,					\
 										GPC_NUMBER,									\
+										bool: GPC_BOOL,								\
 										const char*: GPC_CHAR_POINTER,				\
 										char*: GPC_CHAR_POINTER,					\
 										default: GPC_POINTER),						\
@@ -199,18 +207,31 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 	(																				\
 	 	(struct gpc_ExpectationData)												\
 		{																			\
-			.a 	   		  			= IF_IS_NUMBER_OR_CHAR(A, A, default: 0),		\
-			.b 			  			= IF_IS_NUMBER_OR_CHAR(B, B, default: 0),		\
-			.pa						= IF_IS_NUMBER_OR_CHAR(A, NULL, default: A),	\
-			.pb						= IF_IS_NUMBER_OR_CHAR(B, NULL, default: B),	\
+			.a 	   		  			= GPC_IF_IS_NUMBER_OR_CHAR(A,					\
+										A,											\
+										bool: A,									\
+										default: 0),								\
+			.b 			  			= GPC_IF_IS_NUMBER_OR_CHAR(B,					\
+										B,											\
+										bool: B,									\
+										default: 0),								\
+			.pa						= GPC_IF_IS_NUMBER_OR_CHAR(A,					\
+										NULL,										\
+										bool: NULL,									\
+										default: A),								\
+			.pb						= GPC_IF_IS_NUMBER_OR_CHAR(B,					\
+										NULL,										\
+										bool: NULL,									\
+										default: B),								\
 			.str_a 		  			= #A,											\
 			.str_b 		  			= #B,											\
 			.str_operator 			= GPC_STR_OPERATORS[OP],						\
 			.additionalFailMessage 	= ADDITIONAL_MSG,								\
 			.operation	  			= OP,											\
 			.isAssertion  			= IS_ASS,										\
-			.type					= IF_IS_NUMBER_OR_CHAR(A,						\
+			.type					= GPC_IF_IS_NUMBER_OR_CHAR(A,					\
 										GPC_NUMBER,									\
+										bool: GPC_BOOL,								\
 										const char*: GPC_CHAR_POINTER,				\
 										char*: GPC_CHAR_POINTER,					\
 										default: GPC_POINTER),						\
