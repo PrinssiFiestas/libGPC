@@ -188,7 +188,7 @@ void gpc_printExpectationFail(struct gpc_ExpectationData* expectation,
 		fprintf(stderr, " evaluated to ");
 		// When using operators (EQ, NE etc.) failure message should not print 
 		// "true" or "false" to prevent printing "true == true" on 2 different
-		// non-zero valuesgit
+		// non-zero values
 		if (expectation->operation == GPC_NO_OP)
 			fprintf(stderr, GPC_RED("%s"), expectation->a ? "true" : "false");
 		else

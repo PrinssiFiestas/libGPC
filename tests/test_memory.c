@@ -27,9 +27,10 @@ int main()
 
 	TEST(nextPowerOf2)
 	{
-		ASSERT(nextPowerOf2(3) EQ 4);
-		ASSERT(nextPowerOf2(4) EQ 4, "Prevent needless allocations!");
-		ASSERT(nextPowerOf2(28) EQ 32);
+		unsigned long n = 3;
+		ASSERT(gpc_nextPowerOf2(n) EQ 4);
+		ASSERT(gpc_nextPowerOf2(4) EQ 4, "Prevent needless allocations!");
+		ASSERT(gpc_nextPowerOf2(28) EQ 32);
 	}
 	
 	const size_t obj0Cap = 4;
@@ -38,6 +39,56 @@ int main()
 	obj0[1] = '\0';
 	obj0 = setSize(obj0, 2);
 	int* obj1 = callocAssign(3, sizeof(obj1[0]), thisScope);
+
+	TEST_SUITE(memoryLocationCheck)
+	{
+		bool doubleCheck(void* obj)
+		{
+			bool onObjectList = false;
+			for(struct gpc_DynamicObjectList* p = thisScope->firstObject; p != NULL; p = p->next)
+				onObjectList = p + 1 == obj;
+			return onObjectList;
+		}
+
+		TEST(onHeap)
+		{
+			//ASSERT(doubleCheck(obj1) AND onHeap(obj1)); // TODO this syntax
+			ASSERT(doubleCheck(obj1));
+			ASSERT(onHeap(obj1));
+		}
+		TEST(onStack)
+		{
+			uint8_t objSmem[sizeof(struct gpc_DynamicObjectList) + 1] = {};
+			struct gpc_DynamicObjectList* objSdata = (typeof(objSdata))objSmem;
+			objSdata->owner = thisScope;
+			void* objS = objSdata + 1;
+			
+			ASSERT( ! doubleCheck(objS));
+			ASSERT(onStack(objS));
+		}
+		
+	}
+
+	TEST(newS)
+	{
+		ASSERT(onStack(newS(int, thisScope)));
+		ASSERT(!onHeap(newS(int, thisScope)));
+		ASSERT(getSize(newS(int8_t[15], thisScope)) EQ sizeof(int8_t[15]));
+		ASSERT(getCapacity(newS(int8_t[15], thisScope)) EQ gpc_nextPowerOf2(sizeof(int8_t[15])));
+	}
+	
+	TEST(newH)
+	{
+		ASSERT(!onStack(newH(int, thisScope)));
+		ASSERT(onHeap(newH(int, thisScope)));
+		ASSERT(getSize(newH(int8_t[15], thisScope)) EQ sizeof(int8_t[15]));
+		ASSERT(getCapacity(newH(int8_t[15], thisScope)) EQ gpc_nextPowerOf2(sizeof(int8_t[15])));
+	}
+	
+	//TEST(allocaAssign)
+	{
+		
+	}
 	
 	TEST(callocAssign)
 		ASSERT(obj1[2] EQ 0);
@@ -60,7 +111,7 @@ int main()
 		size_t oldCapacity = getCapacity(obj1);
 		obj1 = setCapacity(obj1, oldCapacity + 1);
 		ASSERT(*obj1Original EQ FREED4);
-		ASSERT(getCapacity(obj1) EQ nextPowerOf2(oldCapacity + 1));
+		ASSERT(getCapacity(obj1) EQ gpc_nextPowerOf2(oldCapacity + 1));
 		
 		typeof(obj1) obj1NonMoved = obj1;
 		ASSERT(obj1 = setSize(obj1, getCapacity(obj1)) EQ obj1NonMoved);
