@@ -188,7 +188,7 @@ void gpc_printExpectationFail(struct gpc_ExpectationData* expectation,
 		fprintf(stderr, " evaluated to ");
 		// When using operators (EQ, NE etc.) failure message should not print 
 		// "true" or "false" to prevent printing "true == true" on 2 different
-		// non-zero values
+		// non-zero valuesgit
 		if (expectation->operation == GPC_NO_OP)
 			fprintf(stderr, GPC_RED("%s"), expectation->a ? "true" : "false");
 		else
@@ -236,7 +236,7 @@ int gpc_assert_internal(struct gpc_ExpectationData expectation,
 {
 	gpc_gTestData.expectationCount++;
 	bool passed = false;
-	if (expectation.type == GPC_NUMBER)
+	if (expectation.type == GPC_NUMBER || expectation.type == GPC_BOOL)
 		passed = gpc_compareNumber(expectation.a,
 								   expectation.operation,
 								   expectation.b);
