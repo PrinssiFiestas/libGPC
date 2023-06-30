@@ -12,7 +12,7 @@
 #define GPC_DUMP(...) 
 #define GPC_EVAL(...) __VA_ARGS__
 
-// Define these macros before including this header in case of namespacing problems. 
+// Define these macros before including this header in case of namespacing issues. 
 #if !defined(GPC_OVERLOAD_NAMESPACING) && !defined(GPC_NAMESPACING)
 
 // Overload function by the number of arguments up to NARGS. Usage example:

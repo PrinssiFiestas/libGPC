@@ -17,22 +17,25 @@ enum gpc_ErrorHandling
 	GPC_ERROR_SHOULD_HANDLE = -1,
 	
 	// Crash and burn. Forces user to fix mistakes
+	// No error messages are sent. Use this on performance critical threads. 
 	// Default behaviour
 	GPC_ERROR_NO_HANDLING,
 	
 	// No aborting or sending error messages on errors
-	// Moves freedom and responsibility of error handling to user
-	GPC_ERROR_MANUAL_HANDLING,
+	// Makes the library resilient to invalid arguments Functions return with
+	// error codes or error values that should be checked by user.
+	GPC_ERROR_RESILIENT,
 	
 	// No aborting on errors
-	// Error message will be sent via callback or to stderr by default
+	// Same as GPC_ERROR_RESILIENT except error message will be sent via
+	// callback or to stderr by default.
 	GPC_ERROR_DEBUG,
 	
 	// Sends error messages via callback set by gpc_setDebugMessageCallback()
 	// Aborts execution
 	GPC_ERROR_STRICT,
 	
-	// For internal user
+	// For internal use
 	GPC_ERROR_SIZE
 };
 void gpc_setErrorHandlingMode(enum gpc_ErrorHandling);

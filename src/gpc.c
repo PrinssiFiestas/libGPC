@@ -27,7 +27,7 @@ static void (*gpc_gDebugMessageCallback)(const char*) = perror2;
 
 void gpc_setErrorHandlingMode(enum gpc_ErrorHandling i)
 {
-	gpc_gErrorHandlingMode = i < GPC_ERROR_SIZE ? i : GPC_ERROR_NO_HANDLING;
+	gpc_gErrorHandlingMode = i < GPC_ERROR_SIZE && i >= 0 ? i : GPC_ERROR_NO_HANDLING;
 }
 
 static void doNothing(const char* s)
@@ -50,7 +50,7 @@ enum gpc_ErrorHandling gpc_handleError(bool condition, const char* errorMessage)
 		case GPC_ERROR_NO_HANDLING:
 			return GPC_ERROR_NO_HANDLING;
 			break;
-		case GPC_ERROR_MANUAL_HANDLING:
+		case GPC_ERROR_RESILIENT:
 			return GPC_ERROR_SHOULD_HANDLE;
 			break;
 		case GPC_ERROR_DEBUG:
