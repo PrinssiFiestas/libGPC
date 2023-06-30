@@ -86,6 +86,8 @@ static struct gpc_DynamicObjectList* listData(void* object)
 		return NULL;
 	
 	struct gpc_DynamicObjectList* me = listData(object);
+	if (gpc_handleError(me->owner == NULL, "Object passed to reallocate has no owner. Every object requires an owner!"))
+		return NULL;
 	if (newCapacity <= me->capacity)
 		return object;
 	
@@ -122,6 +124,8 @@ void gpc_moveOwnership(void* object, gpc_DynamicObjOwner* newOwner)
 		return;
 	
 	struct gpc_DynamicObjectList* me = listData(object);
+	if (gpc_handleError(me->owner == NULL, "Object passed to moveOwnership() has no owner. Every object requires an owner!"))
+		return;
 	
 	// detach from current list
 	if (me->previous != NULL)
@@ -160,6 +164,8 @@ DynamicObjOwner* gpc_getOwner(void* object)
 		return NULL;
 	
 	struct gpc_DynamicObjectList* me = listData(object);
+	if (gpc_handleError(me->owner == NULL, "Object passed to getOwner has no owner. Every object requires an owner!"))
+		return NULL;
 	return me->owner;
 }
 
@@ -169,6 +175,8 @@ size_t gpc_getSize(void* object)
 		return 0;
 	
 	struct gpc_DynamicObjectList* me = listData(object);
+	if (gpc_handleError(me->owner == NULL, "Object passed to getSize has no owner. Every object requires an owner!"))
+		return 0;
 	return me->size;
 }
 
@@ -181,8 +189,12 @@ size_t gpc_getSize(void* object)
 		return NULL;
 	
 	struct gpc_DynamicObjectList* me = listData(object);
+	if (gpc_handleError(me->owner == NULL, "Object passed to setSize has no owner. Every object requires an owner!"))
+		return NULL;
 	me->size = newSize;
 	object = gpc_reallocate(object, newSize);
+	if (gpc_handleError(object == NULL, "reallocate() failed at setSize()"))
+		return NULL;
 	return object;
 }
 
@@ -192,6 +204,8 @@ size_t gpc_getCapacity(void* object)
 		return 0;
 	
 	struct gpc_DynamicObjectList* me = listData(object);
+	if (gpc_handleError(me->owner == NULL, "Object passed to getCapacity() has no owner. Every object requires an owner!"))
+		return 0;
 	return me->capacity;
 }
 
@@ -202,14 +216,20 @@ size_t gpc_getCapacity(void* object)
 		return NULL;
 	if (gpc_handleError(newCapacity >= PTRDIFF_MAX, "Trying to allocate over PTRDIFF_MAX bytes in setCapacity(). Is the input positive?"))
 		return NULL;
+	if (gpc_handleError(getOwner(object) == NULL, "Object passed to setCapacity() has no owner. Every object requires an owner!"))
+		return NULL;
 	
 	object = gpc_reallocate(object, newCapacity);
+	if (gpc_handleError(object == NULL, "reallocate() failed at setCapacity()"))
+		return NULL;
 	return object;
 }
 
 [[nodiscard]] void* gpc_duplicate(void* object)
 {
 	if (gpc_handleError(object == NULL, "Passed NULL to duplicate()."))
+		return NULL;
+	if (gpc_handleError(gpc_getOwner(object) == NULL, "Object passed to duplicate() has no owner. Every object requires an owner!"))
 		return NULL;
 	
 	void* copy = gpc_mallocAssign(gpc_getCapacity(object), gpc_getOwner(object));
@@ -225,6 +245,8 @@ bool gpc_onStack(void* object)
 			return false;
 	
 	struct gpc_DynamicObjectList* me = listData(object);
+	if (gpc_handleError(me->owner == NULL, "Object passed to onStack() has no owner. Every object requires an owner!"))
+		return false;
 	return !(me->previous || me->next || me->owner->firstObject == me);
 }
 
@@ -234,6 +256,8 @@ bool gpc_onHeap(void* object)
 		return false;
 	
 	struct gpc_DynamicObjectList* me = listData(object);
+	if (gpc_handleError(me->owner == NULL, "Object passed to onHeap() has no owner. Every object requires an owner!"))
+		return false;
 	return me->previous || me->next || me->owner->firstObject == me;
 }
 
@@ -255,6 +279,8 @@ void* gpc_buildStackObject(void* buffer,
 void* gpc_buildHeapObject(size_t size, gpc_DynamicObjOwner* owner)
 {
 	if (gpc_handleError(owner == NULL, "Owner is NULL in buildHeapObject(). Every object requires an owner!"))
+		return NULL;
+	if (gpc_handleError(size >= PTRDIFF_MAX, "Trying to allocate over PTRDIFF_MAX bytes in buildHeapObject(). Is the input positive?"))
 		return NULL;
 	
 	void* obj = gpc_mallocAssign(size, owner);
