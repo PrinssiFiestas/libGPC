@@ -155,17 +155,6 @@ void* gpc_buildStackObject(void* buffer,
 
 void* gpc_buildHeapObject(size_t size, gpc_DynamicObjOwner*);
 
-enum gpc_MemoryFailBehaviour
-{
-	GPC_MEM_FAIL_ABORT,				// aborts execution with error message
-	GPC_MEM_FAIL_RETURN_NULL,		// allows user to handle failure
-	
-	GPC_MEM_FAIL_SIZE				// for internal use
-};
-// Sets behaviour on failed malloc(), calloc(), and realloc()
-// Default behaviour is GPC_MEM_FAIL_ABORT
-void gpc_setMemoryFailBehaviour(enum gpc_MemoryFailBehaviour);
-
 typedef struct gpc_DynamicObjOwner
 {
 	struct gpc_DynamicObjectList* firstObject;

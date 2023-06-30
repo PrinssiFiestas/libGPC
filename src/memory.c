@@ -32,26 +32,6 @@ static void assignOwner(struct gpc_DynamicObjectList* obj, gpc_DynamicObjOwner* 
 	}
 }
 
-static enum gpc_MemoryFailBehaviour gMemoryFailBehaviour = GPC_MEM_FAIL_ABORT;
-
-void gpc_setMemoryFailBehaviour(enum gpc_MemoryFailBehaviour i)
-{
-	gMemoryFailBehaviour = i < GPC_MEM_FAIL_SIZE ? i : GPC_MEM_FAIL_ABORT;
-}
-
-static void* handleAllocNull()
-{
-	if (gMemoryFailBehaviour == GPC_MEM_FAIL_ABORT)
-	{
-		perror(NULL);
-		abort();
-	}
-	#ifndef NDEBUG
-	perror(NULL);
-	#endif
-	return NULL;
-}
-
 [[nodiscard]] void* gpc_mallocAssign(size_t capacity, gpc_DynamicObjOwner* owner)
 {
 	if (gpc_handleError(owner == NULL, "Owner is NULL in mallocAssign(). Every object requires an owner!"))
@@ -63,8 +43,8 @@ static void* handleAllocNull()
 	
 	capacity = gpc_nextPowerOf2(capacity);
 	struct gpc_DynamicObjectList* p = malloc(sizeof(p[0]) + capacity);
-	if (p == NULL)
-		return handleAllocNull();
+	if (gpc_handleError(p == NULL, "malloc() failed in mallocAssign()"))
+		return NULL;
 	assignOwner(p, owner);
 	p->size = 0;
 	p->capacity = capacity;
@@ -77,13 +57,13 @@ static void* handleAllocNull()
 		return NULL;
 	if (gpc_handleError(size == 0, "Trying to allocate 0 bytes in callocAssign()"))
 		return NULL;
-	if (gpc_handleError(capacity >= PTRDIFF_MAX, "Trying to allocate over PTRDIFF_MAX bytes in callocAssign(). Is the input positive?"))
+	if (gpc_handleError(nmemb*size >= PTRDIFF_MAX, "Trying to allocate over PTRDIFF_MAX bytes in callocAssign(). Is the input positive?"))
 		return NULL;
 	
 	size_t blockSize = gpc_nextPowerOf2(nmemb * size);
 	struct gpc_DynamicObjectList* p = calloc(sizeof(p[0]) + blockSize, 1);
-	if (p == NULL)
-		return handleAllocNull();
+	if (gpc_handleError(p == NULL, "calloc() failed in callocAssign()"))
+		return NULL;
 	assignOwner(p, owner);
 	p->size = 0;
 	p->capacity = blockSize;
@@ -92,8 +72,8 @@ static void* handleAllocNull()
 
 static struct gpc_DynamicObjectList* listData(void* object)
 {
-	if (gpc_handleError(owner == NULL, "GPC INTERNAL ERROR: object is NULL in listData()"))
-		return;
+	if (gpc_handleError(object == NULL, "GPC INTERNAL ERROR: object is NULL in listData()"))
+		return NULL;
 	return ((struct gpc_DynamicObjectList*)object) - 1;
 }
 
@@ -127,8 +107,8 @@ static struct gpc_DynamicObjectList* listData(void* object)
 		me->owner->firstObject = me->next;	
 	
 	me = realloc(me, sizeof(me[0]) + newCapacity);
-	if (me == NULL)
-		return handleAllocNull();
+	if (gpc_handleError(me == NULL, "realloc() failed in reallocate()"))
+		return NULL;
 	
 	assignOwner(me, me->owner);
 	return me + 1;
@@ -197,6 +177,8 @@ size_t gpc_getSize(void* object)
 {
 	if (gpc_handleError(object == NULL, "Passed NULL to setSize()."))
 		return NULL;
+	if (gpc_handleError(newSize >= PTRDIFF_MAX, "Trying to allocate over PTRDIFF_MAX bytes in setSize(). Is the input positive?"))
+		return NULL;
 	
 	struct gpc_DynamicObjectList* me = listData(object);
 	me->size = newSize;
@@ -218,6 +200,8 @@ size_t gpc_getCapacity(void* object)
 {
 	if (gpc_handleError(object == NULL, "Passed NULL to setCapacity()."))
 		return NULL;
+	if (gpc_handleError(newCapacity >= PTRDIFF_MAX, "Trying to allocate over PTRDIFF_MAX bytes in setCapacity(). Is the input positive?"))
+		return NULL;
 	
 	object = gpc_reallocate(object, newCapacity);
 	return object;
@@ -229,7 +213,7 @@ size_t gpc_getCapacity(void* object)
 		return NULL;
 	
 	void* copy = gpc_mallocAssign(gpc_getCapacity(object), gpc_getOwner(object));
-	if (copy == NULL)
+	if (gpc_handleError(copy == NULL, "mallocAssign() failed in duplicate()."))
 		return NULL;
 	memcpy(copy, object, gpc_getSize(object));
 	return copy;
