@@ -11,6 +11,7 @@
 #include "../include/gpc/gpc.h"
 
 // Same as perror() but doesn't print "No error" when no errors
+// TODO better formatting
 static void perror2(const char* msg)
 {
 	const char* errorString = strerror(errno);
@@ -30,14 +31,9 @@ void gpc_setErrorHandlingMode(enum gpc_ErrorHandling i)
 	gpc_gErrorHandlingMode = i < GPC_ERROR_SIZE && i >= 0 ? i : GPC_ERROR_NO_HANDLING;
 }
 
-static void doNothing(const char* s)
-{
-	(void)s;
-}
-
 void gpc_setDebugMessageCallback(void (*callback)(const char*))
 {
-	gpc_gDebugMessageCallback = callback ? callback : doNothing;
+	gpc_gDebugMessageCallback = callback ? callback : perror2;
 }
 
 enum gpc_ErrorHandling gpc_handleError(bool condition, const char* errorMessage)

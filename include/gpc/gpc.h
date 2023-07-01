@@ -10,7 +10,8 @@
 #include <stdbool.h>
 
 // Functions check validity of their inputs in various ways. User can set the 
-// default error handling behaviour with gpc_setErrorHandlingMode(). 
+// default error handling behaviour with gpc_setErrorHandlingMode(). Error
+// handling mode should be set to each thread separately. 
 enum gpc_ErrorHandling
 {
 	// Return value of gpc_handleErrors() on errors
@@ -40,10 +41,8 @@ enum gpc_ErrorHandling
 };
 void gpc_setErrorHandlingMode(enum gpc_ErrorHandling);
 
-// perror()-like function by default
-// Disable error messages with NULL
-// Argument to callback may be NULL
-void gpc_setDebugMessageCallback(void (*callback)(const char*));
+// perror()-like function by default. Reset by passing NULL. 
+void gpc_setDebugMessageCallback(void (*callback)(const char* errorMessage));
 
 // Does nothing when condition == false
 // Calls callback set by gpc_setDebugMessageCallback()

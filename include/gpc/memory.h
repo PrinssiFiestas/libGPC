@@ -15,7 +15,8 @@
 //
 //----------------------------------------------------------------------------
 
-// Define these macros before including this header in case of namespacing issues. 
+// Define one of these macros before including this header in case of
+// namespacing issues. 
 #if !defined(GPC_MEMORY_NAMESPACING) && !defined(GPC_NAMESPACING)
 
 // Every dynamic object needs to be assigned to an owner on creation.

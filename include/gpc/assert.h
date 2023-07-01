@@ -18,14 +18,16 @@
 //
 //----------------------------------------------------------------------------
 
-// Define these macros before including this header in case of namespacing issues. 
+// Define one of these macros before including this header in case of
+// namespacing issues.
 #if !defined(GPC_ASSERT_NAMESPACING) && !defined(GPC_NAMESPACING)
 
 // Use these macros to define tests and suites.
-// Tests and suites have to be defined in function scope so they can be run automatically.
-// Tests and suites are optional: EXPECT() and ASSERT() can be used anywhere in your code.
-// Tests and suites can be nested arbitrarily.
-// NAME will be namespaced so it can share it's name with existing functions or variables. 
+// Tests and suites have to be defined in function scope.
+// Tests and suites are optional: EXPECT() and ASSERT() can be used anywhere in
+// your code. They can also be nested arbitrarily.
+// NAME will be namespaced so tests and suites can share their names with
+// existing functions or variables. 
 #define TEST(NAME)			GPC_TEST(NAME)
 #define TEST_SUITE(NAME)	GPC_TEST_SUITE(NAME)
 // Example use:
@@ -44,16 +46,16 @@ int main() // function scope required!
 
 // Does nothing when expression is true.
 // Exits program and prints failure message when expression is false.
-// Optional detail can be added to failure message with FAIL_MESSAGE
+// Optional detail can be added to failure message with FAIL_MESSAGE.
 // Assertions are counted as expectations.
 #define ASSERT(EXPRESSION, FAIL_MESSAGE...) GPC_ASSERT(EXPRESSION, ##FAIL_MESSAGE)
 
 // Returns 0 when expression is true.
 // Prints failure message and returns 1 when expression is false.
-// Optional detail can be added to failure message with FAIL_MESSAGE
+// Optional detail can be added to failure message with FAIL_MESSAGE.
 #define EXPECT(EXPRESSION, FAIL_MESSAGE...) GPC_EXPECT(EXPRESSION, ##FAIL_MESSAGE)
 
-// 'Pseudo-operators' to be used in argument for ASSERT() or EXPECT().
+// 'Pseudo-operators' to be used in argument for ASSERT() or EXPECT()
 // Use ASSERT(A EQ B) instead of ASSERT(A == B) for more info at failure.
 #define EQ GPC_EQ // ==
 #define NE GPC_NE // !=

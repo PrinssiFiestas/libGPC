@@ -21,7 +21,7 @@ int main()
 	// Uncomment for heap visualization in stdout
 	// fakeHeapSetAutoLog(true);
 
-	gpc_setErrorHandlingMode(GPC_ERROR_STRICT);
+	gpc_setErrorHandlingMode(GPC_ERROR_DEBUG);
 	
 	NEW_OWNER(thisScope);
 
@@ -126,6 +126,19 @@ int main()
 		obj0[0] = 'Y';
 		ASSERT(obj0 EQ "Y");
 		ASSERT(copy EQ "X");
+	}
+	
+	TEST(errorHandling)
+	{
+		char msgBuf[500];
+		void getMsg(const char* msg)
+		{
+			strcpy(msgBuf, msg);
+		}
+		gpc_setDebugMessageCallback(getMsg);
+		
+		(void)mallocAssign(-1, thisScope);
+		ASSERT(msgBuf EQ GPC_EMSG_OVERALLOC(mallocAssign));
 	}
 	
 	freeAll(thisScope);
