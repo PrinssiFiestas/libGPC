@@ -54,7 +54,7 @@ bool gpc_anyFails(struct gpc_TestAndSuiteData* data)
 	else																\
 		printf(GPC_GREEN("%i failed")"\n", gpc_gTestData. DATA##Fails);
 
-void gpc_printExitMessageAndAddExitStatus()
+void gpc_printExitMessageAndAddExitStatus(void)
 {
 	printf("\n");
 

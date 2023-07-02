@@ -8,6 +8,9 @@
 #define GPC_MEMORY_H
 
 #include <stddef.h>
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
 #include "attributes.h"
 
 //----------------------------------------------------------------------------
@@ -146,7 +149,11 @@ bool gpc_onHeap(void* object);
 //----------------------------------------------------------------------------
 
 // Rounds n up to next power of 2
-#define gpc_nextPowerOf2(n) (((n) == 0) ? 1 : (1 << (64 - __builtin_clzll((n) - 1))))
+#ifndef _MSC_VER
+#define gpc_nextPowerOf2(n) (((n) == 0) ? 1 : (1 << (64 - __builtin_clzll((n) - 1)))
+#else
+#define gpc_nextPowerOf2(n) (((n) == 0) ? 1 : (1 << (64 - _lzcnt_u64((n) - 1))))
+#endif
 
 // Returns pointer to object with address buffer+sizeof(gpc_DynamicObjectList)
 // Make sure that buffer is at least large enough to contain
