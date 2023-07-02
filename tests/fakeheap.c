@@ -245,8 +245,8 @@ void autoLog()
 
 void updateLastHeapOperation(const char* operation, struct FakeHeapCallData data, void* arg1, void* arg2, void* returnValue)
 {
-	char args[255] = {};
-	char ret[64] = {};
+	char args[255] = {0};
+	char ret[64] = {0};
 	if (operation[0] == 'm')
 	{
 		snprintf(args, sizeof(args), "%lli", *(size_t*)arg1);

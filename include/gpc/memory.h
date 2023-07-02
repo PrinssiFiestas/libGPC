@@ -8,6 +8,7 @@
 #define GPC_MEMORY_H
 
 #include <stddef.h>
+#include "attributes.h"
 
 //----------------------------------------------------------------------------
 //
@@ -90,11 +91,11 @@ typedef struct gpc_DynamicObjOwner DynamicObjOwner;
 
 typedef struct gpc_DynamicObjOwner gpc_DynamicObjOwner;
 
-#define GPC_NEW_OWNER(name) gpc_DynamicObjOwner* const name = &(DynamicObjOwner){};
+#define GPC_NEW_OWNER(name) gpc_DynamicObjOwner* const name = &(DynamicObjOwner){0};
 
 #define gpc_newS(type, owner)																\
 	gpc_buildStackObject(																	\
-		(uint8_t[sizeof(struct gpc_DynamicObjectList) + gpc_nextPowerOf2(sizeof(type))]){},	\
+		(uint8_t[sizeof(struct gpc_DynamicObjectList) + gpc_nextPowerOf2(sizeof(type))]){0},\
 		sizeof(type),																		\
 		gpc_nextPowerOf2(sizeof(type)),														\
 		owner)
@@ -103,16 +104,16 @@ typedef struct gpc_DynamicObjOwner gpc_DynamicObjOwner;
 
 #define gpc_allocaAssign(capacity, owner)													\
 	gpc_buildStackObject(																	\
-		(uint8_t[sizeof(struct gpc_DynamicObjectList) + gpc_nextPowerOf2(capacity)]){},		\
+		(uint8_t[sizeof(struct gpc_DynamicObjectList) + gpc_nextPowerOf2(capacity)]){0},	\
 		0,																					\
 		gpc_nextPowerOf2(capacity),															\
 		owner)
 
-[[nodiscard]] void* gpc_mallocAssign(size_t, gpc_DynamicObjOwner*);
+GPC_NODISCARD void* gpc_mallocAssign(size_t, gpc_DynamicObjOwner*);
 
-[[nodiscard]] void* gpc_callocAssign(size_t nmemb, size_t size, gpc_DynamicObjOwner*);
+GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_DynamicObjOwner*);
 
-[[nodiscard]] void* gpc_reallocate(void* object, size_t newCapacity);
+GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity);
 #define gpc_reallocate(object, newSize) ((object) = gpc_reallocate(object, newSize))
 
 void gpc_moveOwnership(void* object, gpc_DynamicObjOwner* newOwner);
@@ -123,15 +124,15 @@ gpc_DynamicObjOwner* gpc_getOwner(void* object);
 
 size_t gpc_getSize(void* object);
 
-[[nodiscard]] void* gpc_setSize(void* object, size_t newSize);
+GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize);
 #define gpc_setSize(object, newSize) ((object) = gpc_setSize(object, newSize))
 
 size_t gpc_getCapacity(void* object);
 
-[[nodiscard]] void* gpc_setCapacity(void* object, size_t newCapacity);
+GPC_NODISCARD void* gpc_setCapacity(void* object, size_t newCapacity);
 #define gpc_setCapacity(object, newCapacity) ((object) = gpc_setCapacity(object, newCapacity))
 
-[[nodiscard]] void* gpc_duplicate(void* object);
+GPC_NODISCARD void* gpc_duplicate(void* object);
 
 bool gpc_onStack(void* object);
 bool gpc_onHeap(void* object);

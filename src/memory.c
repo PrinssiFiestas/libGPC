@@ -32,7 +32,7 @@ static void assignOwner(struct gpc_DynamicObjectList* obj, gpc_DynamicObjOwner* 
 	}
 }
 
-[[nodiscard]] void* gpc_mallocAssign(size_t capacity, gpc_DynamicObjOwner* owner)
+GPC_NODISCARD void* gpc_mallocAssign(size_t capacity, gpc_DynamicObjOwner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(mallocAssign)))
 		return NULL;
@@ -51,7 +51,7 @@ static void assignOwner(struct gpc_DynamicObjectList* obj, gpc_DynamicObjOwner* 
 	return p + 1;
 }
 
-[[nodiscard]] void* gpc_callocAssign(size_t nmemb, size_t size, gpc_DynamicObjOwner* owner)
+GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_DynamicObjOwner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(callocAssign)))
 		return NULL;
@@ -78,7 +78,7 @@ static struct gpc_DynamicObjectList* listData(void* object)
 }
 
 #undef gpc_reallocate
-[[nodiscard]] void* gpc_reallocate(void* object, size_t newCapacity)
+GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_ARG(object, reallocate)))
 		return NULL;
@@ -181,7 +181,7 @@ size_t gpc_getSize(void* object)
 }
 
 #undef gpc_setSize
-[[nodiscard]] void* gpc_setSize(void* object, size_t newSize)
+GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(setSize)))
 		return NULL;
@@ -210,7 +210,7 @@ size_t gpc_getCapacity(void* object)
 }
 
 #undef gpc_setCapacity
-[[nodiscard]] void* gpc_setCapacity(void* object, size_t newCapacity)
+GPC_NODISCARD void* gpc_setCapacity(void* object, size_t newCapacity)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(setCapacity)))
 		return NULL;
@@ -225,7 +225,7 @@ size_t gpc_getCapacity(void* object)
 	return object;
 }
 
-[[nodiscard]] void* gpc_duplicate(void* object)
+GPC_NODISCARD void* gpc_duplicate(void* object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(duplicate)))
 		return NULL;

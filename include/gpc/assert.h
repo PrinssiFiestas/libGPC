@@ -48,12 +48,12 @@ int main() // function scope required!
 // Exits program and prints failure message when expression is false.
 // Optional detail can be added to failure message with FAIL_MESSAGE.
 // Assertions are counted as expectations.
-#define ASSERT(EXPRESSION, FAIL_MESSAGE...) GPC_ASSERT(EXPRESSION, ##FAIL_MESSAGE)
+#define ASSERT(/*expression, failMsessage=""*/...) GPC_ASSERT(__VA_ARGS__)
 
 // Returns 0 when expression is true.
 // Prints failure message and returns 1 when expression is false.
 // Optional detail can be added to failure message with FAIL_MESSAGE.
-#define EXPECT(EXPRESSION, FAIL_MESSAGE...) GPC_EXPECT(EXPRESSION, ##FAIL_MESSAGE)
+#define EXPECT(/*expression, failMsessage=""*/...) GPC_EXPECT(__VA_ARGS__)
 
 // 'Pseudo-operators' to be used in argument for ASSERT() or EXPECT()
 // Use ASSERT(A EQ B) instead of ASSERT(A == B) for more info at failure.

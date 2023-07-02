@@ -1,5 +1,5 @@
 EXTENSION = .exe
-CFLAGS = -Wall -Wextra -Werror
+CFLAGS = -Wall -Wextra -Werror -Wpedantic
 CC = gcc
 
 .PHONY: tests

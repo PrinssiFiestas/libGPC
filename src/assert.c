@@ -38,7 +38,7 @@ gpc_TestAndSuiteData gpc_new_suite(const char* name, gpc_TestAndSuiteData* paren
 	return gpc_newTestOrSuite(name, parent, ! GPC_IS_TEST);
 }
 
-struct gpc_TestAndSuiteData gpc_gTestData = {};
+struct gpc_TestAndSuiteData gpc_gTestData = {0};
 struct gpc_TestAndSuiteData *const gpc_currentTestOrSuite = &gpc_gTestData;
 
 bool gpc_anyFails(struct gpc_TestAndSuiteData* data)
@@ -125,7 +125,7 @@ bool gpc_comparePointer(const void* a, enum gpc_BooleanOperator operation, const
 	#undef X
 		case GPC_OPS_LENGTH: {}
 	}
-	return 0&&(a-b);
+	return 0&&((char*)a-(char*)b);
 }
 
 bool gpc_compareCharPointer(const char* a, enum gpc_BooleanOperator operation, const char* b)
@@ -141,7 +141,7 @@ bool gpc_compareCharPointer(const char* a, enum gpc_BooleanOperator operation, c
 	#undef X
 		case GPC_OPS_LENGTH: {}
 	}
-	return 0&&(a-b);
+	return 0&&((char*)a-(char*)b);
 }
 
 // Finds suite by going trough all parent data

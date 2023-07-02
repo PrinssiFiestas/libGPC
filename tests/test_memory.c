@@ -15,6 +15,9 @@
 #include "fakeheap.c"
 #include "../src/memory.c"
 
+char msgBuf[500];
+void getMsg(const char* msg);
+
 int main()
 {
 	fakeHeapInit();
@@ -58,7 +61,7 @@ int main()
 		}
 		TEST(onStack)
 		{
-			uint8_t objSmem[sizeof(struct gpc_DynamicObjectList) + 1] = {};
+			uint8_t objSmem[sizeof(struct gpc_DynamicObjectList) + 1] = {0};
 			struct gpc_DynamicObjectList* objSdata = (typeof(objSdata))objSmem;
 			objSdata->owner = thisScope;
 			void* objS = objSdata + 1;
@@ -130,11 +133,6 @@ int main()
 	
 	TEST(errorHandling)
 	{
-		char msgBuf[500];
-		void getMsg(const char* msg)
-		{
-			strcpy(msgBuf, msg);
-		}
 		gpc_setDebugMessageCallback(getMsg);
 		
 		(void)mallocAssign(-1, thisScope);
@@ -146,6 +144,11 @@ int main()
 		ASSERT(fakeHeapFindFirstReserved() EQ EMPTY_HEAP, "Heap not empty after killing owner!");
 	
 	fakeHeapDestroy();
+}
+
+void getMsg(const char* msg)
+{
+	strcpy(msgBuf, msg);
 }
 
 #include "../src/gpc.c"

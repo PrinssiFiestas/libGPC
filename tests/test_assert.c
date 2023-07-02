@@ -46,7 +46,7 @@ int main()
 	{
 		void* ptr1 = malloc(1);
 		void* ptr2 = ptr1;
-		void* ptr3 = ptr1 + 1;
+		void* ptr3 = (char*)ptr1 + 1;
 		ASSERT(ptr1 EQ ptr2);
 		ASSERT(ptr1 NE ptr3);
 		free(ptr1);
