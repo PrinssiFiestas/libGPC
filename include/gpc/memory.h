@@ -32,18 +32,9 @@ typedef struct gpc_DynamicObjOwner DynamicObjOwner;
 // New zero initialized owner on stack
 #define NEW_OWNER(name)						GPC_NEW_OWNER(name)
 
-// Allocate zero initialized memory on stack and assign ownership
-// Size will be sizeof(type) and capacity will be nextPowerOf2(sizeof(type)).
-#define newS(type, owner)					gpc_newS(type, owner)
-
 // Allocate zero initialized memory on heap and assign ownership
 // size will be sizeof(type) and capacity will be nextPowerOf2(sizeof(type)).
 #define newH(type, owner)					gpc_newH(type, owner)
-
-// Allocate memroy on stack and assign ownership
-// Memory will be zeroed but size will be 0.
-// Returns NULL on failure.
-#define allocaAssign(capacity, owner)		gpc_allocaAssign(capacity, owner)
 
 // malloc and assign ownership
 #define mallocAssign(capacity, owner)		gpc_mallocAssign(capacity, owner)
@@ -96,21 +87,7 @@ typedef struct gpc_DynamicObjOwner gpc_DynamicObjOwner;
 
 #define GPC_NEW_OWNER(name) gpc_DynamicObjOwner* const name = &(DynamicObjOwner){0};
 
-#define gpc_newS(type, owner)																\
-	gpc_buildStackObject(																	\
-		(uint8_t[sizeof(struct gpc_DynamicObjectList) + gpc_nextPowerOf2(sizeof(type))]){0},\
-		sizeof(type),																		\
-		gpc_nextPowerOf2(sizeof(type)),														\
-		owner)
-
 #define gpc_newH(type, owner) gpc_buildHeapObject(sizeof(type), owner)
-
-#define gpc_allocaAssign(capacity, owner)													\
-	gpc_buildStackObject(																	\
-		(uint8_t[sizeof(struct gpc_DynamicObjectList) + gpc_nextPowerOf2(capacity)]){0},	\
-		0,																					\
-		gpc_nextPowerOf2(capacity),															\
-		owner)
 
 GPC_NODISCARD void* gpc_mallocAssign(size_t, gpc_DynamicObjOwner*);
 
@@ -150,10 +127,11 @@ bool gpc_onHeap(void* object);
 
 // Rounds n up to next power of 2
 #ifndef _MSC_VER
-#define gpc_nextPowerOf2(n) (((n) == 0) ? 1 : (1 << (64 - __builtin_clzll((n) - 1)))
+#define gpc_nextPowerOf2(n) (((n) == 0) ? 1 : (1 << (64 - __builtin_clzll((n) - 1))))
 #else
 #define gpc_nextPowerOf2(n) (((n) == 0) ? 1 : (1 << (64 - _lzcnt_u64((n) - 1))))
 #endif
+// TODO some horrible standanrd brute force implementation
 
 // Returns pointer to object with address buffer+sizeof(gpc_DynamicObjectList)
 // Make sure that buffer is at least large enough to contain

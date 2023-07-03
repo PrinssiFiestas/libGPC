@@ -25,21 +25,18 @@
 */
 #define OVERLOAD(NARGS, ...) GPC_OVERLOAD(NARGS, __VA_ARGS__)
 
-// Returns IF_EXPRESSION if VARIABLE is a number. Any other types has to be 
-// handled seperately. Examples:
-/*
-	// if (isNumber) {...} else {...}
-	IF_IS_NUMBER(x, expressionForNumbers, default: expressionForAllOtherTypes);
-	
-	// Character is not considered as a number by default
-	IF_IS_NUMBER(y, expressionForNumbers, char: expressionForCharacters);
-*/
-#define IF_IS_NUMBER(VARIABLE, IF_EXPRESSION, ...)		\
-	GPC_IF_IS_NUMBER(VARIABLE, IF_EXPRESSION, __VA_ARGS__)
+// Returns EXPR_IF_TRUE if VAR is a number
+// char, unsigned char, and bool types are not considered as numbers. If int8_t 
+// (aka char), uint8_t (aka unsigned char), or bool needs to be considered as 
+// numbers, use IF_IS_NUMERIC() instead.
+// enum types are not numbers on MSVC. 
+#define IF_IS_NUMBER(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE)		\
+	GPC_IF_IS_NUMBER(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE)
 
-// Use this if int8_t or uint8_t needs to be considered as a number.
-#define IF_IS_NUMBER_OR_CHAR(VARIABLE, IF_EXPRESSION, ...)		\
-	GPC_IF_IS_NUMBER_OR_CHAR(VARIABLE, IF_EXPRESSION, __VA_ARGS__)
+// Returns EXPR_IF_TRUE if VAR is a number, char, or bool
+// enum types are not numberic on MSVC. 
+#define IF_IS_NUMERIC(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE)	\
+	GPC_IF_IS_NUMERIC(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE)
 
 // Returns number of arguments
 #define COUNT_ARGS(...) GPC_COUNT_ARGS(__VA_ARGS__)
@@ -48,17 +45,24 @@
 
 #define GPC_OVERLOAD(NARGS, ...) GPC_LIST##NARGS (GPC_DUMP, GPC_DUMP, GPC_1ST_ARG, __VA_ARGS__)
 
-#define GPC_IF_IS_NUMBER(VARIABLE, IF_EXPRESSION, ...) _Generic(VARIABLE,			\
-short: IF_EXPRESSION, unsigned short: IF_EXPRESSION, int: IF_EXPRESSION,			\
-unsigned: IF_EXPRESSION, long: IF_EXPRESSION, unsigned long: IF_EXPRESSION, 		\
-long long: IF_EXPRESSION, unsigned long long: IF_EXPRESSION, float: IF_EXPRESSION, 	\
-double: IF_EXPRESSION, long double: IF_EXPRESSION __VA_OPT__(,)						\
-__VA_ARGS__)
+#define GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR,		\
+short: EXPR_IF_TRUE, unsigned short: EXPR_IF_TRUE, int: EXPR_IF_TRUE,			\
+unsigned: EXPR_IF_TRUE, long: EXPR_IF_TRUE, unsigned long: EXPR_IF_TRUE, 		\
+long long: EXPR_IF_TRUE, unsigned long long: EXPR_IF_TRUE, float: EXPR_IF_TRUE, \
+double: EXPR_IF_TRUE, long double: EXPR_IF_TRUE, default: EXPR_IF_FALSE)
 
-// Use this if int8_t or uint8_t needs to be considered as a number.
-#define GPC_IF_IS_NUMBER_OR_CHAR(VARIABLE, IF_EXPRESSION, ...) GPC_IF_IS_NUMBER(VARIABLE,	\
-IF_EXPRESSION, char: IF_EXPRESSION, unsigned char: IF_EXPRESSION __VA_OPT__(,) 				\
-__VA_ARGS__)
+#define GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR, 	\
+char: EXPR_IF_TRUE, unsigned char: EXPR_IF_TRUE, default: EXPR_IF_FALSE)
+
+// TODO check for C23 once it comes out
+#if __STDC_VERSION__ >= 199901L
+#define GPC_IF_IS_NUMERIC(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR,	\
+_Bool: EXPR_IF_TRUE, default: GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, 			\
+GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE)))
+#else
+#define GPC_IF_IS_NUMERIC(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE)		\
+GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE))
+#endif
 
 // Returns number of arguments
 #define GPC_COUNT_ARGS(...) GPC_OVERLOAD(64, __VA_ARGS__, 64, 63, 62, 61, 60, 59, 58, 57, 56,\

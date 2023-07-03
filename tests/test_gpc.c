@@ -23,9 +23,9 @@ int main()
 		#define malloc(...) NULL // failing malloc
 		void* p = malloc(1);
 		#undef malloc
-		ASSERT(gpc_handleError(p == NULL, NULL) EQ GPC_ERROR_NO_HANDLING);
+		ASSERT((int)gpc_handleError(p == NULL, NULL) EQ GPC_ERROR_NO_HANDLING);
 		gpc_setErrorHandlingMode(GPC_ERROR_DEBUG);
-		ASSERT(gpc_handleError(p == NULL, "Error message!") EQ GPC_ERROR_SHOULD_HANDLE);
+		ASSERT((int)gpc_handleError(p == NULL, "Error message!") EQ GPC_ERROR_SHOULD_HANDLE);
 		gpc_setDebugMessageCallback(debugMessageCallback);
 		const char* msg = "To callback";
 		gpc_handleError(p == NULL, msg);

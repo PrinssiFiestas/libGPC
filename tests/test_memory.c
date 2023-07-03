@@ -17,6 +17,7 @@
 
 char msgBuf[500];
 void getMsg(const char* msg);
+bool doubleCheck(void* obj, DynamicObjOwner* owner);
 
 int main()
 {
@@ -45,55 +46,31 @@ int main()
 
 	TEST_SUITE(memoryLocationCheck)
 	{
-		bool doubleCheck(void* obj)
-		{
-			bool onObjectList = false;
-			for(struct gpc_DynamicObjectList* p = thisScope->firstObject; p != NULL; p = p->next)
-				onObjectList = p + 1 == obj;
-			return onObjectList;
-		}
-
 		TEST(onHeap)
 		{
 			//ASSERT(doubleCheck(obj1) AND onHeap(obj1)); // TODO this syntax
-			ASSERT(doubleCheck(obj1));
+			ASSERT(doubleCheck(obj1, thisScope));
 			ASSERT(onHeap(obj1));
 		}
 		TEST(onStack)
 		{
 			uint8_t objSmem[sizeof(struct gpc_DynamicObjectList) + 1] = {0};
-			struct gpc_DynamicObjectList* objSdata = (typeof(objSdata))objSmem;
+			struct gpc_DynamicObjectList* objSdata = (struct gpc_DynamicObjectList*)objSmem;
 			objSdata->owner = thisScope;
 			void* objS = objSdata + 1;
 			
-			ASSERT( ! doubleCheck(objS));
+			ASSERT( ! doubleCheck(objS, thisScope));
 			ASSERT(onStack(objS));
 		}
 		
 	}
 
-	TEST(newS)
-	{
-		ASSERT(onStack(newS(int, thisScope)));
-		ASSERT(!onHeap(newS(int, thisScope)));
-		ASSERT(getSize(newS(int8_t[15], thisScope)) EQ sizeof(int8_t[15]));
-		ASSERT(getCapacity(newS(int8_t[15], thisScope)) EQ gpc_nextPowerOf2(sizeof(int8_t[15])));
-	}
-	
 	TEST(newH)
 	{
 		ASSERT(!onStack(newH(int, thisScope)));
 		ASSERT(onHeap(newH(int, thisScope)));
 		ASSERT(getSize(newH(int8_t[15], thisScope)) EQ sizeof(int8_t[15]));
 		ASSERT(getCapacity(newH(int8_t[15], thisScope)) EQ gpc_nextPowerOf2(sizeof(int8_t[15])));
-	}
-	
-	TEST(allocaAssign)
-	{
-		ASSERT(onStack(allocaAssign(4, thisScope)));
-		ASSERT(!onHeap(allocaAssign(4, thisScope)));
-		ASSERT(getSize(allocaAssign(15, thisScope)) EQ 0);
-		ASSERT(getCapacity(allocaAssign(15, thisScope)) EQ gpc_nextPowerOf2(15));
 	}
 	
 	TEST(callocAssign)
@@ -119,7 +96,7 @@ int main()
 		ASSERT(*obj1Original EQ FREED4);
 		ASSERT(getCapacity(obj1) EQ gpc_nextPowerOf2(oldCapacity + 1));
 		
-		typeof(obj1) obj1NonMoved = obj1;
+		int* obj1NonMoved = obj1;
 		ASSERT(obj1 = setSize(obj1, getCapacity(obj1)) EQ obj1NonMoved);
 	}
 	
@@ -149,6 +126,14 @@ int main()
 void getMsg(const char* msg)
 {
 	strcpy(msgBuf, msg);
+}
+
+bool doubleCheck(void* obj, DynamicObjOwner* owner)
+{
+	bool onObjectList = false;
+	for (struct gpc_DynamicObjectList* p = owner->firstObject; p != NULL; p = p->next)
+		onObjectList = p + 1 == obj;
+	return onObjectList;
 }
 
 #include "../src/gpc.c"

@@ -10,6 +10,7 @@
 #include "../src/terminalcolors.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 void fakeHeapInit(void);
 void fakeHeapDestroy(void);

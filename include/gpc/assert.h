@@ -47,12 +47,14 @@ int main() // function scope required!
 // Does nothing when expression is true.
 // Exits program and prints failure message when expression is false.
 // Optional detail can be added to failure message with FAIL_MESSAGE.
+// enums need to be casted to ints or bools when using MSVC.
 // Assertions are counted as expectations.
 #define ASSERT(/*expression, failMsessage=""*/...) GPC_ASSERT(__VA_ARGS__)
 
 // Returns 0 when expression is true.
 // Prints failure message and returns 1 when expression is false.
 // Optional detail can be added to failure message with FAIL_MESSAGE.
+// enums need to be casted to ints or bools when using MSVC.
 #define EXPECT(/*expression, failMsessage=""*/...) GPC_EXPECT(__VA_ARGS__)
 
 // 'Pseudo-operators' to be used in argument for ASSERT() or EXPECT()
@@ -177,15 +179,9 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 	(																		\
 		(struct gpc_ExpectationData)										\
 		{																	\
-			.a 					 	= GPC_IF_IS_NUMBER_OR_CHAR(EXP,			\
-										EXP,								\
-										bool: EXP,							\
-										default: 0),						\
+			.a 					 	= GPC_IF_IS_NUMERIC(EXP, EXP, 0),		\
 			.b						= 0,									\
-			.pa						= GPC_IF_IS_NUMBER_OR_CHAR(EXP,			\
-										NULL,								\
-										bool: NULL,							\
-										default: EXP),						\
+			.pa						= GPC_IF_IS_NUMERIC(EXP, NULL, EXP),	\
 			.pb						= NULL,									\
 			.str_a				 	= #EXP,									\
 			.str_b					= NULL,									\
@@ -193,12 +189,12 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 			.additionalFailMessage 	= ADDITIONAL_MSG,						\
 			.operation	 			= GPC_NO_OP,							\
 			.isAssertion 			= IS_ASS,								\
-			.type					= GPC_IF_IS_NUMBER_OR_CHAR(EXP,			\
-										GPC_NUMBER,							\
-										bool: GPC_BOOL,						\
-										const char*: GPC_CHAR_POINTER,		\
-										char*: GPC_CHAR_POINTER,			\
-										default: GPC_POINTER),				\
+			.type					= GPC_IF_IS_NUMBER(EXP,					\
+										GPC_NUMBER, _Generic(EXP,			\
+											bool: GPC_BOOL,					\
+											const char*: GPC_CHAR_POINTER,	\
+											char*: GPC_CHAR_POINTER,		\
+											default: GPC_POINTER)),			\
 			GPC_COMMON_DATA													\
 		},																	\
 		gpc_currentTestOrSuite												\
@@ -209,34 +205,22 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 	(																		\
 	 	(struct gpc_ExpectationData)										\
 		{																	\
-			.a 	   		  			= GPC_IF_IS_NUMBER_OR_CHAR(A,			\
-										A,									\
-										bool: A,							\
-										default: 0),						\
-			.b 			  			= GPC_IF_IS_NUMBER_OR_CHAR(B,			\
-										B,									\
-										bool: B,							\
-										default: 0),						\
-			.pa						= GPC_IF_IS_NUMBER_OR_CHAR(A,			\
-										NULL,								\
-										bool: NULL,							\
-										default: A),						\
-			.pb						= GPC_IF_IS_NUMBER_OR_CHAR(B,			\
-										NULL,								\
-										bool: NULL,							\
-										default: B),						\
+			.a 	   		  			= GPC_IF_IS_NUMERIC(A, A, 0),			\
+			.b 			  			= GPC_IF_IS_NUMERIC(B, B, 0),			\
+			.pa						= GPC_IF_IS_NUMERIC(A, NULL, A),		\
+			.pb						= GPC_IF_IS_NUMERIC(B, NULL, B),		\
 			.str_a 		  			= #A,									\
 			.str_b 		  			= #B,									\
 			.str_operator 			= GPC_STR_OPERATORS[OP],				\
 			.additionalFailMessage 	= ADDITIONAL_MSG,						\
 			.operation	  			= OP,									\
 			.isAssertion  			= IS_ASS,								\
-			.type					= GPC_IF_IS_NUMBER_OR_CHAR(A,			\
-										GPC_NUMBER,							\
-										bool: GPC_BOOL,						\
-										const char*: GPC_CHAR_POINTER,		\
-										char*: GPC_CHAR_POINTER,			\
-										default: GPC_POINTER),				\
+			.type					= GPC_IF_IS_NUMBER(A,					\
+										GPC_NUMBER, _Generic(A,				\
+											bool: GPC_BOOL,					\
+											const char*: GPC_CHAR_POINTER,	\
+											char*: GPC_CHAR_POINTER,		\
+											default: GPC_POINTER)),			\
 			GPC_COMMON_DATA													\
 		},																	\
 		gpc_currentTestOrSuite												\
