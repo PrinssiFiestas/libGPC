@@ -78,7 +78,7 @@ int main()
 		ASSERT(onStack(newS(int, thisScope)));
 		ASSERT(!onHeap(newS(int, thisScope)));
 		ASSERT(getSize(newS(int8_t[15], thisScope)) EQ sizeof(int8_t[15]));
-		ASSERT(getCapacity(newS(int8_t[15], thisScope)) EQ gpc_nextPowerOf2(sizeof(int8_t[15])));
+		ASSERT(getCapacity(newS(int8_t[15], thisScope)) EQ sizeof(int8_t[15]));
 	}
 	
 	TEST(callocAssign)

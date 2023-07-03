@@ -132,19 +132,11 @@ bool gpc_onHeap(void* object);
 //
 //----------------------------------------------------------------------------
 
-// Rounds n up to next power of 2
-#ifndef _MSC_VER
-#define gpc_nextPowerOf2(n) (((n) == 0) ? 1 : (1 << (64 - __builtin_clzll((n) - 1))))
-#else
-#define gpc_nextPowerOf2(n) (((n) == 0) ? 1 : (1 << (64 - _lzcnt_u64((n) - 1))))
-#endif
-// TODO some horrible standanrd brute force implementation
-
 // Creates metadata for object and stores it with the object to buffer. 
 // Make sure that buffer is at least large enough to contain
 // gpc_DynamicObjectList and the object itself. 
 // Returns pointer to object with address buffer+sizeof(gpc_DynamicObjectList).
-GPC_NODISCARD void* gpc_buildObject(void* buffer, size_t, gpc_DynamicObjOwner*);
+void* gpc_buildObject(void* buffer, size_t, gpc_DynamicObjOwner*);
 
 // Allocates memory and returns a pointer to an object with capacity of
 // nextPowerOf2(size)

@@ -11,6 +11,14 @@
 #include "../include/gpc/gpc.h"
 #include "errormsgs.h"
 
+static size_t gpc_nextPowerOf2(size_t n)
+{
+	size_t result = 1;
+	while (result < n)
+		result *= 2;
+	return result;
+}
+
 static void assignOwner(struct gpc_DynamicObjectList* obj, gpc_DynamicObjOwner* owner)
 {
 	if (gpc_handleError(obj == NULL, GPC_EMSG_INTERNAL GPC_EMSG_NULL_ARG(obj, assignOwner)))
