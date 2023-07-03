@@ -36,6 +36,10 @@ typedef struct gpc_DynamicObjOwner DynamicObjOwner;
 // size will be sizeof(type) and capacity will be nextPowerOf2(sizeof(type)).
 #define newH(type, owner)					gpc_newH(type, owner)
 
+// Allocate zero initialized memory on stack and assign ownership
+// size and capacity will be sizeof(type).
+#define newS(type, owner)					gpc_newS(type, owner)
+
 // malloc and assign ownership
 #define mallocAssign(capacity, owner)		gpc_mallocAssign(capacity, owner)
 
@@ -89,6 +93,9 @@ typedef struct gpc_DynamicObjOwner gpc_DynamicObjOwner;
 
 #define gpc_newH(type, owner) gpc_buildHeapObject(sizeof(type), owner)
 
+#define gpc_newS(type, owner)		\
+	gpc_buildObject((uint8_t[sizeof(struct gpc_DynamicObjectList) + sizeof(type)]){0}, sizeof(type), owner)
+
 GPC_NODISCARD void* gpc_mallocAssign(size_t, gpc_DynamicObjOwner*);
 
 GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_DynamicObjOwner*);
@@ -133,18 +140,15 @@ bool gpc_onHeap(void* object);
 #endif
 // TODO some horrible standanrd brute force implementation
 
-// Returns pointer to object with address buffer+sizeof(gpc_DynamicObjectList)
+// Creates metadata for object and stores it with the object to buffer. 
 // Make sure that buffer is at least large enough to contain
-// gpc_DynamicObjectList and object. 
-// buffer will NOT be freed by freeAll(). This function is meant for stack 
-// allocated objects. 
-void* gpc_buildStackObject(void* buffer,
-						   size_t objectSize,
-						   size_t capacity,
-						   gpc_DynamicObjOwner*);
+// gpc_DynamicObjectList and the object itself. 
+// Returns pointer to object with address buffer+sizeof(gpc_DynamicObjectList).
+GPC_NODISCARD void* gpc_buildObject(void* buffer, size_t, gpc_DynamicObjOwner*);
 
-// Returns pointer to heap allocated object with capacity of nextPowerOf2(size)
-void* gpc_buildHeapObject(size_t size, gpc_DynamicObjOwner*);
+// Allocates memory and returns a pointer to an object with capacity of
+// nextPowerOf2(size)
+GPC_NODISCARD void* gpc_buildHeapObject(size_t size, gpc_DynamicObjOwner*);
 
 // Heap allocated objects are stored in a linked list. freeAll() frees all 
 // objects in the list. Modifying the list manually will most likely cause a 
