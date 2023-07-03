@@ -69,16 +69,22 @@ int main()
 	{
 		ASSERT(!onStack(newH(int, thisScope)));
 		ASSERT(onHeap(newH(int, thisScope)));
-		ASSERT(getSize(newH(int8_t[15], thisScope)) EQ sizeof(int8_t[15]));
-		ASSERT(getCapacity(newH(int8_t[15], thisScope)) EQ gpc_nextPowerOf2(sizeof(int8_t[15])));
+		ASSERT(getSize(newH(int8_t[15], thisScope)) EQ 15);
+		ASSERT(getCapacity(newH(int8_t[15], thisScope)) EQ gpc_nextPowerOf2(15));
 	}
 
 	TEST(newS)
 	{
 		ASSERT(onStack(newS(int, thisScope)));
 		ASSERT(!onHeap(newS(int, thisScope)));
-		ASSERT(getSize(newS(int8_t[15], thisScope)) EQ sizeof(int8_t[15]));
-		ASSERT(getCapacity(newS(int8_t[15], thisScope)) EQ sizeof(int8_t[15]));
+		ASSERT(getSize(newS(int8_t[15], thisScope)) EQ 15);
+		ASSERT(getCapacity(newS(int8_t[15], thisScope)) EQ 15);
+	}
+	
+	TEST(allocaAssign)
+	{
+		ASSERT(getSize(allocaAssign(5, thisScope)) EQ 0);
+		ASSERT(getCapacity(allocaAssign(5, thisScope)) EQ 5);
 	}
 	
 	TEST(callocAssign)

@@ -270,14 +270,14 @@ bool gpc_onHeap(void* object)
 	return me->previous || me->next || me->owner->firstObject == me;
 }
 
-void* gpc_buildObject(void* buffer, size_t size, gpc_DynamicObjOwner* owner)
+void* gpc_buildObject(void* buffer, size_t size, size_t cap, gpc_DynamicObjOwner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(buildStackObject)))
 			return NULL;
 	
 	struct gpc_DynamicObjectList* me = buffer;
 	me->size		= size;
-	me->capacity	= size;
+	me->capacity	= cap;
 	me->owner		= owner;
 	return me + 1;
 }

@@ -40,11 +40,16 @@ typedef struct gpc_DynamicObjOwner DynamicObjOwner;
 // size and capacity will be sizeof(type).
 #define newS(type, owner)					gpc_newS(type, owner)
 
+// Allocate zero initialized memory on stack and assign ownership
+// Memory will be zeroed and size will be 0. 
+#define allocaAssign(capacity, owner)		gpc_allocaAssign(capacity, owner)
+
 // malloc and assign ownership
+// Returns pointer to an object of size 0.
 #define mallocAssign(capacity, owner)		gpc_mallocAssign(capacity, owner)
 
 // calloc and assign ownership
-// Memory will be zeroed but size will be 0.
+// Memory will be zeroed and size will be 0.
 // Returns NULL on failure.
 #define callocAssign(nmemb, size, owner)	gpc_callocAssign(nmemb, size, owner)
 
@@ -94,7 +99,10 @@ typedef struct gpc_DynamicObjOwner gpc_DynamicObjOwner;
 #define gpc_newH(type, owner) gpc_buildHeapObject(sizeof(type), owner)
 
 #define gpc_newS(type, owner)		\
-	gpc_buildObject((uint8_t[sizeof(struct gpc_DynamicObjectList) + sizeof(type)]){0}, sizeof(type), owner)
+	gpc_buildObject((uint8_t[sizeof(struct gpc_DynamicObjectList) + sizeof(type)]){0}, sizeof(type), sizeof(type), owner)
+
+#define gpc_allocaAssign(capacity, owner)	\
+	gpc_buildObject((uint8_t[sizeof(struct gpc_DynamicObjectList) + capacity]){0}, 0, capacity, owner)
 
 GPC_NODISCARD void* gpc_mallocAssign(size_t, gpc_DynamicObjOwner*);
 
@@ -136,7 +144,7 @@ bool gpc_onHeap(void* object);
 // Make sure that buffer is at least large enough to contain
 // gpc_DynamicObjectList and the object itself. 
 // Returns pointer to object with address buffer+sizeof(gpc_DynamicObjectList).
-void* gpc_buildObject(void* buffer, size_t, gpc_DynamicObjOwner*);
+void* gpc_buildObject(void* buffer, size_t size, size_t cap, gpc_DynamicObjOwner*);
 
 // Allocates memory and returns a pointer to an object with capacity of
 // nextPowerOf2(size)
