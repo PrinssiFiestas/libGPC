@@ -8,9 +8,6 @@
 #define GPC_MEMORY_H
 
 #include <stddef.h>
-#ifdef _MSC_VER
-#include <intrin.h>
-#endif
 #include "attributes.h"
 
 //----------------------------------------------------------------------------

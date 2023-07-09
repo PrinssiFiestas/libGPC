@@ -250,7 +250,7 @@ void updateLastHeapOperation(const char* operation, struct FakeHeapCallData data
 	char ret[64] = {0};
 	if (operation[0] == 'm')
 	{
-		snprintf(args, sizeof(args), "%lli", *(size_t*)arg1);
+		snprintf(args, sizeof(args), "%zu", *(size_t*)arg1);
 		snprintf(ret, sizeof(ret), " -> %p", returnValue);
 	}
 	else if (operation[0] == 'f')
@@ -260,12 +260,12 @@ void updateLastHeapOperation(const char* operation, struct FakeHeapCallData data
 	}	
 	else if (operation[0] == 'c')
 	{
-		snprintf(args, sizeof(args), "%lli, %lli", *(size_t*)arg1, *(size_t*)arg2);
+		snprintf(args, sizeof(args), "%zu, %zu", *(size_t*)arg1, *(size_t*)arg2);
 		snprintf(ret, sizeof(ret), " -> %p", returnValue);
 	}
 	else
 	{
-		snprintf(args, sizeof(args), "%p, %lli", arg1, *(size_t*)arg2);
+		snprintf(args, sizeof(args), "%p, %zu", arg1, *(size_t*)arg2);
 		snprintf(ret, sizeof(ret), " -> %p", returnValue);
 	}
 	
