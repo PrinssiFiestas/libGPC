@@ -1,15 +1,38 @@
-EXTENSION = .exe
-CFLAGS = -Wall -Wextra -Werror -Wpedantic
+# MIT License
+# Copyright (c) 2023 Lauri Lorenzo Fiestas
+# https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
 CC = gcc
+CFLAGS = -Wall -Wextra -Werror -Wpedantic
 
-.PHONY: tests
+OBJS = $(patsubst src/%.c,build/%.o,$(wildcard src/*.c))
+SRCS = $(wildcard src/*.c)
 
-tests: $(patsubst src/%.c,tests/build/test_%$(EXTENSION),$(wildcard src/*.c))
+TESTS = $(patsubst src/%.c,tests/build/test_%.exe,$(wildcard src/*.c))
 
-tests/build/test_%$(EXTENSION): src/%.c tests/test_%.c include/gpc/%.h
+.PHONY: tests all release debug
+
+all: release
+
+release: CFLAGS += -O2 -DNDEBUG
+release: build/libgpc.a
+
+debug: CFLAGS += -ggdb3
+debug: build/libgpc.a
+
+build/libgpc.a: $(OBJS)
+	ar -rcs $@ $^
+
+$(OBJS): $(SRCS)
+	mkdir -p build
+	$(CC) -c $(CFLAGS) $< -o $@
+
+tests: $(TESTS)
+$(TESTS): $(SRCS)
 	mkdir -p tests/build
 	$(CC) -ggdb3 -DTESTS $(CFLAGS) $(patsubst src/%.c,tests/test_%.c,$<) src/assert.c -o $@
 	./$@
 	
 clean:
 	rm -rf tests/build build
+
