@@ -54,8 +54,8 @@ int main()
 		}
 		TEST(onStack)
 		{
-			uint8_t objSmem[sizeof(struct gpc_DynamicObjectList) + 1] = {0};
-			struct gpc_DynamicObjectList* objSdata = (struct gpc_DynamicObjectList*)objSmem;
+			uint8_t objSmem[sizeof(struct gpc_ObjectList) + 1] = {0};
+			struct gpc_ObjectList* objSdata = (struct gpc_ObjectList*)objSmem;
 			objSdata->owner = thisScope;
 			void* objS = objSdata + 1;
 			
@@ -145,7 +145,7 @@ void getMsg(const char* msg)
 bool doubleCheck(void* obj, Owner* owner)
 {
 	bool onObjectList = false;
-	for (struct gpc_DynamicObjectList* p = owner->firstObject; p != NULL; p = p->next)
+	for (struct gpc_ObjectList* p = owner->firstObject; p != NULL; p = p->next)
 		onObjectList = p + 1 == obj;
 	return onObjectList;
 }

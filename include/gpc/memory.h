@@ -96,10 +96,10 @@ typedef struct gpc_Owner gpc_Owner;
 #define gpc_newH(type, owner) gpc_buildHeapObject(sizeof(type), owner)
 
 #define gpc_newS(type, owner)		\
-	gpc_buildObject((uint8_t[sizeof(struct gpc_DynamicObjectList) + sizeof(type)]){0}, sizeof(type), sizeof(type), owner)
+	gpc_buildObject((uint8_t[sizeof(struct gpc_ObjectList) + sizeof(type)]){0}, sizeof(type), sizeof(type), owner)
 
 #define gpc_allocaAssign(capacity, owner)	\
-	gpc_buildObject((uint8_t[sizeof(struct gpc_DynamicObjectList) + capacity]){0}, 0, capacity, owner)
+	gpc_buildObject((uint8_t[sizeof(struct gpc_ObjectList) + capacity]){0}, 0, capacity, owner)
 
 GPC_NODISCARD void* gpc_mallocAssign(size_t, gpc_Owner*);
 
@@ -139,8 +139,8 @@ bool gpc_onHeap(void* object);
 
 // Creates metadata for object and stores it with the object to buffer. 
 // Make sure that buffer is at least large enough to contain
-// gpc_DynamicObjectList and the object itself. 
-// Returns pointer to object with address buffer+sizeof(gpc_DynamicObjectList).
+// gpc_ObjectList and the object itself. 
+// Returns pointer to object with address buffer+sizeof(gpc_ObjectList).
 void* gpc_buildObject(void* buffer, size_t size, size_t cap, gpc_Owner*);
 
 // Allocates memory and returns a pointer to an object with capacity of
@@ -151,12 +151,12 @@ GPC_NODISCARD void* gpc_buildHeapObject(size_t size, gpc_Owner*);
 // objects in the list. Modifying the list manually will most likely cause a 
 // memory leak or crash so it's adviseable to only use functions provided by the
 // core API to interact with dynamic objects. 
-struct gpc_DynamicObjectList
+struct gpc_ObjectList
 {
 	// If previous and next is NULL and owner->firstObject and owner->lastObject
 	// does not point to self then object is stack allocated. 
-	struct gpc_DynamicObjectList* previous;
-	struct gpc_DynamicObjectList* next;
+	struct gpc_ObjectList* previous;
+	struct gpc_ObjectList* next;
 	
 	// Owner is required even for stack allocated objects so they can be 
 	// assigned properly if capacity needs to be exceeded.
@@ -172,8 +172,8 @@ struct gpc_DynamicObjectList
 // provided by the core API to interact with dynamic objects. 
 typedef struct gpc_Owner
 {
-	struct gpc_DynamicObjectList* firstObject;
-	struct gpc_DynamicObjectList* lastObject;
+	struct gpc_ObjectList* firstObject;
+	struct gpc_ObjectList* lastObject;
 } gpc_Owner;
 
 #endif // GPC_MEMORY_H

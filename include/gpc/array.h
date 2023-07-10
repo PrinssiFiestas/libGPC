@@ -11,18 +11,18 @@
 #include "memory.h"
 
 // Creates an empty array on stack that can be used with dynamic functionality
-#define STACK_ARRAY(type, name, capacity, owner)									\
-	uint8_t _##type##_##name##_##capacity											\
-	[sizeof(struct DynamicObjectList) + (capacity) * sizeof(type)];					\
-	*(struct DynamicObjectList*)_##type##_##name##_##capacity =						\
-	(struct DynamicObjectList) { .owner = owner, .size = 0, .capacity = capacity };	\
-	type* name = & _##type##_##name##_##capacity [sizeof(struct DynamicObjectList)];
+#define STACK_ARRAY(type, name, capacity, owner)							\
+	uint8_t _##type##_##name##_##capacity									\
+	[sizeof(struct ObjectList) + (capacity) * sizeof(type)];				\
+	*(struct ObjectList*)_##type##_##name##_##capacity =					\
+	(struct ObjectList) { .owner = owner, .size = 0, .capacity = capacity };\
+	type* name = & _##type##_##name##_##capacity [sizeof(struct ObjectList)];
 
 
 /* // Do something like this
 #define arrNewOnStack(type, capacity, owner, ...)	
 arrBuild(
-	(uint8_t[sizeof(struct DynamicObjectList) + (capacity) * sizeof(type)]){},
+	(uint8_t[sizeof(struct ObjectList) + (capacity) * sizeof(type)]){},
 	capacity, owner,
 	__VA_ARGS__
 	)
