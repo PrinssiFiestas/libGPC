@@ -68,7 +68,7 @@ void gpc_printExitMessageAndAddExitStatus(void)
 
 #undef PRINT_DATA
 
-void gpc_printStartingMessageAndInitExitMessage()
+void gpc_printStartingMessageAndInitExitMessage(void)
 {
 	static bool initialized = false;
 	if ( ! initialized)

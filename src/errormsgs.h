@@ -1,3 +1,9 @@
+/*
+ * MIT License
+ * Copyright (c) 2023 Lauri Lorenzo Fiestas
+ * https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+ */
+ 
 #ifndef GPC_ERRORMSGS_H
 #define GPC_ERRORMSGS_H
 
