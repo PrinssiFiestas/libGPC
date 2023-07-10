@@ -17,7 +17,7 @@
 
 char msgBuf[500];
 void getMsg(const char* msg);
-bool doubleCheck(void* obj, DynamicObjOwner* owner);
+bool doubleCheck(void* obj, Owner* owner);
 
 int main()
 {
@@ -142,7 +142,7 @@ void getMsg(const char* msg)
 	strcpy(msgBuf, msg);
 }
 
-bool doubleCheck(void* obj, DynamicObjOwner* owner)
+bool doubleCheck(void* obj, Owner* owner)
 {
 	bool onObjectList = false;
 	for (struct gpc_DynamicObjectList* p = owner->firstObject; p != NULL; p = p->next)

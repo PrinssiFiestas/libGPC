@@ -24,7 +24,7 @@
 // Owners should ALWAYS be zero initialized. NEW_OWNER() macro is recommended to
 // create a zero initialized pointer on stack safely. 
 // Free all allocated resources owned by owner with freeAll().
-typedef struct gpc_DynamicObjOwner DynamicObjOwner;
+typedef struct gpc_Owner Owner;
 
 // New zero initialized owner on stack
 #define NEW_OWNER(name)						GPC_NEW_OWNER(name)
@@ -89,9 +89,9 @@ typedef struct gpc_DynamicObjOwner DynamicObjOwner;
 
 #endif // GPC_NAMESPACING ----------------------------------------------------
 
-typedef struct gpc_DynamicObjOwner gpc_DynamicObjOwner;
+typedef struct gpc_Owner gpc_Owner;
 
-#define GPC_NEW_OWNER(name) gpc_DynamicObjOwner* const name = &(DynamicObjOwner){0};
+#define GPC_NEW_OWNER(name) gpc_Owner* const name = &(Owner){0};
 
 #define gpc_newH(type, owner) gpc_buildHeapObject(sizeof(type), owner)
 
@@ -101,18 +101,18 @@ typedef struct gpc_DynamicObjOwner gpc_DynamicObjOwner;
 #define gpc_allocaAssign(capacity, owner)	\
 	gpc_buildObject((uint8_t[sizeof(struct gpc_DynamicObjectList) + capacity]){0}, 0, capacity, owner)
 
-GPC_NODISCARD void* gpc_mallocAssign(size_t, gpc_DynamicObjOwner*);
+GPC_NODISCARD void* gpc_mallocAssign(size_t, gpc_Owner*);
 
-GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_DynamicObjOwner*);
+GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_Owner*);
 
 GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity);
 #define gpc_reallocate(object, newSize) ((object) = gpc_reallocate(object, newSize))
 
-void gpc_moveOwnership(void* object, gpc_DynamicObjOwner* newOwner);
+void gpc_moveOwnership(void* object, gpc_Owner* newOwner);
 
-void gpc_freeAll(gpc_DynamicObjOwner* owner);
+void gpc_freeAll(gpc_Owner* owner);
 
-gpc_DynamicObjOwner* gpc_getOwner(void* object);
+gpc_Owner* gpc_getOwner(void* object);
 
 size_t gpc_getSize(void* object);
 
@@ -141,11 +141,11 @@ bool gpc_onHeap(void* object);
 // Make sure that buffer is at least large enough to contain
 // gpc_DynamicObjectList and the object itself. 
 // Returns pointer to object with address buffer+sizeof(gpc_DynamicObjectList).
-void* gpc_buildObject(void* buffer, size_t size, size_t cap, gpc_DynamicObjOwner*);
+void* gpc_buildObject(void* buffer, size_t size, size_t cap, gpc_Owner*);
 
 // Allocates memory and returns a pointer to an object with capacity of
 // nextPowerOf2(size)
-GPC_NODISCARD void* gpc_buildHeapObject(size_t size, gpc_DynamicObjOwner*);
+GPC_NODISCARD void* gpc_buildHeapObject(size_t size, gpc_Owner*);
 
 // Heap allocated objects are stored in a linked list. freeAll() frees all 
 // objects in the list. Modifying the list manually will most likely cause a 
@@ -160,7 +160,7 @@ struct gpc_DynamicObjectList
 	
 	// Owner is required even for stack allocated objects so they can be 
 	// assigned properly if capacity needs to be exceeded.
-	gpc_DynamicObjOwner* owner;
+	gpc_Owner* owner;
 	
 	size_t size;
 	size_t capacity;
@@ -170,10 +170,10 @@ struct gpc_DynamicObjectList
 // owner->firstObject will be freed. Modifying owner manually will most likely
 // cause a memory leak or crash so it's adviseable to only use functions
 // provided by the core API to interact with dynamic objects. 
-typedef struct gpc_DynamicObjOwner
+typedef struct gpc_Owner
 {
 	struct gpc_DynamicObjectList* firstObject;
 	struct gpc_DynamicObjectList* lastObject;
-} gpc_DynamicObjOwner;
+} gpc_Owner;
 
 #endif // GPC_MEMORY_H

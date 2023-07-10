@@ -19,7 +19,7 @@ static size_t gpc_nextPowerOf2(size_t n)
 	return result;
 }
 
-static void assignOwner(struct gpc_DynamicObjectList* obj, gpc_DynamicObjOwner* owner)
+static void assignOwner(struct gpc_DynamicObjectList* obj, gpc_Owner* owner)
 {
 	if (gpc_handleError(obj == NULL, GPC_EMSG_INTERNAL GPC_EMSG_NULL_ARG(obj, assignOwner)))
 		return;
@@ -41,7 +41,7 @@ static void assignOwner(struct gpc_DynamicObjectList* obj, gpc_DynamicObjOwner* 
 	}
 }
 
-GPC_NODISCARD void* gpc_mallocAssign(size_t capacity, gpc_DynamicObjOwner* owner)
+GPC_NODISCARD void* gpc_mallocAssign(size_t capacity, gpc_Owner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(mallocAssign)))
 		return NULL;
@@ -60,7 +60,7 @@ GPC_NODISCARD void* gpc_mallocAssign(size_t capacity, gpc_DynamicObjOwner* owner
 	return p + 1;
 }
 
-GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_DynamicObjOwner* owner)
+GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_Owner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(callocAssign)))
 		return NULL;
@@ -125,7 +125,7 @@ GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity)
 	return me + 1;
 }
 
-void gpc_moveOwnership(void* object, gpc_DynamicObjOwner* newOwner)
+void gpc_moveOwnership(void* object, gpc_Owner* newOwner)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_ARG(object, moveOwnership)))
 		return;
@@ -154,7 +154,7 @@ void gpc_moveOwnership(void* object, gpc_DynamicObjOwner* newOwner)
 	assignOwner(me, newOwner);
 }
 
-void gpc_freeAll(gpc_DynamicObjOwner* owner)
+void gpc_freeAll(gpc_Owner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_PASSED(freeAll)))
 		return;
@@ -167,7 +167,7 @@ void gpc_freeAll(gpc_DynamicObjOwner* owner)
 	}
 }
 
-DynamicObjOwner* gpc_getOwner(void* object)
+Owner* gpc_getOwner(void* object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(getOwner)))
 		return NULL;
@@ -270,7 +270,7 @@ bool gpc_onHeap(void* object)
 	return me->previous || me->next || me->owner->firstObject == me;
 }
 
-void* gpc_buildObject(void* buffer, size_t size, size_t cap, gpc_DynamicObjOwner* owner)
+void* gpc_buildObject(void* buffer, size_t size, size_t cap, gpc_Owner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(buildStackObject)))
 			return NULL;
@@ -282,7 +282,7 @@ void* gpc_buildObject(void* buffer, size_t size, size_t cap, gpc_DynamicObjOwner
 	return me + 1;
 }
 
-void* gpc_buildHeapObject(size_t size, gpc_DynamicObjOwner* owner)
+void* gpc_buildHeapObject(size_t size, gpc_Owner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(buildHeapObject)))
 		return NULL;
