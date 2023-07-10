@@ -1,7 +1,0 @@
-assert.o: src/assert.c src/../include/gpc/assert.h \
- src/../include/gpc/overload.h src/terminalcolors.h
-gpc.o: src/gpc.c src/../include/gpc/gpc.h src/../include/gpc/memory.h \
- src/../include/gpc/attributes.h
-memory.o: src/memory.c src/../include/gpc/gpc.h \
- src/../include/gpc/memory.h src/../include/gpc/attributes.h \
- src/errormsgs.h
