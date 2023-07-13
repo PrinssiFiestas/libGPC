@@ -215,7 +215,7 @@ gpc_Owner* gpc_getOwner(void* object)
 	return me->owner;
 }
 
-const gpc_Owner* gpc_getDefaultOwner(void)
+gpc_Owner* gpc_getDefaultOwner(void)
 {
 	return defaultOwner;
 }

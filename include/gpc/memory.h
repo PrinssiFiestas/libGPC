@@ -27,15 +27,17 @@
 typedef struct gpc_Owner Owner;
 
 // New owner on stack
-#define newOwner(...)						gpc_newOwner(__VA_ARGS__)
+#define newOwner()							gpc_newOwner()
 
 // Allocate zero initialized memory on heap and assign ownership
+// If owner is not passed then it will be the last one created with newOwner()
 // size will be sizeof(type) and capacity will be nextPowerOf2(sizeof(type)).
-#define newH(type, owner)					gpc_newH(type, owner)
+#define newH(/*type, owner=last*/...)		gpc_newH(__VA_ARGS__)
 
 // Allocate zero initialized memory on stack and assign ownership
+// If owner is not passed then it will be the last one created with newOwner()
 // size and capacity will be sizeof(type).
-#define newS(type, owner)					gpc_newS(type, owner)
+#define newS(/*type, owner=last*/...)		gpc_newS(__VA_ARGS__)
 
 // Allocate memory on stack
 // Owner will be the last one created by newOwner()
@@ -65,6 +67,7 @@ typedef struct gpc_Owner Owner;
 
 // Reallocate object
 // Returns pointer to newly allocated block and NULL on failure. 
+// Does nothing if newCapacity<=getCapacity(object).
 #define reallocate(object, newCapacity)		gpc_reallocate(object, newCapacity)
 
 // Assign a new owner
@@ -95,6 +98,7 @@ typedef struct gpc_Owner Owner;
 
 // Sets size of memory block allocated for object
 // Reallocates if newCapacity exceeds size of block allocated for object.
+// Does nothing if newCapacity<=getCapacity(object)
 #define setCapacity(object, newCapacity)	gpc_setCapacity(object, newCapacity)
 
 // Returns a copy of object on heap
@@ -112,10 +116,14 @@ typedef struct gpc_Owner gpc_Owner;
 
 #define gpc_newOwner() gpc_registerOwner(&(gpc_Owner){0})
 
-#define gpc_newH(type, owner) gpc_buildHeapObject(sizeof(type), owner)
+#define gpc_newH1(type) gpc_buildHeapObject(sizeof(type), gpc_getDefaultOwner())
+#define gpc_newH2(type, owner) gpc_buildHeapObject(sizeof(type), owner)
+#define gpc_newH(...) GPC_OVERLOAD(2, __VA_ARGS__, gpc_newH2, gpc_newH1)(__VA_ARGS__)
 
-#define gpc_newS(type, owner)		\
+#define gpc_newS1(type) gpc_newS2(type, gpc_getDefaultOwner())
+#define gpc_newS2(type, owner)		\
 	gpc_buildObject((uint8_t[sizeof(struct gpc_ObjectList) + sizeof(type)]){0}, sizeof(type), sizeof(type), owner)
+#define gpc_newS(...) GPC_OVERLOAD(2, __VA_ARGS__, gpc_newS2, gpc_newS1)(__VA_ARGS__)
 
 #define gpc_allocateS(capacity) gpc_allocaAssign(capacity, gpc_getDefaultOwner())
 
@@ -137,7 +145,7 @@ void gpc_freeLastOwner(void);
 
 gpc_Owner* gpc_getOwner(void* object);
 
-const gpc_Owner* gpc_getDefaultOwner(void);
+gpc_Owner* gpc_getDefaultOwner(void);
 
 size_t gpc_getSize(void* object);
 
