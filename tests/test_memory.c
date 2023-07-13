@@ -65,18 +65,19 @@ int main()
 		
 	}
 
-	TEST(newH)
+	TEST(newH_and_allocH)
 	{
 		ASSERT(!onStack(newH(int)));
-		ASSERT(onHeap(newH(int)));
+		ASSERT(onHeap(allocH(sizeof(int))));
 		ASSERT(getSize(newH(int8_t[15])) EQ 15);
-		ASSERT(getCapacity(newH(int8_t[15])) EQ gpc_nextPowerOf2(15));
+		ASSERT(getCapacity(allocH(sizeof(int8_t[15]))) EQ gpc_nextPowerOf2(15));
 	}
 
-	TEST(newS)
+	TEST(newS_and_allocS)
 	{
 		ASSERT(onStack(newS(int)));
-		ASSERT(!onHeap(newS(int)));
+		ASSERT(!onHeap(allocS(sizeof(int))));
+		ASSERT(getSize(allocS(sizeof(int8_t[15]))) EQ 0);
 		ASSERT(getSize(newS(int8_t[15])) EQ 15);
 		ASSERT(getCapacity(newS(int8_t[15])) EQ 15);
 	}

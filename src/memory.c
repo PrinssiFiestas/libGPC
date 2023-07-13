@@ -183,12 +183,12 @@ gpc_Owner* gpc_registerOwner(gpc_Owner* owner)
 
 void gpc_freeLastOwner(void)
 {
-	gpc_freeAll(defaultOwner);
+	gpc_ownerFree(defaultOwner);
 	if (defaultOwner->parent != NULL)
 		defaultOwner = defaultOwner->parent;
 }
 
-void gpc_freeAll(gpc_Owner* owner)
+void gpc_ownerFree(gpc_Owner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_PASSED(freeAll)))
 		return;

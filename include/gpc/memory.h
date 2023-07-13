@@ -26,8 +26,13 @@
 // Free all allocated resources owned by owner with freeAll().
 typedef struct gpc_Owner Owner;
 
-// New owner on stack
+// Returns a pointer to a new block scopen owner
 #define newOwner()							gpc_newOwner()
+
+// Allocate zero initialized memory on stack and assign ownership
+// If owner is not passed then it will be the last one created with newOwner()
+// size and capacity will be sizeof(type).
+#define newS(/*type, owner=last*/...)		gpc_newS(__VA_ARGS__)
 
 // Allocate zero initialized memory on heap and assign ownership
 // If owner is not passed then it will be the last one created with newOwner()
@@ -36,8 +41,28 @@ typedef struct gpc_Owner Owner;
 
 // Allocate zero initialized memory on stack and assign ownership
 // If owner is not passed then it will be the last one created with newOwner()
-// size and capacity will be sizeof(type).
-#define newS(/*type, owner=last*/...)		gpc_newS(__VA_ARGS__)
+// size will be 0. 
+#define allocS(/*capacity, owner=last*/...)	gpc_allocS(__VA_ARGS__)
+
+// Allocate zero initialized memory on heap and assign ownership
+// If owner is not passed then it will be the last one created with newOwner()
+// size will be 0. 
+#define allocH(/*capacity, owner=last*/...)	gpc_allocH(__VA_ARGS__)
+
+// Reallocate object
+// Returns pointer to newly allocated block and NULL on failure. 
+// Does nothing if newCapacity<=getCapacity(object).
+#define reallocate(object, newCapacity)		gpc_reallocate(object, newCapacity)
+
+// Assign a new owner
+#define moveOwnership(object, newOwner)		gpc_moveOwnership(object, newOwner)
+
+// Frees last owner created with newOwner()
+#define freeLastOwner()						gpc_freeLastOwner()
+
+// Frees every heap allocated object owned by owner
+// Does nothing if owner only has objects on stack or no objects at all.
+#define ownerFree(owner)					gpc_ownerFree(owner)
 
 // Allocate memory on stack
 // Owner will be the last one created by newOwner()
@@ -64,21 +89,6 @@ typedef struct gpc_Owner Owner;
 // Memory will be zeroed and size will be 0.
 // Returns NULL on failure.
 #define callocAssign(nmemb, size, owner)	gpc_callocAssign(nmemb, size, owner)
-
-// Reallocate object
-// Returns pointer to newly allocated block and NULL on failure. 
-// Does nothing if newCapacity<=getCapacity(object).
-#define reallocate(object, newCapacity)		gpc_reallocate(object, newCapacity)
-
-// Assign a new owner
-#define moveOwnership(object, newOwner)		gpc_moveOwnership(object, newOwner)
-
-// Frees every heap allocated object owned by owner
-// Does nothing if owner only has objects on stack or no objects at all.
-#define freeAll(owner)						gpc_freeAll(owner)
-
-// Frees last owner created with newOwner()
-#define freeLastOwner()						gpc_freeLastOwner()
 
 // Returns pointer to object's owner
 #define getOwner(object)					gpc_getOwner(object)
@@ -125,6 +135,10 @@ typedef struct gpc_Owner gpc_Owner;
 	gpc_buildObject((uint8_t[sizeof(struct gpc_ObjectList) + sizeof(type)]){0}, sizeof(type), sizeof(type), owner)
 #define gpc_newS(...) GPC_OVERLOAD(2, __VA_ARGS__, gpc_newS2, gpc_newS1)(__VA_ARGS__)
 
+#define gpc_allocS(...) GPC_OVERLOAD(2,__VA_ARGS__,gpc_allocaAssign,gpc_allocateS)(__VA_ARGS__)
+
+#define gpc_allocH(...) GPC_OVERLOAD(2,__VA_ARGS__,gpc_callocAssign,gpc_callocate)(1,__VA_ARGS__)
+
 #define gpc_allocateS(capacity) gpc_allocaAssign(capacity, gpc_getDefaultOwner())
 
 #define gpc_allocaAssign(capacity, owner)	\
@@ -139,7 +153,7 @@ GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity);
 
 void gpc_moveOwnership(void* object, gpc_Owner* newOwner);
 
-void gpc_freeAll(gpc_Owner* owner);
+void gpc_ownerFree(gpc_Owner*);
 
 void gpc_freeLastOwner(void);
 
