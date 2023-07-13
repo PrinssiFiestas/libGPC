@@ -75,12 +75,12 @@
 #define gpc_arrLast(arr)						((arr)[gpc_getSize(arr)/sizeof((arr)[0]) - 1])
 #define gpc_arrBack(arr)						(&(arr)[gpc_getSize(arr)/sizeof((arr)[0]) - 1])
 #define gpc_arrIsEmpty(arr)						(gpc_getSize(arr) == 0)
-#define gpc_arrPush(arr, element)
-#define gpc_arrPushArr(arrDest, arr)
-#define gpc_arrPop(arr, nElements)
-#define gpc_arrInsert(arr, pos, element)
-#define gpc_arrInsertArr(arrDest, pos, arr)
-#define gpc_arrDelete(arr, pos, nElements)
+#define gpc_arrPush(arr, elem)					// gpc_arrPushElement(arr, sizeof(aarr[0]), elem)
+#define gpc_arrPushArr(arrDest, arr)			// gpc_arrPushArray(arrDest, sizeof(arr[0]), arr)
+#define gpc_arrPop(arr, nElems)					// goc_arrPopElements(arr, sizeof(arr[0]), nElems)
+#define gpc_arrInsert(arr, pos, elem)			// gpc_arrInsertElement(arr,sizeof *arr,pos,elem)
+#define gpc_arrInsertArr(arrDest, pos, arr)		// gpc_arrInsertArray(arrDest,sizeof *arr,pos,arr)
+#define gpc_arrDelete(arr, pos, nElems)			// gpc_arrDeleteElements(arr,sizeof *arr,pos,nElems)
 
 #define gpc_carrLength(arr) 					(sizeof(arr)/sizeof(arr[0]))
 
