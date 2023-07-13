@@ -11,6 +11,10 @@
 #include "../include/gpc/gpc.h"
 #include "errormsgs.h"
 
+// globalOwner makes sure that gpc_defaultOwner always has a parent
+static _Thread_local gpc_Owner globalOwner = {0};
+static _Thread_local gpc_Owner* defaultOwner = NULL;
+
 static size_t gpc_nextPowerOf2(size_t n)
 {
 	size_t result = 1;
@@ -41,6 +45,11 @@ static void assignOwner(struct gpc_ObjectList* obj, gpc_Owner* owner)
 	}
 }
 
+GPC_NODISCARD void* gpc_mallocate(size_t capacity)
+{
+	return gpc_mallocAssign(capacity, defaultOwner);
+}
+
 GPC_NODISCARD void* gpc_mallocAssign(size_t capacity, gpc_Owner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(mallocAssign)))
@@ -58,6 +67,11 @@ GPC_NODISCARD void* gpc_mallocAssign(size_t capacity, gpc_Owner* owner)
 	p->size = 0;
 	p->capacity = capacity;
 	return p + 1;
+}
+
+GPC_NODISCARD void* gpc_callocate(size_t nmemb, size_t size)
+{
+	return gpc_callocAssign(nmemb, size, defaultOwner);
 }
 
 GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_Owner* owner)
@@ -154,10 +168,33 @@ void gpc_moveOwnership(void* object, gpc_Owner* newOwner)
 	assignOwner(me, newOwner);
 }
 
+gpc_Owner* gpc_registerOwner(gpc_Owner* owner)
+{
+	// initialize defaultOwner
+	if ( ! defaultOwner)
+		defaultOwner = &globalOwner;
+	
+	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_PASSED(registerOwner)))
+		return NULL;
+	
+	owner->parent = defaultOwner;
+	return defaultOwner = owner;
+}
+
+void gpc_freeLastOwner(void)
+{
+	gpc_freeAll(defaultOwner);
+	if (defaultOwner->parent != NULL)
+		defaultOwner = defaultOwner->parent;
+}
+
 void gpc_freeAll(gpc_Owner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_PASSED(freeAll)))
 		return;
+	
+	if (owner->parent != NULL && owner == defaultOwner)
+		defaultOwner = owner->parent;
 	
 	for (struct gpc_ObjectList *obj = owner->firstObject, *next = NULL;
 		 obj != NULL; obj = next)
@@ -167,7 +204,7 @@ void gpc_freeAll(gpc_Owner* owner)
 	}
 }
 
-Owner* gpc_getOwner(void* object)
+gpc_Owner* gpc_getOwner(void* object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(getOwner)))
 		return NULL;
@@ -176,6 +213,11 @@ Owner* gpc_getOwner(void* object)
 	if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(getOwner)))
 		return NULL;
 	return me->owner;
+}
+
+const gpc_Owner* gpc_getDefaultOwner(void)
+{
+	return defaultOwner;
 }
 
 size_t gpc_getSize(void* object)

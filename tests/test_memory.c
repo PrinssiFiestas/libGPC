@@ -27,7 +27,7 @@ int main()
 
 	gpc_setErrorHandlingMode(GPC_ERROR_DEBUG);
 	
-	NEW_OWNER(thisScope);
+	gpc_Owner* thisScope = newOwner();
 
 	TEST(nextPowerOf2)
 	{
@@ -38,11 +38,11 @@ int main()
 	}
 	
 	const size_t obj0Cap = 4;
-	char* obj0 = mallocAssign(obj0Cap, thisScope);
+	char* obj0 = mallocate(obj0Cap);
 	obj0[0] = 'X';
 	obj0[1] = '\0';
 	obj0 = setSize(obj0, 2);
-	int* obj1 = callocAssign(3, sizeof(obj1[0]), thisScope);
+	int* obj1 = callocate(3, sizeof(obj1[0]));
 
 	TEST_SUITE(memoryLocationCheck)
 	{
@@ -130,7 +130,7 @@ int main()
 		ASSERT(msgBuf EQ GPC_EMSG_OVERALLOC(mallocAssign));
 	}
 	
-	freeAll(thisScope);
+	freeLastOwner();
 	TEST(automatic_freeing)
 		ASSERT(fakeHeapFindFirstReserved() EQ EMPTY_HEAP, "Heap not empty after killing owner!");
 	

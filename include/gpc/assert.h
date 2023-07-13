@@ -19,7 +19,7 @@
 //----------------------------------------------------------------------------
 
 // Define one of these macros before including this header in case of
-// namespacing issues.
+// namespacing issues to require gpc_ prefix for identifiers.
 #if !defined(GPC_ASSERT_NAMESPACING) && !defined(GPC_NAMESPACING)
 
 // Use these macros to define tests and suites.

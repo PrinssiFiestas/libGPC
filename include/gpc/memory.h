@@ -17,7 +17,7 @@
 //----------------------------------------------------------------------------
 
 // Define one of these macros before including this header in case of
-// namespacing issues. 
+// namespacing issues to require gpc_ prefix for identifiers. 
 #if !defined(GPC_MEMORY_NAMESPACING) && !defined(GPC_NAMESPACING)
 
 // Every dynamic object needs to be assigned to an owner on creation.
@@ -26,8 +26,8 @@
 // Free all allocated resources owned by owner with freeAll().
 typedef struct gpc_Owner Owner;
 
-// New zero initialized owner on stack
-#define NEW_OWNER(name)						GPC_NEW_OWNER(name)
+// New owner on stack
+#define newOwner(...)						gpc_newOwner(__VA_ARGS__)
 
 // Allocate zero initialized memory on heap and assign ownership
 // size will be sizeof(type) and capacity will be nextPowerOf2(sizeof(type)).
@@ -37,13 +37,26 @@ typedef struct gpc_Owner Owner;
 // size and capacity will be sizeof(type).
 #define newS(type, owner)					gpc_newS(type, owner)
 
-// Allocate zero initialized memory on stack and assign ownership
+// Allocate memory on stack
+// Owner will be the last one created by newOwner()
+// Memory will be zeroed and size will be 0. 
+#define allocateS(capacity)					gpc_allocateS(capacity)
+
+// Allocate memory on stack and assign ownership
 // Memory will be zeroed and size will be 0. 
 #define allocaAssign(capacity, owner)		gpc_allocaAssign(capacity, owner)
+
+// malloc
+// Owner will be the last one created by newOwner()
+#define mallocate(capacity)					gpc_mallocate(capacity)
 
 // malloc and assign ownership
 // Returns pointer to an object of size 0.
 #define mallocAssign(capacity, owner)		gpc_mallocAssign(capacity, owner)
+
+// calloc
+// Owner will be the last one created by newOwner()
+#define callocate(nmemb, size)				gpc_callocate(nmemb, size)
 
 // calloc and assign ownership
 // Memory will be zeroed and size will be 0.
@@ -61,8 +74,14 @@ typedef struct gpc_Owner Owner;
 // Does nothing if owner only has objects on stack or no objects at all.
 #define freeAll(owner)						gpc_freeAll(owner)
 
+// Frees last owner created with newOwner()
+#define freeLastOwner()						gpc_freeLastOwner()
+
 // Returns pointer to object's owner
 #define getOwner(object)					gpc_getOwner(object)
+
+// Returns pointer to default owner
+#define getDefaultOwner()					gpc_getDefaultOwner()
 
 // Gets size of object excluding it's metadata
 #define getSize(object)						gpc_getSize(object)
@@ -91,20 +110,22 @@ typedef struct gpc_Owner Owner;
 
 typedef struct gpc_Owner gpc_Owner;
 
-#define GPC_NEW_OWNER(name) gpc_Owner* const name = &(Owner){0};
+#define gpc_newOwner() gpc_registerOwner(&(gpc_Owner){0})
 
 #define gpc_newH(type, owner) gpc_buildHeapObject(sizeof(type), owner)
 
 #define gpc_newS(type, owner)		\
 	gpc_buildObject((uint8_t[sizeof(struct gpc_ObjectList) + sizeof(type)]){0}, sizeof(type), sizeof(type), owner)
 
+#define gpc_allocateS(capacity) gpc_allocaAssign(capacity, gpc_getDefaultOwner())
+
 #define gpc_allocaAssign(capacity, owner)	\
 	gpc_buildObject((uint8_t[sizeof(struct gpc_ObjectList) + capacity]){0}, 0, capacity, owner)
 
 GPC_NODISCARD void* gpc_mallocAssign(size_t, gpc_Owner*);
-
+GPC_NODISCARD void* gpc_mallocate(size_t);
 GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_Owner*);
-
+GPC_NODISCARD void* gpc_callocate(size_t nmemb, size_t size);
 GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity);
 #define gpc_reallocate(object, newSize) ((object) = gpc_reallocate(object, newSize))
 
@@ -112,7 +133,11 @@ void gpc_moveOwnership(void* object, gpc_Owner* newOwner);
 
 void gpc_freeAll(gpc_Owner* owner);
 
+void gpc_freeLastOwner(void);
+
 gpc_Owner* gpc_getOwner(void* object);
+
+const gpc_Owner* gpc_getDefaultOwner(void);
 
 size_t gpc_getSize(void* object);
 
@@ -138,7 +163,7 @@ bool gpc_onHeap(void* object);
 //----------------------------------------------------------------------------
 
 // Creates metadata for object and stores it with the object to buffer. 
-// Make sure that buffer is at least large enough to contain
+// Make sure that buffer is at least large enough to contain an instance of
 // gpc_ObjectList and the object itself. 
 // Returns pointer to object with address buffer+sizeof(gpc_ObjectList).
 void* gpc_buildObject(void* buffer, size_t size, size_t cap, gpc_Owner*);
@@ -174,6 +199,11 @@ typedef struct gpc_Owner
 {
 	struct gpc_ObjectList* firstObject;
 	struct gpc_ObjectList* lastObject;
+	struct gpc_Owner* parent; // for default owner
+	// TODO allocator
 } gpc_Owner;
+
+// Registers owner to gpc_globalOwnerList to be the default owner. 
+gpc_Owner* gpc_registerOwner(gpc_Owner*);
 
 #endif // GPC_MEMORY_H
