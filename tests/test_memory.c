@@ -12,7 +12,7 @@
 
 #include "../include/gpc/assert.h"
 
-#include "fakeheap.c"
+#include "fakeheap.c" // replace allocator
 #include "../src/memory.c"
 
 char msgBuf[500];
@@ -149,5 +149,3 @@ bool doubleCheck(void* obj, Owner* owner)
 		onObjectList = p + 1 == obj;
 	return onObjectList;
 }
-
-#include "../src/gpc.c"

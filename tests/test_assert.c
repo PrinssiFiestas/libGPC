@@ -9,7 +9,7 @@
 // and the results should be verified manually.
 
 #include <stdlib.h>
-#include "../include/gpc/assert.h"
+#include "../src/assert.c"
 
 int factorial(int x)
 {

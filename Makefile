@@ -5,10 +5,10 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror -Wpedantic
 
-OBJS = $(patsubst src/%.c,build/%.o,$(wildcard src/*.c))
 SRCS = $(wildcard src/*.c)
+OBJS = $(patsubst src/%.c,build/%.o,$(wildcard src/*.c))
 
-TESTS = $(patsubst src/%.c,tests/build/test_%.exe,$(wildcard src/*.c))
+TESTS = $(patsubst tests/test_%.c,build/test_%.exe,$(wildcard tests/test_*.c))
 
 .PHONY: tests all release debug
 
@@ -30,11 +30,12 @@ $(OBJS): build/%.o : src/%.c
 -include $(OBJS:.o=.d)
 
 tests: $(TESTS)
-$(TESTS): $(SRCS)
-	mkdir -p tests/build
-	$(CC) -ggdb3 -DTESTS $(CFLAGS) $(patsubst src/%.c,tests/test_%.c,$<) src/assert.c -o $@
+
+
+$(TESTS): build/test_%.exe : tests/test_%.c $(OBJS)
+	$(CC) -ggdb3 -DTESTS $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@
 	./$@
 
 clean:
-	rm -rf tests/build build
+	rm -rf build
 
