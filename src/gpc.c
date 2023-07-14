@@ -50,6 +50,10 @@ enum gpc_ErrorHandling gpc_handleError(bool condition, const char* errorMessage)
 		case GPC_ERROR_NO_HANDLING:
 			return GPC_ERROR_NO_HANDLING;
 			break;
+		case GPC_ERROR_SEND_MESSAGE:
+			gpc_gDebugMessageCallback(errorMessage);
+			return GPC_ERROR_NO_HANDLING;
+			break;
 		case GPC_ERROR_RESILIENT:
 			return GPC_ERROR_SHOULD_HANDLE;
 			break;

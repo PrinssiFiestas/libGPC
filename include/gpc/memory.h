@@ -128,13 +128,13 @@ typedef struct gpc_Owner gpc_Owner;
 
 #define gpc_newOwner() gpc_registerOwner(&(gpc_Owner){0})
 
-#define gpc_newH1(type) gpc_newH3(type, 0, gpc_getDefaultOwner())
-#define gpc_newH2(type, initValue) gpc_newH3(type, initValue, gpc_getDefaultOwner())
+#define gpc_newH1(type) gpc_newH3(type, 0, NULL)
+#define gpc_newH2(type, initValue) gpc_newH3(type, initValue, NULL)
 #define gpc_newH3(type, initValue, owner) gpc_buildHeapObject(sizeof(type),&(type){initValue},owner)
 #define gpc_newH(...) GPC_OVERLOAD(3, __VA_ARGS__, gpc_newH3, gpc_newH2, gpc_newH1)(__VA_ARGS__)
 
-#define gpc_newS1(type) gpc_newS3(type, 0, gpc_getDefaultOwner())
-#define gpc_newS2(type, initValue) gpc_newS3(type, initValue, gpc_getDefaultOwner())
+#define gpc_newS1(type) gpc_newS3(type, 0, NULL)
+#define gpc_newS2(type, initValue) gpc_newS3(type, initValue, NULL)
 #define gpc_newS3(type, initValue, _owner)							\
 	gpc_buildObject(												\
 		&(uint8_t[sizeof(struct gpc_ObjectList) + sizeof(type)]){0},\
@@ -150,7 +150,7 @@ typedef struct gpc_Owner gpc_Owner;
 
 #define gpc_allocH(...) GPC_OVERLOAD(2,__VA_ARGS__,gpc_callocAssign,gpc_callocate)(1,__VA_ARGS__)
 
-#define gpc_allocateS(capacity) gpc_allocaAssign(capacity, gpc_getDefaultOwner())
+#define gpc_allocateS(capacity) gpc_allocaAssign(capacity, NULL)
 
 #define gpc_allocaAssign(_capacity, _owner)							\
 	gpc_buildObject(												\
@@ -175,8 +175,6 @@ void gpc_freeOwner(gpc_Owner*);
 void gpc_freeLastOwner(void);
 
 gpc_Owner* gpc_getOwner(void* object);
-
-gpc_Owner* gpc_getDefaultOwner(void);
 
 size_t gpc_getSize(void* object);
 

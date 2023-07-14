@@ -25,7 +25,7 @@ int main()
 	// Uncomment for heap visualization in stdout
 	// fakeHeapSetAutoLog(true);
 
-	gpc_setErrorHandlingMode(GPC_ERROR_DEBUG);
+	gpc_setErrorHandlingMode(GPC_ERROR_SEND_MESSAGE);
 	
 	gpc_Owner* thisScope = newOwner();
 
@@ -35,13 +35,22 @@ int main()
 		ASSERT(gpc_nextPowerOf2(n) EQ 4);
 		ASSERT(gpc_nextPowerOf2(4) EQ 4, "Prevent needless allocations!");
 		ASSERT(gpc_nextPowerOf2(28) EQ 32);
+		ASSERT(gpc_nextPowerOf2(SIZE_MAX/2 + 1) LE SIZE_MAX);
 	}
 	
 	const size_t obj0Cap = 4;
 	char* obj0 = mallocate(obj0Cap);
+	
+	TEST(ownermallocate)
+		ASSERT(getOwner(obj0) EQ thisScope);
+	
 	obj0[0] = 'X';
 	obj0[1] = '\0';
 	obj0 = setSize(obj0, 2);
+	
+	TEST(owner)
+		ASSERT(getOwner(obj0) EQ thisScope);
+	
 	int* obj1 = callocate(3, sizeof(obj1[0]));
 
 	TEST_SUITE(memoryLocationCheck)
@@ -142,7 +151,9 @@ int main()
 
 void getMsg(const char* msg)
 {
-	strcpy(msgBuf, msg);
+	size_t len = strlen(msg) < sizeof(msgBuf)-1 ? strlen(msg) : sizeof(msgBuf)-1;
+	strncpy(msgBuf, msg, len);
+	msgBuf[len] = '\0';
 }
 
 bool doubleCheck(void* obj, Owner* owner)

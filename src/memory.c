@@ -17,6 +17,10 @@ static _Thread_local gpc_Owner* defaultOwner = NULL;
 
 static size_t gpc_nextPowerOf2(size_t n)
 {
+	// prevent integer overflow
+	if (n >= SIZE_MAX/2)
+		return SIZE_MAX;
+	
 	size_t result = 1;
 	while (result < n)
 		result *= 2;
@@ -25,12 +29,14 @@ static size_t gpc_nextPowerOf2(size_t n)
 
 static void assignOwner(struct gpc_ObjectList* obj, gpc_Owner* owner)
 {
+	// initialize defaultOwner
+	if ( ! defaultOwner)
+		defaultOwner = &globalOwner;
+	
 	if (gpc_handleError(obj == NULL, GPC_EMSG_INTERNAL GPC_EMSG_NULL_ARG(obj, assignOwner)))
 		return;
-	if (gpc_handleError(owner == NULL, GPC_EMSG_INTERNAL GPC_EMSG_NULL_ARG(owner,assignOwner)))
-		return;
 	
-	obj->owner = owner;
+	obj->owner = owner = owner ? owner : defaultOwner;
 	if (owner->firstObject == NULL)
 	{
 		owner->firstObject = owner->lastObject = obj;
@@ -52,8 +58,10 @@ GPC_NODISCARD void* gpc_mallocate(size_t capacity)
 
 GPC_NODISCARD void* gpc_mallocAssign(size_t capacity, gpc_Owner* owner)
 {
-	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(mallocAssign)))
-		return NULL;
+	// if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(mallocAssign)))
+		// return NULL;
+	owner = owner ? owner : defaultOwner;
+	
 	if (gpc_handleError(capacity == 0, GPC_EMSG_0ALLOC(mallocAssign)))
 		return NULL;
 	if (gpc_handleError(capacity >= PTRDIFF_MAX, GPC_EMSG_OVERALLOC(mallocAssign)))
@@ -64,6 +72,7 @@ GPC_NODISCARD void* gpc_mallocAssign(size_t capacity, gpc_Owner* owner)
 	if (gpc_handleError(p == NULL, "malloc() failed in mallocAssign()"))
 		return NULL;
 	assignOwner(p, owner);
+	
 	p->size = 0;
 	p->capacity = capacity;
 	return p + 1;
@@ -76,8 +85,10 @@ GPC_NODISCARD void* gpc_callocate(size_t nmemb, size_t size)
 
 GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_Owner* owner)
 {
-	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(callocAssign)))
-		return NULL;
+	// if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(callocAssign)))
+		// return NULL;
+	owner = owner ? owner : defaultOwner;
+	
 	if (gpc_handleError(size == 0, GPC_EMSG_0ALLOC(callocAssign)))
 		return NULL;
 	if (gpc_handleError(nmemb*size >= PTRDIFF_MAX, GPC_EMSG_OVERALLOC(mallocAssign)))
@@ -100,7 +111,6 @@ static struct gpc_ObjectList* listData(void* object)
 	return ((struct gpc_ObjectList*)object) - 1;
 }
 
-#undef gpc_reallocate
 GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_ARG(object, reallocate)))
@@ -143,8 +153,9 @@ void gpc_moveOwnership(void* object, gpc_Owner* newOwner)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_ARG(object, moveOwnership)))
 		return;
-	if (gpc_handleError(newOwner == NULL, GPC_EMSG_NULL_OWNER(moveOwnership)))
-		return;
+	// if (gpc_handleError(newOwner == NULL, GPC_EMSG_NULL_OWNER(moveOwnership)))
+		// return;
+	newOwner = newOwner ? newOwner : defaultOwner;
 	
 	struct gpc_ObjectList* me = listData(object);
 	if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(moveOwnership)))
@@ -215,11 +226,6 @@ gpc_Owner* gpc_getOwner(void* object)
 	return me->owner;
 }
 
-gpc_Owner* gpc_getDefaultOwner(void)
-{
-	return defaultOwner;
-}
-
 size_t gpc_getSize(void* object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(getSize)))
@@ -231,7 +237,6 @@ size_t gpc_getSize(void* object)
 	return me->size;
 }
 
-#undef gpc_setSize
 GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(setSize)))
@@ -260,7 +265,6 @@ size_t gpc_getCapacity(void* object)
 	return me->capacity;
 }
 
-#undef gpc_setCapacity
 GPC_NODISCARD void* gpc_setCapacity(void* object, size_t newCapacity)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(setCapacity)))
@@ -293,7 +297,7 @@ GPC_NODISCARD void* gpc_duplicate(void* object)
 bool gpc_onStack(void* object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(onStack)))
-			return false;
+		return false;
 	
 	struct gpc_ObjectList* me = listData(object);
 	if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(onStack)))
@@ -316,13 +320,15 @@ void* gpc_buildObject(void* outBuf, const struct gpc_ObjectList data, const void
 {
 	struct gpc_ObjectList* me = (struct gpc_ObjectList*)outBuf;
 	*me = data;
+	me->owner = me->owner ? me->owner : defaultOwner;
 	return memcpy(me + 1, initVal, data.size);
 }
 
 void* gpc_buildHeapObject(const size_t size, const void* initVal, gpc_Owner* owner)
 {
-	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(buildHeapObject)))
-		return NULL;
+	// if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(buildHeapObject)))
+		// return NULL;
+	owner = owner ? owner : defaultOwner;
 	if (gpc_handleError(size >= PTRDIFF_MAX, GPC_EMSG_OVERALLOC(buildHeapObject)))
 		return NULL;
 	

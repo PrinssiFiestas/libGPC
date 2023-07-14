@@ -18,12 +18,15 @@ enum gpc_ErrorHandling
 	GPC_ERROR_SHOULD_HANDLE = -1,
 	
 	// Crash and burn. Forces user to fix mistakes
-	// No error messages are sent. Use this on performance critical threads. 
+	// No error messages are sent. 
 	// Default behaviour
 	GPC_ERROR_NO_HANDLING,
 	
+	// Send error message and probably crash. Useful for getting stack trace. 
+	GPC_ERROR_SEND_MESSAGE,
+	
 	// No aborting or sending error messages on errors
-	// Makes the library resilient to invalid arguments Functions return with
+	// Makes the library resilient to invalid arguments. Functions return with
 	// error codes or error values that should be checked by user.
 	GPC_ERROR_RESILIENT,
 	
