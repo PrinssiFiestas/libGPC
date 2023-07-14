@@ -1,8 +1,6 @@
-/*
- * MIT License
- * Copyright (c) 2023 Lauri Lorenzo Fiestas
- * https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
- */
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 // Only test allocations with size divisible by 4!
 

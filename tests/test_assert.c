@@ -1,8 +1,6 @@
-/*
- * MIT License
- * Copyright (c) 2022 Lauri Lorenzo Fiestas
- * https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
- */
+// MIT License
+// Copyright (c) 2022 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 // This file tests the unit testing framework itself. On changes to the
 // to the framework, NON_PASSING_TESTS should be defined to test failing tests

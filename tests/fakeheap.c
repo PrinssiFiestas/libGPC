@@ -1,8 +1,6 @@
-/*
- * MIT License
- * Copyright (c) 2023 Lauri Lorenzo Fiestas
- * https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
- */
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
  
  // Include this file to replace malloc(), calloc(), realloc(), and free() with 
  // fake ones. See the macros at the bottom of this file. 
