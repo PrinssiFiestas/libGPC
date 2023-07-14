@@ -22,7 +22,7 @@ enum gpc_ErrorHandling
 	// Default behaviour
 	GPC_ERROR_NO_HANDLING,
 	
-	// Send error message and probably crash. Useful for getting stack trace. 
+	// Send error message and probably crash.  
 	GPC_ERROR_SEND_MESSAGE,
 	
 	// No aborting or sending error messages on errors

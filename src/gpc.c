@@ -22,12 +22,7 @@ static void perror2(const char* msg)
 	fprintf(stderr, "%s\n%s\n", errorString, msg);
 }
 
-// TODO: update _Thread_local when GNU C23 comes out or MinGW supports threads.h
-#ifndef _MSC_VER
-static _Thread_local enum gpc_ErrorHandling gpc_gErrorHandlingMode = GPC_ERROR_NO_HANDLING;
-#else
-static __declspec(thread) enum gpc_ErrorHandling gpc_gErrorHandlingMode = GPC_ERROR_NO_HANDLING;
-#endif
+static GPC_THREAD_LOCAL enum gpc_ErrorHandling gpc_gErrorHandlingMode = GPC_ERROR_NO_HANDLING;
 static void (*gpc_gDebugMessageCallback)(const char*) = perror2;
 
 void gpc_setErrorHandlingMode(enum gpc_ErrorHandling i)
