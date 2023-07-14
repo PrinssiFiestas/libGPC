@@ -3,6 +3,5 @@
  * Copyright (c) 2023 Lauri Lorenzo Fiestas
  * https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
  */
- 
- #include "../include/gpc/array.h"
- 
+
+#include "../include/gpc/array.h"

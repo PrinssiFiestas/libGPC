@@ -178,9 +178,9 @@ void gpc_printExpectationFail(struct gpc_ExpectationData* expectation,
 	
 	if (expectation->type == GPC_NUMBER)
 	{
-		fprintf(stderr, " evaluated to " GPC_RED("%g"), expectation->a);
+		fprintf(stderr, " evaluated to " GPC_RED(GPC_LG_FORMAT), expectation->a);
 		if (expectation->operation != GPC_NO_OP)
-			fprintf(stderr, GPC_RED(" %s %g"), expectation->str_operator, expectation->b);
+			fprintf(stderr, GPC_RED(" %s " GPC_LG_FORMAT), expectation->str_operator, expectation->b);
 		fprintf(stderr, ".\n");
 	}
 	else if (expectation->type == GPC_BOOL)
@@ -192,7 +192,7 @@ void gpc_printExpectationFail(struct gpc_ExpectationData* expectation,
 		if (expectation->operation == GPC_NO_OP)
 			fprintf(stderr, GPC_RED("%s"), expectation->a ? "true" : "false");
 		else
-			fprintf(stderr, GPC_RED("%g %s %g"), expectation->a, expectation->str_operator, expectation->b);
+			fprintf(stderr, GPC_RED(GPC_LG_FORMAT " %s " GPC_LG_FORMAT), expectation->a, expectation->str_operator, expectation->b);
 		fprintf(stderr, ".\n");
 	}
 	else if (expectation->type == GPC_POINTER)

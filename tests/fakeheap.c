@@ -76,7 +76,7 @@ static char* heapHistoryColored;
 static FILE* logOut = NULL;
 static bool autoLogEnabled = false;
 
-void fakeHeapInit()
+void fakeHeapInit(void)
 {
 	logOut = stdout;
 	const size_t FAKE_HEAP_INITIAL_CAPACITY = 0x100000;
@@ -93,7 +93,7 @@ void fakeHeapInit()
 	heapHistory 		= malloc(HEAP_HISTORY_INITIAL_CAPACITY);
 }
 
-void fakeHeapDestroy()
+void fakeHeapDestroy(void)
 {
 	fakeHeapSize = 0;
 	free(fakeHeap);
@@ -112,7 +112,7 @@ size_t fakeHeapObjectSize(void* p)
 	return size * sizeof(ptr[0]);
 }
 
-long fakeHeapFindFirstReserved()
+long fakeHeapFindFirstReserved(void)
 {
 	uint32_t* heap32 = (uint32_t*)fakeHeap;
 	for (size_t i = 0; i < fakeHeapSize/4; i++)
@@ -171,7 +171,7 @@ void appendFormattedBytes(char* out, char* outColored, uint32_t bytes, enum Form
 	}
 }
 
-void updateCurrentHeap()
+void updateCurrentHeap(void)
 {
 	free(currentHeap);
 	free(currentHeapColored);
@@ -229,7 +229,7 @@ void fakeHeapSetAutoLog(bool b)
 	autoLogEnabled = b;
 }
 
-void autoLog()
+void autoLog(void)
 {
 	if (logOut == NULL)
 		logOut = stdout;

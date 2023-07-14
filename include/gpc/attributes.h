@@ -22,4 +22,13 @@
 #define GPC_THREAD_LOCAL _Thread_local
 #endif
 
+#if defined(__MINGW32__) && !defined(__clang__)
+#define GPC_LONG_DOUBLE double
+#define GPC_LG_FORMAT "%g"
+#else
+#define GPC_LONG_DOUBLE long double
+#define GPC_LG_FORMAT "%Lg"
+#endif
+
+
 #endif // GPC_ATTRIBUTES_H

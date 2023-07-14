@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "overload.h"
+#include "attributes.h"
 
 //----------------------------------------------------------------------------
 //
@@ -140,7 +141,7 @@ enum gpc_Datatype
 
 struct gpc_ExpectationData
 {
-	const double a, b;
+	const GPC_LONG_DOUBLE a, b;
 	const void *pa, *pb;
 	const char *str_a, *str_b, *str_operator, *additionalFailMessage;
 	const enum gpc_BooleanOperator operation;

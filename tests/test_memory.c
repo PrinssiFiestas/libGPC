@@ -19,7 +19,7 @@ char msgBuf[500];
 void getMsg(const char* msg);
 bool doubleCheck(void* obj, Owner* owner);
 
-int main()
+int main(void)
 {
 	fakeHeapInit();
 	// Uncomment for heap visualization in stdout

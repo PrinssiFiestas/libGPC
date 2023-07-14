@@ -16,7 +16,7 @@ void debugMessageCallback(const char* str)
 	strcpy(gstr, str);
 }
  
-int main()
+int main(void)
 {
 	TEST(handleError)
 	{

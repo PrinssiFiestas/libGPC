@@ -327,11 +327,11 @@ bool gpc_onHeap(const void *const object)
 
 void* gpc_buildObject(void* outBuf, const struct gpc_ObjectList data, const void* initVal)
 {
-	if (gpc_handleError(data.size == 0, "Failed to build 0 sized object in buildObject()"))
+	if (gpc_handleError(data.capacity == 0, "Failed to build object with 0 capacity in buildObject()"))
 		return NULL;
 	if (gpc_handleError(outBuf == NULL, GPC_EMSG_NULL_ARG(outBuf, buildObject)))
 		return NULL;
-	if (gpc_handleError(initVal == NULL, GPC_EMSG_NULL_ARG(initVal, buildObject)))
+		if (gpc_handleError(!initVal && data.size, GPC_EMSG_NULL_ARG(initVal, buildObject)))
 		return NULL;
 	
 	struct gpc_ObjectList* me = (struct gpc_ObjectList*)outBuf;

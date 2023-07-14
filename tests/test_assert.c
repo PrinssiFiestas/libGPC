@@ -19,7 +19,7 @@ int factorial(int x)
 	return y;
 }
 
-int main()
+int main(void)
 {
 	//#define NON_PASSING_TESTS
 	#ifndef NON_PASSING_TESTS
