@@ -110,7 +110,7 @@ GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_Owner* owner
 	return p + 1;
 }
 
-static struct gpc_ObjectList* listData(void* object)
+static struct gpc_ObjectList* listData(const void *const object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_INTERNAL GPC_EMSG_NULL_ARG(object, listData)))
 		return NULL;
@@ -197,17 +197,15 @@ gpc_Owner* gpc_registerOwner(gpc_Owner* owner)
 	return defaultOwner = owner;
 }
 
-void gpc_freeLastOwner(void)
-{
-	gpc_freeOwner(defaultOwner);
-	if (defaultOwner->parent != NULL)
-		defaultOwner = defaultOwner->parent;
-}
-
 void gpc_freeOwner(gpc_Owner* owner)
 {
-	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_PASSED(freeAll)))
+	if (owner == NULL)
+	{
+		gpc_freeOwner(defaultOwner);
+		if (defaultOwner->parent != NULL)
+			defaultOwner = defaultOwner->parent;
 		return;
+	}
 	
 	if (owner->parent != NULL && owner == defaultOwner)
 		defaultOwner = owner->parent;
@@ -220,7 +218,7 @@ void gpc_freeOwner(gpc_Owner* owner)
 	}
 }
 
-gpc_Owner* gpc_getOwner(void* object)
+gpc_Owner* gpc_getOwner(const void *const object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(getOwner)))
 		return NULL;
@@ -232,7 +230,7 @@ gpc_Owner* gpc_getOwner(void* object)
 	return me->owner;
 }
 
-size_t gpc_getSize(void* object)
+size_t gpc_getSize(const void *const object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(getSize)))
 		return 0;
@@ -263,7 +261,7 @@ GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize)
 	return object;
 }
 
-size_t gpc_getCapacity(void* object)
+size_t gpc_getCapacity(const void *const object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(getCapacity)))
 		return 0;
@@ -291,7 +289,7 @@ GPC_NODISCARD void* gpc_setCapacity(void* object, size_t newCapacity)
 	return object;
 }
 
-GPC_NODISCARD void* gpc_duplicate(void* object)
+GPC_NODISCARD void* gpc_duplicate(const void *const object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(duplicate)))
 		return NULL;
@@ -305,7 +303,7 @@ GPC_NODISCARD void* gpc_duplicate(void* object)
 	return copy;
 }
 
-bool gpc_onStack(void* object)
+bool gpc_onStack(const void *const object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(onStack)))
 		return false;
@@ -316,7 +314,7 @@ bool gpc_onStack(void* object)
 	return !(me->previous || me->next || me->owner->firstObject == me);
 }
 
-bool gpc_onHeap(void* object)
+bool gpc_onHeap(const void *const object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(onHeap)))
 		return false;

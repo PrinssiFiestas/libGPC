@@ -142,7 +142,7 @@ int main()
 		ASSERT(msgBuf EQ GPC_EMSG_OVERALLOC(mallocAssign));
 	}
 	
-	freeLastOwner();
+	freeOwner(NULL);
 	TEST(automatic_freeing)
 		ASSERT(fakeHeapFindFirstReserved() EQ EMPTY_HEAP, "Heap not empty after killing owner!");
 	

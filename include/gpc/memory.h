@@ -59,10 +59,8 @@ typedef struct gpc_Owner Owner;
 // Assign a new owner
 #define moveOwnership(object, newOwner)		gpc_moveOwnership(object, newOwner)
 
-// Frees last owner created with newOwner()
-#define freeLastOwner()						gpc_freeLastOwner()
-
-// Frees every heap allocated object owned by owner
+// Frees every heap allocated object owned by owner. Frees last owner created 
+// with newOwner() if owner is NULL. 
 // Does nothing if owner only has objects on stack or no objects at all.
 #define freeOwner(owner)					gpc_freeOwner(owner)
 
@@ -172,22 +170,20 @@ void gpc_moveOwnership(void* object, gpc_Owner* newOwner);
 
 void gpc_freeOwner(gpc_Owner*);
 
-void gpc_freeLastOwner(void);
+gpc_Owner* gpc_getOwner(const void *const object);
 
-gpc_Owner* gpc_getOwner(void* object);
-
-size_t gpc_getSize(void* object);
+size_t gpc_getSize(const void *const object);
 
 GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize);
 
-size_t gpc_getCapacity(void* object);
+size_t gpc_getCapacity(const void *const object);
 
 GPC_NODISCARD void* gpc_setCapacity(void* object, size_t newCapacity);
 
-GPC_NODISCARD void* gpc_duplicate(void* object);
+GPC_NODISCARD void* gpc_duplicate(const void *const object);
 
-bool gpc_onStack(void* object);
-bool gpc_onHeap(void* object);
+bool gpc_onStack(const void *const object);
+bool gpc_onHeap(const void *const object);
 
 //----------------------------------------------------------------------------
 //
@@ -238,6 +234,7 @@ typedef struct gpc_Owner
 } gpc_Owner;
 
 // Registers owner to gpc_globalOwnerList to be the default owner. 
+// Returns self. 
 gpc_Owner* gpc_registerOwner(gpc_Owner*);
 
 #endif // GPC_MEMORY_H
