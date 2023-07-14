@@ -7,6 +7,7 @@
 #ifndef GPC_MEMORY_H
 #define GPC_MEMORY_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include "attributes.h"
 
@@ -62,7 +63,7 @@ typedef struct gpc_Owner Owner;
 
 // Frees every heap allocated object owned by owner
 // Does nothing if owner only has objects on stack or no objects at all.
-#define ownerFree(owner)					gpc_ownerFree(owner)
+#define freeOwner(owner)					gpc_freeOwner(owner)
 
 // Allocate memory on stack
 // Owner will be the last one created by newOwner()
@@ -149,11 +150,10 @@ GPC_NODISCARD void* gpc_mallocate(size_t);
 GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_Owner*);
 GPC_NODISCARD void* gpc_callocate(size_t nmemb, size_t size);
 GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity);
-#define gpc_reallocate(object, newSize) ((object) = gpc_reallocate(object, newSize))
 
 void gpc_moveOwnership(void* object, gpc_Owner* newOwner);
 
-void gpc_ownerFree(gpc_Owner*);
+void gpc_freeOwner(gpc_Owner*);
 
 void gpc_freeLastOwner(void);
 
@@ -164,12 +164,10 @@ gpc_Owner* gpc_getDefaultOwner(void);
 size_t gpc_getSize(void* object);
 
 GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize);
-#define gpc_setSize(object, newSize) ((object) = gpc_setSize(object, newSize))
 
 size_t gpc_getCapacity(void* object);
 
 GPC_NODISCARD void* gpc_setCapacity(void* object, size_t newCapacity);
-#define gpc_setCapacity(object, newCapacity) ((object) = gpc_setCapacity(object, newCapacity))
 
 GPC_NODISCARD void* gpc_duplicate(void* object);
 
