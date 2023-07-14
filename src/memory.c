@@ -329,7 +329,7 @@ void* gpc_buildObject(void* outBuf, const struct gpc_ObjectList data, const void
 		return NULL;
 	if (gpc_handleError(outBuf == NULL, GPC_EMSG_NULL_ARG(outBuf, buildObject)))
 		return NULL;
-		if (gpc_handleError(!initVal && data.size, GPC_EMSG_NULL_ARG(initVal, buildObject)))
+	if (gpc_handleError(!initVal && data.size, GPC_EMSG_NULL_ARG(initVal, buildObject)))
 		return NULL;
 	
 	struct gpc_ObjectList* me = (struct gpc_ObjectList*)outBuf;
