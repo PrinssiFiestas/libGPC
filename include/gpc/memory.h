@@ -9,6 +9,7 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 #include "attributes.h"
 
 //----------------------------------------------------------------------------
@@ -127,14 +128,23 @@ typedef struct gpc_Owner gpc_Owner;
 
 #define gpc_newOwner() gpc_registerOwner(&(gpc_Owner){0})
 
-#define gpc_newH1(type) gpc_buildHeapObject(sizeof(type), gpc_getDefaultOwner())
-#define gpc_newH2(type, owner) gpc_buildHeapObject(sizeof(type), owner)
-#define gpc_newH(...) GPC_OVERLOAD(2, __VA_ARGS__, gpc_newH2, gpc_newH1)(__VA_ARGS__)
+#define gpc_newH1(type) gpc_newH3(type, 0, gpc_getDefaultOwner())
+#define gpc_newH2(type, initValue) gpc_newH3(type, initValue, gpc_getDefaultOwner())
+#define gpc_newH3(type, initValue, owner) gpc_buildHeapObject(sizeof(type),&(type){initValue},owner)
+#define gpc_newH(...) GPC_OVERLOAD(3, __VA_ARGS__, gpc_newH3, gpc_newH2, gpc_newH1)(__VA_ARGS__)
 
-#define gpc_newS1(type) gpc_newS2(type, gpc_getDefaultOwner())
-#define gpc_newS2(type, owner)		\
-	gpc_buildObject((uint8_t[sizeof(struct gpc_ObjectList) + sizeof(type)]){0}, sizeof(type), sizeof(type), owner)
-#define gpc_newS(...) GPC_OVERLOAD(2, __VA_ARGS__, gpc_newS2, gpc_newS1)(__VA_ARGS__)
+#define gpc_newS1(type) gpc_newS3(type, 0, gpc_getDefaultOwner())
+#define gpc_newS2(type, initValue) gpc_newS3(type, initValue, gpc_getDefaultOwner())
+#define gpc_newS3(type, initValue, _owner)							\
+	gpc_buildObject(												\
+		&(uint8_t[sizeof(struct gpc_ObjectList) + sizeof(type)]){0},\
+		(struct gpc_ObjectList)										\
+		{															\
+			.owner = _owner,										\
+			.size = sizeof(type),									\
+			.capacity = sizeof(type)								\
+		}, &(type){initValue})
+#define gpc_newS(...) GPC_OVERLOAD(3,__VA_ARGS__,gpc_newS3,gpc_newS2,gpc_newS1)(__VA_ARGS__)
 
 #define gpc_allocS(...) GPC_OVERLOAD(2,__VA_ARGS__,gpc_allocaAssign,gpc_allocateS)(__VA_ARGS__)
 
@@ -142,8 +152,15 @@ typedef struct gpc_Owner gpc_Owner;
 
 #define gpc_allocateS(capacity) gpc_allocaAssign(capacity, gpc_getDefaultOwner())
 
-#define gpc_allocaAssign(capacity, owner)	\
-	gpc_buildObject((uint8_t[sizeof(struct gpc_ObjectList) + capacity]){0}, 0, capacity, owner)
+#define gpc_allocaAssign(_capacity, _owner)							\
+	gpc_buildObject(												\
+		&(uint8_t[sizeof(struct gpc_ObjectList) + _capacity]){0},	\
+		(struct gpc_ObjectList)										\
+		{															\
+			.owner = _owner,										\
+			.size = 0,												\
+			.capacity = _capacity									\
+		}, NULL)
 
 GPC_NODISCARD void* gpc_mallocAssign(size_t, gpc_Owner*);
 GPC_NODISCARD void* gpc_mallocate(size_t);
@@ -182,16 +199,6 @@ bool gpc_onHeap(void* object);
 //
 //----------------------------------------------------------------------------
 
-// Creates metadata for object and stores it with the object to buffer. 
-// Make sure that buffer is at least large enough to contain an instance of
-// gpc_ObjectList and the object itself. 
-// Returns pointer to object with address buffer+sizeof(gpc_ObjectList).
-void* gpc_buildObject(void* buffer, size_t size, size_t cap, gpc_Owner*);
-
-// Allocates memory and returns a pointer to an object with capacity of
-// nextPowerOf2(size)
-GPC_NODISCARD void* gpc_buildHeapObject(size_t size, gpc_Owner*);
-
 // Heap allocated objects are stored in a linked list. freeAll() frees all 
 // objects in the list. Modifying the list manually will most likely cause a 
 // memory leak or crash so it's adviseable to only use functions provided by the
@@ -210,6 +217,15 @@ struct gpc_ObjectList
 	size_t size;
 	size_t capacity;
 };
+
+// Copies object and it's data to outBuf so the object can be used with dynamic
+// functionality. 
+// Returns pointer to object with address outBuf+sizeof(gpc_ObjectList).
+void* gpc_buildObject(void* outBuf, const struct gpc_ObjectList, const void* obj);
+
+// Allocates memory and returns a pointer to an object with capacity of
+// nextPowerOf2(size). 
+GPC_NODISCARD void* gpc_buildHeapObject(const size_t size, const void* obj, gpc_Owner*);
 
 // When freeAll(owner) is called, all heap allocated objects in list pointed by
 // owner->firstObject will be freed. Modifying owner manually will most likely

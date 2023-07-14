@@ -70,6 +70,7 @@ int main()
 		ASSERT(!onStack(newH(int)));
 		ASSERT(onHeap(allocH(sizeof(int))));
 		ASSERT(getSize(newH(int8_t[15])) EQ 15);
+		ASSERT(*(int*)newH(int, 3) EQ 3);
 		ASSERT(getCapacity(allocH(sizeof(int8_t[15]))) EQ gpc_nextPowerOf2(15));
 	}
 
@@ -79,6 +80,7 @@ int main()
 		ASSERT(!onHeap(allocS(sizeof(int))));
 		ASSERT(getSize(allocS(sizeof(int8_t[15]))) EQ 0);
 		ASSERT(getSize(newS(int8_t[15])) EQ 15);
+		ASSERT(*(int*)newS(int, 5) EQ 5);
 		ASSERT(getCapacity(newS(int8_t[15])) EQ 15);
 	}
 	

@@ -312,19 +312,14 @@ bool gpc_onHeap(void* object)
 	return me->previous || me->next || me->owner->firstObject == me;
 }
 
-void* gpc_buildObject(void* buffer, size_t size, size_t cap, gpc_Owner* owner)
+void* gpc_buildObject(void* outBuf, const struct gpc_ObjectList data, const void* initVal)
 {
-	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(buildStackObject)))
-			return NULL;
-	
-	struct gpc_ObjectList* me = buffer;
-	me->size		= size;
-	me->capacity	= cap;
-	me->owner		= owner;
-	return me + 1;
+	struct gpc_ObjectList* me = (struct gpc_ObjectList*)outBuf;
+	*me = data;
+	return memcpy(me + 1, initVal, data.size);
 }
 
-void* gpc_buildHeapObject(size_t size, gpc_Owner* owner)
+void* gpc_buildHeapObject(const size_t size, const void* initVal, gpc_Owner* owner)
 {
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_OWNER(buildHeapObject)))
 		return NULL;
@@ -335,5 +330,5 @@ void* gpc_buildHeapObject(size_t size, gpc_Owner* owner)
 	if (gpc_handleError(owner == NULL, "mallocAssign() returned NULL in buildHeapObject()."))
 		return NULL;
 	obj = gpc_setSize(obj, size);
-	return obj;
+	return memcpy(obj, initVal, size);
 }
