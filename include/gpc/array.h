@@ -81,9 +81,8 @@
 
 #define gpc_arrIsEmpty(arr)						(gpc_getSize(arr) == 0)
 
-//#define gpc_arrPush(arr, elem)					gpc_arrPushElement(arr, sizeof(arr[0]), elem)
 #define gpc_arrPush(arr, elem)	\
-	(((arr) = gpc_arrSetLength(gpc_arrLength(arr)))[gpc_arrLength(arr)] = (elem))
+	(((arr) = gpc_arrSetLength(gpc_arrLength(arr) + 1))[gpc_arrLength(arr) - 1] = (elem))
 
 #define gpc_arrPushArr(arrDest, arr)			gpc_arrPushArray(arrDest, sizeof(arr[0]), arr)
 

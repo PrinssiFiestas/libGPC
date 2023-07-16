@@ -37,7 +37,7 @@ int main(void)
 	}
 	
 	const size_t obj0Cap = 4;
-	char* obj0 = mallocate(obj0Cap);
+	char* obj0 = mallocAssign(obj0Cap, NULL);
 	
 	TEST(ownermallocate)
 		ASSERT(getOwner(obj0) EQ thisScope);
@@ -49,13 +49,12 @@ int main(void)
 	TEST(owner)
 		ASSERT(getOwner(obj0) EQ thisScope);
 	
-	int* obj1 = callocate(3, sizeof(obj1[0]));
+	int* obj1 = callocAssign(3, sizeof(obj1[0]), thisScope);
 
 	TEST_SUITE(memoryLocationCheck)
 	{
 		TEST(onHeap)
 		{
-			//ASSERT(doubleCheck(obj1) AND onHeap(obj1)); // TODO this syntax
 			ASSERT(doubleCheck(obj1, thisScope));
 			ASSERT(onHeap(obj1));
 		}
@@ -74,26 +73,26 @@ int main(void)
 
 	TEST(newH_and_allocH)
 	{
-		ASSERT(!onStack(newH(int)));
+		ASSERT(!onStack(newH(int, 0)));
 		ASSERT(onHeap(allocH(sizeof(int))));
-		ASSERT(getSize(newH(int8_t[15])) EQ 15);
+		ASSERT(getSize(newH(int8_t[15], 0)) EQ 15);
 		ASSERT(*(int*)newH(int, 3) EQ 3);
 		ASSERT(getCapacity(allocH(sizeof(int8_t[15]))) EQ gpc_nextPowerOf2(15));
 	}
 
 	TEST(newS_and_allocS)
 	{
-		ASSERT(onStack(newS(int)));
+		ASSERT(onStack(newS(int, 0)));
 		ASSERT(!onHeap(allocS(sizeof(int))));
 		ASSERT(getSize(allocS(sizeof(int8_t[15]))) EQ 0);
-		ASSERT(getSize(newS(int8_t[15])) EQ 15);
+		ASSERT(getSize(newS(int8_t[15], 0)) EQ 15);
 		ASSERT(*(int*)newS(int, 5) EQ 5);
-		ASSERT(getCapacity(newS(int8_t[15])) EQ 15);
+		ASSERT(getCapacity(newS(int8_t[15], 0)) EQ 15);
 	}
 	
 	TEST(allocaAssign)
 	{
-		ASSERT(getSize(allocaAssign(5, thisScope)) EQ 0);
+		ASSERT(getSize(allocaAssign(5, NULL)) EQ 0);
 		ASSERT(getCapacity(allocaAssign(5, thisScope)) EQ 5);
 	}
 	

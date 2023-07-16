@@ -1,3 +1,5 @@
 tests/build
 build
 .vs
+cscope.out
+tags
