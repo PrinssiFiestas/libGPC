@@ -10,7 +10,7 @@ OBJS = $(patsubst src/%.c,build/%.o,$(wildcard src/*.c))
 
 TESTS = $(patsubst tests/test_%.c,build/test_%.exe,$(wildcard tests/test_*.c))
 
-.PHONY: tests all release debug
+.PHONY: tests all release debug testallc
 
 all: release
 
@@ -29,11 +29,32 @@ $(OBJS): build/%.o : src/%.c
 
 -include $(OBJS:.o=.d)
 
+ifneq ($(patsubst msbuild%,msbuild,$(CC)),msbuild)
 tests: $(TESTS)
-
 $(TESTS): build/test_%.exe : tests/test_%.c $(OBJS)
 	$(CC) -ggdb3 -DTESTS $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@
 	./$@
+else
+define NEWLINE
+
+
+endef
+tests:
+	msbuild libGPC.sln
+	$(foreach test,$(TESTS),./$(test)$(NEWLINE))
+endif
+
+testallc:
+	make clean
+	make tests
+	make clean
+	make tests CC=clang
+	make clean
+	wsl make tests
+	make clean
+	wsl make tests CC=clang
+	make tests CC=msbuild
+	make clean
 
 clean:
 	rm -rf build

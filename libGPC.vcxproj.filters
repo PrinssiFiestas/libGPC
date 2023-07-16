@@ -24,6 +24,9 @@
     <ClCompile Include="src\memory.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\array.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\gpc\array.h">
