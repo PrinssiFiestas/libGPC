@@ -26,6 +26,11 @@
 // Free all allocated resources owned by owner with freeAll().
 typedef struct gpc_Owner Owner;
 
+// Pointer to owner created with newOwner(). Pointer to owner created earlier 
+// with newOwner() can be obtained with defaultOwner->parent. 
+// Don't write values to it yourself!
+#define gDefaultOwner							gpc_gDefaultOwner
+
 // Returns a pointer to a new block scoped owner
 #define newOwner()								gpc_newOwner()
 
@@ -33,13 +38,13 @@ typedef struct gpc_Owner Owner;
 // owner created with newOwner().
 // size and capacity will be sizeof(type).
 // Returns newly created object. 
-#define newS(/*type, initVal=0*/...)			gpc_newS(__VA_ARGS__)
+#define newS(type,/*initVal=0*/...)				gpc_newS(type, __VA_ARGS__)
 
 // Allocate zero initialized memory on heap and assign ownership to the last 
 // owner created with newOwner().
 // size will be sizeof(type) and capacity will be nextPowerOf2(sizeof(type)).
 // Returns newly created object. 
-#define newH(/*type, initVal=0*/...)			gpc_newH(__VA_ARGS__)
+#define newH(type,/*initVal=0*/...)				gpc_newH(type, __VA_ARGS__)
 
 // Allocate zero initialized memory on stack and assign ownership to be the last
 // owner created with newOwner().
@@ -83,9 +88,6 @@ typedef struct gpc_Owner Owner;
 // Returns pointer to object's owner
 #define getOwner(object)						gpc_getOwner(object)
 
-// Returns pointer to default owner
-#define getDefaultOwner()						gpc_getDefaultOwner()
-
 // Gets size of object excluding it's metadata
 #define getSize(object)							gpc_getSize(object)
 
@@ -113,6 +115,8 @@ typedef struct gpc_Owner Owner;
 #endif // GPC_NAMESPACING ----------------------------------------------------
 
 typedef struct gpc_Owner gpc_Owner;
+
+extern GPC_THREAD_LOCAL gpc_Owner* gpc_gDefaultOwner;
 
 #define gpc_newOwner() gpc_registerOwner(&(gpc_Owner){0})
 

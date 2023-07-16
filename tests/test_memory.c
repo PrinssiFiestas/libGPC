@@ -16,6 +16,7 @@
 char msgBuf[500];
 void getMsg(const char* msg);
 bool doubleCheck(void* obj, Owner* owner);
+uint32_t* func(void);
 
 int main(void)
 {
@@ -131,6 +132,10 @@ int main(void)
 		ASSERT(copy EQ "X");
 	}
 	
+	// Test nested owners in func()
+	uint32_t* dummy_u = func();
+	(void)dummy_u;
+	
 	TEST(errorHandling)
 	{
 		gpc_setDebugMessageCallback(getMsg);
@@ -145,6 +150,28 @@ int main(void)
 	
 	fakeHeapDestroy();
 }
+
+uint32_t* func(void)
+{
+	newOwner();
+	uint32_t* u1 = newH(uint32_t, 1);
+	uint32_t* u2 = newH(uint32_t, 2);
+	uint32_t* u3 = newH(uint32_t, 3);
+	moveOwnership(u2, gDefaultOwner->parent);
+	freeOwner(NULL);
+	
+	TEST(nested_owners)
+	{
+		ASSERT(*u1 EQ FREED4);
+		ASSERT(*u2 EQ 2);
+		ASSERT(*u3 EQ FREED4);
+	}
+	
+	return u2;
+}
+
+// ---------------------------------------------------------------------------
+//		Helpers
 
 void getMsg(const char* msg)
 {

@@ -31,7 +31,6 @@ $(OBJS): build/%.o : src/%.c
 
 tests: $(TESTS)
 
-
 $(TESTS): build/test_%.exe : tests/test_%.c $(OBJS)
 	$(CC) -ggdb3 -DTESTS $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@
 	./$@
