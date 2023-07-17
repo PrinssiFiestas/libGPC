@@ -38,11 +38,25 @@ int main(void)
 		freeOwner(NULL);
 	}
 	
+	TEST(arrBack_and_arrLast)
+	{
+		int* arr2 = newS(int[], 3, 6, 7, 9);
+		ASSERT(*arrBack(arr2) EQ arrLast(arr2));
+		ASSERT(arrLast(arr2) EQ 9);
+	}
+	
+	TEST(arrPush)
+	{
+		size_t oldLength = arrLength(arr);
+		arrPush(&arr, 100);
+		EXPECT(arrLast(arr) EQ 100);
+		ASSERT(arrLength(arr) EQ oldLength + 1);
+	}
+	
 	// int* arr2 = newH(int[], 6, 8, 12, 5, 7);
-	// TEST(arrPush_and_arrPushArr)
+	// TEST(arrPushArr)
 	// {
-		// arr = arrPush(arr, 100);
-		// (void)arr2;
+		// ASSERT(arr)
 	// }
 	
 	freeOwner(NULL);

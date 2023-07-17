@@ -46,22 +46,23 @@
 #define arrIsEmpty(arr)							gpc_arrIsEmpty(arr)
 
 // Add an element to the back of arr
-#define arrPush(arr, element)					gpc_arrPush(arr, element)
+// Returns element
+#define arrPush(parr, element)					gpc_arrPush(parr, element)
 
 // Add an array to the back of arrDestination
-#define arrPushArr(arrDestination, arr)			gpc_arrPushArr(arrDestination, arr)
+#define arrPushArr(parrDestination, arr)		gpc_arrPushArr(parrDestination, arr)
 
 // Remove n elements from the back of arr
-#define arrPop(arr, nElements)					gpc_arrPop(arr, nElements)
+#define arrPop(parr, nElements)					gpc_arrPop(parr, nElements)
 
 // Insert an element in index pos of arr
-#define arrInsert(arr, pos, element)			gpc_arrInsert(arr, pos, element)
+#define arrInsert(parr, pos, element)			gpc_arrInsert(parr, pos, element)
 
 // Insert an array in index pos of arr
-#define arrInsertArr(arrDestination,pos,arr)	gpc_arrInsertArr(arrDestination,pos,arr)
+#define arrInsertArr(parrDestination,pos,arr)	gpc_arrInsertArr(parrDestination,pos,arr)
 
 // Delete n elements from index pos of arr
-#define arrDelete(arr, pos, nElements)			gpc_arrDelete(arr, pos, nElements)
+#define arrDelete(parr, pos, nElements)			gpc_arrDelete(parr, pos, nElements)
 
 // Returns number of elements in a C array declared with []
 // Don't use for pointers or array types from this library!
@@ -71,7 +72,7 @@
 
 #define gpc_arrLength(arr)						gpc_getSize(arr)/sizeof((arr)[0])
 
-#define gpc_arrSetLength(parr, newLen)	\
+#define gpc_arrSetLength(parr, newLen)		\
 	(*(parr) = gpc_setSize(*(parr), newLen * sizeof((*(parr))[0])))
 
 #define gpc_arrCapacity(arr)					gpc_getCapacity(arr)/sizeof((arr)[0])
@@ -85,18 +86,23 @@
 
 #define gpc_arrIsEmpty(arr)						(gpc_getSize(arr) == 0)
 
-#define gpc_arrPush(arr, elem)	\
-	(((arr) = gpc_arrSetLength(gpc_arrLength(arr) + 1))[gpc_arrLength(arr) - 1] = (elem))
+#define gpc_arrPush(parr, elem)													\
+	( (*(parr))																	\
+	[																			\
+		(																		\
+			((struct gpc_ObjectList*)(*(parr)) - 1)->size += sizeof(**(parr))	\
+		) / sizeof(**(parr)) - 1												\
+	] = (elem) )
 
-#define gpc_arrPushArr(arrDest, arr)			gpc_arrPushArray(arrDest, sizeof(arr[0]), arr)
+#define gpc_arrPushArr(parrDest, arr)
 
-#define gpc_arrPop(arr, nElems)					goc_arrPopElements(arr, sizeof(arr[0]), nElems)
+#define gpc_arrPop(parr, nElems)				goc_arrPopElements(arr, sizeof(arr[0]), nElems)
 
-#define gpc_arrInsert(arr, pos, elem)			gpc_arrInsertElement(arr,sizeof *arr,pos,elem)
+#define gpc_arrInsert(parr, pos, elem)			gpc_arrInsertElement(arr,sizeof *arr,pos,elem)
 
-#define gpc_arrInsertArr(arrDest, pos, arr)		gpc_arrInsertArray(arrDest,sizeof *arr,pos,arr)
+#define gpc_arrInsertArr(parrDest, pos, arr)	gpc_arrInsertArray(arrDest,sizeof *arr,pos,arr)
 
-#define gpc_arrDelete(arr, pos, nElems)			gpc_arrDeleteElements(arr,sizeof *arr,pos,nElems)
+#define gpc_arrDelete(parr, pos, nElems)		gpc_arrDeleteElements(arr,sizeof *arr,pos,nElems)
 
 #define gpc_carrLength(arr) 					(sizeof(arr)/sizeof(arr[0]))
 
