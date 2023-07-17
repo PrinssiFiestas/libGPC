@@ -30,9 +30,10 @@ $(OBJS): build/%.o : src/%.c
 -include $(OBJS:.o=.d)
 
 ifneq ($(patsubst msbuild%,msbuild,$(CC)),msbuild)
+tests: CFLAGS += -DTESTS -ggdb3
 tests: $(TESTS)
 $(TESTS): build/test_%.exe : tests/test_%.c $(OBJS)
-	$(CC) -ggdb3 -DTESTS $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@
+	$(CC) $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@
 	./$@
 else
 define NEWLINE
