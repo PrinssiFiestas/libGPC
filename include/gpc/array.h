@@ -24,6 +24,7 @@
 
 // Set number of elements
 // Reallocates if newLen>arrCapacity(arr).
+// Returns self. Store the return value to arr in case of reallocation. 
 #define arrSetLength(arr, newLen)				gpc_arrSetLength(arr, newLen)
 
 // Returns the number of elements that arr can hold without reallocating
@@ -32,6 +33,7 @@
 // Set number of elements arr can hold
 // Reallocates if newCap>arrCapacity(arr).
 // Does nothing if newCap<=arrCapacity(arr).
+// Returns self. Store the return value to arr in case of reallocation. 
 #define arrSetCapacity(arr, newCap)				gpc_arrSetCapacity(arr, newCap)
 
 // Returns the last element
@@ -69,11 +71,13 @@
 
 #define gpc_arrLength(arr)						gpc_getSize(arr)/sizeof((arr)[0])
 
-#define gpc_arrSetLength(arr, newLen)			gpc_setSize(arr, newLen * sizeof((arr)[0]))
+#define gpc_arrSetLength(parr, newLen)	\
+	(*(parr) = gpc_setSize(*(parr), newLen * sizeof((*(parr))[0])))
 
 #define gpc_arrCapacity(arr)					gpc_getCapacity(arr)/sizeof((arr)[0])
 
-#define gpc_arrSetCapacity(arr, newCap)			gpc_setCapacity(arr, newCap * sizeof((arr)[0]))
+#define gpc_arrSetCapacity(parr, newCap)	\
+	(*(parr) = gpc_reallocate(*(parr), newCap * sizeof((*(parr))[0])))
 
 #define gpc_arrLast(arr)						((arr)[gpc_getSize(arr)/sizeof((arr)[0]) - 1])
 

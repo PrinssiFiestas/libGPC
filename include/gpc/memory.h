@@ -100,12 +100,6 @@ typedef struct gpc_Owner Owner;
 // Gets size of memory block allocated for object
 #define getCapacity(object)						gpc_getCapacity(object)
 
-// Sets size of memory block allocated for object. Rerturns object. 
-// Reallocates if newCapacity exceeds size of block allocated for object. This 
-// means that the return value has to be stored to object. 
-// Does nothing if newCapacity<=getCapacity(object).
-#define setCapacity(object, newCapacity)		gpc_setCapacity(object, newCapacity)
-
 // Returns a copy of object on heap
 #define duplicate(object)						gpc_duplicate(object)
 
@@ -167,8 +161,6 @@ size_t gpc_getSize(const void *const object);
 GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize);
 
 size_t gpc_getCapacity(const void *const object);
-
-GPC_NODISCARD void* gpc_setCapacity(void* object, size_t newCapacity);
 
 GPC_NODISCARD void* gpc_duplicate(const void *const object);
 

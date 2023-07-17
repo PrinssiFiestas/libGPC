@@ -115,10 +115,11 @@ GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity)
 	struct gpc_ObjectList* me = listData(object);
 	if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(reallocate)))
 		return NULL;
+	
 	if (newCapacity <= me->capacity)
 		return object;
 	
-	me->capacity = newCapacity = gpc_nextPowerOf2(newCapacity);
+	newCapacity = gpc_nextPowerOf2(newCapacity);
 	
 	// detach from current list in case of allocation failure
 	if (me->previous != NULL)
@@ -126,21 +127,30 @@ GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity)
 	if (me->next != NULL)
 		me->next->previous = me->previous;
 	
-	// update old owner
-	bool onlyObject = me->owner->firstObject == me && me->owner->lastObject == me;
-	if (onlyObject)
+	bool onlyHeapObject = me->owner->firstObject == me && me->owner->lastObject == me;
+	if (onlyHeapObject)
 		me->owner->firstObject = me->owner->lastObject = NULL;
 	else if (me->owner->lastObject == me)
 		me->owner->lastObject = me->previous;
 	else if (me->owner->firstObject == me)
 		me->owner->firstObject = me->next;	
 	
-	me = realloc(me, sizeof(me[0]) + newCapacity);
-	if (gpc_handleError(me == NULL, "realloc() failed in reallocate()"))
+	struct gpc_ObjectList* newMe;
+	if (gpc_onStack(object))
+		newMe = malloc(sizeof(*me) + newCapacity);
+	else
+		newMe = realloc(me, sizeof(*me) + newCapacity);
+		
+	if (gpc_handleError(newMe == NULL, "allocation failed in reallocate()"))
 		return NULL;
 	
-	assignOwner(me, me->owner);
-	return me + 1;
+	if (gpc_onStack(object))
+		memcpy(newMe, me, me->capacity + sizeof(*me));
+	
+	newMe->capacity = newCapacity = gpc_nextPowerOf2(newCapacity);
+	
+	assignOwner(newMe, newMe->owner);
+	return newMe + 1;
 }
 
 void gpc_moveOwnership(void* object, gpc_Owner* newOwner)

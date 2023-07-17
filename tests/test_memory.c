@@ -112,11 +112,11 @@ int main(void)
 		ASSERT(getCapacity(obj0) EQ obj0Cap * 2);
 	}
 	
-	TEST(setCapacity_and_setSize)
+	TEST(setSize_and_reallocate)
 	{
 		uint32_t* obj1Original = (uint32_t*)obj1;
 		size_t oldCapacity = getCapacity(obj1);
-		obj1 = setCapacity(obj1, oldCapacity + 1);
+		obj1 = reallocate(obj1, oldCapacity + 1);
 		ASSERT(*obj1Original EQ FREED4);
 		ASSERT(getCapacity(obj1) EQ gpc_nextPowerOf2(oldCapacity + 1));
 		
