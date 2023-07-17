@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include "../include/gpc/assert.h"
 
@@ -22,7 +23,7 @@ int main(void)
 {
 	fakeHeapInit();
 	// Uncomment for heap visualization in stdout
-	// fakeHeapSetAutoLog(true);
+	//fakeHeapSetAutoLog(true);
 
 	gpc_setErrorHandlingMode(GPC_ERROR_SEND_MESSAGE);
 	
@@ -142,6 +143,20 @@ int main(void)
 		
 		(void)mallocAssign(-1, thisScope);
 		ASSERT(msgBuf EQ GPC_EMSG_OVERALLOC(mallocAssign));
+	}
+	
+	TEST(objects_addresses_should_always_grow_in_list)
+	{
+		// Does heap grow up or down? Doesn't matter, let's just check that the
+		// sign of p-p->next stays the same throughout the list.
+		ptrdiff_t diff = thisScope->firstObject - thisScope->firstObject->next;
+		#define signb(i) ((i)<0)
+		ptrdiff_t sign = signb(diff);
+		bool signChanged = false;
+		for (struct gpc_ObjectList* p = thisScope->firstObject; p->next != NULL; p = p->next)
+			if ((signChanged = signb((ptrdiff_t)(p - p->next)) != sign))
+				break;
+		EXPECT( ! signChanged);
 	}
 	
 	freeOwner(NULL);
