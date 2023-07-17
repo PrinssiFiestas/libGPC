@@ -234,12 +234,18 @@ GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize)
 		return NULL;
 	
 	struct gpc_ObjectList* me = listData(object);
+	if (newSize == me->size)
+		return object;
+	
 	if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(setSize)))
 		return NULL;
-	me->size = newSize;
 	object = gpc_reallocate(object, newSize);
 	if (gpc_handleError(object == NULL, "reallocate() failed at setSize()"))
 		return NULL;
+	
+	for (size_t i = me->size; i < newSize; i++)
+		((int8_t*)object)[i] = 0;
+	me->size = newSize;
 	return object;
 }
 

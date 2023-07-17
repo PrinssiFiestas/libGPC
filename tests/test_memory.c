@@ -43,9 +43,9 @@ int main(void)
 	TEST(ownermallocate)
 		ASSERT(getOwner(obj0) EQ thisScope);
 	
+	obj0 = setSize(obj0, 2);
 	obj0[0] = 'X';
 	obj0[1] = '\0';
-	obj0 = setSize(obj0, 2);
 	
 	TEST(owner)
 		ASSERT(getOwner(obj0) EQ thisScope);
@@ -107,7 +107,7 @@ int main(void)
 	{
 		uint32_t* obj0Original = (uint32_t*)obj0;
 		obj0 = reallocate(obj0, obj0Cap * 2);
-		ASSERT(obj0 EQ "X");
+		ASSERT(obj0 EQ "X", "Memory not copied!");
 		ASSERT(*obj0Original EQ FREED4);
 		ASSERT(getCapacity(obj0) EQ obj0Cap * 2);
 	}

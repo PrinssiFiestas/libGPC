@@ -91,16 +91,19 @@ typedef struct gpc_Owner Owner;
 // Gets size of object excluding it's metadata
 #define getSize(object)							gpc_getSize(object)
 
-// Sets size of object excluding it's metadata
-// Reallocates if newSize exceeds size of block allocated for object.
+// Sets size of object excluding it's metadata. Rerturns object. 
+// Reallocates if newSize exceeds size of block allocated for object. This 
+// means that the return value has to be stored to object. 
+// Does nothing if newSize == getSize(object).
 #define setSize(object, newSize)				gpc_setSize(object, newSize)
 
 // Gets size of memory block allocated for object
 #define getCapacity(object)						gpc_getCapacity(object)
 
-// Sets size of memory block allocated for object
-// Reallocates if newCapacity exceeds size of block allocated for object.
-// Does nothing if newCapacity<=getCapacity(object)
+// Sets size of memory block allocated for object. Rerturns object. 
+// Reallocates if newCapacity exceeds size of block allocated for object. This 
+// means that the return value has to be stored to object. 
+// Does nothing if newCapacity<=getCapacity(object).
 #define setCapacity(object, newCapacity)		gpc_setCapacity(object, newCapacity)
 
 // Returns a copy of object on heap

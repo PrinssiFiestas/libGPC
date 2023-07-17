@@ -16,5 +16,14 @@ int main(void)
 		ASSERT(getOwner(arr) EQ thisScope);
 	}
 	
+	TEST(arrSetLength_and_arrLength)
+	{
+		ASSERT(arrLength(arr) EQ 3);
+		arr = arrSetLength(arr, 1);
+		ASSERT(getSize(arr) EQ arrLength(arr) * sizeof(arr[0]));
+		arr = arrSetLength(arr, 3);
+		ASSERT(arr[2] EQ 0);
+	}
+	
 	freeOwner(NULL);
 }
