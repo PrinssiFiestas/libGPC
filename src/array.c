@@ -28,3 +28,15 @@ void* gpc_arrPushArr(void* pDest, void* src)
 	
 	return src;
 }
+
+void* gpc_arrSwitchElems(void* parr, size_t pos1, size_t pos2, size_t elemSize, size_t nElems)
+{
+	int8_t** arr = (int8_t**)parr;
+	for (size_t i = 0; i < nElems * elemSize; i++)
+	{
+		int8_t c = (*arr)[pos1 * elemSize + i];
+		(*arr)[pos1 * elemSize + i] = (*arr)[pos2 * elemSize + i];
+		(*arr)[pos2 * elemSize + i] = c;
+	}
+	return *arr;
+}

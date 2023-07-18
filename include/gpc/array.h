@@ -50,12 +50,15 @@
 #define arrPush(parr, element)					gpc_arrPush(parr, element)
 
 // Add an array to the back of arrDestination
+// Returns arr
 #define arrPushArr(parrDestination, arr)		gpc_arrPushArr(parrDestination, arr)
 
 // Remove n elements from the back of arr
+// Returns last element removed
 #define arrPop(parr, nElements)					gpc_arrPop(parr, nElements)
 
 // Insert an element in index pos of arr
+// Returns element
 #define arrInsert(parr, pos, element)			gpc_arrInsert(parr, pos, element)
 
 // Insert an array in index pos of arr
@@ -98,7 +101,11 @@ void* gpc_arrPushArr(void* pDestination, void* source);
 			gpc_arrLength(*(parr)) - (nElems) : 0 ),	\
 				*(gpc_arrBack(*(parr)) + 1) ) 
 
-#define gpc_arrInsert(parr, pos, elem)			gpc_arrInsertElement(arr,sizeof *arr,pos,elem)
+#define gpc_arrInsert(parr, pos, elem)		\
+	( gpc_arrPush(parr, elem),				\
+		(*(parr) =							\
+			gpc_arrSwitchElems(parr, pos, gpc_arrLast(*(arr)), sizeof(**(parr)), 1))\
+				[pos] )
 
 #define gpc_arrInsertArr(parrDest, pos, arr)	gpc_arrInsertArray(arrDest,sizeof *arr,pos,arr)
 
@@ -113,5 +120,8 @@ void* gpc_arrPushArr(void* pDestination, void* source);
 //		Structs, functions and macros below are for internal or advanced use
 //
 //----------------------------------------------------------------------------
+
+// Switch elements. parr is a pointer to array. Returns *parr
+void* gpc_arrSwitchElems(void* parr, size_t pos1, size_t pos2, size_t elemSize, size_t nElems);
 
 #endif // GPC_ARRAY_H

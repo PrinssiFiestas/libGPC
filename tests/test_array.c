@@ -3,6 +3,8 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #define GPC_NAMESPACE
+#include <stdio.h>
+#include <wchar.h>
 #include "../include/gpc/gpc.h"
 #include "../include/gpc/assert.h"
 #include "../src/array.c"
@@ -81,6 +83,19 @@ int main(void)
 		arrPop(&arr, 5329);
 		ASSERT(arrLength(arr) EQ 0);
 	}
+
+	TEST(arrSwitchElems)
+	{
+		wchar_t* str = newH(wchar_t[], L"0123456789");
+		gpc_arrSwitchElems(&str, 2, 6, sizeof(str[0]), 3);
+		if (EXPECT( ! wcscmp(str, L"0167852349")))
+			fprintf(stderr, "%ls", str);
+	}
+	
+	// TEST(arrInsert)
+	// {
+		// arr
+	// }
 	
 	freeOwner(NULL);
 }
