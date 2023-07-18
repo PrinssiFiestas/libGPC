@@ -249,7 +249,10 @@ GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize)
 	
 	if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(setSize)))
 		return NULL;
+	
 	object = gpc_reallocate(object, newSize);
+	me = listData(object);
+	
 	if (gpc_handleError(object == NULL, "reallocate() failed at setSize()"))
 		return NULL;
 	
