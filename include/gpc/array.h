@@ -73,7 +73,7 @@
 #define gpc_arrLength(arr)						gpc_getSize(arr)/sizeof((arr)[0])
 
 #define gpc_arrSetLength(parr, newLen)		\
-	(*(parr) = gpc_setSize(*(parr), newLen * sizeof((*(parr))[0])))
+	(*(parr) = gpc_setSize(*(parr), (newLen) * sizeof((*(parr))[0])))
 
 #define gpc_arrCapacity(arr)					gpc_getCapacity(arr)/sizeof((arr)[0])
 
@@ -86,13 +86,9 @@
 
 #define gpc_arrIsEmpty(arr)						(gpc_getSize(arr) == 0)
 
-#define gpc_arrPush(parr, elem)													\
-	( (*(parr))																	\
-	[																			\
-		(																		\
-			((struct gpc_ObjectList*)(*(parr)) - 1)->size += sizeof(**(parr))	\
-		) / sizeof(**(parr)) - 1												\
-	] = (elem) )
+#define gpc_arrPush(parr, elem)								\
+	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + 1),	\
+		arr[gpc_arrLength(*(parr)) - 1] = (elem) )
 
 #define gpc_arrPushArr(parrDest, arr)
 

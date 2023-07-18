@@ -274,22 +274,6 @@ size_t gpc_getCapacity(const void *const object)
 	return me->capacity;
 }
 
-GPC_NODISCARD void* gpc_setCapacity(void* object, size_t newCapacity)
-{
-	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(setCapacity)))
-		return NULL;
-	if (gpc_handleError(newCapacity >= PTRDIFF_MAX, GPC_EMSG_OVERALLOC(setCapacity)))
-		return NULL;
-	if (gpc_handleError(getOwner(object) == NULL, GPC_EMSG_OBJ_NO_OWNER(setCapacity)))
-		return NULL;
-	
-	object = gpc_reallocate(object, newCapacity);
-	if (gpc_handleError(object == NULL, "reallocate() failed at setCapacity()"))
-		return NULL;
-	
-	return object;
-}
-
 GPC_NODISCARD void* gpc_duplicate(const void *const object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(duplicate)))

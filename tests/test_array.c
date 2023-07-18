@@ -23,9 +23,10 @@ int main(void)
 	{
 		ASSERT(arrLength(arr) EQ 3);
 		arrSetLength(&arr, 1);
-		ASSERT(getSize(arr) EQ arrLength(arr) * sizeof(arr[0]));
+		ASSERT(getSize(arr) EQ /*arrLength(arr) * */sizeof(arr[0]));
 		arrSetLength(&arr, 3);
 		ASSERT(arr[2] EQ 0);
+		ASSERT(getSize(arr) EQ 3*sizeof(arr[0]));
 	}
 	
 	TEST(arrSetCapacity_and_arrGetCapacity)
@@ -48,8 +49,8 @@ int main(void)
 	TEST(arrPush)
 	{
 		size_t oldLength = arrLength(arr);
-		arrPush(&arr, 100);
-		EXPECT(arrLast(arr) EQ 100);
+		ASSERT(arrPush(&arr, 100) EQ 100);
+		ASSERT(arrLast(arr) EQ 100);
 		ASSERT(arrLength(arr) EQ oldLength + 1);
 	}
 	
