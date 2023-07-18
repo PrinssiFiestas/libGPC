@@ -90,7 +90,7 @@
 	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + 1),	\
 		arr[gpc_arrLength(*(parr)) - 1] = (elem) )
 
-#define gpc_arrPushArr(parrDest, arr)
+void* gpc_arrPushArr(void* pDestination, void* source);
 
 #define gpc_arrPop(parr, nElems)				goc_arrPopElements(arr, sizeof(arr[0]), nElems)
 

@@ -54,11 +54,17 @@ int main(void)
 		ASSERT(arrLength(arr) EQ oldLength + 1);
 	}
 	
-	// int* arr2 = newH(int[], 6, 8, 12, 5, 7);
-	// TEST(arrPushArr)
-	// {
-		// ASSERT(arr)
-	// }
+	TEST(arrPushArr)
+	{
+		int* arrS = allocS(35);
+		int* arrH = newH(int[], 6, 8, 12, 5, 7);
+		
+		// Return value
+		ASSERT(arrPushArr(&arrS, arrH) EQ arrH);
+		
+		ASSERT(arrLast(arrS) EQ 7);
+		ASSERT(getSize(arrS) EQ getSize(arrH));
+	}
 	
 	freeOwner(NULL);
 }

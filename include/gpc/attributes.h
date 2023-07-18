@@ -9,8 +9,10 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wattributes"
 #define GPC_NODISCARD __attribute__((__warn_unused_result__))
+#define GPC_NONNULL(...) __attribute__((__nonnull__(__VA_ARGS__)))
 #else
 #define GPC_NODISCARD
+#define GPC_NONNULL
 #endif
 
 #ifdef _MSC_VER

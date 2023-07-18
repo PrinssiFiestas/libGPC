@@ -123,6 +123,11 @@ int main(void)
 		
 		int* obj1NonMoved = obj1;
 		ASSERT(obj1 = setSize(obj1, getCapacity(obj1)) EQ obj1NonMoved);
+		
+		// Test that data is copied properly
+		size_t obj1OldCap = getCapacity(obj1);
+		obj1 = setSize(obj1, obj1OldCap + 1);
+		ASSERT(getSize(obj1) EQ obj1OldCap + 1);
 	}
 	
 	TEST(duplicate)
@@ -141,7 +146,8 @@ int main(void)
 	{
 		gpc_setDebugMessageCallback(getMsg);
 		
-		(void)mallocAssign(-1, thisScope);
+		void* dummy = mallocAssign(-1, thisScope);
+		(void)dummy;
 		ASSERT(msgBuf EQ GPC_EMSG_OVERALLOC(mallocAssign));
 	}
 	

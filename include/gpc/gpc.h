@@ -51,5 +51,6 @@ void gpc_setDebugMessageCallback(void (*callback)(const char* errorMessage));
 enum gpc_ErrorHandling gpc_handleError(bool condition, const char* errorMessage);
 
 #include "memory.h"
+#include "array.h"
 
 #endif // GPC_H
