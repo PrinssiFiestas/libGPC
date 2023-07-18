@@ -92,7 +92,11 @@
 
 void* gpc_arrPushArr(void* pDestination, void* source);
 
-#define gpc_arrPop(parr, nElems)				goc_arrPopElements(arr, sizeof(arr[0]), nElems)
+#define gpc_arrPop(parr, nElems)						\
+	( gpc_arrSetLength( parr,							\
+		gpc_arrLength(*(parr)) >= (nElems) ?			\
+			gpc_arrLength(*(parr)) - (nElems) : 0 ),	\
+				*(gpc_arrBack(*(parr)) + 1) ) 
 
 #define gpc_arrInsert(parr, pos, elem)			gpc_arrInsertElement(arr,sizeof *arr,pos,elem)
 

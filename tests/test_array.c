@@ -67,5 +67,20 @@ int main(void)
 		ASSERT(getSize(arrS) EQ getSize(arrH));
 	}
 	
+	TEST(arrPop)
+	{
+		int lastValue = arrLast(arr);
+		size_t lastLength = arrLength(arr);
+		ASSERT(arrPop(&arr, 1) EQ lastValue);
+		ASSERT(arrLength(arr) EQ lastLength - 1);
+		
+		lastLength = arrLength(arr);
+		arrPop(&arr, 2);
+		ASSERT(arrLength(arr) EQ lastLength - 2);
+		
+		arrPop(&arr, 5329);
+		ASSERT(arrLength(arr) EQ 0);
+	}
+	
 	freeOwner(NULL);
 }
