@@ -1,1 +1,5 @@
-'make tests' command assumes that all .c files in the 'src' directory has a corresponding test file with 'test_' prefix and 'main' function defined in this directory. Test files should include their corresponding .c file on top and any dependencies on bottom. 
+'make tests' command assumes that all .c files in the 'src' directory has a corresponding test file with 'test_' prefix and 'main' function defined in this directory. Test files should include their corresponding .c file on top. 
+
+A test per function is not required but all functions and macros in the API should be included in some tests. 
+
+Everything should be tested through namespaced macros meaning that GPC_NAMESPACE should be defined at the top of every test file and gpc_ prefix shouldn't be used when possible. This assures that namespaced macros are up to date with the actual functionality. 
