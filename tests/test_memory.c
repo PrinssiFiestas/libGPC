@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <math.h>
 
+#define GPC_NAMESPACE
 #include "../include/gpc/assert.h"
 
 #include "fakeheap.c" // replace allocator

@@ -17,9 +17,9 @@
 //
 //----------------------------------------------------------------------------
 
-// Define one of these macros before including this header in case of
-// namespacing issues to require gpc_ prefix for identifiers.
-#if !defined(GPC_ASSERT_NAMESPACING) && !defined(GPC_NAMESPACING)
+// Define one of these macros before including this header to enable short names
+// without the gpc_ prefix. 
+#if defined(GPC_ASSERT_NAMESPACE) || defined(GPC_NAMESPACE)
 
 // Use these macros to define tests and suites.
 // Tests and suites have to be defined in function scope.

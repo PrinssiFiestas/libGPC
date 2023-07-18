@@ -20,6 +20,10 @@ void* gpc_arrPushArr(void* pDest, void* src)
 		
 	size_t destOldSize = gpc_getSize(*_pDest);
 	*_pDest = gpc_setSize(*_pDest, destOldSize + gpc_getSize(src));
+	
+	if (gpc_handleError(*_pDest == NULL, "setSize() failed in arrPushArr()"))
+		return NULL;
+	
 	memcpy(*_pDest + destOldSize, src, gpc_getSize(src));
 	
 	return src;

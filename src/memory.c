@@ -240,7 +240,7 @@ GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize)
 		return NULL;
 	if (gpc_handleError(newSize >= PTRDIFF_MAX, GPC_EMSG_OVERALLOC(setSize)))
 		return NULL;
-	if (gpc_handleError(getOwner(object) == NULL, GPC_EMSG_OBJ_NO_OWNER(setSize)))
+	if (gpc_handleError(gpc_getOwner(object) == NULL, GPC_EMSG_OBJ_NO_OWNER(setSize)))
 		return NULL;
 	
 	struct gpc_ObjectList* me = listData(object);

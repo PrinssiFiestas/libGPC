@@ -2,6 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#define GPC_NAMESPACE
 #include "../include/gpc/gpc.h"
 #include "../include/gpc/assert.h"
 #include "../src/array.c"

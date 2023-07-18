@@ -7,6 +7,8 @@
 // and the results should be verified manually.
 
 #include <stdlib.h>
+
+#define GPC_NAMESPACE
 #include "../src/assert.c"
 
 int factorial(int x)

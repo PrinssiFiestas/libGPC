@@ -14,9 +14,9 @@
 #define GPC_DUMP(...) 
 #define GPC_EVAL(...) __VA_ARGS__
 
-// Define one of these macros before including this header in case of
-// namespacing issues to require gpc_ prefix for identifiers.
-#if !defined(GPC_OVERLOAD_NAMESPACING) && !defined(GPC_NAMESPACING)
+// Define one of these macros before including this header to enable short names
+// without the gpc_ prefix. 
+#if defined(GPC_OVERLOAD_NAMESPACE) || defined(GPC_NAMESPACE)
 
 // Overload function by the number of arguments up to NARGS. Usage example:
 /*

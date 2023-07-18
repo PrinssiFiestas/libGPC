@@ -16,9 +16,9 @@
 //
 //----------------------------------------------------------------------------
 
-// Define one of these macros before including this header in case of
-// namespacing issues to require gpc_ prefix for identifiers. 
-#if !defined(GPC_MEMORY_NAMESPACING) && !defined(GPC_NAMESPACING)
+// Define one of these macros before including this header to enable short names
+// without the gpc_ prefix. 
+#if defined(GPC_MEMORY_NAMESPACE) || defined(GPC_NAMESPACE)
 
 // Every dynamic object needs to be assigned to an owner on creation.
 // Owners should ALWAYS be zero initialized. NEW_OWNER() macro is recommended to
@@ -91,7 +91,8 @@ typedef struct gpc_Owner Owner;
 // Gets size of object excluding it's metadata
 #define getSize(object)							gpc_getSize(object)
 
-// Sets size of object excluding it's metadata. Rerturns object. 
+// Sets size of object excluding it's metadata.
+// Rerturns object and NULL on failure. 
 // Reallocates if newSize exceeds size of block allocated for object. This 
 // means that the return value has to be stored to object. 
 // Does nothing if newSize == getSize(object).

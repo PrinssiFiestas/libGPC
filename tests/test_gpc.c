@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+
+#define GPC_NAMESPACE
 #include "../include/gpc/assert.h"
 #include "../src/gpc.c"
 

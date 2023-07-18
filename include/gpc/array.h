@@ -15,9 +15,9 @@
 //
 //----------------------------------------------------------------------------
 
-// Define one of these macros before including this header in case of
-// namespacing issues to require gpc_ prefix for identifiers. 
-#if !defined(GPC_ARRAY_NAMESPACING) && !defined(GPC_NAMESPACING)
+// Define one of these macros before including this header to enable short names
+// without the gpc_ prefix. 
+#if defined(GPC_ARRAY_NAMESPACE) || defined(GPC_NAMESPACE)
 
 // Returns the number of elements in an array
 #define arrLength(arr)							gpc_arrLength(arr)
