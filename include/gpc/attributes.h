@@ -7,9 +7,8 @@
 
 // TODO check for C23 once it comes out for [[nodiscard]]
 #ifdef __GNUC__
-#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wattributes"
-#define GPC_NODISCARD __attribute__((nodiscard))
+#define GPC_NODISCARD __attribute__((__warn_unused_result__))
 #else
 #define GPC_NODISCARD
 #endif
@@ -27,6 +26,5 @@
 #define GPC_LONG_DOUBLE long double
 #define GPC_LG_FORMAT "%Lg"
 #endif
-
 
 #endif // GPC_ATTRIBUTES_H
