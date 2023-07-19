@@ -5,6 +5,7 @@
 #ifndef GPC_ARRAY_H
 #define GPC_ARRAY_H
 
+#include <string.h>
 #include <stdint.h>
 #include "memory.h"
 #include "attributes.h"
@@ -49,7 +50,7 @@
 // Returns element
 #define arrPush(parr, element)					gpc_arrPush(parr, element)
 
-// Add an array to the back of arrDestination
+// Add all elements from arr to the back of *parrDestination
 // Returns arr
 #define arrPushArr(parrDestination, arr)		gpc_arrPushArr(parrDestination, arr)
 
@@ -93,7 +94,8 @@
 	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + 1),	\
 		arr[gpc_arrLength(*(parr)) - 1] = (elem) )
 
-void* gpc_arrPushArr(void* pDestination, void* source);
+#define gpc_arrPushArr(parr, arr)	\
+	((arr) = gpc_arrPushGpcArr(((void)*(parr), parr), arr))
 
 #define gpc_arrPop(parr, nElems)						\
 	( gpc_arrSetLength( parr,							\
@@ -114,7 +116,12 @@ void* gpc_arrPushArr(void* pDestination, void* source);
 				gpc_getSize(*(parr)) - (pos)*sizeof(**(parr))),	\
 			arr[pos] = (elem) )
 
-#define gpc_arrInsertArr(parrDest, pos, arr)	gpc_arrInsertArray(arrDest,sizeof *arr,pos,arr)
+#define gpc_arrInsertArr(parrDest, pos, arr)								\
+	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + gpc_arrLength(arr)),	\
+		memmove(*(parr) + (pos) + gpc_arrLength(arr),						\
+				*(parr) + (pos),											\
+				gpc_getSize(*(parr)) - (pos)*sizeof(**(parr))),				\
+			arr[pos] = (elem) )
 
 #define gpc_arrDelete(parr, pos, nElems)		gpc_arrDeleteElements(arr,sizeof *arr,pos,nElems)
 
@@ -128,9 +135,11 @@ void* gpc_arrPushArr(void* pDestination, void* source);
 //
 //----------------------------------------------------------------------------
 
-//void* gpc_arrMoveLastElems(void* parr, )
-
 // Switch elements. parr is a pointer to array. Returns *parr
 void* gpc_arrSwitchElems(void* parr, size_t pos1, size_t pos2, size_t elemSize, size_t nElems);
+
+// Copies source to the end of *pDestination. Returns source. 
+// Use arrPushArr() macro for better type safety. 
+void* gpc_arrPushGpcArr(void* pDestination, void* source);
 
 #endif // GPC_ARRAY_H

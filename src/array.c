@@ -8,7 +8,7 @@
 #include "../include/gpc/error.h"
 #include "errormsgs.h"
 
-void* gpc_arrPushArr(void* pDest, void* src)
+void* gpc_arrPushGpcArr(void* pDest, void* src)
 {
 	if (gpc_handleError(pDest == NULL, GPC_EMSG_NULL_ARG(pDestination, arrPushArr)))
 		return NULL;
