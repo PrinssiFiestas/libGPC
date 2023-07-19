@@ -63,6 +63,7 @@
 #define arrInsert(parr, pos, element)			gpc_arrInsert(parr, pos, element)
 
 // Insert an array in index pos of arr
+// Returns pointer to blah // TODO SOME MEANINGFUL RETURN VALUE
 #define arrInsertArr(parrDestination,pos,arr)	gpc_arrInsertArr(parrDestination,pos,arr)
 
 // Delete n elements from index pos of arr
@@ -116,12 +117,12 @@
 				gpc_getSize(*(parr)) - (pos)*sizeof(**(parr))),	\
 			arr[pos] = (elem) )
 
-#define gpc_arrInsertArr(parrDest, pos, arr)								\
+#define gpc_arrInsertArr(parr, pos, arr)									\
 	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + gpc_arrLength(arr)),	\
 		memmove(*(parr) + (pos) + gpc_arrLength(arr),						\
 				*(parr) + (pos),											\
 				gpc_getSize(*(parr)) - (pos)*sizeof(**(parr))),				\
-			arr[pos] = (elem) )
+			memcpy(*(parr) + pos, arr, gpc_getSize(arr)) )
 
 #define gpc_arrDelete(parr, pos, nElems)		gpc_arrDeleteElements(arr,sizeof *arr,pos,nElems)
 
