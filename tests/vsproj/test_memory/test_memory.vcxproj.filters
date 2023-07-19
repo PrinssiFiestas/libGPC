@@ -21,7 +21,7 @@
     <ClCompile Include="..\..\..\src\assert.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\gpc.c">
+    <ClCompile Include="..\..\..\src\error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

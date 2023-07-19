@@ -15,10 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\test_gpc.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\assert.c">
+    <ClCompile Include="..\..\test_error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

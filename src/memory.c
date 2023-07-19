@@ -6,7 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "../include/gpc/gpc.h"
+#include "../include/gpc/memory.h"
+#include "../include/gpc/error.h"
 #include "errormsgs.h"
 
 // globalOwner makes sure that gpc_gpc_gDefaultOwner always has a parent

@@ -3,7 +3,9 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include <string.h>
-#include "../include/gpc/gpc.h"
+#include <stdint.h>
+#include "../include/gpc/array.h"
+#include "../include/gpc/error.h"
 #include "errormsgs.h"
 
 void* gpc_arrPushArr(void* pDest, void* src)

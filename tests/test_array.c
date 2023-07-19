@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
-#include "../include/gpc/gpc.h"
 #include "../include/gpc/assert.h"
 #include "../src/array.c"
 

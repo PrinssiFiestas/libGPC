@@ -129,6 +129,7 @@
     <ClInclude Include="include\gpc\array.h" />
     <ClInclude Include="include\gpc\assert.h" />
     <ClInclude Include="include\gpc\attributes.h" />
+    <ClInclude Include="include\gpc\error.h" />
     <ClInclude Include="include\gpc\gpc.h" />
     <ClInclude Include="include\gpc\io.h" />
     <ClInclude Include="include\gpc\memory.h" />
@@ -141,6 +142,7 @@
   <ItemGroup>
     <ClCompile Include="src\array.c" />
     <ClCompile Include="src\assert.c" />
+    <ClCompile Include="src\error.c" />
     <ClCompile Include="src\gpc.c" />
     <ClCompile Include="src\memory.c" />
   </ItemGroup>

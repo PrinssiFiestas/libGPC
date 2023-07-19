@@ -6,7 +6,8 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include "../include/gpc/gpc.h"
+#include "../include/gpc/error.h"
+#include "../include/gpc/attributes.h"
 
 // Same as perror() but doesn't print "No error" when no errors
 // TODO better formatting

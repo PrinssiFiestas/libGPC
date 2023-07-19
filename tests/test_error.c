@@ -8,7 +8,7 @@
 
 #define GPC_NAMESPACE
 #include "../include/gpc/assert.h"
-#include "../src/gpc.c"
+#include "../src/error.c"
 
 char gstr[200];
 void debugMessageCallback(const char* str)
