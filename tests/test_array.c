@@ -4,6 +4,7 @@
 
 #define GPC_NAMESPACE
 #include <stdio.h>
+#include <string.h>
 #include <wchar.h>
 #include "../include/gpc/gpc.h"
 #include "../include/gpc/assert.h"
@@ -92,10 +93,24 @@ int main(void)
 			fprintf(stderr, "%ls", str);
 	}
 	
-	// TEST(arrInsert)
-	// {
-		// arr
-	// }
+	TEST(arrInsert)
+	{
+		long* arr = newS(long[], 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+		size_t i = 4;
+		long newVal = 100;
+		long old_arr_i = arr[i];
+		size_t oldLength = arrLength(arr);
+		
+		ASSERT(arrInsert(&arr, i, newVal) EQ newVal);
+		
+		for (size_t i = 0; i < arrLength(arr); i++)
+			printf("%li, ", arr[i]);
+		puts("");
+		
+		EXPECT(arr[i] = newVal);
+		ASSERT(arr[i + 1] EQ old_arr_i);
+		ASSERT(arrLength(arr) EQ oldLength + 1);
+	}
 	
 	freeOwner(NULL);
 }
