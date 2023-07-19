@@ -67,6 +67,7 @@
 #define arrInsertArr(parrDestination,pos,arr)	gpc_arrInsertArr(parrDestination,pos,arr)
 
 // Delete n elements from index pos of arr
+// Returns pointer to deleted item from arr // TODO CHANGE THIS AS WELL
 #define arrDelete(parr, pos, nElements)			gpc_arrDelete(parr, pos, nElements)
 
 // Returns number of elements in a C array declared with []
@@ -124,7 +125,9 @@
 				gpc_getSize(*(parr)) - (pos)*sizeof(**(parr))),				\
 			memcpy(*(parr) + pos, arr, gpc_getSize(arr)) )
 
-#define gpc_arrDelete(parr, pos, nElems)		gpc_arrDeleteElements(arr,sizeof *arr,pos,nElems)
+#define gpc_arrDelete(parr, pos, nElems)				\
+	( memmove(arr + i, arr + i + n, n * sizeof(*arr)),	\
+		gpc_arrSetLength(&arr, gpc_arrLength(arr) - n)) )
 
 #define gpc_carrLength(arr) 					(sizeof(arr)/sizeof(arr[0]))
 

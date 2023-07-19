@@ -129,5 +129,20 @@ int main(void)
 		ASSERT(arrLength(arr) EQ oldLength + arrLength(arr2));
 	}
 	
+	TEST(arrDelete)
+	{
+		long* arr = newH(long[], 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+		size_t i = 4;
+		size_t n = 2;
+		size_t oldLength = arrLength(arr);
+		
+		memmove(arr + i, arr + i + n, n * sizeof(*arr)),
+		gpc_arrSetLength(&arr, gpc_arrLength(arr) - n);
+		
+		ASSERT(arr[i - 1] EQ i - 1);
+		ASSERT(arr[i] EQ i + 2);
+		ASSERT(arrLength(arr) EQ oldLength - n);
+	}
+	
 	freeOwner(NULL);
 }
