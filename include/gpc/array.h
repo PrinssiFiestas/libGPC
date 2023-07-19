@@ -35,7 +35,7 @@
 // Reallocates if newCap>arrCapacity(arr).
 // Does nothing if newCap<=arrCapacity(arr).
 // Returns self. Store the return value to arr in case of reallocation. 
-#define arrSetCapacity(arr, newCap)				gpc_arrSetCapacity(arr, newCap)
+#define arrReserve(arr, newCap)					gpc_arrReserve(arr, newCap)
 
 // Returns the last element
 #define arrLast(arr)							gpc_arrLast(arr)
@@ -76,21 +76,21 @@
 
 #endif // GPC_NAMESPACING ----------------------------------------------------
 
-#define gpc_arrLength(arr)						gpc_getSize(arr)/sizeof((arr)[0])
+#define gpc_arrLength(arr)						gpc_size(arr)/sizeof((arr)[0])
 
 #define gpc_arrSetLength(parr, newLen)		\
-	(*(parr) = gpc_setSize(*(parr), (newLen) * sizeof((*(parr))[0])))
+	(*(parr) = gpc_resize(*(parr), (newLen) * sizeof((*(parr))[0])))
 
-#define gpc_arrCapacity(arr)					gpc_getCapacity(arr)/sizeof((arr)[0])
+#define gpc_arrCapacity(arr)					gpc_capacity(arr)/sizeof((arr)[0])
 
-#define gpc_arrSetCapacity(parr, newCap)	\
+#define gpc_arrReserve(parr, newCap)	\
 	(*(parr) = gpc_reallocate(*(parr), newCap * sizeof((*(parr))[0])))
 
-#define gpc_arrLast(arr)						((arr)[gpc_getSize(arr)/sizeof((arr)[0]) - 1])
+#define gpc_arrLast(arr)						((arr)[gpc_size(arr)/sizeof((arr)[0]) - 1])
 
-#define gpc_arrBack(arr)						(&(arr)[gpc_getSize(arr)/sizeof((arr)[0]) - 1])
+#define gpc_arrBack(arr)						(&(arr)[gpc_size(arr)/sizeof((arr)[0]) - 1])
 
-#define gpc_arrIsEmpty(arr)						(gpc_getSize(arr) == 0)
+#define gpc_arrIsEmpty(arr)						(gpc_size(arr) == 0)
 
 #define gpc_arrPush(parr, elem)								\
 	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + 1),	\
@@ -109,15 +109,15 @@
 	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + 1),		\
 		memmove(*(parr) + (pos) + 1,							\
 				*(parr) + (pos),								\
-				gpc_getSize(*(parr)) - (pos)*sizeof(**(parr))),	\
+				gpc_size(*(parr)) - (pos)*sizeof(**(parr))),	\
 			arr[pos] = (elem) )
 
 #define gpc_arrInsertArr(parr, pos, arr)									\
 	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + gpc_arrLength(arr)),	\
 		memmove(*(parr) + (pos) + gpc_arrLength(arr),						\
 				*(parr) + (pos),											\
-				gpc_getSize(*(parr)) - (pos)*sizeof(**(parr))),				\
-			memcpy(*(parr) + pos, arr, gpc_getSize(arr)) )
+				gpc_size(*(parr)) - (pos)*sizeof(**(parr))),				\
+			memcpy(*(parr) + pos, arr, gpc_size(arr)) )
 
 #define gpc_arrDelete(parr, pos, nElems)				\
 	( memmove(arr + i, arr + i + n, n * sizeof(*arr)),	\

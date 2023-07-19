@@ -45,7 +45,7 @@ int main(void)
 	TEST(ownermallocate)
 		ASSERT(getOwner(obj0) EQ thisScope);
 	
-	obj0 = setSize(obj0, 2);
+	obj0 = resize(obj0, 2);
 	obj0[0] = 'X';
 	obj0[1] = '\0';
 	
@@ -78,25 +78,25 @@ int main(void)
 	{
 		ASSERT(!onStack(newH(int, 0)));
 		ASSERT(onHeap(allocH(sizeof(int))));
-		ASSERT(getSize(newH(int8_t[15], 0)) EQ 15);
+		ASSERT(size(newH(int8_t[15], 0)) EQ 15);
 		ASSERT(*(int*)newH(int, 3) EQ 3);
-		ASSERT(getCapacity(allocH(sizeof(int8_t[15]))) EQ gpc_nextPowerOf2(15));
+		ASSERT(capacity(allocH(sizeof(int8_t[15]))) EQ gpc_nextPowerOf2(15));
 	}
 
 	TEST(newS_and_allocS)
 	{
 		ASSERT(onStack(newS(int, 0)));
 		ASSERT(!onHeap(allocS(sizeof(int))));
-		ASSERT(getSize(allocS(sizeof(int8_t[15]))) EQ 0);
-		ASSERT(getSize(newS(int8_t[15], 0)) EQ 15);
+		ASSERT(size(allocS(sizeof(int8_t[15]))) EQ 0);
+		ASSERT(size(newS(int8_t[15], 0)) EQ 15);
 		ASSERT(*(int*)newS(int, 5) EQ 5);
-		ASSERT(getCapacity(newS(int8_t[15], 0)) EQ 15);
+		ASSERT(capacity(newS(int8_t[15], 0)) EQ 15);
 	}
 	
 	TEST(allocaAssign)
 	{
-		ASSERT(getSize(allocaAssign(5, NULL)) EQ 0);
-		ASSERT(getCapacity(allocaAssign(5, thisScope)) EQ 5);
+		ASSERT(size(allocaAssign(5, NULL)) EQ 0);
+		ASSERT(capacity(allocaAssign(5, thisScope)) EQ 5);
 	}
 	
 	TEST(callocAssign)
@@ -111,24 +111,24 @@ int main(void)
 		obj0 = reallocate(obj0, obj0Cap * 2);
 		ASSERT(obj0 EQ "X", "Memory not copied!");
 		ASSERT(*obj0Original EQ FREED4);
-		ASSERT(getCapacity(obj0) EQ obj0Cap * 2);
+		ASSERT(capacity(obj0) EQ obj0Cap * 2);
 	}
 	
 	TEST(setSize_and_reallocate)
 	{
 		uint32_t* obj1Original = (uint32_t*)obj1;
-		size_t oldCapacity = getCapacity(obj1);
+		size_t oldCapacity = capacity(obj1);
 		obj1 = reallocate(obj1, oldCapacity + 1);
 		ASSERT(*obj1Original EQ FREED4);
-		ASSERT(getCapacity(obj1) EQ gpc_nextPowerOf2(oldCapacity + 1));
+		ASSERT(capacity(obj1) EQ gpc_nextPowerOf2(oldCapacity + 1));
 		
 		int* obj1NonMoved = obj1;
-		ASSERT(obj1 = setSize(obj1, getCapacity(obj1)) EQ obj1NonMoved);
+		ASSERT(obj1 = resize(obj1, capacity(obj1)) EQ obj1NonMoved);
 		
 		// Test that data is copied properly
-		size_t obj1OldCap = getCapacity(obj1);
-		obj1 = setSize(obj1, obj1OldCap + 1);
-		ASSERT(getSize(obj1) EQ obj1OldCap + 1);
+		size_t obj1OldCap = capacity(obj1);
+		obj1 = resize(obj1, obj1OldCap + 1);
+		ASSERT(size(obj1) EQ obj1OldCap + 1);
 	}
 	
 	TEST(duplicate)

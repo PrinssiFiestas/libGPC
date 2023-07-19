@@ -25,17 +25,17 @@ int main(void)
 	{
 		ASSERT(arrLength(arr) EQ 3);
 		arrSetLength(&arr, 1);
-		ASSERT(getSize(arr) EQ /*arrLength(arr) * */sizeof(arr[0]));
+		ASSERT(size(arr) EQ /*arrLength(arr) * */sizeof(arr[0]));
 		arrSetLength(&arr, 3);
 		ASSERT(arr[2] EQ 0);
-		ASSERT(getSize(arr) EQ 3*sizeof(arr[0]));
+		ASSERT(size(arr) EQ 3*sizeof(arr[0]));
 	}
 	
 	TEST(arrSetCapacity_and_arrGetCapacity)
 	{
 		newOwner();
 		double* arrd = newS(double[], .4);
-		arrSetCapacity(&arrd, 5);
+		arrReserve(&arrd, 5);
 		ASSERT(onHeap(arrd));
 		ASSERT(arrCapacity(arrd) EQ /*nextPowerOf(5)=*/8);
 		freeOwner(NULL);
@@ -65,7 +65,7 @@ int main(void)
 		ASSERT(arrPushArr(&arrS, arrH) EQ arrH);
 		
 		ASSERT(arrLast(arrS) EQ 7);
-		ASSERT(getSize(arrS) EQ getSize(arrH));
+		ASSERT(size(arrS) EQ size(arrH));
 	}
 	
 	TEST(arrPop)

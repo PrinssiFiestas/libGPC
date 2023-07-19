@@ -20,13 +20,13 @@ void* gpc_arrPushGpcArr(void* pDest, void* src)
 	if (gpc_handleError(*_pDest == NULL, GPC_EMSG_NULL_ARG(pDestination, arrPushArr)))
 		return NULL;
 		
-	size_t destOldSize = gpc_getSize(*_pDest);
-	*_pDest = gpc_setSize(*_pDest, destOldSize + gpc_getSize(src));
+	size_t destOldSize = gpc_size(*_pDest);
+	*_pDest = gpc_resize(*_pDest, destOldSize + gpc_size(src));
 	
-	if (gpc_handleError(*_pDest == NULL, "setSize() failed in arrPushArr()"))
+	if (gpc_handleError(*_pDest == NULL, "resize() failed in arrPushArr()"))
 		return NULL;
 	
-	memcpy(*_pDest + destOldSize, src, gpc_getSize(src));
+	memcpy(*_pDest + destOldSize, src, gpc_size(src));
 	
 	return src;
 }

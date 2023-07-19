@@ -28,7 +28,7 @@ typedef struct gpc_Owner Owner;
 
 // Pointer to owner created with newOwner(). Pointer to owner created earlier 
 // with newOwner() can be obtained with defaultOwner->parent. 
-// Don't write values to it yourself!
+// Don't write values to it!
 #define gDefaultOwner							gpc_gDefaultOwner
 
 // Returns a pointer to a new block scoped owner
@@ -58,7 +58,7 @@ typedef struct gpc_Owner Owner;
 
 // Reallocate object
 // Returns pointer to newly allocated block and NULL on failure. 
-// Does nothing if newCapacity<=getCapacity(object).
+// Does nothing if newCapacity<=capacity(object).
 #define reallocate(object, newCapacity)			gpc_reallocate(object, newCapacity)
 
 // Assign a new owner
@@ -89,17 +89,17 @@ typedef struct gpc_Owner Owner;
 #define getOwner(object)						gpc_getOwner(object)
 
 // Gets size of object excluding it's metadata
-#define getSize(object)							gpc_getSize(object)
+#define size(object)							gpc_size(object)
 
 // Sets size of object excluding it's metadata.
 // Rerturns object and NULL on failure. 
 // Reallocates if newSize exceeds size of block allocated for object. This 
 // means that the return value has to be stored to object. 
-// Does nothing if newSize == getSize(object).
-#define setSize(object, newSize)				gpc_setSize(object, newSize)
+// Does nothing if newSize == size(object).
+#define resize(object, newSize)					gpc_resize(object, newSize)
 
 // Gets size of memory block allocated for object
-#define getCapacity(object)						gpc_getCapacity(object)
+#define capacity(object)						gpc_capacity(object)
 
 // Returns a copy of object on heap
 #define duplicate(object)						gpc_duplicate(object)
@@ -157,11 +157,11 @@ void gpc_moveOwnership(void* object, gpc_Owner* newOwner);
 
 gpc_Owner* gpc_getOwner(const void *const object);
 
-size_t gpc_getSize(const void *const object);
+size_t gpc_size(const void *const object);
 
-GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize);
+GPC_NODISCARD void* gpc_resize(void* object, size_t newSize);
 
-size_t gpc_getCapacity(const void *const object);
+size_t gpc_capacity(const void *const object);
 
 GPC_NODISCARD void* gpc_duplicate(const void *const object);
 

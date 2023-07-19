@@ -223,7 +223,7 @@ gpc_Owner* gpc_getOwner(const void *const object)
 	return me->owner;
 }
 
-size_t gpc_getSize(const void *const object)
+size_t gpc_size(const void *const object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(getSize)))
 		return 0;
@@ -235,7 +235,7 @@ size_t gpc_getSize(const void *const object)
 	return me->size;
 }
 
-GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize)
+GPC_NODISCARD void* gpc_resize(void* object, size_t newSize)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(setSize)))
 		return NULL;
@@ -254,7 +254,7 @@ GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize)
 	object = gpc_reallocate(object, newSize);
 	me = listData(object);
 	
-	if (gpc_handleError(object == NULL, "reallocate() failed at setSize()"))
+	if (gpc_handleError(object == NULL, "reallocate() failed at resize()"))
 		return NULL;
 	
 	for (size_t i = me->size; i < newSize; i++)
@@ -263,7 +263,7 @@ GPC_NODISCARD void* gpc_setSize(void* object, size_t newSize)
 	return object;
 }
 
-size_t gpc_getCapacity(const void *const object)
+size_t gpc_capacity(const void *const object)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(getCapacity)))
 		return 0;
@@ -282,10 +282,10 @@ GPC_NODISCARD void* gpc_duplicate(const void *const object)
 	if (gpc_handleError(gpc_getOwner(object) == NULL, GPC_EMSG_OBJ_NO_OWNER(duplicate)))
 		return NULL;
 	
-	void* copy = gpc_mallocAssign(gpc_getCapacity(object), gpc_getOwner(object));
+	void* copy = gpc_mallocAssign(gpc_capacity(object), gpc_getOwner(object));
 	if (gpc_handleError(copy == NULL, "mallocAssign() failed in duplicate()."))
 		return NULL;
-	memcpy(copy, object, gpc_getSize(object));
+	memcpy(copy, object, gpc_size(object));
 	return copy;
 }
 
@@ -343,6 +343,6 @@ void* gpc_buildHeapObject(const size_t size, const void* initVal, gpc_Owner* own
 	void* obj = gpc_mallocAssign(size, owner);
 	if (gpc_handleError(obj == NULL, "mallocAssign() returned NULL in buildHeapObject()."))
 		return NULL;
-	obj = gpc_setSize(obj, size);
+	obj = gpc_resize(obj, size);
 	return memcpy(obj, initVal, size);
 }
