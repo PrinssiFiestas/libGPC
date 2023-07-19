@@ -18,9 +18,6 @@
     <ClCompile Include="src\assert.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\gpc.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\memory.c">
       <Filter>Source Files</Filter>
     </ClCompile>

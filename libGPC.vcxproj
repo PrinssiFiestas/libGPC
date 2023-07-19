@@ -143,7 +143,6 @@
     <ClCompile Include="src\array.c" />
     <ClCompile Include="src\assert.c" />
     <ClCompile Include="src\error.c" />
-    <ClCompile Include="src\gpc.c" />
     <ClCompile Include="src\memory.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

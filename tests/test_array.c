@@ -124,7 +124,7 @@ int main(void)
 			printf("%li, ", arr[i]);
 		puts("");
 		
-		EXPECT(arr[i] = arr2[i]);
+		EXPECT(arr[i] EQ arr2[0]);
 		ASSERT(arr[i + arrLength(arr2)] EQ old_arr_i);
 		ASSERT(arrLength(arr) EQ oldLength + arrLength(arr2));
 	}

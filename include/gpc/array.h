@@ -97,19 +97,13 @@
 		arr[gpc_arrLength(*(parr)) - 1] = (elem) )
 
 #define gpc_arrPushArr(parr, arr)	\
-	((arr) = gpc_arrPushGpcArr(((void)*(parr), parr), arr))
+	(gpc_arrPushGpcArr(parr, arr), (arr))
 
 #define gpc_arrPop(parr, nElems)						\
 	( gpc_arrSetLength( parr,							\
 		gpc_arrLength(*(parr)) >= (nElems) ?			\
 			gpc_arrLength(*(parr)) - (nElems) : 0 ),	\
 				*(gpc_arrBack(*(parr)) + 1) ) 
-
-// #define gpc_arrInsert(parr, pos, elem)		\
-	// ( gpc_arrPush(parr, elem),				\
-		// (*(parr) =							\
-			// gpc_arrSwitchElems(parr, pos, gpc_arrLast(*(arr)), sizeof(**(parr)), 1))\
-				// [pos] )
 
 #define gpc_arrInsert(parr, pos, elem)							\
 	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + 1),		\
