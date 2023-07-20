@@ -152,6 +152,9 @@ int main(void)
 		ASSERT(msgBuf EQ GPC_EMSG_OVERALLOC(mallocAssign));
 	}
 	
+	// This test is only here because it might give useful information that can
+	// be used with the arena allocator. It only works now with the replaced 
+	// allocator, but is undefined with real malloc()!
 	TEST(objects_addresses_should_always_grow_in_list)
 	{
 		// Does heap grow up or down? Doesn't matter, let's just check that the

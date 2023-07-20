@@ -133,7 +133,7 @@
 //
 //----------------------------------------------------------------------------
 
-// Switch elements. parr is a pointer to array. Returns *parr
+// Switch elements. parr is a pointer to an array. Returns *parr
 void* gpc_arrSwitchElems(void* parr, size_t pos1, size_t pos2, size_t elemSize, size_t nElems);
 
 // Copies source to the end of *pDestination. Returns source. 
