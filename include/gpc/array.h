@@ -26,7 +26,7 @@
 // Set number of elements
 // Reallocates if newLen>arrCapacity(arr).
 // Returns self
-#define arrSetLength(arr, newLen)				gpc_arrSetLength(arr, newLen)
+#define arrSetLength(parr, newLen)				gpc_arrSetLength(parr, newLen)
 
 // Returns the number of elements that arr can hold without reallocating
 #define arrCapacity(arr)						gpc_arrCapacity(arr)
@@ -35,7 +35,7 @@
 // Reallocates if newCap>arrCapacity(arr).
 // Does nothing if newCap<=arrCapacity(arr).
 // Returns self
-#define arrReserve(arr, newCap)					gpc_arrReserve(arr, newCap)
+#define arrReserve(parr, newCap)				gpc_arrReserve(parr, newCap)
 
 // Returns the last element
 #define arrLast(arr)							gpc_arrLast(arr)
@@ -139,5 +139,12 @@ void* gpc_arrSwitchElems(void* parr, size_t pos1, size_t pos2, size_t elemSize, 
 // Copies source to the end of *pDestination. Returns source. 
 // Use arrPushArr() macro for better type safety. 
 void* gpc_arrPushGpcArr(void* pDestination, void* source);
+
+// Used by some macros to return self like this:
+// #define macro(parr) (modifyArrAndRetSomethingElse(parr), *(parr) = gpc_passTrough(parr))
+inline void* gpc_passTrough(void* pptr)
+{
+	return *(void**)pptr;
+}
 
 #endif // GPC_ARRAY_H

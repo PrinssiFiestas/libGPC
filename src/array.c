@@ -8,6 +8,8 @@
 #include "../include/gpc/error.h"
 #include "errormsgs.h"
 
+extern inline void* gpc_passTrough(void*);
+
 void* gpc_arrPushGpcArr(void* pDest, void* src)
 {
 	if (gpc_handleError(pDest == NULL, GPC_EMSG_NULL_ARG(pDestination, arrPushArr)))
