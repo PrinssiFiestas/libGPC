@@ -47,11 +47,11 @@ endif
 
 testallc:
 	make clean
-	make tests
+	make tests CC=gcc.exe
 	make clean
-	make tests CC=clang
+	make tests CC=clang.exe
 	make clean
-	wsl make tests
+	wsl make tests CC=gcc
 	make clean
 	wsl make tests CC=clang
 	make tests CC=msbuild
