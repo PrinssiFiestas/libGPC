@@ -25,7 +25,7 @@
 
 // Set number of elements
 // Reallocates if newLen>arrCapacity(arr).
-// Returns self. Store the return value to arr in case of reallocation. 
+// Returns self
 #define arrSetLength(arr, newLen)				gpc_arrSetLength(arr, newLen)
 
 // Returns the number of elements that arr can hold without reallocating
@@ -34,7 +34,7 @@
 // Set number of elements arr can hold
 // Reallocates if newCap>arrCapacity(arr).
 // Does nothing if newCap<=arrCapacity(arr).
-// Returns self. Store the return value to arr in case of reallocation. 
+// Returns self
 #define arrReserve(arr, newCap)					gpc_arrReserve(arr, newCap)
 
 // Returns the last element
