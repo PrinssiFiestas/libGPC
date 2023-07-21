@@ -178,8 +178,8 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 	(																		\
 		(struct gpc_ExpectationData)										\
 		{																	\
-			.a 					 	= GPC_IF_IS_NUMERIC(EXP, EXP, 0),		\
-			.b						= 0,									\
+			.a 					 	= (GPC_LONG_DOUBLE)GPC_IF_IS_NUMERIC(EXP, EXP, 0),\
+			.b						= (GPC_LONG_DOUBLE)0,					\
 			.pa						= GPC_IF_IS_NUMERIC(EXP, NULL, EXP),	\
 			.pb						= NULL,									\
 			.str_a				 	= #EXP,									\
@@ -204,8 +204,8 @@ extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 	(																		\
 	 	(struct gpc_ExpectationData)										\
 		{																	\
-			.a 	   		  			= GPC_IF_IS_NUMERIC(A, A, 0),			\
-			.b 			  			= GPC_IF_IS_NUMERIC(B, B, 0),			\
+			.a 	   		  			= (GPC_LONG_DOUBLE)GPC_IF_IS_NUMERIC(A, A, 0),\
+			.b 			  			= (GPC_LONG_DOUBLE)GPC_IF_IS_NUMERIC(B, B, 0),\
 			.pa						= GPC_IF_IS_NUMERIC(A, NULL, A),		\
 			.pb						= GPC_IF_IS_NUMERIC(B, NULL, B),		\
 			.str_a 		  			= #A,									\

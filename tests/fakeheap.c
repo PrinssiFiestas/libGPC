@@ -115,7 +115,7 @@ long fakeHeapFindFirstReserved(void)
 	uint32_t* heap32 = (uint32_t*)fakeHeap;
 	for (size_t i = 0; i < fakeHeapSize/4; i++)
 		if (heap32[i] != FREED4)
-			return i;
+			return (long)i;
 	return EMPTY_HEAP;
 }
 

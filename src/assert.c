@@ -84,12 +84,12 @@ const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3] = {
 #undef X
 };
 
-bool gpc_compareNumber(double a, enum gpc_BooleanOperator operation, double b)
+static bool gpc_compareNumber(GPC_LONG_DOUBLE a, enum gpc_BooleanOperator op, GPC_LONG_DOUBLE b)
 {
-	switch(operation)
+	switch(op)
 	{
 		case GPC_NO_OP:
-			return a;
+			return (bool)a;
 
 	#define X(OP_ENUM, OP) 	\
 		case GPC##OP_ENUM:	\
@@ -107,12 +107,12 @@ bool gpc_compareNumber(double a, enum gpc_BooleanOperator operation, double b)
 	*/
 		case GPC_OPS_LENGTH: {} // Suppress -Wswitch
 	}
-	return 0&&(a+b); // Gets rid of pointless compiler warnings
+	return 0&&((bool)a+(bool)b); // Gets rid of pointless compiler warnings
 }
 
-bool gpc_comparePointer(const void* a, enum gpc_BooleanOperator operation, const void* b)
+static bool gpc_comparePointer(const void* a, enum gpc_BooleanOperator op, const void* b)
 {
-	switch(operation)
+	switch(op)
 	{
 		case GPC_NO_OP:
 			return a;
@@ -123,12 +123,12 @@ bool gpc_comparePointer(const void* a, enum gpc_BooleanOperator operation, const
 	#undef X
 		case GPC_OPS_LENGTH: {}
 	}
-	return 0&&((char*)a-(char*)b);
+	return (bool)(0&&((char*)a-(char*)b));
 }
 
-bool gpc_compareCharPointer(const char* a, enum gpc_BooleanOperator operation, const char* b)
+static bool gpc_compareCharPointer(const char* a, enum gpc_BooleanOperator op, const char* b)
 {
-	switch(operation)
+	switch(op)
 	{
 		case GPC_NO_OP:
 			return a;
@@ -139,7 +139,7 @@ bool gpc_compareCharPointer(const char* a, enum gpc_BooleanOperator operation, c
 	#undef X
 		case GPC_OPS_LENGTH: {}
 	}
-	return 0&&((char*)a-(char*)b);
+	return (bool)(0&&((char*)a-(char*)b));
 }
 
 // Finds suite by going trough all parent data
@@ -188,7 +188,7 @@ void gpc_printExpectationFail(struct gpc_ExpectationData* expectation,
 		// "true" or "false" to prevent printing "true == true" on 2 different
 		// non-zero values
 		if (expectation->operation == GPC_NO_OP)
-			fprintf(stderr, GPC_RED("%s"), expectation->a ? "true" : "false");
+			fprintf(stderr, GPC_RED("%s"), (bool)expectation->a ? "true" : "false");
 		else
 			fprintf(stderr, GPC_RED(GPC_LG_FORMAT " %s " GPC_LG_FORMAT), expectation->a, expectation->str_operator, expectation->b);
 		fprintf(stderr, ".\n");

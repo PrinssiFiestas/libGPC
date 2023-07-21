@@ -145,11 +145,18 @@ int main(void)
 	
 	TEST(errorHandling)
 	{
+		#ifdef __GNUC__
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored "-Wsign-conversion"
+		#endif
 		gpc_setDebugMessageCallback(getMsg);
 		
 		void* dummy = mallocAssign(-1, thisScope);
 		(void)dummy;
 		ASSERT(msgBuf EQ GPC_EMSG_OVERALLOC(mallocAssign));
+		#ifdef __GNUC__
+		#pragma GCC diagnostic pop
+		#endif
 	}
 	
 	// This test is only here because it might give useful information that can
