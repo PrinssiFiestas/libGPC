@@ -11,6 +11,11 @@
 #include "overload.h"
 #include "attributes.h"
 
+
+#pragma GCC diagnostics ignored "-Wcomment"
+
+
+
 //----------------------------------------------------------------------------
 //
 //		CORE API
@@ -80,6 +85,9 @@ int main() // function scope required!
 #define GPC_GE ,GPC_OP_GE, // >=
 #define GPC_LE ,GPC_OP_LE, // <=
 
+// TODO add this
+// bool gpc_anyFails(struct gpc_TestAndSuiteData* data);
+
 //----------------------------------------------------------------------------
 //
 //		END OF CORE API
@@ -101,149 +109,138 @@ typedef struct gpc_TestAndSuiteData
 
 extern gpc_TestAndSuiteData gpc_gTestData;
 
-#define GPC_OP_TABLE	\
-	X(_OP_EQ, ==)		\
-	X(_OP_NE, !=)		\
-	X(_OP_GT, >)		\
-	X(_OP_LT, <)		\
-	X(_OP_GE, >=)		\
-	X(_OP_LE, <=)		\
+// #define GPC_OP_TABLE	\
+	// X(_OP_EQ, ==)		\
+	// X(_OP_NE, !=)		\
+	// X(_OP_GT, >)		\
+	// X(_OP_LT, <)		\
+	// X(_OP_GE, >=)		\
+	// X(_OP_LE, <=)		\
 
-enum gpc_BooleanOperator
-{
-	GPC_NO_OP = -1,
+// enum gpc_BooleanOperator
+// {
+	// GPC_NO_OP = -1,
 
-#define X(OP, DUMMY) GPC##OP,
-	GPC_OP_TABLE
-#undef X
+// #define X(OP, DUMMY) GPC##OP,
+	// GPC_OP_TABLE
+// #undef X
 
-// Expands to
+	// GPC_OPS_LENGTH
+// };
 
-/*	GPC_EQ,
-	GPC_NE,
-	GPC_GT,
-	GPC_LT,
-	GPC_GE,
-	GPC_LE,*/
+// enum gpc_Datatype
+// {
+	// GPC_NUMBER,
+	// GPC_BOOL,
+	// GPC_POINTER,
+	// GPC_CHAR_POINTER
+// };
 
-	GPC_OPS_LENGTH
-};
-
-enum gpc_Datatype
-{
-	GPC_NUMBER,
-	GPC_BOOL,
-	GPC_POINTER,
-	GPC_CHAR_POINTER
-};
-
-struct gpc_ExpectationData
-{
-	const GPC_LONG_DOUBLE a, b;
-	const void *pa, *pb;
-	const char *str_a, *str_b, *str_operator, *additionalFailMessage;
-	const enum gpc_BooleanOperator operation;
-	const bool isAssertion;
-	const int line;
-	const char *func, *file;
-	const enum gpc_Datatype type;
-};
+// struct gpc_ExpectationData
+// {
+	// const GPC_LONG_DOUBLE a, b;
+	// const void *pa, *pb;
+	// const char *str_a, *str_b, *str_operator, *additionalFailMessage;
+	// const enum gpc_BooleanOperator operation;
+	// const bool isAssertion;
+	// const int line;
+	// const char *func, *file;
+	// const enum gpc_Datatype type;
+// };
 
 // Boolean operations as a function
 // Allows macros EQ, NE, etc. to be used like operators
-bool gpc_compare(double expression_a, enum gpc_BooleanOperator, double expression_b);
+//bool gpc_compare(double expression_a, enum gpc_BooleanOperator, double expression_b);
 
-void gpc_printStartingMessageAndInitExitMessage(void);
+//void gpc_printStartingMessageAndInitExitMessage(void);
 
-void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData*);
+//void gpc_printExpectationFail(struct gpc_ExpectationData*, struct gpc_TestAndSuiteData*);
 
-void gpc_printExpectationFail(struct gpc_ExpectationData*, struct gpc_TestAndSuiteData*);
-
-int gpc_assert_internal(struct gpc_ExpectationData, struct gpc_TestAndSuiteData*);
+//int gpc_assert_internal(struct gpc_ExpectationData, struct gpc_TestAndSuiteData*);
 
 bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData*);
 
-void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData*);
+//void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData*);
 
-void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData*);
+// void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData*);
 
 extern struct gpc_TestAndSuiteData *const gpc_currentTestOrSuite;
 
 extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 
-#define GPC_COMMON_DATA .line = __LINE__, .func = __func__, .file = __FILE__
+//#define GPC_COMMON_DATA .line = __LINE__, .func = __func__, .file = __FILE__
 
-#define GPC_EXPECT_EXP(EXP, ADDITIONAL_MSG, IS_ASS)							\
-	gpc_assert_internal														\
-	(																		\
-		(struct gpc_ExpectationData)										\
-		{																	\
-			.a 					 	= (GPC_LONG_DOUBLE)GPC_IF_IS_NUMERIC(EXP, EXP, 0),\
-			.b						= (GPC_LONG_DOUBLE)0,					\
-			.pa						= GPC_IF_IS_NUMERIC(EXP, NULL, EXP),	\
-			.pb						= NULL,									\
-			.str_a				 	= #EXP,									\
-			.str_b					= NULL,									\
-			.str_operator			= NULL,									\
-			.additionalFailMessage 	= ADDITIONAL_MSG,						\
-			.operation	 			= GPC_NO_OP,							\
-			.isAssertion 			= IS_ASS,								\
-			.type					= GPC_IF_IS_NUMBER(EXP,					\
-										GPC_NUMBER, _Generic(EXP,			\
-											bool: GPC_BOOL,					\
-											const char*: GPC_CHAR_POINTER,	\
-											char*: GPC_CHAR_POINTER,		\
-											default: GPC_POINTER)),			\
-			GPC_COMMON_DATA													\
-		},																	\
-		gpc_currentTestOrSuite												\
-	)
+// #define GPC_EXPECT_EXP(EXP, ADDITIONAL_MSG, IS_ASS)							\
+	// gpc_assert_internal														\
+	// (																		\
+		// (struct gpc_ExpectationData)										\
+		// {																	\
+			// .a 					 	= (GPC_LONG_DOUBLE)GPC_IF_IS_NUMERIC(EXP, EXP, 0),\
+			// .b						= (GPC_LONG_DOUBLE)0,					\
+			// .pa						= GPC_IF_IS_NUMERIC(EXP, NULL, EXP),	\
+			// .pb						= NULL,									\
+			// .str_a				 	= #EXP,									\
+			// .str_b					= NULL,									\
+			// .str_operator			= NULL,									\
+			// .additionalFailMessage 	= ADDITIONAL_MSG,						\
+			// .operation	 			= GPC_NO_OP,							\
+			// .isAssertion 			= IS_ASS,								\
+			// .type					= GPC_IF_IS_NUMBER(EXP,					\
+										// GPC_NUMBER, _Generic(EXP,			\
+											// bool: GPC_BOOL,					\
+											// const char*: GPC_CHAR_POINTER,	\
+											// char*: GPC_CHAR_POINTER,		\
+											// default: GPC_POINTER)),			\
+			// GPC_COMMON_DATA													\
+		// },																	\
+		// gpc_currentTestOrSuite												\
+	// )
 
-#define GPC_EXPECT_CMP(A, OP, B, ADDITIONAL_MSG, IS_ASS)					\
-	gpc_assert_internal														\
-	(																		\
-	 	(struct gpc_ExpectationData)										\
-		{																	\
-			.a 	   		  			= (GPC_LONG_DOUBLE)GPC_IF_IS_NUMERIC(A, A, 0),\
-			.b 			  			= (GPC_LONG_DOUBLE)GPC_IF_IS_NUMERIC(B, B, 0),\
-			.pa						= GPC_IF_IS_NUMERIC(A, NULL, A),		\
-			.pb						= GPC_IF_IS_NUMERIC(B, NULL, B),		\
-			.str_a 		  			= #A,									\
-			.str_b 		  			= #B,									\
-			.str_operator 			= GPC_STR_OPERATORS[OP],				\
-			.additionalFailMessage 	= ADDITIONAL_MSG,						\
-			.operation	  			= OP,									\
-			.isAssertion  			= IS_ASS,								\
-			.type					= GPC_IF_IS_NUMBER(A,					\
-										GPC_NUMBER, _Generic(A,				\
-											bool: GPC_BOOL,					\
-											const char*: GPC_CHAR_POINTER,	\
-											char*: GPC_CHAR_POINTER,		\
-											default: GPC_POINTER)),			\
-			GPC_COMMON_DATA													\
-		},																	\
-		gpc_currentTestOrSuite												\
-	)
+// #define GPC_EXPECT_CMP(A, OP, B, ADDITIONAL_MSG, IS_ASS)					\
+	// gpc_assert_internal														\
+	// (																		\
+	 	// (struct gpc_ExpectationData)										\
+		// {																	\
+			// .a 	   		  			= (GPC_LONG_DOUBLE)GPC_IF_IS_NUMERIC(A, A, 0),\
+			// .b 			  			= (GPC_LONG_DOUBLE)GPC_IF_IS_NUMERIC(B, B, 0),\
+			// .pa						= GPC_IF_IS_NUMERIC(A, NULL, A),		\
+			// .pb						= GPC_IF_IS_NUMERIC(B, NULL, B),		\
+			// .str_a 		  			= #A,									\
+			// .str_b 		  			= #B,									\
+			// .str_operator 			= GPC_STR_OPERATORS[OP],				\
+			// .additionalFailMessage 	= ADDITIONAL_MSG,						\
+			// .operation	  			= OP,									\
+			// .isAssertion  			= IS_ASS,								\
+			// .type					= GPC_IF_IS_NUMBER(A,					\
+										// GPC_NUMBER, _Generic(A,				\
+											// bool: GPC_BOOL,					\
+											// const char*: GPC_CHAR_POINTER,	\
+											// char*: GPC_CHAR_POINTER,		\
+											// default: GPC_POINTER)),			\
+			// GPC_COMMON_DATA													\
+		// },																	\
+		// gpc_currentTestOrSuite												\
+	// )
 
-#define GPC_NOT_ASS 0
-#define GPC_IS_ASS  1
+// #define GPC_NOT_ASS 0
+// #define GPC_IS_ASS  1
 
-#define GPC_EXPECT_WITH_MSG(EXP, MSG, IS_ASS)			GPC_EXPECT_EXP(EXP, MSG, IS_ASS)
-#define GPC_EXPECT_WOUT_MSG(EXP, IS_ASS)				GPC_EXPECT_EXP(EXP, NULL, IS_ASS)
-#define GPC_EXPECT_CMP_WITH_MSG(A, OP, B, MSG, IS_ASS)	GPC_EXPECT_CMP(A, OP, B, MSG, IS_ASS)
-#define GPC_EXPECT_CMP_WOUT_MSG(A, OP, B, IS_ASS)		GPC_EXPECT_CMP(A, OP, B, NULL,IS_ASS)
+// #define GPC_EXPECT_WITH_MSG(EXP, MSG, IS_ASS)			GPC_EXPECT_EXP(EXP, MSG, IS_ASS)
+// #define GPC_EXPECT_WOUT_MSG(EXP, IS_ASS)				GPC_EXPECT_EXP(EXP, NULL, IS_ASS)
+// #define GPC_EXPECT_CMP_WITH_MSG(A, OP, B, MSG, IS_ASS)	GPC_EXPECT_CMP(A, OP, B, MSG, IS_ASS)
+// #define GPC_EXPECT_CMP_WOUT_MSG(A, OP, B, IS_ASS)		GPC_EXPECT_CMP(A, OP, B, NULL,IS_ASS)
 
-#define GPC_EXPECT_OL(...) OVERLOAD(4, __VA_ARGS__,				\
-									GPC_EXPECT_CMP_WITH_MSG,	\
-									GPC_EXPECT_CMP_WOUT_MSG,	\
-									GPC_EXPECT_WITH_MSG,		\
-									GPC_EXPECT_WOUT_MSG,)	(__VA_ARGS__, GPC_NOT_ASS)
+// #define GPC_EXPECT_OL(...) OVERLOAD(4, __VA_ARGS__,				\
+									// GPC_EXPECT_CMP_WITH_MSG,	\
+									// GPC_EXPECT_CMP_WOUT_MSG,	\
+									// GPC_EXPECT_WITH_MSG,		\
+									// GPC_EXPECT_WOUT_MSG,)	(__VA_ARGS__, GPC_NOT_ASS)
 
-#define GPC_ASSERT_OL(...) OVERLOAD(4, __VA_ARGS__,				\
-									GPC_EXPECT_CMP_WITH_MSG,	\
-									GPC_EXPECT_CMP_WOUT_MSG,	\
-									GPC_EXPECT_WITH_MSG,		\
-									GPC_EXPECT_WOUT_MSG,)	(__VA_ARGS__, GPC_IS_ASS)
+// #define GPC_ASSERT_OL(...) OVERLOAD(4, __VA_ARGS__,				\
+									// GPC_EXPECT_CMP_WITH_MSG,	\
+									// GPC_EXPECT_CMP_WOUT_MSG,	\
+									// GPC_EXPECT_WITH_MSG,		\
+									// GPC_EXPECT_WOUT_MSG,)	(__VA_ARGS__, GPC_IS_ASS)
 
 gpc_TestAndSuiteData gpc_new_test( const char* name, gpc_TestAndSuiteData* parent);
 gpc_TestAndSuiteData gpc_new_suite(const char* name, gpc_TestAndSuiteData* parent);

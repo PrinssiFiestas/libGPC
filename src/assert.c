@@ -13,7 +13,7 @@
 gpc_TestAndSuiteData gpc_newTestOrSuite(const char* name, gpc_TestAndSuiteData* parent,
 										  bool isTest)
 {
-	gpc_TestAndSuiteData D =
+	gpc_TestAndSuiteData d =
 	{
 		.name				= name,
 		.testFails			= 0,		.suiteFails =	0,	.expectationFails =	0,
@@ -23,7 +23,7 @@ gpc_TestAndSuiteData gpc_newTestOrSuite(const char* name, gpc_TestAndSuiteData* 
 		.testOrSuiteRunning	= false,
 		.parent				= parent
 	};
-	return D;
+	return d;
 }
 
 gpc_TestAndSuiteData gpc_new_test(const char* name, gpc_TestAndSuiteData* parent)
@@ -66,7 +66,7 @@ void gpc_printExitMessageAndAddExitStatus(void)
 
 #undef PRINT_DATA
 
-void gpc_printStartingMessageAndInitExitMessage(void)
+static void gpc_printStartingMessageAndInitExitMessage(void)
 {
 	static bool initialized = false;
 	if ( ! initialized)
@@ -78,69 +78,61 @@ void gpc_printStartingMessageAndInitExitMessage(void)
 }
 
 //const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3] = {"==", "!=", ">", "<", ">=", "<="};
-const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3] = {
-#define X(DUMMY, OP) #OP,
-	GPC_OP_TABLE
-#undef X
-};
+// const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3] = {
+// #define X(DUMMY, OP) #OP,
+	// GPC_OP_TABLE
+// #undef X
+// };
 
-static bool gpc_compareNumber(GPC_LONG_DOUBLE a, enum gpc_BooleanOperator op, GPC_LONG_DOUBLE b)
-{
-	switch(op)
-	{
-		case GPC_NO_OP:
-			return (bool)a;
+// static bool gpc_compareNumber(GPC_LONG_DOUBLE a, enum gpc_BooleanOperator op, GPC_LONG_DOUBLE b)
+// {
+	// switch(op)
+	// {
+		// case GPC_NO_OP:
+			// return (bool)a;
 
-	#define X(OP_ENUM, OP) 	\
-		case GPC##OP_ENUM:	\
-			return a OP b;
-		GPC_OP_TABLE
-	#undef X
+	// #define X(OP_ENUM, OP) 	\
+		// case GPC##OP_ENUM:	\
+			// return a OP b;
+		// GPC_OP_TABLE
+	// #undef X
 
-	// Expands to
-	
-	/*	case GPC_EQ:
-			return a == b;
-		case GPC_NE:
-			return a != b;
-		// etc...
-	*/
-		case GPC_OPS_LENGTH: {} // Suppress -Wswitch
-	}
-	return 0&&((bool)a+(bool)b); // Gets rid of pointless compiler warnings
-}
+		// case GPC_OPS_LENGTH: {} // Suppress -Wswitch
+	// }
+	// return 0&&((bool)a+(bool)b); // Gets rid of pointless compiler warnings
+// }
 
-static bool gpc_comparePointer(const void* a, enum gpc_BooleanOperator op, const void* b)
-{
-	switch(op)
-	{
-		case GPC_NO_OP:
-			return a;
-	#define X(OP_ENUM, OP) 	\
-		case GPC##OP_ENUM:	\
-			return a OP b;
-		GPC_OP_TABLE
-	#undef X
-		case GPC_OPS_LENGTH: {}
-	}
-	return (bool)(0&&((char*)a-(char*)b));
-}
+// static bool gpc_comparePointer(const void* a, enum gpc_BooleanOperator op, const void* b)
+// {
+	// switch(op)
+	// {
+		// case GPC_NO_OP:
+			// return a;
+	// #define X(OP_ENUM, OP) 	\
+		// case GPC##OP_ENUM:	\
+			// return a OP b;
+		// GPC_OP_TABLE
+	// #undef X
+		// case GPC_OPS_LENGTH: {}
+	// }
+	// return (bool)(0&&((char*)a-(char*)b));
+// }
 
-static bool gpc_compareCharPointer(const char* a, enum gpc_BooleanOperator op, const char* b)
-{
-	switch(op)
-	{
-		case GPC_NO_OP:
-			return a;
-	#define X(OP_ENUM, OP) 	\
-		case GPC##OP_ENUM:	\
-			return strcmp(a, b) OP 0;
-		GPC_OP_TABLE
-	#undef X
-		case GPC_OPS_LENGTH: {}
-	}
-	return (bool)(0&&((char*)a-(char*)b));
-}
+// static bool gpc_compareCharPointer(const char* a, enum gpc_BooleanOperator op, const char* b)
+// {
+	// switch(op)
+	// {
+		// case GPC_NO_OP:
+			// return a;
+	// #define X(OP_ENUM, OP) 	\
+		// case GPC##OP_ENUM:	\
+			// return strcmp(a, b) OP 0;
+		// GPC_OP_TABLE
+	// #undef X
+		// case GPC_OPS_LENGTH: {}
+	// }
+	// return (bool)(0&&((char*)a-(char*)b));
+// }
 
 // Finds suite by going trough all parent data
 struct gpc_TestAndSuiteData* findSuite(struct gpc_TestAndSuiteData* data)
@@ -152,74 +144,72 @@ struct gpc_TestAndSuiteData* findSuite(struct gpc_TestAndSuiteData* data)
 		return data;
 	else if (suiteNotFound)
 		return NULL;
-	else // keep looking
+	else
 		return findSuite(data->parent);
 }
 
-void gpc_printExpectationFail(struct gpc_ExpectationData* expectation,
-								 struct gpc_TestAndSuiteData* data)
-{
-	const char* finalTestName = data->isTest || data->isSuite ? data->name : expectation->func;
+// static void gpc_printExpectationFail(struct gpc_ExpectationData* expectation,
+								 // struct gpc_TestAndSuiteData* data)
+// {
+	// const char* finalTestName = data->isTest || data->isSuite ? data->name : expectation->func;
 
-	if (expectation->isAssertion)
-		fprintf(stderr, "\nAssertion ");
-	else
-		fprintf(stderr, "\nExpectation ");
+	// if (expectation->isAssertion)
+		// fprintf(stderr, "\nAssertion ");
+	// else
+		// fprintf(stderr, "\nExpectation ");
 
-	fprintf(stderr,
-			"in \"%s\" " GPC_RED("[FAILED]") " in \"%s\" " GPC_WHITE_BG("line %i") "\n", 
-			finalTestName, expectation->file, expectation->line);
+	// fprintf(stderr,
+			// "in \"%s\" " GPC_RED("[FAILED]") " in \"%s\" " GPC_WHITE_BG("line %i") "\n", 
+			// finalTestName, expectation->file, expectation->line);
 
-	fprintf(stderr, GPC_MAGENTA("%s"), expectation->str_a);
-	if (expectation->operation != GPC_NO_OP)
-		fprintf(stderr, GPC_MAGENTA(" %s %s"), expectation->str_operator, expectation->str_b);
+	// fprintf(stderr, GPC_MAGENTA("%s"), expectation->str_a);
+	// if (expectation->operation != GPC_NO_OP)
+		// fprintf(stderr, GPC_MAGENTA(" %s %s"), expectation->str_operator, expectation->str_b);
 	
-	if (expectation->type == GPC_NUMBER)
-	{
-		fprintf(stderr, " evaluated to " GPC_RED(GPC_LG_FORMAT), expectation->a);
-		if (expectation->operation != GPC_NO_OP)
-			fprintf(stderr, GPC_RED(" %s " GPC_LG_FORMAT), expectation->str_operator, expectation->b);
-		fprintf(stderr, ".\n");
-	}
-	else if (expectation->type == GPC_BOOL)
-	{
-		fprintf(stderr, " evaluated to ");
-		// When using operators (EQ, NE etc.) failure message should not print 
-		// "true" or "false" to prevent printing "true == true" on 2 different
-		// non-zero values
-		if (expectation->operation == GPC_NO_OP)
-			fprintf(stderr, GPC_RED("%s"), (bool)expectation->a ? "true" : "false");
-		else
-			fprintf(stderr, GPC_RED(GPC_LG_FORMAT " %s " GPC_LG_FORMAT), expectation->a, expectation->str_operator, expectation->b);
-		fprintf(stderr, ".\n");
-	}
-	else if (expectation->type == GPC_POINTER)
-	{
-		fprintf(stderr, " evaluated to " GPC_RED("%p"), expectation->pa);
-		if (expectation->operation != GPC_NO_OP)
-			fprintf(stderr, GPC_RED(" %s %p"), expectation->str_operator, expectation->pb);
-		fprintf(stderr, ".\n");
-	}
-	else if (expectation->type == GPC_CHAR_POINTER)
-	{
-		fprintf(stderr, " evaluated to " GPC_RED("%s"), (char*)expectation->pa);
-		if (expectation->operation != GPC_NO_OP)
-			fprintf(stderr, GPC_RED(" %s %s"), expectation->str_operator, (char*)expectation->pb);
-		fprintf(stderr, ".\n");
-	}
-	
-	if (expectation->additionalFailMessage != NULL)
-		printf("%s\n", expectation->additionalFailMessage);
+	// if (expectation->type == GPC_NUMBER)
+	// {
+		// fprintf(stderr, " evaluated to " GPC_RED(GPC_LG_FORMAT), expectation->a);
+		// if (expectation->operation != GPC_NO_OP)
+			// fprintf(stderr, GPC_RED(" %s " GPC_LG_FORMAT), expectation->str_operator, expectation->b);
+		// fprintf(stderr, ".\n");
+	// }
+	// else if (expectation->type == GPC_BOOL)
+	// {
+		// fprintf(stderr, " evaluated to ");
 
-	if (expectation->isAssertion) // print test and suite results early before exiting
-	{
-		if (data->isTest)
-			gpc_printTestOrSuiteResult(data);
-		struct gpc_TestAndSuiteData* suite = findSuite(data);
-		if (suite != NULL)
-			gpc_printTestOrSuiteResult(suite);
-	}
-}
+		// if (expectation->operation == GPC_NO_OP)
+			// fprintf(stderr, GPC_RED("%s"), (bool)expectation->a ? "true" : "false");
+		// else
+			// fprintf(stderr, GPC_RED(GPC_LG_FORMAT " %s " GPC_LG_FORMAT), expectation->a, expectation->str_operator, expectation->b);
+		// fprintf(stderr, ".\n");
+	// }
+	// else if (expectation->type == GPC_POINTER)
+	// {
+		// fprintf(stderr, " evaluated to " GPC_RED("%p"), expectation->pa);
+		// if (expectation->operation != GPC_NO_OP)
+			// fprintf(stderr, GPC_RED(" %s %p"), expectation->str_operator, expectation->pb);
+		// fprintf(stderr, ".\n");
+	// }
+	// else if (expectation->type == GPC_CHAR_POINTER)
+	// {
+		// fprintf(stderr, " evaluated to " GPC_RED("%s"), (char*)expectation->pa);
+		// if (expectation->operation != GPC_NO_OP)
+			// fprintf(stderr, GPC_RED(" %s %s"), expectation->str_operator, (char*)expectation->pb);
+		// fprintf(stderr, ".\n");
+	// }
+	
+	// if (expectation->additionalFailMessage != NULL)
+		// printf("%s\n", expectation->additionalFailMessage);
+
+	// if (expectation->isAssertion) // print test and suite results early before exiting
+	// {
+		// if (data->isTest)
+			// gpc_printTestOrSuiteResult(data);
+		// struct gpc_TestAndSuiteData* suite = findSuite(data);
+		// if (suite != NULL)
+			// gpc_printTestOrSuiteResult(suite);
+	// }
+// }
 
 // Adds one fail to all parents all the way to gpc_gTestData
 void gpc_addExpectationFail(struct gpc_TestAndSuiteData* data)
@@ -229,41 +219,41 @@ void gpc_addExpectationFail(struct gpc_TestAndSuiteData* data)
 		gpc_addExpectationFail(data->parent);
 }
 
-int gpc_assert_internal(struct gpc_ExpectationData expectation,
-						struct gpc_TestAndSuiteData* data)
-{
-	gpc_gTestData.expectationCount++;
-	bool passed = false;
-	if (expectation.type == GPC_NUMBER || expectation.type == GPC_BOOL)
-		passed = gpc_compareNumber(expectation.a,
-								   expectation.operation,
-								   expectation.b);
-	else if (expectation.type == GPC_POINTER)
-		passed = gpc_comparePointer(expectation.pa,
-									expectation.operation,
-									expectation.pb);
-	else if (expectation.type == GPC_CHAR_POINTER)
-		passed = gpc_compareCharPointer(expectation.pa,
-										expectation.operation,
-										expectation.pb);
+// int gpc_assert_internal(struct gpc_ExpectationData expectation,
+						// struct gpc_TestAndSuiteData* data)
+// {
+	// gpc_gTestData.expectationCount++;
+	// bool passed = false;
+	// if (expectation.type == GPC_NUMBER || expectation.type == GPC_BOOL)
+		// passed = gpc_compareNumber(expectation.a,
+								   // expectation.operation,
+								   // expectation.b);
+	// else if (expectation.type == GPC_POINTER)
+		// passed = gpc_comparePointer(expectation.pa,
+									// expectation.operation,
+									// expectation.pb);
+	// else if (expectation.type == GPC_CHAR_POINTER)
+		// passed = gpc_compareCharPointer(expectation.pa,
+										// expectation.operation,
+										// expectation.pb);
 	
-	if ( ! passed)
-	{
-		gpc_addExpectationFail(data);
-		gpc_printExpectationFail(&expectation, data);
+	// if ( ! passed)
+	// {
+		// gpc_addExpectationFail(data);
+		// gpc_printExpectationFail(&expectation, data);
 		
-		if(expectation.isAssertion)
-		{
-			gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(data);
-			exit(1);
-		}
-		else
-		{
-			return 1;
-		}
-	}
-	return 0;
-}
+		// if(expectation.isAssertion)
+		// {
+			// gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(data);
+			// exit(1);
+		// }
+		// else
+		// {
+			// return 1;
+		// }
+	// }
+	// return 0;
+// }
 
 bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData* data)
 {
@@ -287,7 +277,7 @@ bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData* data)
 	return data->testOrSuiteRunning = ! testOrSuiteHasRan;
 }
 
-void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData* data)
+static void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData* data)
 {
 	bool anyFails = gpc_anyFails(data);
 	if (anyFails && data->isTest)
@@ -304,7 +294,7 @@ void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData
 	}
 }
 
-void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData* data)
+static void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData* data)
 {
 	const char* testOrSuite = data->isTest ? "Test" : "Suite";
 
