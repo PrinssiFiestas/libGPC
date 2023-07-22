@@ -6,6 +6,7 @@
 // to the framework, NON_PASSING_TESTS should be defined to test failing tests
 // and the results should be verified manually.
 
+#include <stdio.h> // temp!
 #include <stdlib.h>
 
 #define GPC_NAMESPACE
@@ -13,7 +14,7 @@
 
 int main(void)
 {
-	
+	puts("blah");
 }
 
 // int factorial(int x)

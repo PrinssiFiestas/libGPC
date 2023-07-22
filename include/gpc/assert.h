@@ -12,7 +12,7 @@
 #include "attributes.h"
 
 
-#pragma GCC diagnostics ignored "-Wcomment"
+#pragma GCC diagnostic ignored "-Wcomment"
 
 
 
@@ -166,7 +166,7 @@ bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData*);
 
 extern struct gpc_TestAndSuiteData *const gpc_currentTestOrSuite;
 
-extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
+// extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 
 //#define GPC_COMMON_DATA .line = __LINE__, .func = __func__, .file = __FILE__
 

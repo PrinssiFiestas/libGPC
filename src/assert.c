@@ -255,6 +255,38 @@ void gpc_addExpectationFail(struct gpc_TestAndSuiteData* data)
 	// return 0;
 // }
 
+static void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData* data)
+{
+	const char* testOrSuite = data->isTest ? "Test" : "Suite";
+
+	if ( ! data->expectationFails && ! data->testFails && ! data->suiteFails)
+	{
+		printf("\n%s \"%s\" " GPC_GREEN("[PASSED]") " \n", testOrSuite, data->name);
+	}
+	else
+	{
+		fprintf(stderr, "\n%s \"%s\" " GPC_RED("[FAILED]") " \n",
+				testOrSuite, data->name);
+	}
+}
+
+static void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData* data)
+{
+	bool anyFails = gpc_anyFails(data);
+	if (anyFails && data->isTest)
+	{
+		data->parent->testFails++;
+		if (data->parent != &gpc_gTestData)
+			gpc_gTestData.testFails++;
+	}
+	if (anyFails && data->isSuite)
+	{
+		data->parent->suiteFails++;
+		if (data->parent != &gpc_gTestData)
+			gpc_gTestData.suiteFails++;
+	}
+}
+
 bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData* data)
 {
 	bool testOrSuiteHasRan = data->testOrSuiteRunning;
@@ -275,36 +307,4 @@ bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData* data)
 	}
 
 	return data->testOrSuiteRunning = ! testOrSuiteHasRan;
-}
-
-static void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData* data)
-{
-	bool anyFails = gpc_anyFails(data);
-	if (anyFails && data->isTest)
-	{
-		data->parent->testFails++;
-		if (data->parent != &gpc_gTestData)
-			gpc_gTestData.testFails++;
-	}
-	if (anyFails && data->isSuite)
-	{
-		data->parent->suiteFails++;
-		if (data->parent != &gpc_gTestData)
-			gpc_gTestData.suiteFails++;
-	}
-}
-
-static void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData* data)
-{
-	const char* testOrSuite = data->isTest ? "Test" : "Suite";
-
-	if ( ! data->expectationFails && ! data->testFails && ! data->suiteFails)
-	{
-		printf("\n%s \"%s\" " GPC_GREEN("[PASSED]") " \n", testOrSuite, data->name);
-	}
-	else
-	{
-		fprintf(stderr, "\n%s \"%s\" " GPC_RED("[FAILED]") " \n",
-				testOrSuite, data->name);
-	}
 }
