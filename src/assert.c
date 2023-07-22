@@ -308,3 +308,39 @@ bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData* data)
 
 	return data->testOrSuiteRunning = ! testOrSuiteHasRan;
 }
+
+
+// ***************************************************************************
+
+
+		// N E W  S T U F F
+
+
+// ***************************************************************************
+
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+int gpc_assert(struct gpc_TestAndSuiteData* tdata,
+			   bool expr,
+			   const enum gpc_AssertOp op,
+			   const char* file,
+			   const int line,
+			   const char* func,
+			   const char* failMsg, // = ""
+			   const enum gpc_AssertType a_type,
+			   const char* a_str,
+			   // const T a,
+			   // const enum gpc_AssertType b_type,
+			   // const char* b_str,
+			   // const T b
+			   ...)
+{
+	printf("%s\n", a_str);
+	
+	//if (a_type != GPC_ASSERT_BOOL)
+	
+	
+	
+	return 0;
+}
+

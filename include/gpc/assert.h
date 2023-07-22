@@ -12,7 +12,7 @@
 #include "attributes.h"
 
 
-#pragma GCC diagnostic ignored "-Wcomment"
+#pragma GCC diagnostic ignored "-Wcomment" // Temp!
 
 
 
@@ -62,28 +62,28 @@ int main() // function scope required!
 #define EXPECT(/*expression, failMsessage=""*/...) GPC_EXPECT(__VA_ARGS__)
 
 // 'Pseudo-operators' to be used in argument for ASSERT() or EXPECT()
-// Use ASSERT(A EQ B) instead of ASSERT(A == B) for more info at failure.
-#define EQ GPC_EQ // ==
-#define NE GPC_NE // !=
-#define GT GPC_GT // >
-#define LT GPC_LT // <
-#define GE GPC_GE // >=
-#define LE GPC_LE // <=
+// Use ASSERT(A, EQ, B) instead of ASSERT(A == B) for more info at failure.
+// #define EQ GPC_EQ // ==
+// #define NE GPC_NE // !=
+// #define GT GPC_GT // >
+// #define LT GPC_LT // <
+// #define GE GPC_GE // >=
+// #define LE GPC_LE // <=
 
 #endif // GPC_NAMESPACING ----------------------------------------------------
 
 #define GPC_TEST(NAME)			GPC_TEST_OR_SUITE(NAME, test)
 #define GPC_TEST_SUITE(NAME)	GPC_TEST_OR_SUITE(NAME, suite)
 
-#define GPC_ASSERT(...) GPC_ASSERT_OL(__VA_ARGS__)
-#define GPC_EXPECT(...) GPC_EXPECT_OL(__VA_ARGS__)
+// #define GPC_ASSERT(...) GPC_ASSERT_OL(__VA_ARGS__)
+// #define GPC_EXPECT(...) GPC_EXPECT_OL(__VA_ARGS__)
 
-#define GPC_EQ ,GPC_OP_EQ, // ==
-#define GPC_NE ,GPC_OP_NE, // !=
-#define GPC_GT ,GPC_OP_GT, // >
-#define GPC_LT ,GPC_OP_LT, // <
-#define GPC_GE ,GPC_OP_GE, // >=
-#define GPC_LE ,GPC_OP_LE, // <=
+// #define GPC_EQ ,GPC_OP_EQ, // ==
+// #define GPC_NE ,GPC_OP_NE, // !=
+// #define GPC_GT ,GPC_OP_GT, // >
+// #define GPC_LT ,GPC_OP_LT, // <
+// #define GPC_GE ,GPC_OP_GE, // >=
+// #define GPC_LE ,GPC_OP_LE, // <=
 
 // TODO add this
 // bool gpc_anyFails(struct gpc_TestAndSuiteData* data);
@@ -254,5 +254,95 @@ gpc_TestAndSuiteData gpc_new_suite(const char* name, gpc_TestAndSuiteData* paren
 		// user defined test or suite code
 	}
 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ***************************************************************************
+
+
+		// N E W  S T U F F
+
+
+// ***************************************************************************
+
+
+
+#define GPC_EQ ==
+#define GPC_NE !=
+#define GPC_LT < 
+#define GPC_GT > 
+#define GPC_LE <=
+#define GPC_GE >=
+
+enum gpc_AssertOp
+{
+	GPC_ASSERT_NO_OP = -1,
+	GPC_ASSERT_EQ,
+	GPC_ASSERT_NE,
+	GPC_ASSERT_LT,
+	GPC_ASSERT_GT,
+	GPC_ASSERT_LE,
+	GPC_ASSERT_GE,
+	GPC_ASSERT_OP_LENGTH
+};
+
+
+enum gpc_AssertType
+{
+	GPC_ASSERT_BOOL,
+	GPC_ASSERT_UINT64,
+	GPC_ASSERT_INT64,
+	GPC_ASSERT_DOUBLE,
+	GPC_ASSERT_CHAR_PTR,
+	GPC_ASSERT_PTR,
+	GPC_ASSERT_TYPE_LENGTH
+};
+
+
+// Massive parameter list instead of structs and macros keep error messages a 
+// bit more sane.
+int gpc_assert(struct gpc_TestAndSuiteData* tdata,
+			   bool expr,
+			   const enum gpc_AssertOp op,
+			   const char* file,
+			   const int line,
+			   const char* func,
+			   const char* failMsg, // = ""
+			   const enum gpc_AssertType a_type,
+			   const char* a_str,
+			   // const T a,
+			   // const enum gpc_AssertType b_type,
+			   // const char* b_str,
+			   // const T b
+			   ...);
+
+#define GPC_ASSERT(...) OVERLOAD(4, __VA_ARGS__,			\
+								GPC_ASSERT_CMP_WITH_MSG,	\
+								GPC_ASSERT_CMP_WOUT_MSG,	\
+								GPC_ASSERT_WITH_MSG,		\
+								GPC_ASSERT_WOUT_MSG,)	(__VA_ARGS__)
+
+#define GPC_FILELINEFUNC __FILE__, __LINE__, __func__
+#define GPC_MAKE_DATA(VAR) #VAR, GPC_ASSERT_DOUBLE, VAR
+
+#define GPC_ASSERT_CMP_WOUT_MSG(A, OP, B)	\
+	gpc_assert(gpc_currentTestOrSuite,		\
+				A GPC_##OP B,						\
+				GPC_ASSERT_##OP,			\
+				GPC_FILELINEFUNC,			\
+				"",							\
+				GPC_MAKE_DATA(A),			\
+				GPC_MAKE_DATA(B))
+
 
 #endif // GPC_ASSERT_H

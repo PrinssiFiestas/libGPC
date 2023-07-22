@@ -14,7 +14,7 @@
 
 int main(void)
 {
-	puts("blah");
+	ASSERT(3, EQ, 6.);
 }
 
 // int factorial(int x)
