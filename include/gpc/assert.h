@@ -326,18 +326,18 @@ int gpc_assert(struct gpc_TestAndSuiteData* tdata,
 			   // const T b
 			   ...);
 
-#define GPC_ASSERT(...) OVERLOAD(4, __VA_ARGS__,			\
-								GPC_ASSERT_CMP_WITH_MSG,	\
-								GPC_ASSERT_CMP_WOUT_MSG,	\
-								GPC_ASSERT_WITH_MSG,		\
-								GPC_ASSERT_WOUT_MSG,)	(__VA_ARGS__)
+#define GPC_ASSERT(...) GPC_OVERLOAD4(__VA_ARGS__,				\
+									  GPC_ASSERT_CMP_WITH_MSG,	\
+									  GPC_ASSERT_CMP_WOUT_MSG,	\
+									  GPC_ASSERT_WITH_MSG,		\
+									  GPC_ASSERT_WOUT_MSG,)	(__VA_ARGS__)
 
 #define GPC_FILELINEFUNC __FILE__, __LINE__, __func__
 #define GPC_MAKE_DATA(VAR) #VAR, GPC_ASSERT_DOUBLE, VAR
 
 #define GPC_ASSERT_CMP_WOUT_MSG(A, OP, B)	\
 	gpc_assert(gpc_currentTestOrSuite,		\
-				A GPC_##OP B,						\
+				A GPC_##OP B,				\
 				GPC_ASSERT_##OP,			\
 				GPC_FILELINEFUNC,			\
 				"",							\
