@@ -56,6 +56,8 @@ int main(void)
 			col = 0 * fprintf(f, "\t\\\n%s", buf) :				\
 			fprintf(f, "%s", buf)								\
 		)
+	
+	// Print newline and reset column
 	#define endl() (col = 0 * fprintf(f, "\n"))
 	
 	for (int i = 1; i <= MAX_ARGS; i++)

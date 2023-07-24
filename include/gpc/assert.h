@@ -333,7 +333,7 @@ int gpc_assert(struct gpc_TestAndSuiteData* tdata,
 									  GPC_ASSERT_WOUT_MSG,)	(__VA_ARGS__)
 
 #define GPC_FILELINEFUNC __FILE__, __LINE__, __func__
-#define GPC_MAKE_DATA(VAR) #VAR, GPC_ASSERT_DOUBLE, VAR
+#define GPC_MAKE_DATA(VAR) GPC_ASSERT_DOUBLE, #VAR, VAR
 
 #define GPC_ASSERT_CMP_WOUT_MSG(A, OP, B)	\
 	gpc_assert(gpc_currentTestOrSuite,		\
