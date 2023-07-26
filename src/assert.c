@@ -5,77 +5,80 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <inttypes.h>
+#include <stdarg.h>
 #include "../include/gpc/assert.h"
 #include "terminalcolors.h"
 
-#define GPC_IS_TEST true
+// #define GPC_IS_TEST true
 
-gpc_TestAndSuiteData gpc_newTestOrSuite(const char* name, gpc_TestAndSuiteData* parent,
-										  bool isTest)
-{
-	gpc_TestAndSuiteData d =
-	{
-		.name				= name,
-		.testFails			= 0,		.suiteFails =	0,	.expectationFails =	0,
-		.testCount			= 0,		.suiteCount =	0,	.expectationCount =	0,
-		.testDefined		= isTest,
-		.suiteDefined		= ! isTest,
-		.testOrSuiteRunning	= false,
-		.parent				= parent
-	};
-	return d;
-}
+// gpc_TestAndSuiteData gpc_newTestOrSuite(const char* name, gpc_TestAndSuiteData* parent,
+										  // bool isTest)
+// {
+	// gpc_TestAndSuiteData d =
+	// {
+		// .name				= name,
+		// .testFails			= 0,		.suiteFails =	0,	.expectationFails =	0,
+		// .testCount			= 0,		.suiteCount =	0,	.expectationCount =	0,
+		// .testDefined		= isTest,
+		// .suiteDefined		= ! isTest,
+		// .testOrSuiteRunning	= false,
+		// .parent				= parent
+	// };
+	// return d;
+// }
 
-gpc_TestAndSuiteData gpc_new_test(const char* name, gpc_TestAndSuiteData* parent)
-{
-	return gpc_newTestOrSuite(name, parent, GPC_IS_TEST);
-}
+// gpc_TestAndSuiteData gpc_new_test(const char* name, gpc_TestAndSuiteData* parent)
+// {
+	// return gpc_newTestOrSuite(name, parent, GPC_IS_TEST);
+// }
 
-gpc_TestAndSuiteData gpc_new_suite(const char* name, gpc_TestAndSuiteData* parent)
-{
-	return gpc_newTestOrSuite(name, parent, ! GPC_IS_TEST);
-}
+// gpc_TestAndSuiteData gpc_new_suite(const char* name, gpc_TestAndSuiteData* parent)
+// {
+	// return gpc_newTestOrSuite(name, parent, ! GPC_IS_TEST);
+// }
 
-struct gpc_TestAndSuiteData gpc_gTestData = {0};
-struct gpc_TestAndSuiteData *const gpc_currentTestOrSuite = &gpc_gTestData;
+// struct gpc_TestAndSuiteData gpc_gTestData = {0};
+// struct gpc_TestAndSuiteData *const gpc_currentTestOrSuite = &gpc_gTestData;
 
-bool gpc_anyFails(struct gpc_TestAndSuiteData* data)
-{
-	return data->expectationFails || data->testFails || data->suiteFails;
-}
+// bool gpc_anyFails(struct gpc_TestAndSuiteData* data)
+// {
+	// return data->expectationFails || data->testFails || data->suiteFails;
+// }
 
-#define PRINT_DATA(DATA)												\
-	printf("A total of " GPC_CYAN("%i") " " #DATA "s completed, ",		\
-			gpc_gTestData. DATA##Count );								\
-	if (gpc_gTestData. DATA##Fails)										\
-		printf(GPC_RED("%i failed")"\n", gpc_gTestData. DATA##Fails);	\
-	else																\
-		printf(GPC_GREEN("%i failed")"\n", gpc_gTestData. DATA##Fails);
+// #define PRINT_DATA(DATA)												\
+	// printf("A total of " GPC_CYAN("%i") " " #DATA "s completed, ",		\
+			// gpc_gTestData. DATA##Count );								\
+	// if (gpc_gTestData. DATA##Fails)										\
+		// printf(GPC_RED("%i failed")"\n", gpc_gTestData. DATA##Fails);	\
+	// else																\
+		// printf(GPC_GREEN("%i failed")"\n", gpc_gTestData. DATA##Fails);
 
-void gpc_printExitMessageAndAddExitStatus(void)
-{
-	printf("\n");
+// void gpc_printExitMessageAndAddExitStatus(void)
+// {
+	// printf("\n");
 
-	PRINT_DATA(expectation);
-	PRINT_DATA(test);
-	PRINT_DATA(suite);
+	// PRINT_DATA(expectation);
+	// PRINT_DATA(test);
+	// PRINT_DATA(suite);
 
-	if (gpc_anyFails(&gpc_gTestData))
-		exit(1);
-}
+	// if (gpc_anyFails(&gpc_gTestData))
+		// exit(1);
+// }
 
-#undef PRINT_DATA
+// #undef PRINT_DATA
 
-static void gpc_printStartingMessageAndInitExitMessage(void)
-{
-	static bool initialized = false;
-	if ( ! initialized)
-	{
-		printf("\n\tStarting tests...\n");
-		atexit(gpc_printExitMessageAndAddExitStatus);
-		initialized = true;
-	}
-}
+// static void gpc_printStartingMessageAndInitExitMessage(void)
+// {
+	// static bool initialized = false;
+	// if ( ! initialized)
+	// {
+		// printf("\n\tStarting tests...\n");
+		// atexit(gpc_printExitMessageAndAddExitStatus);
+		// initialized = true;
+	// }
+// }
 
 //const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3] = {"==", "!=", ">", "<", ">=", "<="};
 // const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3] = {
@@ -135,18 +138,18 @@ static void gpc_printStartingMessageAndInitExitMessage(void)
 // }
 
 // Finds suite by going trough all parent data
-struct gpc_TestAndSuiteData* findSuite(struct gpc_TestAndSuiteData* data)
-{
-	bool suiteFound 	= data->isSuite;
-	bool suiteNotFound	= data == &gpc_gTestData;
+// struct gpc_TestAndSuiteData* findSuite(struct gpc_TestAndSuiteData* data)
+// {
+	// bool suiteFound 	= data->isSuite;
+	// bool suiteNotFound	= data == &gpc_gTestData;
 
-	if (suiteFound)
-		return data;
-	else if (suiteNotFound)
-		return NULL;
-	else
-		return findSuite(data->parent);
-}
+	// if (suiteFound)
+		// return data;
+	// else if (suiteNotFound)
+		// return NULL;
+	// else
+		// return findSuite(data->parent);
+// }
 
 // static void gpc_printExpectationFail(struct gpc_ExpectationData* expectation,
 								 // struct gpc_TestAndSuiteData* data)
@@ -212,12 +215,12 @@ struct gpc_TestAndSuiteData* findSuite(struct gpc_TestAndSuiteData* data)
 // }
 
 // Adds one fail to all parents all the way to gpc_gTestData
-void gpc_addExpectationFail(struct gpc_TestAndSuiteData* data)
-{
-	data->expectationFails++;
-	if (data != &gpc_gTestData)
-		gpc_addExpectationFail(data->parent);
-}
+// void gpc_addExpectationFail(struct gpc_TestAndSuiteData* data)
+// {
+	// data->expectationFails++;
+	// if (data != &gpc_gTestData)
+		// gpc_addExpectationFail(data->parent);
+// }
 
 // int gpc_assert_internal(struct gpc_ExpectationData expectation,
 						// struct gpc_TestAndSuiteData* data)
@@ -255,59 +258,59 @@ void gpc_addExpectationFail(struct gpc_TestAndSuiteData* data)
 	// return 0;
 // }
 
-static void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData* data)
-{
-	const char* testOrSuite = data->isTest ? "Test" : "Suite";
+// static void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData* data)
+// {
+	// const char* testOrSuite = data->isTest ? "Test" : "Suite";
 
-	if ( ! data->expectationFails && ! data->testFails && ! data->suiteFails)
-	{
-		printf("\n%s \"%s\" " GPC_GREEN("[PASSED]") " \n", testOrSuite, data->name);
-	}
-	else
-	{
-		fprintf(stderr, "\n%s \"%s\" " GPC_RED("[FAILED]") " \n",
-				testOrSuite, data->name);
-	}
-}
+	// if ( ! data->expectationFails && ! data->testFails && ! data->suiteFails)
+	// {
+		// printf("\n%s \"%s\" " GPC_GREEN("[PASSED]") " \n", testOrSuite, data->name);
+	// }
+	// else
+	// {
+		// fprintf(stderr, "\n%s \"%s\" " GPC_RED("[FAILED]") " \n",
+				// testOrSuite, data->name);
+	// }
+// }
 
-static void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData* data)
-{
-	bool anyFails = gpc_anyFails(data);
-	if (anyFails && data->isTest)
-	{
-		data->parent->testFails++;
-		if (data->parent != &gpc_gTestData)
-			gpc_gTestData.testFails++;
-	}
-	if (anyFails && data->isSuite)
-	{
-		data->parent->suiteFails++;
-		if (data->parent != &gpc_gTestData)
-			gpc_gTestData.suiteFails++;
-	}
-}
+// static void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData* data)
+// {
+	// bool anyFails = gpc_anyFails(data);
+	// if (anyFails && data->isTest)
+	// {
+		// data->parent->testFails++;
+		// if (data->parent != &gpc_gTestData)
+			// gpc_gTestData.testFails++;
+	// }
+	// if (anyFails && data->isSuite)
+	// {
+		// data->parent->suiteFails++;
+		// if (data->parent != &gpc_gTestData)
+			// gpc_gTestData.suiteFails++;
+	// }
+// }
 
-bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData* data)
-{
-	bool testOrSuiteHasRan = data->testOrSuiteRunning;
+// bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData* data)
+// {
+	// bool testOrSuiteHasRan = data->testOrSuiteRunning;
 
-	if ( ! testOrSuiteHasRan)
-	{
-		gpc_printStartingMessageAndInitExitMessage();
-	}
-	else
-	{
-		if (data->isTest)
-			gpc_gTestData.testCount++;
-		else
-			gpc_gTestData.suiteCount++;
+	// if ( ! testOrSuiteHasRan)
+	// {
+		// gpc_printStartingMessageAndInitExitMessage();
+	// }
+	// else
+	// {
+		// if (data->isTest)
+			// gpc_gTestData.testCount++;
+		// else
+			// gpc_gTestData.suiteCount++;
 
-		gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(data);
-		gpc_printTestOrSuiteResult(data);
-	}
+		// gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(data);
+		// gpc_printTestOrSuiteResult(data);
+	// }
 
-	return data->testOrSuiteRunning = ! testOrSuiteHasRan;
-}
+	// return data->testOrSuiteRunning = ! testOrSuiteHasRan;
+// }
 
 
 // ***************************************************************************
@@ -318,29 +321,235 @@ bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData* data)
 
 // ***************************************************************************
 
-#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-parameter" // REMOVE
+#pragma GCC diagnostic ignored "-Wunused-variable" // REMOVE
 
-int gpc_assert(struct gpc_TestAndSuiteData* tdata,
-			   bool expr,
-			   const enum gpc_AssertOp op,
-			   const char* file,
-			   const int line,
-			   const char* func,
-			   const char* failMsg, // = ""
-			   const enum gpc_AssertType a_type,
-			   const char* a_str,
-			   // const T a,
-			   // const enum gpc_AssertType b_type,
-			   // const char* b_str,
-			   // const T b
-			   ...)
+static unsigned gPassedAsserts			= 0;
+static unsigned gFailesAsserts			= 0;
+static unsigned gPassedTests			= 0;
+static unsigned gFailedTests			= 0;
+static unsigned gPassedSuites			= 0;
+static unsigned gFailedSuites			= 0;
+static unsigned gPassedAssertsInTest	= 0;
+static unsigned gFailedAssertsInTest	= 0;
+static unsigned gPassedAssertsInSuite	= 0;
+static unsigned gFailedAssertsInSuite	= 0;
+static unsigned gPassedTestsInSuite		= 0;
+static unsigned gFailedTestsInSuite		= 0;
+
+static bool gTestRunning  = false;
+static bool gSuiteRunning = false;
+
+/*struct strStack
 {
-	printf("%s\n", a_str);
+	const char** stack;
+	size_t length;
+	size_t capacity;
+} gTestStack, gSuiteStack;
+
+static size_t nextPowOf2(size_t x)
+{
+	size_t y = 1;
+	while (x >= (y *= 2));
+	return y;
+}
+
+static void strStackPush(struct strStack* s, const char* str)
+{
+	if (s->capacity == 0)
+	{
+		const size_t WHATEVER = 2;
+		s->stack = malloc(WHATEVER * sizeof(*s->stack));
+		s->capacity = WHATEVER;
+	}
 	
-	//if (a_type != GPC_ASSERT_BOOL)
+	s->length++;
+	if (s->length >= s->capacity)
+		s->stack = realloc(s->stack, s->capacity = nextPowOf2(s->length));
+	s->stack[s->length - 1] = str;
+}
+
+static const char* strStackPop(struct strStack* s)
+{
+	s->length--;
+	return s->stack[s->length];
+}*/
+
+bool gpc_anyFails(void)
+{
+	return !!gFailesAsserts;
+}
+
+static void exitWithMsgAndStatus(void)
+{
+	printf("\n");
+
+	if (gpc_anyFails())
+		exit(EXIT_FAILURE);
+}
+
+static void gpc_initStartAndExitMessages(void)
+{
+	static bool initialized = false;
+	if ( ! initialized)
+	{
+		printf("\n\tStarting tests in " __FILE__ "...\n");
+		atexit(exitWithMsgAndStatus);
+		initialized = true;
+	}
+}
+
+bool gpc_test(const char* _name)
+{	
+	static char* name;
+	gpc_initStartAndExitMessages();
 	
+	if ((gTestRunning = !gTestRunning))
+	{
+		//gAssertsInTest = 0;
+		name = (char*)_name;
+	}
+	else // finishing test
+	{
+		printf("finished test %s\n", name);
+	}
 	
+	return gTestRunning;
+}
+
+bool gpc_testSuite(const char* _name)
+{
+	static char* name;
+	gpc_initStartAndExitMessages();
 	
-	return 0;
+	if ((gSuiteRunning = !gSuiteRunning))
+	{
+		// gAssertsInSuite	= 0;
+		// gTestsInSuite	= 0;
+		name = (char*)_name;
+	}
+	else // finishing test suite
+	{
+		printf("finished test suite %s\n", name);
+	}
+	
+	return gSuiteRunning;
+}
+
+#define MAX_STRFIED_LENGTH 28 // = more than max digits in uint64_t
+
+// *buf is in case of required formatting. In case of T == GPC_ASSERT_CHAR_PTR,
+// buf is modified to point to the string in arg in full length. 
+// *buf must be zero initialized!
+static void strfy(char** buf, const enum gpc_AssertType T, va_list* arg)
+{
+	char c;
+	switch (T)
+	{
+		case GPC_BOOL:
+			sprintf(*buf, "%s", va_arg(*arg, int) ? "true" : "false");
+			break;
+		case GPC_SHORT:
+			sprintf(*buf, "%i", va_arg(*arg, int));
+			break;
+		case GPC_INT:
+			sprintf(*buf, "%i", va_arg(*arg, int));
+			break;
+		case GPC_LONG:
+			sprintf(*buf, "%li", va_arg(*arg, long));
+			break;
+		case GPC_LONG_LONG:
+			sprintf(*buf, "%lli", va_arg(*arg, long long));
+			break;
+		case GPC_UNSIGNED_SHORT:
+			sprintf(*buf, "%u", va_arg(*arg, unsigned));
+			break;
+		case GPC_UNSIGNED:
+			sprintf(*buf, "%u", va_arg(*arg, unsigned));
+			break;
+		case GPC_UNSIGNED_LONG:
+			sprintf(*buf, "%lu", va_arg(*arg, unsigned long));
+			break;
+		case GPC_UNSIGNED_LONG_LONG:
+			sprintf(*buf, "%llu", va_arg(*arg, unsigned long long));
+			break;
+		case GPC_FLOAT:
+			sprintf(*buf, "%g", va_arg(*arg, double));
+			break;
+		case GPC_DOUBLE:
+			sprintf(*buf, "%g", va_arg(*arg, double));
+			break;
+		case GPC_CHAR:
+			c = (char)va_arg(*arg, int);
+			sprintf(*buf, "\'%c\'=%i", c, (int)c);
+			break;
+		case GPC_UNSIGNED_CHAR:
+			c = (char)va_arg(*arg, int);
+			sprintf(*buf, "\'%c\'=%i", c, (int)c);
+			break;
+		case GPC_CHAR_PTR:
+			*buf = va_arg(*arg, char*);
+			break;
+		case GPC_PTR:
+			sprintf(*buf, "%p", va_arg(*arg, void*));
+			break;
+	}
+	
+	(*buf)[MAX_STRFIED_LENGTH - 1] = '\0';
+}
+
+bool gpc_assert(const bool expr,
+				const char* op_str,
+				const char* file,
+				const int line,
+				const char* func,
+				const char* failMsg, // = ""
+				const enum gpc_AssertType a_type,
+				const char* a_str,
+				// const T a,
+				// const enum gpc_AssertType b_type,
+				// const char* b_str,
+				// const T b
+				...)
+{
+	if (expr == true)
+		return true;
+	
+	fprintf(stderr, "%s%s " GPC_WHITE_BG("%s%i") GPC_RED("%s") "%s",
+			"Assertion in ", file, "line ", line, "\t[ FAILED ]", "\n");
+		
+	va_list args;
+	va_start(args, a_str);
+	
+	char a_evalbuf[MAX_STRFIED_LENGTH] = "";
+	char* a_eval = a_evalbuf;
+	strfy(&a_eval, a_type, &args);
+	
+	enum gpc_AssertType b_type;
+	char* b_str = "";
+	char b_evalbuf[MAX_STRFIED_LENGTH] = "";
+	char* b_eval = b_evalbuf;
+	
+	if (a_type != GPC_BOOL)
+	{
+		b_type = va_arg(args, enum gpc_AssertType);
+		b_str  = va_arg(args, char*);
+		strfy(&b_eval, b_type, &args);
+	}
+	
+	// TODO check the lengths of a_eval and b_eval and add "..." based on their
+	// differences appropriately to a different buffer. 
+	// something = malloc(strlen(a_eval));
+	
+	//printf("%s\n", b_eval);
+	
+	fprintf(stderr, "%s%s%s%s%s%s%s%s%s%s%s%s",
+			a_str, " ", op_str, " ", b_str, " evaluated to ",
+			a_eval, " ", op_str, " ", b_eval, "\n");
+
+	(void)b_str;
+	
+	va_end(args);
+	return false;
 }
 

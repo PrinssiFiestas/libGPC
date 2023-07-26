@@ -26,14 +26,33 @@
 // without the gpc_ prefix. 
 #if defined(GPC_ASSERT_NAMESPACE) || defined(GPC_NAMESPACE)
 
+// Tests and test suites can be created by calling gpc_test() or gpc_testSuite()
+// and they will be ended by subsequent call with the same argument. First call
+// will return true and next false so it can be used to run a loop once like so:
+/*
+	while (testSuite("My test suite"))
+	{
+		while (test("My first test"))
+		{
+			// test code
+		}
+		while (test("My second test"))
+		{
+			// test code
+		}
+	}
+*/
+#define/*bool*/test(/*const char* */name)			gpc_test(name)
+#define/*bool*/testSuite(/*const char* */name)		gpc_testSuite(name)
+
 // Use these macros to define tests and suites.
 // Tests and suites have to be defined in function scope.
 // Tests and suites are optional: EXPECT() and ASSERT() can be used anywhere in
 // your code. They can also be nested arbitrarily.
 // NAME will be namespaced so tests and suites can share their names with
 // existing functions or variables. 
-#define TEST(NAME)			GPC_TEST(NAME)
-#define TEST_SUITE(NAME)	GPC_TEST_SUITE(NAME)
+// #define TEST(NAME)			GPC_TEST(NAME)
+// #define TEST_SUITE(NAME)	GPC_TEST_SUITE(NAME)
 // Example use:
 /*
 int main() // function scope required!
@@ -72,8 +91,8 @@ int main() // function scope required!
 
 #endif // GPC_NAMESPACING ----------------------------------------------------
 
-#define GPC_TEST(NAME)			GPC_TEST_OR_SUITE(NAME, test)
-#define GPC_TEST_SUITE(NAME)	GPC_TEST_OR_SUITE(NAME, suite)
+// #define GPC_TEST(NAME)			GPC_TEST_OR_SUITE(NAME, test)
+// #define GPC_TEST_SUITE(NAME)	GPC_TEST_OR_SUITE(NAME, suite)
 
 // #define GPC_ASSERT(...) GPC_ASSERT_OL(__VA_ARGS__)
 // #define GPC_EXPECT(...) GPC_EXPECT_OL(__VA_ARGS__)
@@ -96,18 +115,18 @@ int main() // function scope required!
 //
 //----------------------------------------------------------------------------
 
-typedef struct gpc_TestAndSuiteData
-{
-	const char* name;
-	int testFails, suiteFails, expectationFails/*includes assertion fails*/;
-	int testCount, suiteCount, expectationCount;
-	const union {bool isTest;  bool testDefined;};
-	const union {bool isSuite; bool suiteDefined;};
-	bool testOrSuiteRunning;
-	struct gpc_TestAndSuiteData* parent;
-} gpc_TestAndSuiteData;
+// typedef struct gpc_TestAndSuiteData
+// {
+	// const char* name;
+	// int testFails, suiteFails, expectationFails/*includes assertion fails*/;
+	// int testCount, suiteCount, expectationCount;
+	// const union {bool isTest;  bool testDefined;};
+	// const union {bool isSuite; bool suiteDefined;};
+	// bool testOrSuiteRunning;
+	// struct gpc_TestAndSuiteData* parent;
+// } gpc_TestAndSuiteData;
 
-extern gpc_TestAndSuiteData gpc_gTestData;
+// extern gpc_TestAndSuiteData gpc_gTestData;
 
 // #define GPC_OP_TABLE	\
 	// X(_OP_EQ, ==)		\
@@ -158,13 +177,13 @@ extern gpc_TestAndSuiteData gpc_gTestData;
 
 //int gpc_assert_internal(struct gpc_ExpectationData, struct gpc_TestAndSuiteData*);
 
-bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData*);
+//bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData*);
 
 //void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData*);
 
 // void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData*);
 
-extern struct gpc_TestAndSuiteData *const gpc_currentTestOrSuite;
+//extern struct gpc_TestAndSuiteData *const gpc_currentTestOrSuite;
 
 // extern const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3];
 
@@ -242,14 +261,14 @@ extern struct gpc_TestAndSuiteData *const gpc_currentTestOrSuite;
 									// GPC_EXPECT_WITH_MSG,		\
 									// GPC_EXPECT_WOUT_MSG,)	(__VA_ARGS__, GPC_IS_ASS)
 
-gpc_TestAndSuiteData gpc_new_test( const char* name, gpc_TestAndSuiteData* parent);
-gpc_TestAndSuiteData gpc_new_suite(const char* name, gpc_TestAndSuiteData* parent);
+// gpc_TestAndSuiteData gpc_new_test( const char* name, gpc_TestAndSuiteData* parent);
+// gpc_TestAndSuiteData gpc_new_suite(const char* name, gpc_TestAndSuiteData* parent);
 
-#define GPC_TEST_OR_SUITE(NAME, TEST_OR_SUITE)												\
-	struct gpc_TestAndSuiteData GPC_##TEST_OR_SUITE##_##NAME = 								\
-		gpc_new_##TEST_OR_SUITE(#NAME, gpc_currentTestOrSuite);								\
-	for(struct gpc_TestAndSuiteData* gpc_currentTestOrSuite = &GPC_##TEST_OR_SUITE##_##NAME;\
-		gpc_testOrSuiteRunning(gpc_currentTestOrSuite);)
+// #define GPC_TEST_OR_SUITE(NAME, TEST_OR_SUITE)												\
+	// struct gpc_TestAndSuiteData GPC_##TEST_OR_SUITE##_##NAME = 								\
+		// gpc_new_##TEST_OR_SUITE(#NAME, gpc_currentTestOrSuite);								\
+	// for(struct gpc_TestAndSuiteData* gpc_currentTestOrSuite = &GPC_##TEST_OR_SUITE##_##NAME;\
+		// gpc_testOrSuiteRunning(gpc_currentTestOrSuite);)
 /*	{
 		// user defined test or suite code
 	}
@@ -284,65 +303,96 @@ gpc_TestAndSuiteData gpc_new_suite(const char* name, gpc_TestAndSuiteData* paren
 #define GPC_LE <=
 #define GPC_GE >=
 
-enum gpc_AssertOp
-{
-	GPC_ASSERT_NO_OP = -1,
-	GPC_ASSERT_EQ,
-	GPC_ASSERT_NE,
-	GPC_ASSERT_LT,
-	GPC_ASSERT_GT,
-	GPC_ASSERT_LE,
-	GPC_ASSERT_GE,
-	GPC_ASSERT_OP_LENGTH
-};
+// enum gpc_AssertOp
+// {
+	// GPC_ASSERT_NO_OP = -1,
+	// GPC_ASSERT_EQ,
+	// GPC_ASSERT_NE,
+	// GPC_ASSERT_LT,
+	// GPC_ASSERT_GT,
+	// GPC_ASSERT_LE,
+	// GPC_ASSERT_GE,
+	// GPC_ASSERT_OP_LENGTH
+// };
 
-
+// TODO move this!
+//enum gpc_Type
 enum gpc_AssertType
 {
-	GPC_ASSERT_BOOL,
-	GPC_ASSERT_UINT64,
-	GPC_ASSERT_INT64,
-	GPC_ASSERT_DOUBLE,
-	GPC_ASSERT_CHAR_PTR,
-	GPC_ASSERT_PTR,
-	GPC_ASSERT_TYPE_LENGTH
+	GPC_BOOL,
+	GPC_SHORT,
+	GPC_INT,
+	GPC_LONG,
+	GPC_LONG_LONG,
+	GPC_UNSIGNED_SHORT,
+	GPC_UNSIGNED,
+	GPC_UNSIGNED_LONG,
+	GPC_UNSIGNED_LONG_LONG,
+	GPC_FLOAT,
+	GPC_DOUBLE,
+	GPC_CHAR,
+	GPC_UNSIGNED_CHAR,
+	GPC_CHAR_PTR,
+	GPC_PTR,
 };
-
 
 // Massive parameter list instead of structs and macros keep error messages a 
 // bit more sane.
-int gpc_assert(struct gpc_TestAndSuiteData* tdata,
-			   bool expr,
-			   const enum gpc_AssertOp op,
-			   const char* file,
-			   const int line,
-			   const char* func,
-			   const char* failMsg, // = ""
-			   const enum gpc_AssertType a_type,
-			   const char* a_str,
-			   // const T a,
-			   // const enum gpc_AssertType b_type,
-			   // const char* b_str,
-			   // const T b
-			   ...);
+bool gpc_assert(const bool expr,
+				const char* op_str,
+				const char* file,
+				const int line,
+				const char* func,
+				const char* failMsg, // = ""
+				const enum gpc_AssertType a_type,
+				const char* a_str,
+				// const T a,
+				// const enum gpc_AssertType b_type,
+				// const char* b_str,
+				// const T b
+				...);
 
 #define GPC_ASSERT(...) GPC_OVERLOAD4(__VA_ARGS__,				\
 									  GPC_ASSERT_CMP_WITH_MSG,	\
 									  GPC_ASSERT_CMP_WOUT_MSG,	\
 									  GPC_ASSERT_WITH_MSG,		\
-									  GPC_ASSERT_WOUT_MSG,)	(__VA_ARGS__)
+									  GPC_ASSERT_WOUT_MSG,)(__VA_ARGS__)
 
 #define GPC_FILELINEFUNC __FILE__, __LINE__, __func__
-#define GPC_MAKE_DATA(VAR) GPC_ASSERT_DOUBLE, #VAR, VAR
+
+// TODO make this more sane with GCC and Clang
+#define GPC_MAKE_DATA(VAR)								\
+	_Generic(VAR,										\
+			bool:				GPC_BOOL,				\
+			short:				GPC_SHORT,				\
+			int:				GPC_INT,				\
+			long:				GPC_LONG,				\
+			long long:			GPC_LONG_LONG,			\
+			unsigned short:		GPC_UNSIGNED_LONG,		\
+			unsigned int:		GPC_UNSIGNED,			\
+			unsigned long:		GPC_UNSIGNED_LONG,		\
+			unsigned long long:	GPC_UNSIGNED_LONG_LONG,	\
+			float:				GPC_FLOAT,				\
+			double:				GPC_DOUBLE,				\
+			char:				GPC_CHAR,				\
+			unsigned char:		GPC_UNSIGNED_CHAR,		\
+			char*:				GPC_CHAR_PTR,			\
+			const char*:		GPC_CHAR_PTR,			\
+			default:			GPC_PTR), #VAR, VAR
 
 #define GPC_ASSERT_CMP_WOUT_MSG(A, OP, B)	\
-	gpc_assert(gpc_currentTestOrSuite,		\
-				A GPC_##OP B,				\
-				GPC_ASSERT_##OP,			\
+	gpc_assert( A GPC_##OP B,				\
+				#OP,						\
 				GPC_FILELINEFUNC,			\
 				"",							\
 				GPC_MAKE_DATA(A),			\
 				GPC_MAKE_DATA(B))
+
+bool gpc_test(const char* name);
+bool gpc_testSuite(const char* name);
+
+
+// TODO GPC_ASSERT_STR(A, OP, B)
 
 
 #endif // GPC_ASSERT_H
