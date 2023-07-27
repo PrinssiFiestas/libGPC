@@ -50,6 +50,45 @@
 
 #endif // GPC_NAMESPACING ----------------------------------------------------
 
+// Use in variadic function arguments with GPC_TYPE() macro
+enum gpc_Type
+{
+	GPC_BOOL,
+	GPC_SHORT,
+	GPC_INT,
+	GPC_LONG,
+	GPC_LONG_LONG,
+	GPC_UNSIGNED_SHORT,
+	GPC_UNSIGNED,
+	GPC_UNSIGNED_LONG,
+	GPC_UNSIGNED_LONG_LONG,
+	GPC_FLOAT,
+	GPC_DOUBLE,
+	GPC_CHAR,
+	GPC_UNSIGNED_CHAR,
+	GPC_CHAR_PTR,
+	GPC_PTR,
+};
+
+#define GPC_TYPE(VAR)									\
+	_Generic(VAR,										\
+			bool:				GPC_BOOL,				\
+			short:				GPC_SHORT,				\
+			int:				GPC_INT,				\
+			long:				GPC_LONG,				\
+			long long:			GPC_LONG_LONG,			\
+			unsigned short:		GPC_UNSIGNED_LONG,		\
+			unsigned int:		GPC_UNSIGNED,			\
+			unsigned long:		GPC_UNSIGNED_LONG,		\
+			unsigned long long:	GPC_UNSIGNED_LONG_LONG,	\
+			float:				GPC_FLOAT,				\
+			double:				GPC_DOUBLE,				\
+			char:				GPC_CHAR,				\
+			unsigned char:		GPC_UNSIGNED_CHAR,		\
+			char*:				GPC_CHAR_PTR,			\
+			const char*:		GPC_CHAR_PTR,			\
+			default:			GPC_PTR)
+
 #define GPC_OVERLOAD(NARGS, ...) GPC_LIST##NARGS (GPC_DUMP, GPC_DUMP, GPC_1ST_ARG, __VA_ARGS__)
 
 #define GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR,		\

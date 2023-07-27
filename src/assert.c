@@ -444,7 +444,7 @@ bool gpc_testSuite(const char* name)
 // *buf is in case of required formatting. In case of T == GPC_ASSERT_CHAR_PTR,
 // buf is modified to point to the string in arg in full length. 
 // *buf must be zero initialized!
-static void strfy(char** buf, const enum gpc_AssertType T, va_list* arg)
+static void strfy(char** buf, const enum gpc_Type T, va_list* arg)
 {
 	char c;
 	switch (T)
@@ -549,10 +549,10 @@ bool gpc_assert(const bool expr,
 				const int line,
 				const char* func,
 				const char* failMsg,
-				const enum gpc_AssertType a_type,
+				const enum gpc_Type a_type,
 				const char* a_str,
 				// const T a,
-				// const enum gpc_AssertType b_type,
+				// const enum gpc_Type b_type,
 				// const char* b_str,
 				// const T b
 				...)
@@ -574,7 +574,7 @@ bool gpc_assert(const bool expr,
 	else
 		strfy(&a_eval, a_type, &args);
 	
-	enum gpc_AssertType b_type = 0;
+	enum gpc_Type b_type = 0;
 	#define MAX_B_STR_LENGTH 80
 	char b_str[MAX_B_STR_LENGTH] = "";
 	char b_evalbuf[MAX_STRFIED_LENGTH] = "";
@@ -583,7 +583,7 @@ bool gpc_assert(const bool expr,
 	
 	if (*op_str)
 	{
-		b_type = va_arg(args, enum gpc_AssertType);
+		b_type = va_arg(args, enum gpc_Type);
 		b_str[0] = ' ';
 		strncpy(b_str + 1, va_arg(args, char*), MAX_B_STR_LENGTH - 2);
 		strcpy(b_str + strlen(b_str), " ");

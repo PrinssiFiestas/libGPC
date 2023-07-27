@@ -315,27 +315,6 @@ int main() // function scope required!
 	// GPC_ASSERT_OP_LENGTH
 // };
 
-// TODO move this!
-//enum gpc_Type
-enum gpc_AssertType
-{
-	GPC_BOOL,
-	GPC_SHORT,
-	GPC_INT,
-	GPC_LONG,
-	GPC_LONG_LONG,
-	GPC_UNSIGNED_SHORT,
-	GPC_UNSIGNED,
-	GPC_UNSIGNED_LONG,
-	GPC_UNSIGNED_LONG_LONG,
-	GPC_FLOAT,
-	GPC_DOUBLE,
-	GPC_CHAR,
-	GPC_UNSIGNED_CHAR,
-	GPC_CHAR_PTR,
-	GPC_PTR,
-};
-
 // Massive parameter list instead of structs and macros keep error messages a 
 // bit more sane.
 bool gpc_assert(const bool expr,
@@ -344,10 +323,10 @@ bool gpc_assert(const bool expr,
 				const int line,
 				const char* func,
 				const char* failMsg,
-				const enum gpc_AssertType a_type,
+				const enum gpc_Type a_type,
 				const char* a_str,
 				// const T a,
-				// const enum gpc_AssertType b_type,
+				// const enum gpc_Type b_type,
 				// const char* b_str,
 				// const T b
 				...);
@@ -360,25 +339,7 @@ bool gpc_assert(const bool expr,
 
 #define GPC_FILELINEFUNC __FILE__, __LINE__, __func__
 
-// TODO make this more sane for GCC and Clang
-#define GPC_MAKE_DATA(VAR)								\
-	_Generic(VAR,										\
-			bool:				GPC_BOOL,				\
-			short:				GPC_SHORT,				\
-			int:				GPC_INT,				\
-			long:				GPC_LONG,				\
-			long long:			GPC_LONG_LONG,			\
-			unsigned short:		GPC_UNSIGNED_LONG,		\
-			unsigned int:		GPC_UNSIGNED,			\
-			unsigned long:		GPC_UNSIGNED_LONG,		\
-			unsigned long long:	GPC_UNSIGNED_LONG_LONG,	\
-			float:				GPC_FLOAT,				\
-			double:				GPC_DOUBLE,				\
-			char:				GPC_CHAR,				\
-			unsigned char:		GPC_UNSIGNED_CHAR,		\
-			char*:				GPC_CHAR_PTR,			\
-			const char*:		GPC_CHAR_PTR,			\
-			default:			GPC_PTR), #VAR, VAR
+#define GPC_MAKE_DATA(VAR) GPC_TYPE(VAR), #VAR, VAR
 
 #define GPC_ASSERT_WOUT_MSG(EXPR)			\
 	gpc_assert( EXPR,						\
