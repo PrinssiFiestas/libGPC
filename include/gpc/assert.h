@@ -380,6 +380,13 @@ bool gpc_assert(const bool expr,
 			const char*:		GPC_CHAR_PTR,			\
 			default:			GPC_PTR), #VAR, VAR
 
+#define GPC_ASSERT_WOUT_MSG(EXPR)			\
+	gpc_assert( EXPR,						\
+				"",							\
+				GPC_FILELINEFUNC,			\
+				"",							\
+				GPC_MAKE_DATA(EXPR))
+
 #define GPC_ASSERT_CMP_WOUT_MSG(A, OP, B)	\
 	gpc_assert( A GPC_##OP B,				\
 				#OP,						\

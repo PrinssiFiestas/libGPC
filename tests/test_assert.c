@@ -16,6 +16,7 @@ int main(void)
 {
 	while (test("ASSERT() types"))
 	{
+		ASSERT((bool)0);
 		ASSERT(.5, GT, 8);
 	}
 }

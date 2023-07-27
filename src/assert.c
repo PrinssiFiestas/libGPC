@@ -550,23 +550,26 @@ bool gpc_assert(const bool expr,
 	strfy(&a_eval, a_type, &args);
 	
 	enum gpc_AssertType b_type;
-	char* b_str = "";
+	#define MAX_B_STR_LENGTH 80
+	char b_str[MAX_B_STR_LENGTH] = "";
 	char b_evalbuf[MAX_STRFIED_LENGTH] = "";
 	char* b_eval = b_evalbuf;
 	
 	if (a_type != GPC_BOOL)
 	{
 		b_type = va_arg(args, enum gpc_AssertType);
-		b_str  = va_arg(args, char*);
+		b_str[0] = ' ';
+		strncpy(b_str + 1, va_arg(args, char*), MAX_B_STR_LENGTH - 2);
+		strcpy(b_str + strlen(b_str), " ");
 		strfy(&b_eval, b_type, &args);
 	}
 	
 	// TODO check the lengths of a_eval and b_eval and add "..." based on their
-	// differences appropriately to a different buffer. 
+	// differences appropriately to a different buffer. Only with strig cmp.  
 	// something = malloc(strlen(a_eval));
 			
-	fprintf(stderr, GPC_MAGENTA("%s%s%s%s%s")"%s"GPC_RED("%s%s%s%s%s")"%s",
-			a_str, " ", op_str, " ", b_str, " evaluated to ",
+	fprintf(stderr, GPC_MAGENTA("%s%s%s%s")"%s"GPC_RED("%s%s%s%s%s")"%s",
+			a_str, " ", op_str, b_str, "evaluated to ",
 			a_eval, " ", getOp(op_str), " ", b_eval, "\n\n");
 	
 	va_end(args);
