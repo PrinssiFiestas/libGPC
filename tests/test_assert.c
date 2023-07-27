@@ -21,7 +21,8 @@ int main(void)
 		ASSERT((bool)0, NE, (bool)false);
 		ASSERT(0, "Failed message!");
 		ASSERT(.5, GT, 8);
-		ASSERT((void*)4, NE, (void*)4, "Other fail message!");
+		ASSERT((void*)4, NE, (char*)4, "Other fail message!");
+		ASSERT("Literal ptr!", EQ, NULL);
 		ASSERT("bloink", NE, "bloink");
 	}
 }

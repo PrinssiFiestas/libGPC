@@ -519,6 +519,28 @@ static const char* getOp(const char* op)
 			break;
 		}
 	return out;
+	
+	
+		// case 'E' + 'Q':
+		// case 'N' + 'E':
+		// case 'L' + 'T':
+		// case 'G' + 'T':
+		// case 'L' + 'E':
+		// case 'G' + 'E':
+}
+
+static bool strCompare(const char* a, const char* b, const char* op)
+{
+	switch (op[0] + op[1])
+	{
+		case 'E' + 'Q': return strcmp(a, b) == 0;
+		case 'N' + 'E': return strcmp(a, b) != 0;
+		case 'L' + 'T': return strcmp(a, b) <  0;
+		case 'G' + 'T': return strcmp(a, b) >  0;
+		case 'L' + 'E': return strcmp(a, b) <= 0;
+		case 'G' + 'E': return strcmp(a, b) >= 0;
+	}
+	return false;
 }
 
 bool gpc_assert(const bool expr,
@@ -540,22 +562,24 @@ bool gpc_assert(const bool expr,
 
 	func = gTestRunning ? strStackPeek(gTestStack) :
 		   gSuiteRunning ? strStackPeek(gSuiteStack) : func;
-	
-	fprintf(stderr, "%s"GPC_ORANGE("%s%s%s")GPC_RED("%s")"%s%s%s"GPC_WHITE_BG("%s%i")"%s",
-			"Assertion in ","\"",func,"\" ","[FAILED]"," in ",file," ","line ",line,"\n");
 		
 	va_list args;
 	va_start(args, a_str);
 	
 	char a_evalbuf[MAX_STRFIED_LENGTH] = "";
 	char* a_eval = a_evalbuf;
-	strfy(&a_eval, a_type, &args);
+	char* a; // only used if string comparison required
+	if (a_type == GPC_CHAR_PTR)
+		a_eval = a = va_arg(args, char*);
+	else
+		strfy(&a_eval, a_type, &args);
 	
 	enum gpc_AssertType b_type = 0;
 	#define MAX_B_STR_LENGTH 80
 	char b_str[MAX_B_STR_LENGTH] = "";
 	char b_evalbuf[MAX_STRFIED_LENGTH] = "";
 	char* b_eval = b_evalbuf;
+	char* b;
 	
 	if (*op_str)
 	{
@@ -563,14 +587,32 @@ bool gpc_assert(const bool expr,
 		b_str[0] = ' ';
 		strncpy(b_str + 1, va_arg(args, char*), MAX_B_STR_LENGTH - 2);
 		strcpy(b_str + strlen(b_str), " ");
-		strfy(&b_eval, b_type, &args);
+		if (b_type == GPC_CHAR_PTR)
+			b_eval = b = va_arg(args, char*);
+		else
+			strfy(&b_eval, b_type, &args);
 	}
+	
+	bool strComparison = a_type == GPC_CHAR_PTR && b_type == GPC_CHAR_PTR;
+	bool strexpr = false;
+	if (strComparison)
+		strexpr = strCompare(a, b, op_str);
+	if (strexpr == true)
+		return true;
+	
+	if (a_type == GPC_CHAR_PTR && !strComparison)
+		sprintf(a_eval = a_evalbuf, "%p", a);
+	if (b_type == GPC_CHAR_PTR && !strComparison)
+		sprintf(b_eval = b_evalbuf, "%p", b);
 	
 	// TODO check the lengths of a_eval and b_eval and add "..." based on their
 	// differences appropriately to a different buffer. Only with strig cmp.  
 	// something = malloc(strlen(a_eval));
 	
-	const char* quote = a_type == GPC_CHAR_PTR && b_type == GPC_CHAR_PTR ? "\"" : "";
+	fprintf(stderr, "%s"GPC_ORANGE("%s%s%s")GPC_RED("%s")"%s%s%s"GPC_WHITE_BG("%s%i")"%s",
+			"Assertion in ","\"",func,"\" ","[FAILED]"," in ",file," ","line ",line,"\n");
+	
+	const char* quote = strComparison ? "\"" : "";
 	fprintf(stderr, GPC_MAGENTA("%s%s%s%s")"%s"GPC_RED("%s%s%s%s%s%s%s")"%s%s%s",
 			a_str, " ", op_str, b_str, "evaluated to ",
 			quote, a_eval, quote, getOp(op_str), quote, b_eval, quote, ". ", failMsg, "\n\n");

@@ -420,7 +420,8 @@ bool gpc_test(const char* name);
 bool gpc_testSuite(const char* name);
 
 // Dirty hack to fool the type system to ignore string literals in logical
-// comparisons
+// comparisons. They are not compared in place though, but they get compared in
+// gpc_assert() so really the point is just to prevent compiler warning.
 char* gpc_charptrfy(int dummy, ...);
 
 #endif // GPC_ASSERT_H
