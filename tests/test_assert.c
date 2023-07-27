@@ -16,25 +16,7 @@ int main(void)
 {
 	while (test("ASSERT() types"))
 	{
-		const short i = 6;
-		
-		ASSERT(.3, EQ,  i);
-		ASSERT(.3, EQ,  i);
-		ASSERT( 3, EQ, .6);
-		ASSERT(.3, EQ,  i);
-		
-		// ASSERT(i, NE, i);
-		// ASSERT(i, NE, i);
-		// ASSERT( 3, EQ, .6);
-		// ASSERT(.3, EQ,  i);
-		//ASSERT( 3, EQ,  6);
-		
-		
-		// TODO these!
-		// Intentional typo to prevent literals sharing address
-		// char str[] = "xtring!";
-		// str[0] = 's';
-		// ASSERT(str, NE, "string!");
+		ASSERT(.5, GT, 8);
 	}
 }
 

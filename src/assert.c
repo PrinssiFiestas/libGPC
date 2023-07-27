@@ -340,7 +340,7 @@ static unsigned gFailedTestsInSuite		= 0;
 static bool gTestRunning  = false;
 static bool gSuiteRunning = false;
 
-/*struct strStack
+struct strStack
 {
 	const char** stack;
 	size_t length;
@@ -373,7 +373,12 @@ static const char* strStackPop(struct strStack* s)
 {
 	s->length--;
 	return s->stack[s->length];
-}*/
+}
+
+static const char* strStackPeek(struct strStack s)
+{
+	return s.stack[s.length - 1];
+}
 
 bool gpc_anyFails(void)
 {
@@ -393,44 +398,42 @@ static void gpc_initStartAndExitMessages(void)
 	static bool initialized = false;
 	if ( ! initialized)
 	{
-		printf("\n\tStarting tests in " __FILE__ "...\n");
+		printf("\n\tStarting tests in " __FILE__ "...\n\n");
 		atexit(exitWithMsgAndStatus);
 		initialized = true;
 	}
 }
 
-bool gpc_test(const char* _name)
+bool gpc_test(const char* name)
 {	
-	static char* name;
 	gpc_initStartAndExitMessages();
 	
 	if ((gTestRunning = !gTestRunning))
 	{
 		//gAssertsInTest = 0;
-		name = (char*)_name;
+		strStackPush(&gTestStack, name);
 	}
 	else // finishing test
 	{
-		printf("finished test %s\n", name);
+		printf("finished test %s\n", strStackPop(&gTestStack));
 	}
 	
 	return gTestRunning;
 }
 
-bool gpc_testSuite(const char* _name)
+bool gpc_testSuite(const char* name)
 {
-	static char* name;
 	gpc_initStartAndExitMessages();
 	
 	if ((gSuiteRunning = !gSuiteRunning))
 	{
 		// gAssertsInSuite	= 0;
 		// gTestsInSuite	= 0;
-		name = (char*)_name;
+		strStackPush(&gSuiteStack, name);
 	}
 	else // finishing test suite
 	{
-		printf("finished test suite %s\n", name);
+		printf("finished test suite %s\n", strStackPop(&gSuiteStack));
 	}
 	
 	return gSuiteRunning;
@@ -498,6 +501,24 @@ static void strfy(char** buf, const enum gpc_AssertType T, va_list* arg)
 	(*buf)[MAX_STRFIED_LENGTH - 1] = '\0';
 }
 
+static const char* getOp(const char* op)
+{
+	static const char* const table[][2] = { {"EQ","=="},
+											{"NE","!="},
+											{"LT","<" },
+											{"GT",">" },
+											{"LE","<="},
+											{"GE",">="} };
+	const char* out = "";
+	for (size_t i = 0; i < sizeof(table)/sizeof(table[0]); i++)
+		if (strcmp(op, table[i][0]) == 0)
+		{
+			out = table[i][1];
+			break;
+		}
+	return out;
+}
+
 bool gpc_assert(const bool expr,
 				const char* op_str,
 				const char* file,
@@ -514,9 +535,12 @@ bool gpc_assert(const bool expr,
 {
 	if (expr == true)
 		return true;
+
+	func = gTestRunning ? strStackPeek(gTestStack) :
+		   gSuiteRunning ? strStackPeek(gSuiteStack) : func;
 	
-	fprintf(stderr, "%s%s " GPC_WHITE_BG("%s%i") GPC_RED("%s") "%s",
-			"Assertion in ", file, "line ", line, "\t[ FAILED ]", "\n");
+	fprintf(stderr, "%s"GPC_ORANGE("%s%s%s")GPC_RED("%s")"%s%s%s"GPC_WHITE_BG("%s%i")"%s",
+			"Assertion in ","\"",func,"\" ","[FAILED]"," in ",file," ","line ",line,"\n");
 		
 	va_list args;
 	va_start(args, a_str);
@@ -540,14 +564,10 @@ bool gpc_assert(const bool expr,
 	// TODO check the lengths of a_eval and b_eval and add "..." based on their
 	// differences appropriately to a different buffer. 
 	// something = malloc(strlen(a_eval));
-	
-	//printf("%s\n", b_eval);
-	
-	fprintf(stderr, "%s%s%s%s%s%s%s%s%s%s%s%s",
+			
+	fprintf(stderr, GPC_MAGENTA("%s%s%s%s%s")"%s"GPC_RED("%s%s%s%s%s")"%s",
 			a_str, " ", op_str, " ", b_str, " evaluated to ",
-			a_eval, " ", op_str, " ", b_eval, "\n");
-
-	(void)b_str;
+			a_eval, " ", getOp(op_str), " ", b_eval, "\n\n");
 	
 	va_end(args);
 	return false;

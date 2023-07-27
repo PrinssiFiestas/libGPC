@@ -360,7 +360,7 @@ bool gpc_assert(const bool expr,
 
 #define GPC_FILELINEFUNC __FILE__, __LINE__, __func__
 
-// TODO make this more sane with GCC and Clang
+// TODO make this more sane for GCC and Clang
 #define GPC_MAKE_DATA(VAR)								\
 	_Generic(VAR,										\
 			bool:				GPC_BOOL,				\
