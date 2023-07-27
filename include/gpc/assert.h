@@ -343,7 +343,7 @@ bool gpc_assert(const bool expr,
 				const char* file,
 				const int line,
 				const char* func,
-				const char* failMsg, // = ""
+				const char* failMsg,
 				const enum gpc_AssertType a_type,
 				const char* a_str,
 				// const T a,
@@ -387,19 +387,40 @@ bool gpc_assert(const bool expr,
 				"",							\
 				GPC_MAKE_DATA(EXPR))
 
+#define GPC_ASSERT_WITH_MSG(EXPR, MSG)		\
+	gpc_assert( EXPR,						\
+				"",							\
+				GPC_FILELINEFUNC,			\
+				MSG,						\
+				GPC_BOOL,					\
+				#EXPR,						\
+				EXPR)
+
 #define GPC_ASSERT_CMP_WOUT_MSG(A, OP, B)	\
-	gpc_assert( A GPC_##OP B,				\
+	gpc_assert((_Generic(A, const char*: gpc_charptrfy(0,A), default: A))	\
+					GPC_##OP												\
+					(_Generic(B, const char*: (char*)(B), default: B)),		\
 				#OP,						\
 				GPC_FILELINEFUNC,			\
 				"",							\
 				GPC_MAKE_DATA(A),			\
 				GPC_MAKE_DATA(B))
 
+#define GPC_ASSERT_CMP_WITH_MSG(A, OP, B, MSG)	\
+	gpc_assert((_Generic(A, const char*: gpc_charptrfy(0,A), default: A))	\
+					GPC_##OP												\
+					(_Generic(B, const char*: (char*)(B), default: B)),		\
+				#OP,							\
+				GPC_FILELINEFUNC,				\
+				MSG,							\
+				GPC_MAKE_DATA(A),				\
+				GPC_MAKE_DATA(B))
+
 bool gpc_test(const char* name);
 bool gpc_testSuite(const char* name);
 
-
-// TODO GPC_ASSERT_STR(A, OP, B)
-
+// Dirty hack to fool the type system to ignore string literals in logical
+// comparisons
+char* gpc_charptrfy(int dummy, ...);
 
 #endif // GPC_ASSERT_H

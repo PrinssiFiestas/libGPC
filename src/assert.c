@@ -497,18 +497,20 @@ static void strfy(char** buf, const enum gpc_AssertType T, va_list* arg)
 			sprintf(*buf, "%p", va_arg(*arg, void*));
 			break;
 	}
-	
-	(*buf)[MAX_STRFIED_LENGTH - 1] = '\0';
+
+	bool nullTerminated = T == GPC_CHAR_PTR;
+	if ( ! nullTerminated)
+		(*buf)[MAX_STRFIED_LENGTH - 1] = '\0';
 }
 
 static const char* getOp(const char* op)
 {
-	static const char* const table[][2] = { {"EQ","=="},
-											{"NE","!="},
-											{"LT","<" },
-											{"GT",">" },
-											{"LE","<="},
-											{"GE",">="} };
+	static const char* const table[][2] = { {"EQ"," == "},
+											{"NE"," != "},
+											{"LT"," < " },
+											{"GT"," > " },
+											{"LE"," <= "},
+											{"GE"," >= "} };
 	const char* out = "";
 	for (size_t i = 0; i < sizeof(table)/sizeof(table[0]); i++)
 		if (strcmp(op, table[i][0]) == 0)
@@ -524,7 +526,7 @@ bool gpc_assert(const bool expr,
 				const char* file,
 				const int line,
 				const char* func,
-				const char* failMsg, // = ""
+				const char* failMsg,
 				const enum gpc_AssertType a_type,
 				const char* a_str,
 				// const T a,
@@ -549,13 +551,13 @@ bool gpc_assert(const bool expr,
 	char* a_eval = a_evalbuf;
 	strfy(&a_eval, a_type, &args);
 	
-	enum gpc_AssertType b_type;
+	enum gpc_AssertType b_type = 0;
 	#define MAX_B_STR_LENGTH 80
 	char b_str[MAX_B_STR_LENGTH] = "";
 	char b_evalbuf[MAX_STRFIED_LENGTH] = "";
 	char* b_eval = b_evalbuf;
 	
-	if (a_type != GPC_BOOL)
+	if (*op_str)
 	{
 		b_type = va_arg(args, enum gpc_AssertType);
 		b_str[0] = ' ';
@@ -567,12 +569,21 @@ bool gpc_assert(const bool expr,
 	// TODO check the lengths of a_eval and b_eval and add "..." based on their
 	// differences appropriately to a different buffer. Only with strig cmp.  
 	// something = malloc(strlen(a_eval));
-			
-	fprintf(stderr, GPC_MAGENTA("%s%s%s%s")"%s"GPC_RED("%s%s%s%s%s")"%s",
+	
+	const char* quote = a_type == GPC_CHAR_PTR && b_type == GPC_CHAR_PTR ? "\"" : "";
+	fprintf(stderr, GPC_MAGENTA("%s%s%s%s")"%s"GPC_RED("%s%s%s%s%s%s%s")"%s%s%s",
 			a_str, " ", op_str, b_str, "evaluated to ",
-			a_eval, " ", getOp(op_str), " ", b_eval, "\n\n");
+			quote, a_eval, quote, getOp(op_str), quote, b_eval, quote, ". ", failMsg, "\n\n");
 	
 	va_end(args);
 	return false;
 }
 
+char* gpc_charptrfy(int dummy, ...)
+{
+	va_list p;
+	va_start(p, dummy);
+	char* out = va_arg(p, char*);
+	va_end(p);
+	return out;
+}

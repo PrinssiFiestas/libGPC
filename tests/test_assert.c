@@ -14,10 +14,15 @@
 
 int main(void)
 {
-	while (test("ASSERT() types"))
+	while (test("ASSERT() overloads"))
 	{
+		ASSERT(!"Fail!");
 		ASSERT((bool)0);
+		ASSERT((bool)0, NE, (bool)false);
+		ASSERT(0, "Failed message!");
 		ASSERT(.5, GT, 8);
+		ASSERT((void*)4, NE, (void*)4, "Other fail message!");
+		ASSERT("bloink", NE, "bloink");
 	}
 }
 
