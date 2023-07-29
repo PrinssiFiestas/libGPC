@@ -532,7 +532,7 @@ static bool strCompare(const char* a, const char* b, const char* op)
 	return false;
 }
 
-bool gpc_assert(const bool expr,
+bool gpc_expect(const bool expr,
 				const char* op_str,
 				const char* file,
 				const int line,
@@ -591,9 +591,9 @@ bool gpc_assert(const bool expr,
 		return true;
 	
 	if (a_type == GPC_CHAR_PTR && !strComparison)
-		sprintf(a_eval = a_evalbuf, "%p", a);
+		sprintf(a_eval = a_evalbuf, "%p", (void*)a);
 	if (b_type == GPC_CHAR_PTR && !strComparison)
-		sprintf(b_eval = b_evalbuf, "%p", b);
+		sprintf(b_eval = b_evalbuf, "%p", (void*)b);
 	
 	fprintf(stderr, "%s"GPC_ORANGE("%s%s%s")GPC_RED("%s")"%s%s%s"GPC_WHITE_BG("%s%i")"%s",
 			"Assertion in ","\"",func,"\" ","[FAILED]"," in ",file," ","line ",line,"\n");
@@ -605,6 +605,18 @@ bool gpc_assert(const bool expr,
 	
 	va_end(args);
 	return false;
+}
+
+bool gpc_exitTests(bool b)
+{
+	if ( ! b)
+		return true;
+	if (gTestRunning)
+		gpc_test(NULL);
+	if (gSuiteRunning)
+		gpc_testSuite(NULL);
+	exit(EXIT_FAILURE);
+	return true;
 }
 
 char* gpc_charptrfy(int dummy, ...)

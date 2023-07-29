@@ -74,11 +74,16 @@ int main() // function scope required!
 // Assertions are counted as expectations.
 #define ASSERT(/*expression, failMsessage=""*/...) GPC_ASSERT(__VA_ARGS__)
 
-// Returns 0 when expression is true.
-// Prints failure message and returns 1 when expression is false.
+// Returns true when expression is true.
+// Prints failure message and returns false when expression is false.
 // Optional detail can be added to failure message with FAIL_MESSAGE.
 // enums need to be casted to ints or bools when using MSVC.
 #define EXPECT(/*expression, failMsessage=""*/...) GPC_EXPECT(__VA_ARGS__)
+
+// Ends current test and suite and exits the program if argument is true,
+// returns true otherwise. 
+#define exitTests(b) gpc_exitTests(b)
+
 
 // 'Pseudo-operators' to be used in argument for ASSERT() or EXPECT()
 // Use ASSERT(A, EQ, B) instead of ASSERT(A == B) for more info at failure.
@@ -315,9 +320,7 @@ int main() // function scope required!
 	// GPC_ASSERT_OP_LENGTH
 // };
 
-// Massive parameter list instead of structs and macros keep error messages a 
-// bit more sane.
-bool gpc_assert(const bool expr,
+bool gpc_expect(const bool expr,
 				const char* op_str,
 				const char* file,
 				const int line,
@@ -331,25 +334,28 @@ bool gpc_assert(const bool expr,
 				// const T b
 				...);
 
-#define GPC_ASSERT(...) GPC_OVERLOAD4(__VA_ARGS__,				\
-									  GPC_ASSERT_CMP_WITH_MSG,	\
-									  GPC_ASSERT_CMP_WOUT_MSG,	\
-									  GPC_ASSERT_WITH_MSG,		\
-									  GPC_ASSERT_WOUT_MSG,)(__VA_ARGS__)
+bool gpc_exitTests(bool);
+
+#define GPC_ASSERT(...) gpc_exitTests( ! GPC_EXPECT(__VA_ARGS__))
+
+#define GPC_EXPECT(...) GPC_OVERLOAD4(__VA_ARGS__,				\
+									  GPC_EXPECT_CMP_WITH_MSG,	\
+									  GPC_EXPECT_CMP_WOUT_MSG,	\
+									  GPC_EXPECT_WITH_MSG,		\
+									  GPC_EXPECT_WOUT_MSG,)(__VA_ARGS__)
 
 #define GPC_FILELINEFUNC __FILE__, __LINE__, __func__
-
 #define GPC_MAKE_DATA(VAR) GPC_TYPE(VAR), #VAR, VAR
 
-#define GPC_ASSERT_WOUT_MSG(EXPR)			\
-	gpc_assert( EXPR,						\
+#define GPC_EXPECT_WOUT_MSG(EXPR)			\
+	gpc_expect( EXPR,						\
 				"",							\
 				GPC_FILELINEFUNC,			\
 				"",							\
 				GPC_MAKE_DATA(EXPR))
 
-#define GPC_ASSERT_WITH_MSG(EXPR, MSG)		\
-	gpc_assert( EXPR,						\
+#define GPC_EXPECT_WITH_MSG(EXPR, MSG)		\
+	gpc_expect( EXPR,						\
 				"",							\
 				GPC_FILELINEFUNC,			\
 				MSG,						\
@@ -357,25 +363,21 @@ bool gpc_assert(const bool expr,
 				#EXPR,						\
 				EXPR)
 
-#define GPC_ASSERT_CMP_WOUT_MSG(A, OP, B)	\
-	gpc_assert((_Generic(A, const char*: gpc_charptrfy(0,A), default: A))	\
-					GPC_##OP												\
-					(_Generic(B, const char*: (char*)(B), default: B)),		\
-				#OP,						\
-				GPC_FILELINEFUNC,			\
-				"",							\
-				GPC_MAKE_DATA(A),			\
-				GPC_MAKE_DATA(B))
+#define GPC_EXPECT_CMP_WOUT_MSG(A, OP, B)	\
+	gpc_expect(A GPC_##OP B,				\
+			   #OP,							\
+			   GPC_FILELINEFUNC,			\
+			   "",							\
+			   GPC_MAKE_DATA(A),			\
+			   GPC_MAKE_DATA(B))
 
-#define GPC_ASSERT_CMP_WITH_MSG(A, OP, B, MSG)	\
-	gpc_assert((_Generic(A, const char*: gpc_charptrfy(0,A), default: A))	\
-					GPC_##OP												\
-					(_Generic(B, const char*: (char*)(B), default: B)),		\
-				#OP,							\
-				GPC_FILELINEFUNC,				\
-				MSG,							\
-				GPC_MAKE_DATA(A),				\
-				GPC_MAKE_DATA(B))
+#define GPC_EXPECT_CMP_WITH_MSG(A, OP, B, MSG)	\
+	gpc_expect(A GPC_##OP B,					\
+			   #OP,								\
+			   GPC_FILELINEFUNC,				\
+			   MSG,								\
+			   GPC_MAKE_DATA(A),				\
+			   GPC_MAKE_DATA(B))
 
 bool gpc_test(const char* name);
 bool gpc_testSuite(const char* name);

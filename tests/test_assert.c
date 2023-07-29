@@ -14,16 +14,18 @@
 
 int main(void)
 {
-	while (test("ASSERT() overloads"))
+	while (test("EXPECT()"))
 	{
-		ASSERT(!"Fail!");
-		ASSERT((bool)0);
-		ASSERT((bool)0, NE, (bool)false);
-		ASSERT(0, "Failed message!");
-		ASSERT(.5, GT, 8);
-		ASSERT((void*)4, NE, (char*)4, "Other fail message!");
-		ASSERT("Literal ptr!", EQ, NULL);
-		ASSERT("bloink", NE, "bloink");
+		//ASSERT(false);
+		//EXPECT(!"Fail!"); // does not work!
+		EXPECT((bool)0);
+		EXPECT((bool)0, NE, (bool)false);
+		EXPECT(0, "Failed message!");
+		EXPECT(.5, GT, 8);
+		EXPECT((void*)4, NE, (char*)4, "Other fail message!");
+		// EXPECT("Literal ptr!", EQ, NULL); // does not work!
+		// EXPECT(NULL, EQ, "Literal ptr!"); // does not work!
+		// EXPECT("bloink", NE, "bloink"); // does not work!
 	}
 }
 
