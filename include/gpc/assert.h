@@ -308,31 +308,9 @@ int main() // function scope required!
 #define GPC_LE <=
 #define GPC_GE >=
 
-// enum gpc_AssertOp
-// {
-	// GPC_ASSERT_NO_OP = -1,
-	// GPC_ASSERT_EQ,
-	// GPC_ASSERT_NE,
-	// GPC_ASSERT_LT,
-	// GPC_ASSERT_GT,
-	// GPC_ASSERT_LE,
-	// GPC_ASSERT_GE,
-	// GPC_ASSERT_OP_LENGTH
-// };
+bool gpc_test(const char* name);
+bool gpc_testSuite(const char* name);
 
-bool gpc_expect(const bool expr,
-				const char* op_str,
-				const char* file,
-				const int line,
-				const char* func,
-				const char* failMsg,
-				const enum gpc_Type a_type,
-				const char* a_str,
-				// const T a,
-				// const enum gpc_Type b_type,
-				// const char* b_str,
-				// const T b
-				...);
 
 bool gpc_exitTests(bool);
 
@@ -345,47 +323,82 @@ bool gpc_exitTests(bool);
 									  GPC_EXPECT_WOUT_MSG,)(__VA_ARGS__)
 
 #define GPC_FILELINEFUNC __FILE__, __LINE__, __func__
-#define GPC_MAKE_DATA(VAR) GPC_TYPE(VAR), #VAR, VAR
 
-#define GPC_EXPECT_WOUT_MSG(EXPR)			\
-	gpc_expect( EXPR,						\
-				"",							\
-				GPC_FILELINEFUNC,			\
-				"",							\
-				GPC_MAKE_DATA(EXPR))
+#define GPC_EXPECT_CMP_WITH_MSG(A, OP, B, MSG)					\
+	gpc_expect(A GPC_##OP B,									\
+			   #OP,												\
+			   GPC_FILELINEFUNC,								\
+			   MSG,												\
+			   #A,												\
+			   gpc_assstrfy(&gpc_ga_bufp, GPC_TYPE(A), A),		\
+			   #B,												\
+			   gpc_assstrfy(&gpc_gb_bufp, GPC_TYPE(B), B))
 
-#define GPC_EXPECT_WITH_MSG(EXPR, MSG)		\
-	gpc_expect( EXPR,						\
-				"",							\
-				GPC_FILELINEFUNC,			\
-				MSG,						\
-				GPC_BOOL,					\
-				#EXPR,						\
-				EXPR)
+#define GPC_EXPECT_CMP_WOUT_MSG(A, OP, B)						\
+	gpc_expect(A GPC_##OP B,									\
+			   #OP,												\
+			   GPC_FILELINEFUNC,								\
+			   "",												\
+			   #A,												\
+			   gpc_assstrfy(&gpc_ga_bufp, GPC_TYPE(A), A),		\
+			   #B,												\
+			   gpc_assstrfy(&gpc_gb_bufp, GPC_TYPE(B), B))
 
-#define GPC_EXPECT_CMP_WOUT_MSG(A, OP, B)	\
-	gpc_expect(A GPC_##OP B,				\
-			   #OP,							\
-			   GPC_FILELINEFUNC,			\
-			   "",							\
-			   GPC_MAKE_DATA(A),			\
-			   GPC_MAKE_DATA(B))
+#define GPC_EXPECT_WITH_MSG(EXPR, MSG)							\
+	gpc_expect(EXPR,											\
+			   "",												\
+			   GPC_FILELINEFUNC,								\
+			   MSG,												\
+			   #EXPR,											\
+			   gpc_assstrfy(&gpc_ga_bufp, GPC_TYPE(EXPR), EXPR),\
+			   "",												\
+			   NULL)
 
-#define GPC_EXPECT_CMP_WITH_MSG(A, OP, B, MSG)	\
-	gpc_expect(A GPC_##OP B,					\
-			   #OP,								\
-			   GPC_FILELINEFUNC,				\
-			   MSG,								\
-			   GPC_MAKE_DATA(A),				\
-			   GPC_MAKE_DATA(B))
+#define GPC_EXPECT_WOUT_MSG(EXPR)								\
+	gpc_expect(EXPR,											\
+			   "",												\
+			   GPC_FILELINEFUNC,								\
+			   "",												\
+			   #EXPR,											\
+			   gpc_assstrfy(&gpc_ga_bufp, GPC_TYPE(EXPR), EXPR),\
+			   "",												\
+			   NULL)
 
-bool gpc_test(const char* name);
-bool gpc_testSuite(const char* name);
+bool gpc_strCompare(const char* a, const char* b, const char* op);
+
+char* gpc_assstrfy(char** buf, const/*enum gpc_Type*/int T, ...);
+
+// TODO move to overloagt
+char* gpc_strfy(char** buf, const/*enum gpc_Type*/int T, ...);
+
+bool gpc_expect(const bool expr,
+				const char* op_str,
+				const char* file,
+				const int line,
+				const char* func,
+				const char* failMsg,
+				const char* a,
+				char* a_eval,
+				const char* b,
+				char* b_eval);
+
+
+
+
+// CHANGE THE MAGIC VALUE
+extern char gpc_ga_buf[40];
+extern char gpc_gb_buf[40];
+extern char* gpc_ga_bufp;
+extern char* gpc_gb_bufp;
+
+
+
+
 
 // Returns a single variadic argument as char*
 // Dirty hack to fool the type system to ignore string literals in logical
 // comparisons. They are not compared in place though, but they get compared in
 // gpc_assert() so really the point is just to prevent compiler warning.
-char* gpc_charptrfy(int dummy,/*const char* literal*/...);
+//char* gpc_charptrfy(int dummy,/*const char* literal*/...);
 
 #endif // GPC_ASSERT_H
