@@ -18,14 +18,18 @@ int main(void)
 	{
 		//ASSERT(false);
 		//EXPECT(!"Fail!"); // does not work!
+		
 		EXPECT((bool)0);
 		EXPECT((bool)0, NE, (bool)false);
 		EXPECT(0, "Failed message!");
 		EXPECT(.5, GT, 8);
 		EXPECT((void*)4, NE, (char*)4, "Other fail message!");
-		// EXPECT("Literal ptr!", EQ, NULL); // does not work!
-		// EXPECT(NULL, EQ, "Literal ptr!"); // does not work!
-		// EXPECT("bloink", NE, "bloink"); // does not work!
+		
+		//EXPECT_STR("Literal ptr!", EQ, NULL); // non-compliant!
+		//EXPECT_STR(NULL, EQ, "Literal ptr!"); // non-compliant!
+		EXPECT_STR("bloink", NE, "bloink");
+		EXPECT_STR("abc", GT, "cde");
+
 	}
 }
 

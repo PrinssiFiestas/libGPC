@@ -5,6 +5,7 @@
 #ifndef GPC_ASSERT_H
 #define GPC_ASSERT_H
 
+#include <string.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -79,6 +80,9 @@ int main() // function scope required!
 // Optional detail can be added to failure message with FAIL_MESSAGE.
 // enums need to be casted to ints or bools when using MSVC.
 #define EXPECT(/*expression, failMsessage=""*/...) GPC_EXPECT(__VA_ARGS__)
+
+#define ASSERT_STR(...) GPC_ASSERT_STR(__VA_ARGS__)
+#define EXPECT_STR(...) GPC_EXPECT_STR(__VA_ARGS__)
 
 // Ends current test and suite and exits the program if argument is true,
 // returns true otherwise. 
@@ -311,62 +315,82 @@ int main() // function scope required!
 bool gpc_test(const char* name);
 bool gpc_testSuite(const char* name);
 
-
 bool gpc_exitTests(bool);
 
-#define GPC_ASSERT(...) gpc_exitTests( ! GPC_EXPECT(__VA_ARGS__))
+#define GPC_COMPARE(A, OP, B) ((A) GPC_##OP (B))
 
-#define GPC_EXPECT(...) GPC_OVERLOAD4(__VA_ARGS__,				\
-									  GPC_EXPECT_CMP_WITH_MSG,	\
-									  GPC_EXPECT_CMP_WOUT_MSG,	\
-									  GPC_EXPECT_WITH_MSG,		\
-									  GPC_EXPECT_WOUT_MSG,)(__VA_ARGS__)
+#define GPC_ASSERT_STRFY(BUF, X)						\
+	gpc_strfy((BUF), _Generic(X, const char*: GPC_PTR,	\
+							  char*: GPC_PTR,			\
+							  default: GPC_TYPE(X)), (X))
+
+#define GPC_ASSERT(...)	\
+	GPC_ASSERT_CUSTOM(GPC_COMPARE, GPC_ASSERT_STRFY, __VA_ARGS__)
+#define GPC_EXPECT(...)	\
+	GPC_EXPECT_CUSTOM(GPC_COMPARE, GPC_ASSERT_STRFY, __VA_ARGS__)
+
+#define GPC_COMPARE_STR(A, OP, B) (strcmp((A),(B)) GPC_##OP 0)
+
+char* gpc_quotify(char** buf, const char* str);
+
+#define GPC_ASSERT_STR(...)	\
+	GPC_ASSERT_CUSTOM(GPC_COMPARE_STR, gpc_quotify, __VA_ARGS__)
+#define GPC_EXPECT_STR(...)	\
+	GPC_EXPECT_CUSTOM(GPC_COMPARE_STR, gpc_quotify, __VA_ARGS__)
+
+// ---------------------------------------------------------------------------
+
+#define GPC_ASSERT_CUSTOM(COMPARATOR, STRINGFIER, ...)	\
+	gpc_exitTests( ! GPC_EXPECT_CUSTOM(COMPARATOR, STRINGFIER, __VA_ARGS__))
+
+#define GPC_EXPECT_CUSTOM(COMPARATOR, STRFIER, ...)	\
+	GPC_OVERLOAD4(__VA_ARGS__,						\
+				  GPC_EXPECT_CMP_WITH_MSG,			\
+				  GPC_EXPECT_CMP_WOUT_MSG,			\
+				  GPC_EXPECT_WITH_MSG,				\
+				  GPC_EXPECT_WOUT_MSG,)(COMPARATOR, STRFIER, __VA_ARGS__)
 
 #define GPC_FILELINEFUNC __FILE__, __LINE__, __func__
 
-#define GPC_EXPECT_CMP_WITH_MSG(A, OP, B, MSG)					\
-	gpc_expect(A GPC_##OP B,									\
+#define GPC_EXPECT_CMP_WITH_MSG(COMPARATOR, STRFIER, A, OP, B, MSG)	\
+	gpc_expect(COMPARATOR(A, OP, B),								\
 			   #OP,												\
 			   GPC_FILELINEFUNC,								\
 			   MSG,												\
 			   #A,												\
-			   gpc_assstrfy(&gpc_ga_bufp, GPC_TYPE(A), A),		\
+			   STRFIER(&gpc_ga_bufp, A),						\
 			   #B,												\
-			   gpc_assstrfy(&gpc_gb_bufp, GPC_TYPE(B), B))
+			   STRFIER(&gpc_gb_bufp, B))
 
-#define GPC_EXPECT_CMP_WOUT_MSG(A, OP, B)						\
-	gpc_expect(A GPC_##OP B,									\
+#define GPC_EXPECT_CMP_WOUT_MSG(COMPARATOR, STRFIER, A, OP, B)	\
+	gpc_expect(COMPARATOR(A, OP, B),							\
 			   #OP,												\
 			   GPC_FILELINEFUNC,								\
 			   "",												\
 			   #A,												\
-			   gpc_assstrfy(&gpc_ga_bufp, GPC_TYPE(A), A),		\
+			   STRFIER(&gpc_ga_bufp, A),						\
 			   #B,												\
-			   gpc_assstrfy(&gpc_gb_bufp, GPC_TYPE(B), B))
+			   STRFIER(&gpc_gb_bufp, B))
 
-#define GPC_EXPECT_WITH_MSG(EXPR, MSG)							\
-	gpc_expect(EXPR,											\
-			   "",												\
-			   GPC_FILELINEFUNC,								\
-			   MSG,												\
-			   #EXPR,											\
-			   gpc_assstrfy(&gpc_ga_bufp, GPC_TYPE(EXPR), EXPR),\
-			   "",												\
+#define GPC_EXPECT_WITH_MSG(COMPARATOR, STRFIER, EXPR, MSG)	\
+	gpc_expect(EXPR,										\
+			   "",											\
+			   GPC_FILELINEFUNC,							\
+			   MSG,											\
+			   #EXPR,										\
+			   STRFIER(&gpc_ga_bufp, EXPR),					\
+			   "",											\
 			   NULL)
 
-#define GPC_EXPECT_WOUT_MSG(EXPR)								\
-	gpc_expect(EXPR,											\
-			   "",												\
-			   GPC_FILELINEFUNC,								\
-			   "",												\
-			   #EXPR,											\
-			   gpc_assstrfy(&gpc_ga_bufp, GPC_TYPE(EXPR), EXPR),\
-			   "",												\
+#define GPC_EXPECT_WOUT_MSG(COMPARATOR, STRFIER, EXPR)		\
+	gpc_expect(EXPR,										\
+			   "",											\
+			   GPC_FILELINEFUNC,							\
+			   "",											\
+			   #EXPR,										\
+			   STRFIER(&gpc_ga_bufp, EXPR),					\
+			   "",											\
 			   NULL)
-
-bool gpc_strCompare(const char* a, const char* b, const char* op);
-
-char* gpc_assstrfy(char** buf, const/*enum gpc_Type*/int T, ...);
 
 // TODO move to overloagt
 char* gpc_strfy(char** buf, const/*enum gpc_Type*/int T, ...);
@@ -382,23 +406,10 @@ bool gpc_expect(const bool expr,
 				const char* b,
 				char* b_eval);
 
-
-
-
 // CHANGE THE MAGIC VALUE
 extern char gpc_ga_buf[40];
 extern char gpc_gb_buf[40];
 extern char* gpc_ga_bufp;
 extern char* gpc_gb_bufp;
-
-
-
-
-
-// Returns a single variadic argument as char*
-// Dirty hack to fool the type system to ignore string literals in logical
-// comparisons. They are not compared in place though, but they get compared in
-// gpc_assert() so really the point is just to prevent compiler warning.
-//char* gpc_charptrfy(int dummy,/*const char* literal*/...);
 
 #endif // GPC_ASSERT_H

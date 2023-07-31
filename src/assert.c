@@ -441,139 +441,11 @@ bool gpc_testSuite(const char* name)
 
 #define MAX_STRFIED_LENGTH 25 // = more than max digits in uint64_t
 
-// *buf is a character array with at least MAX_STRFIED_LENGTH emelents. However,
-// in case of T == GPC_CHAR_PTR, *buf is assigned to point to the variadic
-// argument. This is because the string in arg might be longer than
-// MAX_STRFIED_LENGTH. 
-/*static void strfy(char** buf, const enum gpc_Type T, va_list* arg)
-{
-	char c;
-	switch (T)
-	{
-		case GPC_BOOL:
-			sprintf(*buf, "%s", va_arg(*arg, int) ? "true" : "false");
-			break;
-		case GPC_SHORT:
-			sprintf(*buf, "%i", va_arg(*arg, int));
-			break;
-		case GPC_INT:
-			sprintf(*buf, "%i", va_arg(*arg, int));
-			break;
-		case GPC_LONG:
-			sprintf(*buf, "%li", va_arg(*arg, long));
-			break;
-		case GPC_LONG_LONG:
-			sprintf(*buf, "%lli", va_arg(*arg, long long));
-			break;
-		case GPC_UNSIGNED_SHORT:
-			sprintf(*buf, "%u", va_arg(*arg, unsigned));
-			break;
-		case GPC_UNSIGNED:
-			sprintf(*buf, "%u", va_arg(*arg, unsigned));
-			break;
-		case GPC_UNSIGNED_LONG:
-			sprintf(*buf, "%lu", va_arg(*arg, unsigned long));
-			break;
-		case GPC_UNSIGNED_LONG_LONG:
-			sprintf(*buf, "%llu", va_arg(*arg, unsigned long long));
-			break;
-		case GPC_FLOAT:
-			sprintf(*buf, "%g", va_arg(*arg, double));
-			break;
-		case GPC_DOUBLE:
-			sprintf(*buf, "%g", va_arg(*arg, double));
-			break;
-		case GPC_CHAR:
-			c = (char)va_arg(*arg, int);
-			sprintf(*buf, "\'%c\'=%i", c, (int)c);
-			break;
-		case GPC_UNSIGNED_CHAR:
-			c = (char)va_arg(*arg, int);
-			sprintf(*buf, "\'%c\'=%i", c, (int)c);
-			break;
-		case GPC_CHAR_PTR:
-			*buf = va_arg(*arg, char*);
-			break;
-		case GPC_PTR:
-			sprintf(*buf, "%p", va_arg(*arg, void*));
-			break;
-	}
-
-	bool nullTerminated = T == GPC_CHAR_PTR;
-	if ( ! nullTerminated)
-		(*buf)[MAX_STRFIED_LENGTH - 1] = '\0';
-}*/
-
 // CHANGE THE MAGIC VALUE
 char gpc_ga_buf[40] = "";
 char gpc_gb_buf[40] = "";
 char* gpc_ga_bufp = gpc_ga_buf;
 char* gpc_gb_bufp = gpc_gb_buf;
-
-char* gpc_assstrfy(char** buf, const/*enum gpc_Type*/int T, ...)
-{
-	va_list arg;
-	va_start(arg, T);
-	
-	char c;
-	switch (T)
-	{
-		case GPC_BOOL:
-			sprintf(*buf, "%s", va_arg(arg, int) ? "true" : "false");
-			break;
-		case GPC_SHORT:
-			sprintf(*buf, "%i", va_arg(arg, int));
-			break;
-		case GPC_INT:
-			sprintf(*buf, "%i", va_arg(arg, int));
-			break;
-		case GPC_LONG:
-			sprintf(*buf, "%li", va_arg(arg, long));
-			break;
-		case GPC_LONG_LONG:
-			sprintf(*buf, "%lli", va_arg(arg, long long));
-			break;
-		case GPC_UNSIGNED_SHORT:
-			sprintf(*buf, "%u", va_arg(arg, unsigned));
-			break;
-		case GPC_UNSIGNED:
-			sprintf(*buf, "%u", va_arg(arg, unsigned));
-			break;
-		case GPC_UNSIGNED_LONG:
-			sprintf(*buf, "%lu", va_arg(arg, unsigned long));
-			break;
-		case GPC_UNSIGNED_LONG_LONG:
-			sprintf(*buf, "%llu", va_arg(arg, unsigned long long));
-			break;
-		case GPC_FLOAT:
-			sprintf(*buf, "%g", va_arg(arg, double));
-			break;
-		case GPC_DOUBLE:
-			sprintf(*buf, "%g", va_arg(arg, double));
-			break;
-		case GPC_CHAR:
-			c = (char)va_arg(arg, int);
-			sprintf(*buf, "\'%c\'=%i", c, (int)c);
-			break;
-		case GPC_UNSIGNED_CHAR:
-			c = (char)va_arg(arg, int);
-			sprintf(*buf, "\'%c\'=%i", c, (int)c);
-			break;
-		case GPC_CHAR_PTR:
-			sprintf(*buf, "%p", va_arg(arg, void*));
-			break;
-		case GPC_PTR:
-			sprintf(*buf, "%p", va_arg(arg, void*));
-			break;
-	}
-
-	bool nullTerminated = T == GPC_CHAR_PTR;
-	if ( ! nullTerminated)
-		(*buf)[MAX_STRFIED_LENGTH - 1] = '\0';
-	
-	va_end(arg);
-	return NULL;
-}
 
 char* gpc_strfy(char** buf, const/*enum gpc_Type*/int T, ...)
 {
@@ -654,33 +526,18 @@ static const char* getOp(const char* op)
 	return "";
 }
 
-bool gpc_strCompare(const char* a, const char* b, const char* op)
+char* gpc_quotify(char** buf, const char* str)
 {
-	switch (op[0] + op[1])
-	{
-		case 'E' + 'Q': return strcmp(a, b) == 0;
-		case 'N' + 'E': return strcmp(a, b) != 0;
-		case 'L' + 'T': return strcmp(a, b) <  0;
-		case 'G' + 'T': return strcmp(a, b) >  0;
-		case 'L' + 'E': return strcmp(a, b) <= 0;
-		case 'G' + 'E': return strcmp(a, b) >= 0;
-	}
-	return false;
+	(void)buf;
+	const size_t len = strlen(str);
+	char* out = malloc(len + 1/*null*/+ 2/*quotes*/);
+	out[0] = '\"';
+	strcpy(out + 1, str);
+	out[len + 1] = '\"';
+	out[len + 2] = '\0';
+	return out;
 }
 
-/*bool gpc_expect(const bool expr,
-				const char* op_str,
-				const char* file,
-				const int line,
-				const char* func,
-				const char* failMsg,
-				const enum gpc_Type a_type,
-				const char* a_str,
-				// const T a,
-				// const enum gpc_Type b_type,
-				// const char* b_str,
-				// const T b
-				...)*/
 bool gpc_expect(const bool expr,
 				const char* op,
 				const char* file,
@@ -697,9 +554,6 @@ bool gpc_expect(const bool expr,
 
 	func = gTestRunning ? strStackPeek(gTestStack) :
 		   gSuiteRunning ? strStackPeek(gSuiteStack) : func;
-	
-	// -----------------------------------------------------------------------
-	//		NEW STUFF
 	
 	bool a_eval_allocated = (bool)a_eval;
 	bool b_eval_allocated = (bool)b_eval;
@@ -723,59 +577,7 @@ bool gpc_expect(const bool expr,
 		free(a_eval);
 	if (b_eval_allocated)
 		free(b_eval);
-		
-	/*va_list args;
-	va_start(args, a_str);
 	
-	char a_evalbuf[MAX_STRFIED_LENGTH] = "";
-	char* a_eval = a_evalbuf;
-	char* a; // only used if string comparison required
-	if (a_type == GPC_CHAR_PTR)
-		a_eval = a = va_arg(args, char*);
-	else
-		strfy(&a_eval, a_type, &args);
-	
-	enum gpc_Type b_type = 0;
-	#define MAX_B_STR_LENGTH 80
-	char b_str[MAX_B_STR_LENGTH] = "";
-	char b_evalbuf[MAX_STRFIED_LENGTH] = "";
-	char* b_eval = b_evalbuf;
-	char* b;
-	
-	if (*op_str)
-	{
-		b_type = va_arg(args, enum gpc_Type);
-		b_str[0] = ' ';
-		strncpy(b_str + 1, va_arg(args, char*), MAX_B_STR_LENGTH - 2);
-		strcpy(b_str + strlen(b_str), " ");
-		if (b_type == GPC_CHAR_PTR)
-			b_eval = b = va_arg(args, char*);
-		else
-			strfy(&b_eval, b_type, &args);
-	}
-	
-	bool strComparison = a_type == GPC_CHAR_PTR && b_type == GPC_CHAR_PTR;
-	bool strexpr = false;
-	
-	if (strComparison)
-		strexpr = strCompare(a, b, op_str);
-	if (strexpr == true)
-		return true;
-	
-	if (a_type == GPC_CHAR_PTR && !strComparison)
-		sprintf(a_eval = a_evalbuf, "%p", (void*)a);
-	if (b_type == GPC_CHAR_PTR && !strComparison)
-		sprintf(b_eval = b_evalbuf, "%p", (void*)b);
-	
-	fprintf(stderr, "%s"GPC_ORANGE("%s%s%s")GPC_RED("%s")"%s%s%s"GPC_WHITE_BG("%s%i")"%s",
-			"Assertion in ","\"",func,"\" ","[FAILED]"," in ",file," ","line ",line,"\n");
-	
-	const char* quote = strComparison ? "\"" : "";
-	fprintf(stderr, GPC_MAGENTA("%s%s%s%s")"%s"GPC_RED("%s%s%s%s%s%s%s")"%s%s%s",
-			a_str, " ", op_str, b_str, "evaluated to ",
-			quote, a_eval, quote, getOp(op_str), quote, b_eval, quote, ". ", failMsg, "\n\n");
-	
-	va_end(args);*/
 	return false;
 }
 
@@ -787,17 +589,7 @@ bool gpc_exitTests(bool b)
 		gpc_test(NULL);
 	if (gSuiteRunning)
 		gpc_testSuite(NULL);
+	// TODO kill all owners
 	exit(EXIT_FAILURE);
 	return true;
-}
-
-
-// REMOVE
-char* gpc_charptrfy(int dummy, ...)
-{
-	va_list p;
-	va_start(p, dummy);
-	char* out = va_arg(p, char*);
-	va_end(p);
-	return out;
 }
