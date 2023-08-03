@@ -494,6 +494,7 @@ typedef struct gpc_CmpArgs
 // formatted values of arguments given to custom comparison function. 
 gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize);
 
+bool gpc_strfyb(char* buf, ...);
 long long gpc_strfyi(char* buf, ...);
 unsigned long long gpc_strfyu(char* buf, ...);
 double gpc_strfyf(char* buf, ...);
@@ -502,7 +503,7 @@ void* gpc_strfyp(char* buf, ...);
 
 #define GPC_STRFYT(VAR, BUF)								\
 	_Generic(VAR,											\
-			bool:				gpc_strfyi((BUF), (VAR)),	\
+			bool:				gpc_strfyb((BUF), (VAR)),	\
 			short:				gpc_strfyi((BUF), (VAR)),	\
 			int:				gpc_strfyi((BUF), (VAR)),	\
 			long:				gpc_strfyi((BUF), (VAR)),	\

@@ -40,21 +40,38 @@ int main(void)
 	P(void*);
 	
 	
-	
+	// TODO make test to demonstrate that white space doesn't matter
 	#define strfy(arg) #arg
-	
 	puts(strfy(==));
 	puts(strfy(          ==            ));
 	puts("\n\n");
 	
 	
-	
-	EXPECT((char)68, ==, 6.3);
-	void* p1 = malloc(1);
-	void* p2 = malloc(1);
-	EXPECT(p1, ==, p2);
-	free(p1); free(p2);
-	
+	//while (test("Types in expectations"))
+	{
+		char c = -1;
+		unsigned char uc = (unsigned char)-1;
+		long long i = -1;
+		unsigned long long u = (unsigned long long)-1;
+		double f = -1.;
+		void* p = malloc(1);
+		char* s = "string";
+		
+		EXPECT(c, !=, i);
+		EXPECT(uc,!=, f);
+		EXPECT(uc,!=, i);
+		EXPECT(c, !=, f);
+		EXPECT(s, ==, p);
+		
+		#ifdef GPC_TEST_WARNINGS
+		EXPECT(i,!=,u);        // GCC, Clang: different sign
+		EXPECT(c,!=,p);        // GCC, Clang: comparison between pointer and integer
+		EXPECT(i,!=,f);        // Clang: int to float may lose precision
+		EXPECT(s,==,"string"); // Clang: comparison against string literal
+		#endif
+		
+		free(p);
+	}
 	
 	
 	

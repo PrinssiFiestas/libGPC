@@ -346,6 +346,16 @@ bool gpc_compare(const enum gpc_Type T_a,
 	return false;
 }
 
+bool gpc_strfyb(char* buf, ...)
+{
+	va_list arg;
+	va_start(arg, buf);
+	bool val = va_arg(arg, int);
+	va_end(arg);
+	sprintf(buf, "%s", val ? "true" : "false");
+	return val;
+}
+
 long long gpc_strfyi(char* buf, ...)
 {
 	va_list arg;
