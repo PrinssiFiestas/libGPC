@@ -144,11 +144,11 @@ typedef struct gpc_CmpArgs
 	char* b;
 } gpc_CmpArgs;
 
-// Returns a pointer to struct of character buffers that can be used to store
-// formatted values of arguments given to custom comparison function. 
+// Returns a pointer to struct of character buffers of size bufSize that can be
+// used to store formatted values of arguments given to custom comparison function.
 gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize);
 
-// Store formatted VAR in BUF and return promoted VAR
+// Store formatted VAR in BUF and return VAR. VAR will be promoted if not bool.
 #define GPC_STRFYT(VAR, BUF)								\
 	_Generic(VAR,											\
 			bool:				gpc_strfyb((BUF), (VAR)),	\
@@ -167,11 +167,13 @@ gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize);
 			char*:				gpc_strfyp((BUF), (VAR)),	\
 			const char*:		gpc_strfyp((BUF), (VAR)),	\
 			default:			gpc_strfyp((BUF), (VAR))) // pointer
-bool gpc_strfyb(char* buf, ...);
-long long gpc_strfyi(char* buf, ...);
-unsigned long long gpc_strfyu(char* buf, ...);
-double gpc_strfyf(char* buf, ...);
-char gpc_strfyc(char* buf, ...);
-void* gpc_strfyp(char* buf, ...);
+
+// var is variadic to get around type system when using STRFYT() macro.
+bool				gpc_strfyb(char* buf,/*bool var*/...);
+long long			gpc_strfyi(char* buf,/*long long var*/...);
+unsigned long long	gpc_strfyu(char* buf,/*unsigned long long var*/...);
+double				gpc_strfyf(char* buf,/*double var*/...);
+char				gpc_strfyc(char* buf,/*char var*/...);
+void*				gpc_strfyp(char* buf,/*void* var*/...);
 
 #endif // GPC_ASSERT_H

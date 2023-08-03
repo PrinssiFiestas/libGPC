@@ -192,10 +192,6 @@ bool gpc_testSuite(const char* name)
 	}
 }
 
-// TODO rename!
-// static char* gpc_ga_bufp = NULL;
-// static char* gpc_gb_bufp = NULL; // <<<--------------------------------------------
-
 gpc_CmpArgs gCmpArgs = {0};
 
 gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize)
@@ -210,69 +206,54 @@ gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize)
 	strcpy(getCmpArgs(10)->a, "short a");
 	strcpy(getCmpArgs(50)->a, "possibly longer b");
 	*/
-	// gpc_ga_bufp = realloc(gpc_ga_bufp, bufSize);
-	// gpc_gb_bufp = realloc(gpc_gb_bufp, bufSize);
-	// gCmpArgs = (gpc_CmpArgs){ gpc_ga_bufp, gpc_gb_bufp }; // <---------------------
 	gCmpArgs.a = realloc(gCmpArgs.a, bufSize);
 	gCmpArgs.b = realloc(gCmpArgs.b, bufSize);
 	return &gCmpArgs;
 }
 
+// Macrofying any more than this kills debuggability
+#define GET_VAL(T)			\
+	va_list arg;			\
+	va_start(arg, buf);		\
+	T val = va_arg(arg, T);	\
+	va_end(arg);
 bool gpc_strfyb(char* buf, ...)
 {
-	va_list arg;
-	va_start(arg, buf);
-	bool val = va_arg(arg, int);
-	va_end(arg);
+	GET_VAL(int);
 	sprintf(buf, "%s", val ? "true" : "false");
-	return val;
+	return (bool)val;
 }
-
 long long gpc_strfyi(char* buf, ...)
 {
-	va_list arg;
-	va_start(arg, buf);
-	long long val = va_arg(arg, long long);
-	va_end(arg);
+	GET_VAL(long long);
 	sprintf(buf, "%lli", val);
 	return val;
 }
 unsigned long long gpc_strfyu(char* buf, ...)
 {
-	va_list arg;
-	va_start(arg, buf);
-	unsigned long long val = va_arg(arg, unsigned long long);
-	va_end(arg);
+	GET_VAL(unsigned long long);
 	sprintf(buf, "%llu", val);
 	return val;
 }
 double gpc_strfyf(char* buf, ...)
 {
-	va_list arg;
-	va_start(arg, buf);
-	double val = va_arg(arg, double);
-	va_end(arg);
+	GET_VAL(double);
 	sprintf(buf, "%g", val);
 	return val;
 }
 char gpc_strfyc(char* buf, ...)
 {
-	va_list arg;
-	va_start(arg, buf);
-	char val = (char)va_arg(arg, int);
-	va_end(arg);
+	GET_VAL(int);
 	sprintf(buf, "\'%c\'", val);
-	return val;
+	return (char)val;
 }
 void* gpc_strfyp(char* buf, ...)
 {
-	va_list arg;
-	va_start(arg, buf);
-	void* val = va_arg(arg, void*);
-	va_end(arg);
+	GET_VAL(void*);
 	sprintf(buf, "%p", val);
 	return val;
 }
+#undef GET_VAL
 
 static const char* getOp(const char* op)
 {
