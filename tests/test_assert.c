@@ -6,7 +6,7 @@
 // to the framework, NON_PASSING_TESTS should be defined to test failing tests
 // and the results should be verified manually.
 
-#include <stdio.h> // temp!(?)
+#include <stdio.h>
 #include <stdlib.h>
 
 #define GPC_NAMESPACE
@@ -14,38 +14,11 @@
 
 int main(void)
 {
-	
-	// TODO put these in a test
-	#define P(T)								\
-	{											\
-		char buf[100] = "";						\
-		char* bufp = buf;						\
-		T var = (T)-1;							\
-		gpc_strfy(&bufp, GPC_TYPE(var), var);	\
-		printf(#T": %s\n", buf);				\
+	//while (test("Whitespace"))
+	{
+		EXPECT(1,==,1);
+		EXPECT(1,      ==          ,1);
 	}
-	P(bool);
-	P(short);
-	P(int);
-	P(long);
-	P(long long);
-	P(unsigned short);
-	P(unsigned);
-	P(unsigned long);
-	P(unsigned long long);
-	P(float);
-	P(double);
-	P(char);
-	P(unsigned char);
-	P(void*);
-	
-	
-	// TODO make test to demonstrate that white space doesn't matter
-	#define strfy(arg) #arg
-	puts(strfy(==));
-	puts(strfy(          ==            ));
-	puts("\n\n");
-	
 	
 	//while (test("Types in expectations"))
 	{
@@ -57,11 +30,11 @@ int main(void)
 		void* p = malloc(1);
 		char* s = "string";
 		
-		EXPECT(c, !=, i);
-		EXPECT(uc,!=, f);
-		EXPECT(uc,!=, i);
-		EXPECT(c, !=, f);
-		EXPECT(s, ==, p);
+		EXPECT(c, ==, i);
+		EXPECT(uc,==, f);
+		EXPECT(uc,==, i);
+		EXPECT(c, ==, f);
+		EXPECT(s, !=, p);
 		
 		#ifdef GPC_TEST_WARNINGS
 		EXPECT(i,!=,u);        // GCC, Clang: different sign

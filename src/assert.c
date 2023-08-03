@@ -89,7 +89,6 @@ static void stackPush(struct Stack* s, const char* str)
 	if (s->length >= s->capacity)
 		s->stack = realloc(s->stack, s->capacity = nextPowOf2(s->length));
 	
-	//s->stack[s->length - 1] = (struct StackData){.name = str};
 	s->stack[s->length - 1].name = str;
 }
 
@@ -115,7 +114,6 @@ static void exitWithMsgAndStatus(void)
 {
 	FILE* out = gpc_anyFails() ? stderr : stdout;
 	fprintf(out, "\tFinished testing\n");
-	//fprintf(out, "");
 
 	if (gpc_anyFails())
 		exit(EXIT_FAILURE);
@@ -137,7 +135,6 @@ bool gpc_test(const char* name)
 	static const char* current = NULL;
 	gpc_initStartAndExitMessages();
 		
-	//if (gTestRunning)
 	bool shouldEnd = false;
 	if (name == NULL)
 		shouldEnd = true;
@@ -148,7 +145,6 @@ bool gpc_test(const char* name)
 	{
 		current = (char*)name;
 		stackPush(&gTestStack, name);
-		//gTestRunning = true;
 		
 		return true;
 	}
@@ -159,14 +155,11 @@ bool gpc_test(const char* name)
 		fprintf(out, "Test \"" GPC_ORANGE("%s") "\" %s\n\n",
 				test.name,
 				test.failed ? GPC_RED("[FAILED]") : GPC_GREEN("[PASSED]"));
-		//gTestRunning = false; // CHANGEBGHRBGHF
 		
 		current = gTestStack.length > 0 ? stackPeek(&gTestStack)->name : NULL;
 		
 		return false;
 	}
-	
-	//return gTestRunning;
 }
 
 bool gpc_testSuite(const char* name)
@@ -197,46 +190,11 @@ bool gpc_testSuite(const char* name)
 		
 		return false;
 	}
-	
-	//return gSuiteRunning;
 }
 
-#define MAX_STRFIED_LENGTH 25 // = more than max digits in uint64_t
-
-// CHANGE THE MAGIC VALUE
-// maybe not used though?
-char gpc_ga_buf[40] = "";
-char gpc_gb_buf[40] = "";
-
-// These will be used! May need to be removed from header. 
-// char* gpc_ga_bufp = gpc_ga_buf;
-// char* gpc_gb_bufp = gpc_gb_buf;
-
-char* gpc_ga_bufp = NULL;
-char* gpc_gb_bufp = NULL;
-
-
-// this to overload.h? or make a new header for generics?
-// union Any
-// {
-	// unsigned long long u;
-	// long long i;
-	// double f;
-	// void* p;
-// };
-
-// union Any gpc_getVal(va_list* arg, enum gpc_Type T)
-// {
-	// union Any x;
-	// if (gpc_isFloating(T))
-		// return x.f = va_arg(*arg, double);
-	// else if (gpc_isUnsigned(T) && gpc_sizeof(T) >= sizeof(long long))
-		// return x.u = va_arg(*arg, unsigned long long);
-	// else if (gpc_isInteger(T))
-		// return x.i = va_arg(*arg, long long);
-	// else
-		// return x.p = va_arg(*arg, void*);
-// }
+// TODO rename!
+static char* gpc_ga_bufp = NULL;
+static char* gpc_gb_bufp = NULL;
 
 gpc_CmpArgs gCmpArgs = {0};
 
@@ -256,94 +214,6 @@ gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize)
 	gpc_gb_bufp = realloc(gpc_gb_bufp, bufSize);
 	gCmpArgs = (gpc_CmpArgs){ gpc_ga_bufp, gpc_gb_bufp };
 	return &gCmpArgs;
-}
-
-bool gpc_compare(const enum gpc_Type T_a,
-				 const enum gpc_Type T_b,
-				 const char* op,
-				 // a,
-				 // b
-				 ...)
-{
-	va_list args;
-	va_start(args, op);
-	
-	// union Any a = gpc_getVal(&args, T_a);
-	// union Any b = gpc_getVal(&args, T_b);
-	
-	// #define cmp(at, bt)									\
-		// switch (op[0] + op[1])							\
-		// {												\
-			// case '=' + '=' : B = a.at == b.bt; break;	\
-			// case '!' + '=' : B = a.at != b.bt; break;	\
-			// case '<' + '\0': B = a.at <  b.bt; break;	\
-			// case '>' + '\0': B = a.at >  b.bt; break;	\
-			// case '<' + '=' : B = a.at <= b.bt; break;	\
-			// case '>' + '=' : B = a.at >= b.bt; break;	\
-		// }
-	
-	// bool B = false;
-	// if (isFloating(T_a) && isFloating(T_b))
-		// cmp(f, f);
-	// if (isUnsigned(T_a) && isFloating(T_b))
-		// cmp(u, f);
-	// if (isInteger(T_a) && isFloating(T_b))
-		// cmp(i, f);
-	// if (isFloating(T_a) && isUnsigned(T_b))
-		// cmp(f, u);
-	// if (isUnsigned(T_a) && isUnsigned(T_b))
-		// cmp(u, u);
-	// if (isInteger(T_a) && isUnsigned(T_b))
-		// cmp(i, u);
-	// if (isFloating(T_a) && isInteger(T_b))
-		// cmp(f, i);
-	// if (isUnsigned(T_a) && isInteger(T_b))
-		// cmp(u, i);
-	// if (isInteger(T_a) && isInteger(T_b))
-		// cmp(i, i);
-	
-	// if (isPointer(T_a) && isPointer(T_b))
-		// cmp(p, p);
-	
-	/*#define cmp(at, bt)															\
-		switch (op[0] + op[1])													\
-		{																		\
-			case '=' + '=' : B = va_arg(args, at) == va_arg(args, bt); break;	\
-			case '!' + '=' : B = va_arg(args, at) != va_arg(args, bt); break;	\
-			case '<' + '\0': B = va_arg(args, at) <  va_arg(args, bt); break;	\
-			case '>' + '\0': B = va_arg(args, at) >  va_arg(args, bt); break;	\
-			case '<' + '=' : B = va_arg(args, at) <= va_arg(args, bt); break;	\
-			case '>' + '=' : B = va_arg(args, at) >= va_arg(args, bt); break;	\
-		}
-	
-	bool B = false;
-	if (gpc_isFloating(T_a) && gpc_isFloating(T_b))
-		cmp(float,					float);
-	if (gpc_isUnsigned(T_a) && gpc_isFloating(T_b))
-		cmp(unsigned long long,		float);
-	if (gpc_isInteger(T_a) && gpc_isFloating(T_b))
-		cmp(long long,				float);
-	if (gpc_isFloating(T_a) && gpc_isUnsigned(T_b))
-		cmp(float,					unsigned long long);
-	if (gpc_isUnsigned(T_a) && gpc_isUnsigned(T_b))
-		cmp(unsigned long long,		unsigned long long);
-	if (gpc_isInteger(T_a) && gpc_isUnsigned(T_b))
-		cmp(long long,				unsigned long long);
-	if (gpc_isFloating(T_a) && gpc_isInteger(T_b))
-		cmp(float,					long long);
-	if (gpc_isUnsigned(T_a) && gpc_isInteger(T_b))
-		cmp(unsigned long long,		long long);
-	if (gpc_isInteger(T_a) && gpc_isInteger(T_b))
-		cmp(long long,				long long);
-	
-	if (gpc_isPointer(T_a) && gpc_isPointer(T_b))
-		cmp(void*, void*);
-	
-	#undef cmp*/
-
-	va_end(args);
-	//return B;
-	return false;
 }
 
 bool gpc_strfyb(char* buf, ...)
@@ -402,82 +272,10 @@ void* gpc_strfyp(char* buf, ...)
 	return val;
 }
 
-// THIS GETS REPLCACED BY gpc_compare()
-char* gpc_strfy(char** buf, const/*enum gpc_Type*/int T, ...)
-{
-	va_list arg;
-	va_start(arg, T);
-	
-	char c;
-	switch (T)
-	{
-		case GPC_BOOL:
-			sprintf(*buf, "%s", va_arg(arg, int) ? "true" : "false");
-			break;
-		case GPC_SHORT:
-			sprintf(*buf, "%i", va_arg(arg, int));
-			break;
-		case GPC_INT:
-			sprintf(*buf, "%i", va_arg(arg, int));
-			break;
-		case GPC_LONG:
-			sprintf(*buf, "%li", va_arg(arg, long));
-			break;
-		case GPC_LONG_LONG:
-			sprintf(*buf, "%lli", va_arg(arg, long long));
-			break;
-		case GPC_UNSIGNED_SHORT:
-			sprintf(*buf, "%u", va_arg(arg, unsigned));
-			break;
-		case GPC_UNSIGNED:
-			sprintf(*buf, "%u", va_arg(arg, unsigned));
-			break;
-		case GPC_UNSIGNED_LONG:
-			sprintf(*buf, "%lu", va_arg(arg, unsigned long));
-			break;
-		case GPC_UNSIGNED_LONG_LONG:
-			sprintf(*buf, "%llu", va_arg(arg, unsigned long long));
-			break;
-		case GPC_FLOAT:
-			sprintf(*buf, "%g", va_arg(arg, double));
-			break;
-		case GPC_DOUBLE:
-			sprintf(*buf, "%g", va_arg(arg, double));
-			break;
-		case GPC_CHAR:
-			c = (char)va_arg(arg, int);
-			sprintf(*buf, "\'%c\'=%i", c, (int)c);
-			break;
-		case GPC_UNSIGNED_CHAR:
-			c = (char)va_arg(arg, int);
-			sprintf(*buf, "\'%c\'=%i", c, (int)c);
-			break;
-		case GPC_CHAR_PTR:
-			*buf = va_arg(arg, char*);
-			break;
-		case GPC_PTR:
-			sprintf(*buf, "%p", va_arg(arg, void*));
-			break;
-	}
-
-	bool nullTerminated = T == GPC_CHAR_PTR;
-	if ( ! nullTerminated)
-		(*buf)[MAX_STRFIED_LENGTH - 1] = '\0';
-	
-	va_end(arg);
-	return NULL;
-}
-
 static const char* getOp(const char* op)
 {
 	switch(op[0] + op[1])
 	{
-		// case 'E' + 'Q': return " == ";
-		// case 'N' + 'E': return " != ";
-		// case 'L' + 'T': return " < ";
-		// case 'G' + 'T': return " > ";
-		// case 'L' + 'E': return " <= ";
-		// case 'G' + 'E': return " >= ";
 		case '=' + '=' : return " == ";
 		case '!' + '=' : return " != ";
 		case '<' + '\0': return " < " ;
@@ -511,73 +309,6 @@ char* gpc_quotify(char** buf, const char* str)
 	return out;
 }
 
-/*bool gpc_expect(const bool expr,
-				const char* op,
-				const char* file,
-				const int line,
-				const char* func,
-				const char* failMsg,
-				const char* a,
-				char* a_eval,
-				const char* b,
-				char* b_eval)
-{
-	if (expr == true)
-		return true;
-
-	//func = gTestRunning ? stackPeek(&gTestStack)->name :
-	//	   gSuiteRunning ? stackPeek(&gSuiteStack)->name : func;
-	func = gTestStack.length > 0 ? stackPeek(&gTestStack)->name :
-		   gSuiteStack.length > 0 ? stackPeek(&gSuiteStack)->name : func;
-	
-	bool a_eval_allocated = (bool)a_eval;
-	bool b_eval_allocated = (bool)b_eval;
-	a_eval = a_eval ? a_eval : gpc_ga_bufp;
-	b_eval = b_eval ? b_eval : gpc_gb_bufp;
-	
-	fprintf(stderr, "%s"GPC_ORANGE("%s%s%s")GPC_RED("%s")"%s%s%s"GPC_WHITE_BG("%s%i")"%s",
-			"Assertion in ","\"",func,"\" ","[FAILED]"," in ",file," ","line ",line,"\n");
-	
-	const char* b_space = *b ? " " : "";
-	fprintf(stderr, GPC_MAGENTA("%s%s%s%s%s")"%s%s"GPC_RED("%s%s%s")"%s%s%s",
-			a, " ", op, b_space, b, b_space, "evaluated to ",
-			a_eval, getOp(op), b_eval, ". ", failMsg, "\n\n");
-	
-	// -------------------------------------------------
-	// TODO remove this block once String is implemented
-	memset(gpc_ga_buf, 0, 40);
-	memset(gpc_gb_buf, 0, 40);
-	gpc_ga_bufp = gpc_ga_buf;
-	gpc_gb_bufp = gpc_gb_buf;
-	
-	if (a_eval_allocated)
-		free(a_eval);
-	if (b_eval_allocated)
-		free(b_eval);
-	// -------------------------------------------------
-	
-	//if (gTestRunning)
-	if (gTestStack.length > 0)
-		stackPeek(&gTestStack)->failed = true;
-		//gTestStack.stack[gTestStack.length].failed = true;
-	//if (gSuiteRunning)
-	if (gSuiteStack.length > 0)
-		stackPeek(&gSuiteStack)->failed = true;
-		//gSuiteStack.stack[gSuiteStack.length].failed = true;
-	return false;
-}*/
-
-// bool gpc_expect(const bool expr,
-				// const char* op,
-				// const char* file,
-				// const int line,
-				// const char* func,
-				// const char* failMsg,
-				// const char* a,
-				// char* a_eval,
-				// const char* b,
-				// char* b_eval)
-
 // TODO more logical order
 bool gpc_expect(const bool expr,
 				const char* op,
@@ -591,16 +322,10 @@ bool gpc_expect(const bool expr,
 	if (expr == true)
 		return true;
 
-	//func = gTestRunning ? stackPeek(&gTestStack)->name :
-	//	   gSuiteRunning ? stackPeek(&gSuiteStack)->name : func;
 	/*func = gTestStack.length > 0 ? stackPeek(&gTestStack)->name :
 		   gSuiteStack.length > 0 ? stackPeek(&gSuiteStack)->name : func;*/
 	
-	/*bool a_eval_allocated = (bool)a_eval;
-	bool b_eval_allocated = (bool)b_eval;
-	a_eval = a_eval ? a_eval : gpc_ga_bufp;
-	b_eval = b_eval ? b_eval : gpc_gb_bufp;*/
-	
+	// TODO test allocating, validity of pointers etc.
 	const char* a_eval = gCmpArgs.a;
 	const char* b_eval = gCmpArgs.b;
 	if (gpc_ga_bufp != NULL)
@@ -623,27 +348,11 @@ bool gpc_expect(const bool expr,
 			a_eval, getOp(op), b_eval, ". ", failMsg, "\n\n");
 	
 	/*
-	// -------------------------------------------------
-	// TODO remove this block once String is implemented
-	memset(gpc_ga_buf, 0, 40);
-	memset(gpc_gb_buf, 0, 40);
-	gpc_ga_bufp = gpc_ga_buf;
-	gpc_gb_bufp = gpc_gb_buf;
-	
-	if (a_eval_allocated)
-		free(a_eval);
-	if (b_eval_allocated)
-		free(b_eval);
-	// -------------------------------------------------
-	
-	//if (gTestRunning)
 	if (gTestStack.length > 0)
 		stackPeek(&gTestStack)->failed = true;
-		//gTestStack.stack[gTestStack.length].failed = true;
-	//if (gSuiteRunning)
 	if (gSuiteStack.length > 0)
 		stackPeek(&gSuiteStack)->failed = true;
-		//gSuiteStack.stack[gSuiteStack.length].failed = true;*/
+	*/
 	return false;
 }
 
@@ -657,5 +366,5 @@ bool gpc_exitTests(bool b)
 		gpc_testSuite(NULL);
 	// TODO kill all owners
 	exit(EXIT_FAILURE);
-	return true;
+	return true; // prevent compiler complaints
 }
