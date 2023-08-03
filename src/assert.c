@@ -204,7 +204,7 @@ gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize)
 	// allows user to do something like
 	/*
 	strcpy(getCmpArgs(10)->a, "short a");
-	strcpy(getCmpArgs(50)->a, "possibly longer b");
+	strcpy(getCmpArgs(50)->b, "possibly longer b");
 	*/
 	gCmpArgs.a = realloc(gCmpArgs.a, bufSize);
 	gCmpArgs.b = realloc(gCmpArgs.b, bufSize);
