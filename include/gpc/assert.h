@@ -5,7 +5,6 @@
 #ifndef GPC_ASSERT_H
 #define GPC_ASSERT_H
 
-#include <string.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -304,55 +303,119 @@ int main() // function scope required!
 // ***************************************************************************
 
 
+// UNNECESSARY
+// #define GPC_EQ ==
+// #define GPC_NE !=
+// #define GPC_LT < 
+// #define GPC_GT > 
+// #define GPC_LE <=
+// #define GPC_GE >=
 
-#define GPC_EQ ==
-#define GPC_NE !=
-#define GPC_LT < 
-#define GPC_GT > 
-#define GPC_LE <=
-#define GPC_GE >=
+
 
 bool gpc_test(const char* name);
 bool gpc_testSuite(const char* name);
 
 bool gpc_exitTests(bool);
 
-#define GPC_COMPARE(A, OP, B) ((A) GPC_##OP (B))
+//#define GPC_COMPARE(A, OP, B) ((A) GPC_##OP (B))
+// #define GPC_COMPARE(A, OP, B)							\
+	// (false ? (A) OP (B)/*get compiler diagnostics*/ :	\
+		// gpc_compare(GPC_TYPE(A), GPC_TYPE(B), #OP, (A), (B))
 
-#define GPC_ASSERT_STRFY(BUF, X)						\
-	gpc_strfy((BUF), _Generic(X, const char*: GPC_PTR,	\
-							  char*: GPC_PTR,			\
-							  default: GPC_TYPE(X)), (X))
+// bool gpc_compare(const enum gpc_Type a_type,
+				 // const enum gpc_Type b_type,
+				 // const char* op,
+				 // a,
+				 // b
+//				 ...);
 
+// #define GPC_ASSERT_STRFY(BUF, X)						\
+	// gpc_strfy((BUF), _Generic(X, const char*: GPC_PTR,	\
+							  // char*: GPC_PTR,			\
+							  // default: GPC_TYPE(X)), (X))
+
+// Is that pointer fuckery correct?
+#define GPC_COMPARE(A, OP, B)						\
+	(0 ? (A) OP (B):/*better compiler diagnostics*/	\
+	GPC_STRFYT(A, gpc_getCmpArgs(25)->a) OP GPC_STRFYT(B, gpc_getCmpArgs(25)->b))
+
+// #define GPC_ASSERT(...)	\
+	// GPC_ASSERT_CUSTOM(GPC_COMPARE, GPC_ASSERT_STRFY, __VA_ARGS__)
+// #define GPC_EXPECT(...)	\
+	// GPC_EXPECT_CUSTOM(GPC_COMPARE, GPC_ASSERT_STRFY, __VA_ARGS__)
+	
 #define GPC_ASSERT(...)	\
-	GPC_ASSERT_CUSTOM(GPC_COMPARE, GPC_ASSERT_STRFY, __VA_ARGS__)
+	GPC_ASSERT_CUSTOM(GPC_COMPARE, __VA_ARGS__)
 #define GPC_EXPECT(...)	\
-	GPC_EXPECT_CUSTOM(GPC_COMPARE, GPC_ASSERT_STRFY, __VA_ARGS__)
+	GPC_EXPECT_CUSTOM(GPC_COMPARE, __VA_ARGS__)
 
-#define GPC_COMPARE_STR(A, OP, B) (strcmp((A),(B)) GPC_##OP 0)
+// #define GPC_COMPARE_STR(A, OP, B) (gpc_strcmp((A),(B)) GPC_##OP 0)
+// int gpc_strcmp(const char str1[static 1], const char str2[static 1]);
+// char* gpc_quotify(char** buf, const char* str);
 
-char* gpc_quotify(char** buf, const char* str);
-
-#define GPC_ASSERT_STR(...)	\
-	GPC_ASSERT_CUSTOM(GPC_COMPARE_STR, gpc_quotify, __VA_ARGS__)
-#define GPC_EXPECT_STR(...)	\
-	GPC_EXPECT_CUSTOM(GPC_COMPARE_STR, gpc_quotify, __VA_ARGS__)
+// #define GPC_ASSERT_STR(...)	\
+	// GPC_ASSERT_CUSTOM(GPC_COMPARE_STR, gpc_quotify, __VA_ARGS__)
+// #define GPC_EXPECT_STR(...)	\
+	// GPC_EXPECT_CUSTOM(GPC_COMPARE_STR, gpc_quotify, __VA_ARGS__)
 
 // ---------------------------------------------------------------------------
 
-#define GPC_ASSERT_CUSTOM(COMPARATOR, STRINGFIER, ...)	\
-	gpc_exitTests( ! GPC_EXPECT_CUSTOM(COMPARATOR, STRINGFIER, __VA_ARGS__))
+// #define GPC_ASSERT_CUSTOM(COMPARATOR, STRINGFIER, ...)	\
+	// gpc_exitTests( ! GPC_EXPECT_CUSTOM(COMPARATOR, STRINGFIER, __VA_ARGS__))
 
-#define GPC_EXPECT_CUSTOM(COMPARATOR, STRFIER, ...)	\
+// #define GPC_EXPECT_CUSTOM(COMPARATOR, STRFIER, ...)	\
+	// GPC_OVERLOAD4(__VA_ARGS__,						\
+				  // GPC_EXPECT_CMP_WITH_MSG,			\
+				  // GPC_EXPECT_CMP_WOUT_MSG,			\
+				  // GPC_EXPECT_WITH_MSG,				\
+				  // GPC_EXPECT_WOUT_MSG,)(COMPARATOR, STRFIER, __VA_ARGS__)
+
+#define GPC_ASSERT_CUSTOM(COMPARATOR, ...)	\
+	gpc_exitTests( ! GPC_EXPECT_CUSTOM(COMPARATOR, __VA_ARGS__))
+
+#define GPC_EXPECT_CUSTOM(COMPARATOR, ...)			\
 	GPC_OVERLOAD4(__VA_ARGS__,						\
 				  GPC_EXPECT_CMP_WITH_MSG,			\
 				  GPC_EXPECT_CMP_WOUT_MSG,			\
 				  GPC_EXPECT_WITH_MSG,				\
-				  GPC_EXPECT_WOUT_MSG,)(COMPARATOR, STRFIER, __VA_ARGS__)
+				  GPC_EXPECT_WOUT_MSG,)(COMPARATOR, __VA_ARGS__)
 
 #define GPC_FILELINEFUNC __FILE__, __LINE__, __func__
 
-#define GPC_EXPECT_CMP_WITH_MSG(COMPARATOR, STRFIER, A, OP, B, MSG)	\
+#define GPC_EXPECT_CMP_WITH_MSG(COMPARATOR, A, OP, B, MSG)	\
+	gpc_expect(COMPARATOR(A, OP, B),						\
+			   #OP,											\
+			   GPC_FILELINEFUNC,							\
+			   MSG,											\
+			   #A,											\
+			   #B)
+
+#define GPC_EXPECT_CMP_WOUT_MSG(COMPARATOR, A, OP, B)		\
+	gpc_expect(COMPARATOR(A, OP, B),						\
+			   #OP,											\
+			   GPC_FILELINEFUNC,							\
+			   "",											\
+			   #A,											\
+			   #B)
+
+#define GPC_EXPECT_WITH_MSG(COMPARATOR, EXPR, MSG)			\
+	gpc_expect(EXPR,										\
+			   "",											\
+			   GPC_FILELINEFUNC,							\
+			   MSG,											\
+			   #EXPR,										\
+			   "")
+
+#define GPC_EXPECT_WOUT_MSG(COMPARATOR, EXPR)				\
+	gpc_expect(EXPR,										\
+			   "",											\
+			   GPC_FILELINEFUNC,							\
+			   "",											\
+			   #EXPR,										\
+			   "")
+
+/*#define GPC_EXPECT_CMP_WITH_MSG(COMPARATOR, STRFIER, A, OP, B, MSG)	\
 	gpc_expect(COMPARATOR(A, OP, B),								\
 			   #OP,												\
 			   GPC_FILELINEFUNC,								\
@@ -390,11 +453,21 @@ char* gpc_quotify(char** buf, const char* str);
 			   #EXPR,										\
 			   STRFIER(&gpc_ga_bufp, EXPR),					\
 			   "",											\
-			   NULL)
+			   NULL)*/
 
-// TODO move to overloagt
+// TODO move to overloagt OR REMOVE
 char* gpc_strfy(char** buf, const/*enum gpc_Type*/int T, ...);
 
+// bool gpc_expect(const bool expr,
+				// const char* op_str,
+				// const char* file,
+				// const int line,
+				// const char* func,
+				// const char* failMsg,
+				// const char* a,
+				// char* a_eval,
+				// const char* b,
+				// char* b_eval);
 bool gpc_expect(const bool expr,
 				const char* op_str,
 				const char* file,
@@ -402,14 +475,52 @@ bool gpc_expect(const bool expr,
 				const char* func,
 				const char* failMsg,
 				const char* a,
-				char* a_eval,
-				const char* b,
-				char* b_eval);
+				const char* b);
 
 // CHANGE THE MAGIC VALUE
+// Also maybe move these to implementation file?
 extern char gpc_ga_buf[40];
 extern char gpc_gb_buf[40];
 extern char* gpc_ga_bufp;
 extern char* gpc_gb_bufp;
+
+typedef struct gpc_CmpArgs
+{
+	char* a;
+	char* b;
+} gpc_CmpArgs;
+
+// Returns a pointer to struct of character buffers that can be used to store
+// formatted values of arguments given to custom comparison function. 
+gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize);
+
+long long gpc_strfyi(char* buf, ...);
+unsigned long long gpc_strfyu(char* buf, ...);
+double gpc_strfyf(char* buf, ...);
+char gpc_strfyc(char* buf, ...);
+void* gpc_strfyp(char* buf, ...);
+
+#define GPC_STRFYT(VAR, BUF)								\
+	_Generic(VAR,											\
+			bool:				gpc_strfyi((BUF), (VAR)),	\
+			short:				gpc_strfyi((BUF), (VAR)),	\
+			int:				gpc_strfyi((BUF), (VAR)),	\
+			long:				gpc_strfyi((BUF), (VAR)),	\
+			long long:			gpc_strfyi((BUF), (VAR)),	\
+			unsigned short:		gpc_strfyu((BUF), (VAR)),	\
+			unsigned int:		gpc_strfyu((BUF), (VAR)),	\
+			unsigned long:		gpc_strfyu((BUF), (VAR)),	\
+			unsigned long long:	gpc_strfyu((BUF), (VAR)),	\
+			float:				gpc_strfyf((BUF), (VAR)),	\
+			double:				gpc_strfyf((BUF), (VAR)),	\
+			char:				gpc_strfyc((BUF), (VAR)),	\
+			unsigned char:		gpc_strfyc((BUF), (VAR)),	\
+			char*:				gpc_strfyp((BUF), (VAR)),	\
+			const char*:		gpc_strfyp((BUF), (VAR)),	\
+			default:			gpc_strfyp((BUF), (VAR)))
+
+
+
+
 
 #endif // GPC_ASSERT_H

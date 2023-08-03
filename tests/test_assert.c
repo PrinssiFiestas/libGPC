@@ -6,7 +6,7 @@
 // to the framework, NON_PASSING_TESTS should be defined to test failing tests
 // and the results should be verified manually.
 
-#include <stdio.h> // temp!
+#include <stdio.h> // temp!(?)
 #include <stdlib.h>
 
 #define GPC_NAMESPACE
@@ -14,12 +14,134 @@
 
 int main(void)
 {
-	while (test("EXPECT()"))
+	
+	// TODO put these in a test
+	#define P(T)								\
+	{											\
+		char buf[100] = "";						\
+		char* bufp = buf;						\
+		T var = (T)-1;							\
+		gpc_strfy(&bufp, GPC_TYPE(var), var);	\
+		printf(#T": %s\n", buf);				\
+	}
+	P(bool);
+	P(short);
+	P(int);
+	P(long);
+	P(long long);
+	P(unsigned short);
+	P(unsigned);
+	P(unsigned long);
+	P(unsigned long long);
+	P(float);
+	P(double);
+	P(char);
+	P(unsigned char);
+	P(void*);
+	
+	
+	
+	#define strfy(arg) #arg
+	
+	puts(strfy(==));
+	puts(strfy(          ==            ));
+	puts("\n\n");
+	
+	
+	
+	EXPECT((char)68, ==, 6.3);
+	void* p1 = malloc(1);
+	void* p2 = malloc(1);
+	EXPECT(p1, ==, p2);
+	free(p1); free(p2);
+	
+	
+	
+	
+	/*{
+		struct Stack testStack = {0};
+	
+		stackPush(&testStack, "blah1");
+		ASSERT_STR(stackPeek(&testStack)->name, EQ, "blah1");
+		ASSERT(testStack.length, EQ, 1);
+		stackPush(&testStack, "blah2");
+		ASSERT_STR(stackPeek(&testStack)->name, EQ, "blah2");
+		ASSERT(testStack.length, EQ, 2);
+		
+		// FUCKING SIDE EFFECTS IN ASSERT_STR FUCKS UP MY SHIT!!!
+		ASSERT_STR(stackPop(&testStack).name, EQ, "blah2");
+		
+		puts(GPC_GREEN("All is good"));
+		exit(1);
+	}
+	
+	test("TEST");
+	test("VLAGH");
+	test("VLAGH");
+	test("TEST");
+	exit(1);
+	
+	// Suites are always stand alone but tests can be either part of a suite
+	// or stand alone. Suites can be nested arbitrarily but it they have no
+	// awareness of each other. Tests can also be nested arbitrarily and they 
+	// also have no awareness of each other but they get regitered to suites 
+	// they belong if any. 
+	
+	// So a global suite stack is needed and each suite needs a test stack. 
+	
+	while (test("not in suite"))
+		EXPECT(true);
+	
+	while (testSuite("suite1"))
+	{
+		while (test("test in suite1 before nested suite"))
+			EXPECT(true);
+		
+		while (testSuite("nested suite"))
+		{
+			while (test("test1 in nested suite"))
+				EXPECT(true);
+			
+			while (test("test2 in nested suite"))
+				EXPECT(true);
+		}
+		
+		while (test("test in suite1"))
+			EXPECT(true);
+		
+		while (test("test2 in suite1"))
+			EXPECT(true);
+	}
+	
+	while (test("also not in suite"))
+		EXPECT(true);
+	
+	while (test("this as well is not in suite"))
+		EXPECT(true);
+	
+	while (testSuite("suite2"))
+	{
+		while (test("test in suite2"))
+			EXPECT(true);
+		
+		while (test("test2 in suite2"))
+		{
+			EXPECT(true);
+			while (test("nested test"))
+				EXPECT(true);
+		}
+	}*/
+	
+	// -----------------------------------------------------------------------
+	
+	// // while (test("EXPECT()"))
 	{
 		//ASSERT(false);
 		//EXPECT(!"Fail!"); // does not work!
 		
-		EXPECT((bool)0);
+		//EXPECT((bool)0, !=, (bool)false); // .--jfdsagfdk-sajg
+		
+		/*EXPECT((bool)0);
 		EXPECT((bool)0, NE, (bool)false);
 		EXPECT(0, "Failed message!");
 		EXPECT(.5, GT, 8);
@@ -28,7 +150,7 @@ int main(void)
 		//EXPECT_STR("Literal ptr!", EQ, NULL); // non-compliant!
 		//EXPECT_STR(NULL, EQ, "Literal ptr!"); // non-compliant!
 		EXPECT_STR("bloink", NE, "bloink");
-		EXPECT_STR("abc", GT, "cde");
+		EXPECT_STR("abc", GT, "cde");*/
 
 	}
 }

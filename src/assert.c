@@ -11,341 +11,64 @@
 #include "../include/gpc/assert.h"
 #include "terminalcolors.h"
 
-// #define GPC_IS_TEST true
+// ---------------------------------------------------------------------------
+// MOVE THESE TO overload.c
 
-// gpc_TestAndSuiteData gpc_newTestOrSuite(const char* name, gpc_TestAndSuiteData* parent,
-										  // bool isTest)
-// {
-	// gpc_TestAndSuiteData d =
-	// {
-		// .name				= name,
-		// .testFails			= 0,		.suiteFails =	0,	.expectationFails =	0,
-		// .testCount			= 0,		.suiteCount =	0,	.expectationCount =	0,
-		// .testDefined		= isTest,
-		// .suiteDefined		= ! isTest,
-		// .testOrSuiteRunning	= false,
-		// .parent				= parent
-	// };
-	// return d;
-// }
+bool gpc_isUnsigned(const enum gpc_Type T) { return T < GPC_BOOL; }
+bool gpc_isInteger(const enum gpc_Type T) { return T < GPC_FLOAT; }
+bool gpc_isFloating(const enum gpc_Type T) { return GPC_FLOAT <= T && T < GPC_CHAR_PTR; }
+bool gpc_isPointer(const enum gpc_Type T) { return GPC_CHAR_PTR <= T && T < GPC_PTR; }
 
-// gpc_TestAndSuiteData gpc_new_test(const char* name, gpc_TestAndSuiteData* parent)
-// {
-	// return gpc_newTestOrSuite(name, parent, GPC_IS_TEST);
-// }
-
-// gpc_TestAndSuiteData gpc_new_suite(const char* name, gpc_TestAndSuiteData* parent)
-// {
-	// return gpc_newTestOrSuite(name, parent, ! GPC_IS_TEST);
-// }
-
-// struct gpc_TestAndSuiteData gpc_gTestData = {0};
-// struct gpc_TestAndSuiteData *const gpc_currentTestOrSuite = &gpc_gTestData;
-
-// bool gpc_anyFails(struct gpc_TestAndSuiteData* data)
-// {
-	// return data->expectationFails || data->testFails || data->suiteFails;
-// }
-
-// #define PRINT_DATA(DATA)												\
-	// printf("A total of " GPC_CYAN("%i") " " #DATA "s completed, ",		\
-			// gpc_gTestData. DATA##Count );								\
-	// if (gpc_gTestData. DATA##Fails)										\
-		// printf(GPC_RED("%i failed")"\n", gpc_gTestData. DATA##Fails);	\
-	// else																\
-		// printf(GPC_GREEN("%i failed")"\n", gpc_gTestData. DATA##Fails);
-
-// void gpc_printExitMessageAndAddExitStatus(void)
-// {
-	// printf("\n");
-
-	// PRINT_DATA(expectation);
-	// PRINT_DATA(test);
-	// PRINT_DATA(suite);
-
-	// if (gpc_anyFails(&gpc_gTestData))
-		// exit(1);
-// }
-
-// #undef PRINT_DATA
-
-// static void gpc_printStartingMessageAndInitExitMessage(void)
-// {
-	// static bool initialized = false;
-	// if ( ! initialized)
-	// {
-		// printf("\n\tStarting tests...\n");
-		// atexit(gpc_printExitMessageAndAddExitStatus);
-		// initialized = true;
-	// }
-// }
-
-//const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3] = {"==", "!=", ">", "<", ">=", "<="};
-// const char GPC_STR_OPERATORS[GPC_OPS_LENGTH][3] = {
-// #define X(DUMMY, OP) #OP,
-	// GPC_OP_TABLE
-// #undef X
-// };
-
-// static bool gpc_compareNumber(GPC_LONG_DOUBLE a, enum gpc_BooleanOperator op, GPC_LONG_DOUBLE b)
-// {
-	// switch(op)
-	// {
-		// case GPC_NO_OP:
-			// return (bool)a;
-
-	// #define X(OP_ENUM, OP) 	\
-		// case GPC##OP_ENUM:	\
-			// return a OP b;
-		// GPC_OP_TABLE
-	// #undef X
-
-		// case GPC_OPS_LENGTH: {} // Suppress -Wswitch
-	// }
-	// return 0&&((bool)a+(bool)b); // Gets rid of pointless compiler warnings
-// }
-
-// static bool gpc_comparePointer(const void* a, enum gpc_BooleanOperator op, const void* b)
-// {
-	// switch(op)
-	// {
-		// case GPC_NO_OP:
-			// return a;
-	// #define X(OP_ENUM, OP) 	\
-		// case GPC##OP_ENUM:	\
-			// return a OP b;
-		// GPC_OP_TABLE
-	// #undef X
-		// case GPC_OPS_LENGTH: {}
-	// }
-	// return (bool)(0&&((char*)a-(char*)b));
-// }
-
-// static bool gpc_compareCharPointer(const char* a, enum gpc_BooleanOperator op, const char* b)
-// {
-	// switch(op)
-	// {
-		// case GPC_NO_OP:
-			// return a;
-	// #define X(OP_ENUM, OP) 	\
-		// case GPC##OP_ENUM:	\
-			// return strcmp(a, b) OP 0;
-		// GPC_OP_TABLE
-	// #undef X
-		// case GPC_OPS_LENGTH: {}
-	// }
-	// return (bool)(0&&((char*)a-(char*)b));
-// }
-
-// Finds suite by going trough all parent data
-// struct gpc_TestAndSuiteData* findSuite(struct gpc_TestAndSuiteData* data)
-// {
-	// bool suiteFound 	= data->isSuite;
-	// bool suiteNotFound	= data == &gpc_gTestData;
-
-	// if (suiteFound)
-		// return data;
-	// else if (suiteNotFound)
-		// return NULL;
-	// else
-		// return findSuite(data->parent);
-// }
-
-// static void gpc_printExpectationFail(struct gpc_ExpectationData* expectation,
-								 // struct gpc_TestAndSuiteData* data)
-// {
-	// const char* finalTestName = data->isTest || data->isSuite ? data->name : expectation->func;
-
-	// if (expectation->isAssertion)
-		// fprintf(stderr, "\nAssertion ");
-	// else
-		// fprintf(stderr, "\nExpectation ");
-
-	// fprintf(stderr,
-			// "in \"%s\" " GPC_RED("[FAILED]") " in \"%s\" " GPC_WHITE_BG("line %i") "\n", 
-			// finalTestName, expectation->file, expectation->line);
-
-	// fprintf(stderr, GPC_MAGENTA("%s"), expectation->str_a);
-	// if (expectation->operation != GPC_NO_OP)
-		// fprintf(stderr, GPC_MAGENTA(" %s %s"), expectation->str_operator, expectation->str_b);
-	
-	// if (expectation->type == GPC_NUMBER)
-	// {
-		// fprintf(stderr, " evaluated to " GPC_RED(GPC_LG_FORMAT), expectation->a);
-		// if (expectation->operation != GPC_NO_OP)
-			// fprintf(stderr, GPC_RED(" %s " GPC_LG_FORMAT), expectation->str_operator, expectation->b);
-		// fprintf(stderr, ".\n");
-	// }
-	// else if (expectation->type == GPC_BOOL)
-	// {
-		// fprintf(stderr, " evaluated to ");
-
-		// if (expectation->operation == GPC_NO_OP)
-			// fprintf(stderr, GPC_RED("%s"), (bool)expectation->a ? "true" : "false");
-		// else
-			// fprintf(stderr, GPC_RED(GPC_LG_FORMAT " %s " GPC_LG_FORMAT), expectation->a, expectation->str_operator, expectation->b);
-		// fprintf(stderr, ".\n");
-	// }
-	// else if (expectation->type == GPC_POINTER)
-	// {
-		// fprintf(stderr, " evaluated to " GPC_RED("%p"), expectation->pa);
-		// if (expectation->operation != GPC_NO_OP)
-			// fprintf(stderr, GPC_RED(" %s %p"), expectation->str_operator, expectation->pb);
-		// fprintf(stderr, ".\n");
-	// }
-	// else if (expectation->type == GPC_CHAR_POINTER)
-	// {
-		// fprintf(stderr, " evaluated to " GPC_RED("%s"), (char*)expectation->pa);
-		// if (expectation->operation != GPC_NO_OP)
-			// fprintf(stderr, GPC_RED(" %s %s"), expectation->str_operator, (char*)expectation->pb);
-		// fprintf(stderr, ".\n");
-	// }
-	
-	// if (expectation->additionalFailMessage != NULL)
-		// printf("%s\n", expectation->additionalFailMessage);
-
-	// if (expectation->isAssertion) // print test and suite results early before exiting
-	// {
-		// if (data->isTest)
-			// gpc_printTestOrSuiteResult(data);
-		// struct gpc_TestAndSuiteData* suite = findSuite(data);
-		// if (suite != NULL)
-			// gpc_printTestOrSuiteResult(suite);
-	// }
-// }
-
-// Adds one fail to all parents all the way to gpc_gTestData
-// void gpc_addExpectationFail(struct gpc_TestAndSuiteData* data)
-// {
-	// data->expectationFails++;
-	// if (data != &gpc_gTestData)
-		// gpc_addExpectationFail(data->parent);
-// }
-
-// int gpc_assert_internal(struct gpc_ExpectationData expectation,
-						// struct gpc_TestAndSuiteData* data)
-// {
-	// gpc_gTestData.expectationCount++;
-	// bool passed = false;
-	// if (expectation.type == GPC_NUMBER || expectation.type == GPC_BOOL)
-		// passed = gpc_compareNumber(expectation.a,
-								   // expectation.operation,
-								   // expectation.b);
-	// else if (expectation.type == GPC_POINTER)
-		// passed = gpc_comparePointer(expectation.pa,
-									// expectation.operation,
-									// expectation.pb);
-	// else if (expectation.type == GPC_CHAR_POINTER)
-		// passed = gpc_compareCharPointer(expectation.pa,
-										// expectation.operation,
-										// expectation.pb);
-	
-	// if ( ! passed)
-	// {
-		// gpc_addExpectationFail(data);
-		// gpc_printExpectationFail(&expectation, data);
-		
-		// if(expectation.isAssertion)
-		// {
-			// gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(data);
-			// exit(1);
-		// }
-		// else
-		// {
-			// return 1;
-		// }
-	// }
-	// return 0;
-// }
-
-// static void gpc_printTestOrSuiteResult(struct gpc_TestAndSuiteData* data)
-// {
-	// const char* testOrSuite = data->isTest ? "Test" : "Suite";
-
-	// if ( ! data->expectationFails && ! data->testFails && ! data->suiteFails)
-	// {
-		// printf("\n%s \"%s\" " GPC_GREEN("[PASSED]") " \n", testOrSuite, data->name);
-	// }
-	// else
-	// {
-		// fprintf(stderr, "\n%s \"%s\" " GPC_RED("[FAILED]") " \n",
-				// testOrSuite, data->name);
-	// }
-// }
-
-// static void gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(struct gpc_TestAndSuiteData* data)
-// {
-	// bool anyFails = gpc_anyFails(data);
-	// if (anyFails && data->isTest)
-	// {
-		// data->parent->testFails++;
-		// if (data->parent != &gpc_gTestData)
-			// gpc_gTestData.testFails++;
-	// }
-	// if (anyFails && data->isSuite)
-	// {
-		// data->parent->suiteFails++;
-		// if (data->parent != &gpc_gTestData)
-			// gpc_gTestData.suiteFails++;
-	// }
-// }
-
-// bool gpc_testOrSuiteRunning(struct gpc_TestAndSuiteData* data)
-// {
-	// bool testOrSuiteHasRan = data->testOrSuiteRunning;
-
-	// if ( ! testOrSuiteHasRan)
-	// {
-		// gpc_printStartingMessageAndInitExitMessage();
-	// }
-	// else
-	// {
-		// if (data->isTest)
-			// gpc_gTestData.testCount++;
-		// else
-			// gpc_gTestData.suiteCount++;
-
-		// gpc_addTestOrSuiteFailToParentAndGlobalIfFailed(data);
-		// gpc_printTestOrSuiteResult(data);
-	// }
-
-	// return data->testOrSuiteRunning = ! testOrSuiteHasRan;
-// }
+size_t gpc_sizeof(const enum gpc_Type T)
+{
+	switch (T)
+	{
+		case GPC_UNSIGNED_CHAR:			return sizeof(unsigned char);
+		case GPC_UNSIGNED_SHORT:		return sizeof(unsigned short);
+		case GPC_UNSIGNED:				return sizeof(unsigned);
+		case GPC_UNSIGNED_LONG:			return sizeof(unsigned long);
+		case GPC_UNSIGNED_LONG_LONG:	return sizeof(unsigned long long);
+		case GPC_BOOL:					return sizeof(bool);
+		case GPC_CHAR:					return sizeof(char);
+		case GPC_SHORT:					return sizeof(short);
+		case GPC_INT:					return sizeof(int);
+		case GPC_LONG:					return sizeof(long);
+		case GPC_LONG_LONG:				return sizeof(long long);
+		case GPC_FLOAT:					return sizeof(float);
+		case GPC_DOUBLE:				return sizeof(double);
+		case GPC_CHAR_PTR:				return sizeof(char*);
+		case GPC_PTR:					return sizeof(void*);
+	}
+	return 0;
+}
+// ---------------------------------------------------------------------------
 
 
-// ***************************************************************************
-
-
-		// N E W  S T U F F
-
-
-// ***************************************************************************
 
 #pragma GCC diagnostic ignored "-Wunused-parameter" // REMOVE
 #pragma GCC diagnostic ignored "-Wunused-variable" // REMOVE
 
 static unsigned gPassedAsserts			= 0;
-static unsigned gFailesAsserts			= 0;
+static unsigned gFailedAsserts			= 0;
 static unsigned gPassedTests			= 0;
 static unsigned gFailedTests			= 0;
 static unsigned gPassedSuites			= 0;
 static unsigned gFailedSuites			= 0;
-static unsigned gPassedAssertsInTest	= 0;
-static unsigned gFailedAssertsInTest	= 0;
-static unsigned gPassedAssertsInSuite	= 0;
-static unsigned gFailedAssertsInSuite	= 0;
-static unsigned gPassedTestsInSuite		= 0;
-static unsigned gFailedTestsInSuite		= 0;
 
-static bool gTestRunning  = false;
-static bool gSuiteRunning = false;
-
-struct strStack
+struct Stack
 {
-	const char** stack;
+	struct StackData* stack;
 	size_t length;
 	size_t capacity;
 } gTestStack, gSuiteStack;
+
+struct StackData
+{
+	const char* name;
+	struct StackData* suite; // only used by tests
+	struct Stack* testStack; // only used by suites
+	bool failed;
+};
 
 static size_t nextPowOf2(size_t x)
 {
@@ -354,40 +77,45 @@ static size_t nextPowOf2(size_t x)
 	return y;
 }
 
-static void strStackPush(struct strStack* s, const char* str)
+static void stackPush(struct Stack* s, const char* str)
 {
-	if (s->capacity == 0)
+	if (s->stack == NULL)
 	{
-		const size_t WHATEVER = 2;
-		s->stack = malloc(WHATEVER * sizeof(*s->stack));
-		s->capacity = WHATEVER;
+		s->stack = calloc(sizeof(struct StackData), 1);
+		s->capacity = 1;
 	}
 	
 	s->length++;
 	if (s->length >= s->capacity)
 		s->stack = realloc(s->stack, s->capacity = nextPowOf2(s->length));
-	s->stack[s->length - 1] = str;
+	
+	//s->stack[s->length - 1] = (struct StackData){.name = str};
+	s->stack[s->length - 1].name = str;
 }
 
-static const char* strStackPop(struct strStack* s)
+static struct StackData stackPop(struct Stack* s)
 {
+	struct StackData data = s->stack[s->length - 1];
+	s->stack[s->length - 1] = (struct StackData){0};
 	s->length--;
-	return s->stack[s->length];
+	return data;
 }
 
-static const char* strStackPeek(struct strStack s)
+static struct StackData* stackPeek(struct Stack* s)
 {
-	return s.stack[s.length - 1];
+	return s->stack + s->length - 1;
 }
 
 bool gpc_anyFails(void)
 {
-	return !!gFailesAsserts;
+	return !!gFailedAsserts;
 }
 
 static void exitWithMsgAndStatus(void)
 {
-	printf("\n");
+	FILE* out = gpc_anyFails() ? stderr : stdout;
+	fprintf(out, "\tFinished testing\n");
+	//fprintf(out, "");
 
 	if (gpc_anyFails())
 		exit(EXIT_FAILURE);
@@ -406,47 +134,265 @@ static void gpc_initStartAndExitMessages(void)
 
 bool gpc_test(const char* name)
 {	
+	static const char* current = NULL;
 	gpc_initStartAndExitMessages();
+		
+	//if (gTestRunning)
+	bool shouldEnd = false;
+	if (name == NULL)
+		shouldEnd = true;
+	if (name != NULL && current != NULL)
+		shouldEnd = strcmp(name, current) == 0;
 	
-	if ((gTestRunning = !gTestRunning))
+	if ( ! shouldEnd)
 	{
-		//gAssertsInTest = 0;
-		strStackPush(&gTestStack, name);
+		current = (char*)name;
+		stackPush(&gTestStack, name);
+		//gTestRunning = true;
+		
+		return true;
 	}
 	else // finishing test
 	{
-		printf("finished test %s\n", strStackPop(&gTestStack));
+		struct StackData test = stackPop(&gTestStack);
+		FILE* out = test.failed ? stderr : stdout;
+		fprintf(out, "Test \"" GPC_ORANGE("%s") "\" %s\n\n",
+				test.name,
+				test.failed ? GPC_RED("[FAILED]") : GPC_GREEN("[PASSED]"));
+		//gTestRunning = false; // CHANGEBGHRBGHF
+		
+		current = gTestStack.length > 0 ? stackPeek(&gTestStack)->name : NULL;
+		
+		return false;
 	}
 	
-	return gTestRunning;
+	//return gTestRunning;
 }
 
 bool gpc_testSuite(const char* name)
 {
+	static char* current = NULL;
 	gpc_initStartAndExitMessages();
 	
-	if ((gSuiteRunning = !gSuiteRunning))
+	bool shouldEnd = false;
+	if (name == NULL)
+		shouldEnd = true;
+	if (name != NULL && current != NULL)
+		shouldEnd = strcmp(name, current) == 0;
+	
+	//if ((gSuiteRunning = !gSuiteRunning))
+	if ( ! shouldEnd)
 	{
-		// gAssertsInSuite	= 0;
-		// gTestsInSuite	= 0;
-		strStackPush(&gSuiteStack, name);
+		stackPush(&gSuiteStack, name);
+		
+		return true;
 	}
 	else // finishing test suite
 	{
-		printf("finished test suite %s\n", strStackPop(&gSuiteStack));
+		bool failed = stackPeek(&gSuiteStack)->failed;
+		FILE* out = failed ? stderr : stdout;
+		fprintf(out, "Test suite \"" GPC_ORANGE("%s") "\" %s\n\n", // HJGIUORFPHGURE
+				stackPop(&gSuiteStack).name,
+				failed ? GPC_RED("[FAILED]") : GPC_GREEN("[PASSED]"));
+		
+		return false;
 	}
 	
-	return gSuiteRunning;
+	//return gSuiteRunning;
 }
 
 #define MAX_STRFIED_LENGTH 25 // = more than max digits in uint64_t
 
 // CHANGE THE MAGIC VALUE
+// maybe not used though?
 char gpc_ga_buf[40] = "";
 char gpc_gb_buf[40] = "";
-char* gpc_ga_bufp = gpc_ga_buf;
-char* gpc_gb_bufp = gpc_gb_buf;
 
+// These will be used! May need to be removed from header. 
+// char* gpc_ga_bufp = gpc_ga_buf;
+// char* gpc_gb_bufp = gpc_gb_buf;
+
+char* gpc_ga_bufp = NULL;
+char* gpc_gb_bufp = NULL;
+
+
+// this to overload.h? or make a new header for generics?
+// union Any
+// {
+	// unsigned long long u;
+	// long long i;
+	// double f;
+	// void* p;
+// };
+
+// union Any gpc_getVal(va_list* arg, enum gpc_Type T)
+// {
+	// union Any x;
+	// if (gpc_isFloating(T))
+		// return x.f = va_arg(*arg, double);
+	// else if (gpc_isUnsigned(T) && gpc_sizeof(T) >= sizeof(long long))
+		// return x.u = va_arg(*arg, unsigned long long);
+	// else if (gpc_isInteger(T))
+		// return x.i = va_arg(*arg, long long);
+	// else
+		// return x.p = va_arg(*arg, void*);
+// }
+
+gpc_CmpArgs gCmpArgs = {0};
+
+gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize)
+{
+	bool undefinedMalloc = bufSize == 0;
+	if (undefinedMalloc)
+		bufSize = 1;
+	
+	// realloc() is used instead of malloc() in case of multiple calls. This 
+	// allows user to do something like
+	/*
+	strcpy(getCmpArgs(10)->a, "short a");
+	strcpy(getCmpArgs(50)->a, "possibly longer b");
+	*/
+	gpc_ga_bufp = realloc(gpc_ga_bufp, bufSize);
+	gpc_gb_bufp = realloc(gpc_gb_bufp, bufSize);
+	gCmpArgs = (gpc_CmpArgs){ gpc_ga_bufp, gpc_gb_bufp };
+	return &gCmpArgs;
+}
+
+bool gpc_compare(const enum gpc_Type T_a,
+				 const enum gpc_Type T_b,
+				 const char* op,
+				 // a,
+				 // b
+				 ...)
+{
+	va_list args;
+	va_start(args, op);
+	
+	// union Any a = gpc_getVal(&args, T_a);
+	// union Any b = gpc_getVal(&args, T_b);
+	
+	// #define cmp(at, bt)									\
+		// switch (op[0] + op[1])							\
+		// {												\
+			// case '=' + '=' : B = a.at == b.bt; break;	\
+			// case '!' + '=' : B = a.at != b.bt; break;	\
+			// case '<' + '\0': B = a.at <  b.bt; break;	\
+			// case '>' + '\0': B = a.at >  b.bt; break;	\
+			// case '<' + '=' : B = a.at <= b.bt; break;	\
+			// case '>' + '=' : B = a.at >= b.bt; break;	\
+		// }
+	
+	// bool B = false;
+	// if (isFloating(T_a) && isFloating(T_b))
+		// cmp(f, f);
+	// if (isUnsigned(T_a) && isFloating(T_b))
+		// cmp(u, f);
+	// if (isInteger(T_a) && isFloating(T_b))
+		// cmp(i, f);
+	// if (isFloating(T_a) && isUnsigned(T_b))
+		// cmp(f, u);
+	// if (isUnsigned(T_a) && isUnsigned(T_b))
+		// cmp(u, u);
+	// if (isInteger(T_a) && isUnsigned(T_b))
+		// cmp(i, u);
+	// if (isFloating(T_a) && isInteger(T_b))
+		// cmp(f, i);
+	// if (isUnsigned(T_a) && isInteger(T_b))
+		// cmp(u, i);
+	// if (isInteger(T_a) && isInteger(T_b))
+		// cmp(i, i);
+	
+	// if (isPointer(T_a) && isPointer(T_b))
+		// cmp(p, p);
+	
+	/*#define cmp(at, bt)															\
+		switch (op[0] + op[1])													\
+		{																		\
+			case '=' + '=' : B = va_arg(args, at) == va_arg(args, bt); break;	\
+			case '!' + '=' : B = va_arg(args, at) != va_arg(args, bt); break;	\
+			case '<' + '\0': B = va_arg(args, at) <  va_arg(args, bt); break;	\
+			case '>' + '\0': B = va_arg(args, at) >  va_arg(args, bt); break;	\
+			case '<' + '=' : B = va_arg(args, at) <= va_arg(args, bt); break;	\
+			case '>' + '=' : B = va_arg(args, at) >= va_arg(args, bt); break;	\
+		}
+	
+	bool B = false;
+	if (gpc_isFloating(T_a) && gpc_isFloating(T_b))
+		cmp(float,					float);
+	if (gpc_isUnsigned(T_a) && gpc_isFloating(T_b))
+		cmp(unsigned long long,		float);
+	if (gpc_isInteger(T_a) && gpc_isFloating(T_b))
+		cmp(long long,				float);
+	if (gpc_isFloating(T_a) && gpc_isUnsigned(T_b))
+		cmp(float,					unsigned long long);
+	if (gpc_isUnsigned(T_a) && gpc_isUnsigned(T_b))
+		cmp(unsigned long long,		unsigned long long);
+	if (gpc_isInteger(T_a) && gpc_isUnsigned(T_b))
+		cmp(long long,				unsigned long long);
+	if (gpc_isFloating(T_a) && gpc_isInteger(T_b))
+		cmp(float,					long long);
+	if (gpc_isUnsigned(T_a) && gpc_isInteger(T_b))
+		cmp(unsigned long long,		long long);
+	if (gpc_isInteger(T_a) && gpc_isInteger(T_b))
+		cmp(long long,				long long);
+	
+	if (gpc_isPointer(T_a) && gpc_isPointer(T_b))
+		cmp(void*, void*);
+	
+	#undef cmp*/
+
+	va_end(args);
+	//return B;
+	return false;
+}
+
+long long gpc_strfyi(char* buf, ...)
+{
+	va_list arg;
+	va_start(arg, buf);
+	long long val = va_arg(arg, long long);
+	va_end(arg);
+	sprintf(buf, "%lli", val);
+	return val;
+}
+unsigned long long gpc_strfyu(char* buf, ...)
+{
+	va_list arg;
+	va_start(arg, buf);
+	unsigned long long val = va_arg(arg, unsigned long long);
+	va_end(arg);
+	sprintf(buf, "%llu", val);
+	return val;
+}
+double gpc_strfyf(char* buf, ...)
+{
+	va_list arg;
+	va_start(arg, buf);
+	double val = va_arg(arg, double);
+	va_end(arg);
+	sprintf(buf, "%g", val);
+	return val;
+}
+char gpc_strfyc(char* buf, ...)
+{
+	va_list arg;
+	va_start(arg, buf);
+	char val = (char)va_arg(arg, int);
+	va_end(arg);
+	sprintf(buf, "\'%c\'", val);
+	return val;
+}
+void* gpc_strfyp(char* buf, ...)
+{
+	va_list arg;
+	va_start(arg, buf);
+	void* val = va_arg(arg, void*);
+	va_end(arg);
+	sprintf(buf, "%p", val);
+	return val;
+}
+
+// THIS GETS REPLCACED BY gpc_compare()
 char* gpc_strfy(char** buf, const/*enum gpc_Type*/int T, ...)
 {
 	va_list arg;
@@ -516,19 +462,36 @@ static const char* getOp(const char* op)
 {
 	switch(op[0] + op[1])
 	{
-		case 'E' + 'Q': return " == ";
-		case 'N' + 'E': return " != ";
-		case 'L' + 'T': return " < ";
-		case 'G' + 'T': return " > ";
-		case 'L' + 'E': return " <= ";
-		case 'G' + 'E': return " >= ";
+		// case 'E' + 'Q': return " == ";
+		// case 'N' + 'E': return " != ";
+		// case 'L' + 'T': return " < ";
+		// case 'G' + 'T': return " > ";
+		// case 'L' + 'E': return " <= ";
+		// case 'G' + 'E': return " >= ";
+		case '=' + '=' : return " == ";
+		case '!' + '=' : return " != ";
+		case '<' + '\0': return " < " ;
+		case '>' + '\0': return " > " ;
+		case '<' + '=' : return " <= ";
+		case '>' + '=' : return " >= ";
 	}
 	return "";
+}
+
+int gpc_strcmp(const char str1[static 1], const char str2[static 1])
+{
+	if (str1 == str2)
+		return 0;
+	const char* strp1 = str1 ? str1 : "";
+	const char* strp2 = str2 ? str2 : "";
+	return strcmp(strp1, strp2);
 }
 
 char* gpc_quotify(char** buf, const char* str)
 {
 	(void)buf;
+	if (str == NULL)
+		return strcpy(malloc(sizeof("NULL")), "NULL");
 	const size_t len = strlen(str);
 	char* out = malloc(len + 1/*null*/+ 2/*quotes*/);
 	out[0] = '\"';
@@ -538,7 +501,7 @@ char* gpc_quotify(char** buf, const char* str)
 	return out;
 }
 
-bool gpc_expect(const bool expr,
+/*bool gpc_expect(const bool expr,
 				const char* op,
 				const char* file,
 				const int line,
@@ -552,8 +515,10 @@ bool gpc_expect(const bool expr,
 	if (expr == true)
 		return true;
 
-	func = gTestRunning ? strStackPeek(gTestStack) :
-		   gSuiteRunning ? strStackPeek(gSuiteStack) : func;
+	//func = gTestRunning ? stackPeek(&gTestStack)->name :
+	//	   gSuiteRunning ? stackPeek(&gSuiteStack)->name : func;
+	func = gTestStack.length > 0 ? stackPeek(&gTestStack)->name :
+		   gSuiteStack.length > 0 ? stackPeek(&gSuiteStack)->name : func;
 	
 	bool a_eval_allocated = (bool)a_eval;
 	bool b_eval_allocated = (bool)b_eval;
@@ -568,6 +533,8 @@ bool gpc_expect(const bool expr,
 			a, " ", op, b_space, b, b_space, "evaluated to ",
 			a_eval, getOp(op), b_eval, ". ", failMsg, "\n\n");
 	
+	// -------------------------------------------------
+	// TODO remove this block once String is implemented
 	memset(gpc_ga_buf, 0, 40);
 	memset(gpc_gb_buf, 0, 40);
 	gpc_ga_bufp = gpc_ga_buf;
@@ -577,7 +544,96 @@ bool gpc_expect(const bool expr,
 		free(a_eval);
 	if (b_eval_allocated)
 		free(b_eval);
+	// -------------------------------------------------
 	
+	//if (gTestRunning)
+	if (gTestStack.length > 0)
+		stackPeek(&gTestStack)->failed = true;
+		//gTestStack.stack[gTestStack.length].failed = true;
+	//if (gSuiteRunning)
+	if (gSuiteStack.length > 0)
+		stackPeek(&gSuiteStack)->failed = true;
+		//gSuiteStack.stack[gSuiteStack.length].failed = true;
+	return false;
+}*/
+
+// bool gpc_expect(const bool expr,
+				// const char* op,
+				// const char* file,
+				// const int line,
+				// const char* func,
+				// const char* failMsg,
+				// const char* a,
+				// char* a_eval,
+				// const char* b,
+				// char* b_eval)
+
+// TODO more logical order
+bool gpc_expect(const bool expr,
+				const char* op,
+				const char* file,
+				const int line,
+				const char* func,
+				const char* failMsg,
+				const char* a,
+				const char* b)
+{
+	if (expr == true)
+		return true;
+
+	//func = gTestRunning ? stackPeek(&gTestStack)->name :
+	//	   gSuiteRunning ? stackPeek(&gSuiteStack)->name : func;
+	/*func = gTestStack.length > 0 ? stackPeek(&gTestStack)->name :
+		   gSuiteStack.length > 0 ? stackPeek(&gSuiteStack)->name : func;*/
+	
+	/*bool a_eval_allocated = (bool)a_eval;
+	bool b_eval_allocated = (bool)b_eval;
+	a_eval = a_eval ? a_eval : gpc_ga_bufp;
+	b_eval = b_eval ? b_eval : gpc_gb_bufp;*/
+	
+	const char* a_eval = gCmpArgs.a;
+	const char* b_eval = gCmpArgs.b;
+	if (gpc_ga_bufp != NULL)
+	{
+		free(gpc_ga_bufp);
+		gpc_ga_bufp = NULL;
+	}
+	if (gpc_gb_bufp != NULL)
+	{
+		free(gpc_gb_bufp);
+		gpc_gb_bufp = NULL;
+	}
+	
+	fprintf(stderr, "%s"GPC_ORANGE("%s%s%s")GPC_RED("%s")"%s%s%s"GPC_WHITE_BG("%s%i")"%s",
+			"Assertion in ","\"",func,"\" ","[FAILED]"," in ",file," ","line ",line,"\n");
+	
+	const char* b_space = *b ? " " : "";
+	fprintf(stderr, GPC_MAGENTA("%s%s%s%s%s")"%s%s"GPC_RED("%s%s%s")"%s%s%s",
+			a, " ", op, b_space, b, b_space, "evaluated to ",
+			a_eval, getOp(op), b_eval, ". ", failMsg, "\n\n");
+	
+	/*
+	// -------------------------------------------------
+	// TODO remove this block once String is implemented
+	memset(gpc_ga_buf, 0, 40);
+	memset(gpc_gb_buf, 0, 40);
+	gpc_ga_bufp = gpc_ga_buf;
+	gpc_gb_bufp = gpc_gb_buf;
+	
+	if (a_eval_allocated)
+		free(a_eval);
+	if (b_eval_allocated)
+		free(b_eval);
+	// -------------------------------------------------
+	
+	//if (gTestRunning)
+	if (gTestStack.length > 0)
+		stackPeek(&gTestStack)->failed = true;
+		//gTestStack.stack[gTestStack.length].failed = true;
+	//if (gSuiteRunning)
+	if (gSuiteStack.length > 0)
+		stackPeek(&gSuiteStack)->failed = true;
+		//gSuiteStack.stack[gSuiteStack.length].failed = true;*/
 	return false;
 }
 
@@ -585,9 +641,9 @@ bool gpc_exitTests(bool b)
 {
 	if ( ! b)
 		return true;
-	if (gTestRunning)
+	while (gTestStack.length > 0)
 		gpc_test(NULL);
-	if (gSuiteRunning)
+	while (gSuiteStack.length > 0)
 		gpc_testSuite(NULL);
 	// TODO kill all owners
 	exit(EXIT_FAILURE);
