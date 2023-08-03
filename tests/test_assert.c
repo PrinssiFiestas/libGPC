@@ -14,13 +14,13 @@
 
 int main(void)
 {
-	//while (test("Whitespace"))
+	// while (test("Whitespace"))
 	{
 		EXPECT(1,==,1);
 		EXPECT(1,      ==          ,1);
 	}
 	
-	//while (test("Types in expectations"))
+	// while (test("Types in expectations"))
 	{
 		char c = -1;
 		unsigned char uc = (unsigned char)-1;
@@ -36,6 +36,7 @@ int main(void)
 		EXPECT(c, ==, f);
 		EXPECT(s, !=, p);
 		
+		// #define GPC_TEST_WARNINGS
 		#ifdef GPC_TEST_WARNINGS
 		EXPECT(i,!=,u);        // GCC, Clang: different sign
 		EXPECT(c,!=,p);        // GCC, Clang: comparison between pointer and integer
@@ -43,10 +44,20 @@ int main(void)
 		EXPECT(s,==,"string"); // Clang: comparison against string literal
 		#endif
 		
+		#define GPC_NON_PASSING_TESTS
+		#ifdef GPC_NON_PASSING_TESTS
+		// while (test("Non-passing test error messages"))
+		{
+			EXPECT(c, !=, i);
+			EXPECT(uc,!=, f);
+			EXPECT(uc,!=, i);
+			EXPECT(c, !=, f);
+			EXPECT(s, ==, p);
+		}
+		#endif
+		
 		free(p);
 	}
-	
-	
 	
 	/*{
 		struct Stack testStack = {0};

@@ -193,8 +193,8 @@ bool gpc_testSuite(const char* name)
 }
 
 // TODO rename!
-static char* gpc_ga_bufp = NULL;
-static char* gpc_gb_bufp = NULL;
+// static char* gpc_ga_bufp = NULL;
+// static char* gpc_gb_bufp = NULL; // <<<--------------------------------------------
 
 gpc_CmpArgs gCmpArgs = {0};
 
@@ -210,9 +210,11 @@ gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize)
 	strcpy(getCmpArgs(10)->a, "short a");
 	strcpy(getCmpArgs(50)->a, "possibly longer b");
 	*/
-	gpc_ga_bufp = realloc(gpc_ga_bufp, bufSize);
-	gpc_gb_bufp = realloc(gpc_gb_bufp, bufSize);
-	gCmpArgs = (gpc_CmpArgs){ gpc_ga_bufp, gpc_gb_bufp };
+	// gpc_ga_bufp = realloc(gpc_ga_bufp, bufSize);
+	// gpc_gb_bufp = realloc(gpc_gb_bufp, bufSize);
+	// gCmpArgs = (gpc_CmpArgs){ gpc_ga_bufp, gpc_gb_bufp }; // <---------------------
+	gCmpArgs.a = realloc(gCmpArgs.a, bufSize);
+	gCmpArgs.b = realloc(gCmpArgs.b, bufSize);
 	return &gCmpArgs;
 }
 
@@ -325,18 +327,16 @@ bool gpc_expect(const bool expr,
 	/*func = gTestStack.length > 0 ? stackPeek(&gTestStack)->name :
 		   gSuiteStack.length > 0 ? stackPeek(&gSuiteStack)->name : func;*/
 	
-	// TODO test allocating, validity of pointers etc.
+	// TODO test allocating, validity of pointers, never calling getCmpArgs() etc.
 	const char* a_eval = gCmpArgs.a;
 	const char* b_eval = gCmpArgs.b;
-	if (gpc_ga_bufp != NULL)
+	
+	if (gCmpArgs.a != NULL)
 	{
-		free(gpc_ga_bufp);
-		gpc_ga_bufp = NULL;
-	}
-	if (gpc_gb_bufp != NULL)
-	{
-		free(gpc_gb_bufp);
-		gpc_gb_bufp = NULL;
+		free(gCmpArgs.a);
+		free(gCmpArgs.b);
+		gCmpArgs.a = NULL;
+		gCmpArgs.b = NULL;
 	}
 	
 	fprintf(stderr, "%s"GPC_ORANGE("%s%s%s")GPC_RED("%s")"%s%s%s"GPC_WHITE_BG("%s%i")"%s",
