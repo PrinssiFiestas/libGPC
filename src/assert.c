@@ -296,15 +296,14 @@ int gpc_assertStrcmp(const char* str1, const char* str2)
 	return strcmp(strp1, strp2);
 }
 
-// TODO more logical order of args
 bool gpc_expect(const bool expr,
+				const char* a,
 				const char* op,
+				const char* b,
+				const char* failMsg,
 				const char* file,
 				const int line,
-				const char* func,
-				const char* failMsg,
-				const char* a,
-				const char* b)
+				const char* func)
 {
 	if (expr == true)
 		return true;
@@ -312,7 +311,6 @@ bool gpc_expect(const bool expr,
 	func = gTestStack ? stackPeek(gTestStack)->name :
 		   gSuiteStack ? stackPeek(gSuiteStack)->name : func;
 	
-	// TODO test allocating, validity of pointers, never calling getCmpArgs() etc.
 	const char* a_eval = gCmpArgs.a;
 	const char* b_eval = gCmpArgs.b;
 	if ( ! *b)

@@ -62,7 +62,6 @@
 // detailed fail messages e.g. EXPECT(1 + 1,!=,2) instead of EXPECT(1 + 1 != 2).
 #define EXPECT(/*expression, failMsessage=""*/...) GPC_EXPECT(__VA_ARGS__)
 
-// TODO CHEKGGFD NULLLLLLLLLL and overloading
 #define ASSERT_STR(...) GPC_ASSERT_STR(__VA_ARGS__)
 #define EXPECT_STR(...) GPC_EXPECT_STR(__VA_ARGS__)
 
@@ -106,44 +105,44 @@ int gpc_assertStrcmp(const char* str1, const char* str2);
 
 #define GPC_EXPECT_CMP_WITH_MSG(COMPARATOR, A, OP, B, MSG)	\
 	gpc_expect(COMPARATOR(A, OP, B),						\
-			   #OP,											\
-			   GPC_FILELINEFUNC,							\
-			   MSG,											\
 			   #A,											\
-			   #B)
+			   #OP,											\
+			   #B,											\
+			   MSG,											\
+			   GPC_FILELINEFUNC)
 
 #define GPC_EXPECT_CMP_WOUT_MSG(COMPARATOR, A, OP, B)		\
 	gpc_expect(COMPARATOR(A, OP, B),						\
-			   #OP,											\
-			   GPC_FILELINEFUNC,							\
-			   "",											\
 			   #A,											\
-			   #B)
+			   #OP,											\
+			   #B,											\
+			   "",											\
+			   GPC_FILELINEFUNC)
 
 #define GPC_EXPECT_WITH_MSG(COMPARATOR, EXPR, MSG)			\
 	gpc_expect(EXPR,										\
-			   "",											\
-			   GPC_FILELINEFUNC,							\
-			   MSG,											\
 			   #EXPR,										\
-			   "")
+			   "",											\
+			   "",											\
+			   MSG,											\
+			   GPC_FILELINEFUNC)
 
 #define GPC_EXPECT_WOUT_MSG(COMPARATOR, EXPR)				\
 	gpc_expect(EXPR,										\
-			   "",											\
-			   GPC_FILELINEFUNC,							\
-			   "",											\
 			   #EXPR,										\
-			   "")
+			   "",											\
+			   "",											\
+			   "",											\
+			   GPC_FILELINEFUNC)
 
 bool gpc_expect(const bool expr,
-				const char* op_str,
+				const char* a,
+				const char* op,
+				const char* b,
+				const char* failMsg,
 				const char* file,
 				const int line,
-				const char* func,
-				const char* failMsg,
-				const char* a,
-				const char* b);
+				const char* func);
 
 typedef struct gpc_CmpArgs
 {
