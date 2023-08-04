@@ -11,6 +11,7 @@
 #include "../include/gpc/assert.h"
 #include "terminalcolors.h"
 
+
 // ---------------------------------------------------------------------------
 // MOVE THESE TO overload.c
 
@@ -55,20 +56,18 @@ static unsigned gFailedTests			= 0;
 static unsigned gPassedSuites			= 0;
 static unsigned gFailedSuites			= 0;
 
-struct Stack
-{
-	struct StackData* stack;
-	size_t length;
-	size_t capacity;
-} gTestStack, gSuiteStack;
-
 struct StackData
 {
 	const char* name;
-	struct StackData* suite; // only used by tests
-	struct Stack* testStack; // only used by suites
 	bool failed;
 };
+
+struct Stack
+{
+	size_t length;
+	size_t capacity;
+	struct StackData stack[];
+} *gTestStack = NULL, *gSuiteStack = NULL;
 
 static size_t nextPowOf2(size_t x)
 {
@@ -77,32 +76,44 @@ static size_t nextPowOf2(size_t x)
 	return y;
 }
 
-static void stackPush(struct Stack* s, const char* str)
+static void stackPush(struct Stack** s, const char* str)
 {
-	if (s->stack == NULL)
+	if (*s == NULL)
 	{
-		s->stack = calloc(sizeof(struct StackData), 1);
-		s->capacity = 1;
+		const size_t INIT_CAP = 1;
+		*s = calloc(sizeof(struct Stack) + nextPowOf2(INIT_CAP) * sizeof(struct StackData), 1);
+		if ( ! (*s))
+			perror("Failed calloc() in stackPush()");
+		(*s)->capacity = nextPowOf2(INIT_CAP);
 	}
 	
-	s->length++;
-	if (s->length >= s->capacity)
-		s->stack = realloc(s->stack, s->capacity = nextPowOf2(s->length));
+	(*s)->length++;
+	if ((*s)->length >= (*s)->capacity)
+	{
+		(*s)->capacity = nextPowOf2((*s)->length);
+		(*s) = realloc((*s), sizeof(struct Stack) + (*s)->capacity * sizeof(struct StackData));
+		if ( ! (*s))
+			perror("Failed realloc() in stackPush()");
+	}
 	
-	s->stack[s->length - 1].name = str;
+	(*s)->stack[(*s)->length - 1] = (struct StackData){ .name = str };
 }
 
-static struct StackData stackPop(struct Stack* s)
+static struct StackData stackPop(struct Stack** s)
 {
-	struct StackData data = s->stack[s->length - 1];
-	s->stack[s->length - 1] = (struct StackData){0};
-	s->length--;
-	return data;
+	(*s)->length--;
+	struct StackData out = (*s)->stack[(*s)->length];
+	if ((*s)->length == 0)
+	{
+		free(*s);
+		*s = NULL;
+	}
+	return out;
 }
 
 static struct StackData* stackPeek(struct Stack* s)
 {
-	return s->stack + s->length - 1;
+	return &(s->stack[s->length - 1]);
 }
 
 bool gpc_anyFails(void)
@@ -113,7 +124,7 @@ bool gpc_anyFails(void)
 static void exitWithMsgAndStatus(void)
 {
 	FILE* out = gpc_anyFails() ? stderr : stdout;
-	fprintf(out, "\tFinished testing\n");
+	fprintf(out, "\t\tFinished testing\n");
 
 	if (gpc_anyFails())
 		exit(EXIT_FAILURE);
@@ -124,7 +135,7 @@ static void gpc_initStartAndExitMessages(void)
 	static bool initialized = false;
 	if ( ! initialized)
 	{
-		printf("\n\tStarting tests in " __FILE__ "...\n\n");
+		printf("\n\t\tStarting tests in " __FILE__ "...\n\n");
 		atexit(exitWithMsgAndStatus);
 		initialized = true;
 	}
@@ -143,20 +154,19 @@ bool gpc_test(const char* name)
 	
 	if ( ! shouldEnd)
 	{
-		current = (char*)name;
+		current = name;
 		stackPush(&gTestStack, name);
-		
 		return true;
 	}
 	else // finishing test
 	{
 		struct StackData test = stackPop(&gTestStack);
 		FILE* out = test.failed ? stderr : stdout;
-		fprintf(out, "Test \"" GPC_ORANGE("%s") "\" %s\n\n",
+		fprintf(out, "\tTest \"" GPC_ORANGE("%s") "\" %s\n\n",
 				test.name,
 				test.failed ? GPC_RED("[FAILED]") : GPC_GREEN("[PASSED]"));
 		
-		current = gTestStack.length > 0 ? stackPeek(&gTestStack)->name : NULL;
+		current = gTestStack ? stackPeek(gTestStack)->name : NULL;
 		
 		return false;
 	}
@@ -164,7 +174,7 @@ bool gpc_test(const char* name)
 
 bool gpc_testSuite(const char* name)
 {
-	static char* current = NULL;
+	static const char* current = NULL;
 	gpc_initStartAndExitMessages();
 	
 	bool shouldEnd = false;
@@ -173,20 +183,21 @@ bool gpc_testSuite(const char* name)
 	if (name != NULL && current != NULL)
 		shouldEnd = strcmp(name, current) == 0;
 	
-	//if ((gSuiteRunning = !gSuiteRunning))
 	if ( ! shouldEnd)
 	{
+		current = name;
 		stackPush(&gSuiteStack, name);
-		
 		return true;
 	}
 	else // finishing test suite
 	{
-		bool failed = stackPeek(&gSuiteStack)->failed;
-		FILE* out = failed ? stderr : stdout;
-		fprintf(out, "Test suite \"" GPC_ORANGE("%s") "\" %s\n\n", // HJGIUORFPHGURE
-				stackPop(&gSuiteStack).name,
-				failed ? GPC_RED("[FAILED]") : GPC_GREEN("[PASSED]"));
+		struct StackData suite = stackPop(&gSuiteStack);
+		FILE* out = suite.failed ? stderr : stdout;
+		fprintf(out, "Test suite \"" GPC_ORANGE("%s") "\" %s\n\n",
+				suite.name,
+				suite.failed ? GPC_RED("[FAILED]") : GPC_GREEN("[PASSED]"));
+		
+		current = gSuiteStack ? stackPeek(gSuiteStack)->name : NULL;
 		
 		return false;
 	}
@@ -208,6 +219,7 @@ gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize)
 	*/
 	gCmpArgs.a = realloc(gCmpArgs.a, bufSize);
 	gCmpArgs.b = realloc(gCmpArgs.b, bufSize);
+
 	return &gCmpArgs;
 }
 
@@ -255,20 +267,6 @@ void* gpc_strfyp(char* buf, ...)
 }
 #undef GET_VAL
 
-// static const char* getOp(const char* op)
-// {
-	// switch(op[0] + op[1])
-	// {
-		// case '=' + '=' : return " == ";
-		// case '!' + '=' : return " != ";
-		// case '<' + '\0': return " < " ;
-		// case '>' + '\0': return " > " ;
-		// case '<' + '=' : return " <= ";
-		// case '>' + '=' : return " >= ";
-	// }
-	// return "";
-// }
-
 int gpc_assertStrcmp(const char* str1, const char* str2)
 {
 	size_t str1len = str1 ? strlen(str1) + sizeof("\"\"") : sizeof("(null)");
@@ -302,8 +300,8 @@ bool gpc_expect(const bool expr,
 	if (expr == true)
 		return true;
 
-	/*func = gTestStack.length > 0 ? stackPeek(&gTestStack)->name :
-		   gSuiteStack.length > 0 ? stackPeek(&gSuiteStack)->name : func;*/
+	func = gTestStack ? stackPeek(gTestStack)->name :
+		   gSuiteStack ? stackPeek(gSuiteStack)->name : func;
 	
 	// TODO test allocating, validity of pointers, never calling getCmpArgs() etc.
 	const char* a_eval = gCmpArgs.a;
@@ -331,12 +329,11 @@ bool gpc_expect(const bool expr,
 		gCmpArgs.b = NULL;
 	}
 	
-	/*
-	if (gTestStack.length > 0)
-		stackPeek(&gTestStack)->failed = true;
-	if (gSuiteStack.length > 0)
-		stackPeek(&gSuiteStack)->failed = true;
-	*/
+	if (gTestStack != NULL)
+		stackPeek(gTestStack)->failed = true;
+	if (gSuiteStack != NULL)
+		stackPeek(gSuiteStack)->failed = true;
+	
 	return false;
 }
 
@@ -344,9 +341,9 @@ bool gpc_exitTests(bool b)
 {
 	if ( ! b)
 		return true;
-	while (gTestStack.length > 0)
+	while (gTestStack->length > 0)
 		gpc_test(NULL);
-	while (gSuiteStack.length > 0)
+	while (gSuiteStack->length > 0)
 		gpc_testSuite(NULL);
 	// TODO kill all owners
 	exit(EXIT_FAILURE);

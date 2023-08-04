@@ -42,7 +42,7 @@ int main(void)
 		EXPECT(s,==,"string"); // Clang: comparison against string literal
 		#endif
 		
-		#define GPC_NON_PASSING_TESTS
+		//#define GPC_NON_PASSING_TESTS
 		#ifdef GPC_NON_PASSING_TESTS
 		// while (test("Non-passing test error messages"))
 		{
@@ -61,28 +61,31 @@ int main(void)
 		free(p);
 	}
 	
-	/*{
-		struct Stack testStack = {0};
+	// while (test("Stack"))
+	{
+		struct Stack* testStack = NULL;
 	
 		stackPush(&testStack, "blah1");
-		ASSERT_STR(stackPeek(&testStack)->name, EQ, "blah1");
-		ASSERT(testStack.length, EQ, 1);
+		EXPECT(testStack->length, ==, (size_t)1);
+		EXPECT_STR(stackPeek(testStack)->name, ==, "blah1");
 		stackPush(&testStack, "blah2");
-		ASSERT_STR(stackPeek(&testStack)->name, EQ, "blah2");
-		ASSERT(testStack.length, EQ, 2);
+		EXPECT_STR(stackPeek(testStack)->name, ==, "blah2");
+		EXPECT(testStack->length, ==, (size_t)2);
 		
-		// FUCKING SIDE EFFECTS IN ASSERT_STR FUCKS UP MY SHIT!!!
-		ASSERT_STR(stackPop(&testStack).name, EQ, "blah2");
-		
-		puts(GPC_GREEN("All is good"));
-		exit(1);
+		EXPECT_STR(stackPop(&testStack).name, ==, "blah2");
+		EXPECT_STR(stackPop(&testStack).name, ==, "blah1");
+		EXPECT( ! testStack);
 	}
 	
 	test("TEST");
 	test("VLAGH");
 	test("VLAGH");
 	test("TEST");
-	exit(1);
+	
+	while (test("blah"))
+		while (test("blahinner"));;
+	
+	//exit(0);
 	
 	// Suites are always stand alone but tests can be either part of a suite
 	// or stand alone. Suites can be nested arbitrarily but it they have no
@@ -133,7 +136,7 @@ int main(void)
 			while (test("nested test"))
 				EXPECT(true);
 		}
-	}*/
+	}
 	
 	// -----------------------------------------------------------------------
 	
