@@ -116,9 +116,17 @@ static struct StackData* stackPeek(struct Stack* s)
 	return &(s->stack[s->length - 1]);
 }
 
+// ---------------------------------------------------------------------------
+
 bool gpc_anyFails(void)
 {
 	return !!gFailedAsserts;
+}
+
+static void indent(FILE* out, size_t level)
+{
+	for (size_t i = 0; i < level; i++)
+		fprintf(out, "\t");
 }
 
 static void exitWithMsgAndStatus(void)
@@ -162,7 +170,9 @@ bool gpc_test(const char* name)
 	{
 		struct StackData test = stackPop(&gTestStack);
 		FILE* out = test.failed ? stderr : stdout;
-		fprintf(out, "\tTest \"" GPC_ORANGE("%s") "\" %s\n\n",
+		size_t indentLevel = gSuiteStack ? gSuiteStack->length : 0;
+		indent(out, indentLevel);
+		fprintf(out, "Test " GPC_ORANGE("\"%s\"") " %s\n",
 				test.name,
 				test.failed ? GPC_RED("[FAILED]") : GPC_GREEN("[PASSED]"));
 		
@@ -186,14 +196,20 @@ bool gpc_testSuite(const char* name)
 	if ( ! shouldEnd)
 	{
 		current = name;
+		size_t indentLevel = gSuiteStack ? gSuiteStack->length : 0;
 		stackPush(&gSuiteStack, name);
+		puts("");
+		indent(stdout, indentLevel);
+		printf("Begin suite " GPC_ORANGE("\"%s\"") "\n", name);
 		return true;
 	}
-	else // finishing test suite
+	else // finishing suite
 	{
 		struct StackData suite = stackPop(&gSuiteStack);
 		FILE* out = suite.failed ? stderr : stdout;
-		fprintf(out, "Test suite \"" GPC_ORANGE("%s") "\" %s\n\n",
+		size_t indentLevel = gSuiteStack ? gSuiteStack->length : 0;
+		indent(out, indentLevel);
+		fprintf(out, "Suite " GPC_ORANGE("\"%s\"") " %s\n\n",
 				suite.name,
 				suite.failed ? GPC_RED("[FAILED]") : GPC_GREEN("[PASSED]"));
 		
@@ -204,19 +220,12 @@ bool gpc_testSuite(const char* name)
 }
 
 gpc_CmpArgs gCmpArgs = {0};
-
 gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize)
 {
 	bool undefinedMalloc = bufSize == 0;
 	if (undefinedMalloc)
 		bufSize = 1;
 	
-	// realloc() is used instead of malloc() in case of multiple calls. This 
-	// allows user to do something like
-	/*
-	strcpy(getCmpArgs(10)->a, "short a");
-	strcpy(getCmpArgs(50)->b, "possibly longer b");
-	*/
 	gCmpArgs.a = realloc(gCmpArgs.a, bufSize);
 	gCmpArgs.b = realloc(gCmpArgs.b, bufSize);
 
@@ -287,7 +296,7 @@ int gpc_assertStrcmp(const char* str1, const char* str2)
 	return strcmp(strp1, strp2);
 }
 
-// TODO more logical order
+// TODO more logical order of args
 bool gpc_expect(const bool expr,
 				const char* op,
 				const char* file,
@@ -312,14 +321,20 @@ bool gpc_expect(const bool expr,
 		b_eval = "";
 	}
 	
-	fprintf(stderr, "%s"GPC_ORANGE("%s%s%s")GPC_RED("%s")"%s%s%s"GPC_WHITE_BG("%s%i")"%s",
-			"Assertion in ","\"",func,"\" ","[FAILED]"," in ",file," ","line ",line,"\n");
+	size_t indentLevel = (gSuiteStack ? gSuiteStack->length : 0) +
+						 (gTestStack  ? gTestStack->length  : 0);
+	
+	indent(stderr, indentLevel);
+	fprintf(stderr, "Assertion in " GPC_ORANGE("\"%s\"") " " GPC_RED("[FAILED]") "\n", func);
+	indent(stderr, indentLevel);
+	fprintf(stderr, "%s " GPC_WHITE_BG("line %i") "\n", file, line);
 	
 	const char* b_space  = *b  ? " " : "";
 	const char* op_space = *op ? " " : "";
-	fprintf(stderr, GPC_MAGENTA("%s%s%s%s%s")"%s%s"GPC_RED("%s%s%s%s%s")"%s%s%s",
-			a, " ", op, b_space, b, b_space, "evaluated to ",
-			a_eval, op_space, op, op_space, b_eval, ". ", failMsg, "\n\n");
+	indent(stderr, indentLevel);
+	fprintf(stderr, GPC_MAGENTA("%s %s%s%s%s")"evaluated to "GPC_RED("%s%s%s%s%s"),
+			a, op, b_space, b, b_space, a_eval, op_space, op, op_space, b_eval);
+	fprintf(stderr, ". " GPC_CYAN("%s") "\n", failMsg);
 	
 	if (gCmpArgs.a != NULL)
 	{

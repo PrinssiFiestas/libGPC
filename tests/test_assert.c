@@ -109,7 +109,7 @@ int main(void)
 				EXPECT(true);
 			
 			while (test("test2 in nested suite"))
-				EXPECT(true);
+				EXPECT(true*false, "fail msg!");
 		}
 		
 		while (test("test in suite1"))
