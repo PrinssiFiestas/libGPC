@@ -62,6 +62,7 @@
 // detailed fail messages e.g. EXPECT(1 + 1,!=,2) instead of EXPECT(1 + 1 != 2).
 #define EXPECT(/*expression, failMsessage=""*/...) GPC_EXPECT(__VA_ARGS__)
 
+// TODO CHEKGGFD NULLLLLLLLLL and overloading
 #define ASSERT_STR(...) GPC_ASSERT_STR(__VA_ARGS__)
 #define EXPECT_STR(...) GPC_EXPECT_STR(__VA_ARGS__)
 
@@ -80,10 +81,16 @@ bool gpc_exitTests(bool);
 	(0 ? (A) OP (B):/*better compiler diagnostics*/	\
 	GPC_STRFYT(A, gpc_getCmpArgs(25)->a) OP GPC_STRFYT(B, gpc_getCmpArgs(25)->b))
 
-#define GPC_ASSERT(...)	\
-	GPC_ASSERT_CUSTOM(GPC_COMPARE, __VA_ARGS__)
-#define GPC_EXPECT(...)	\
-	GPC_EXPECT_CUSTOM(GPC_COMPARE, __VA_ARGS__)
+#define GPC_ASSERT(...) GPC_ASSERT_CUSTOM(GPC_COMPARE, __VA_ARGS__)
+#define GPC_EXPECT(...) GPC_EXPECT_CUSTOM(GPC_COMPARE, __VA_ARGS__)
+
+int gpc_assertStrcmp(const char* str1, const char* str2);
+#define GPC_STR_COMPARE(A, OP, B) (gpc_assertStrcmp((A), (B)) OP 0)
+
+#define GPC_ASSERT_STR(...) GPC_ASSERT_CUSTOM(GPC_STR_COMPARE, __VA_ARGS__)
+#define GPC_EXPECT_STR(...) GPC_EXPECT_CUSTOM(GPC_STR_COMPARE, __VA_ARGS__)
+
+// ---------------------------------------------------------------------------
 
 #define GPC_ASSERT_CUSTOM(COMPARATOR, ...)	\
 	gpc_exitTests( ! GPC_EXPECT_CUSTOM(COMPARATOR, __VA_ARGS__))

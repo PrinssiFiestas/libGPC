@@ -211,7 +211,7 @@ gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize)
 	return &gCmpArgs;
 }
 
-// Macrofying any more than this kills debuggability
+// Not very DRY but macrofying any more than this kills debuggability
 #define GET_VAL(T)			\
 	va_list arg;			\
 	va_start(arg, buf);		\
@@ -269,28 +269,39 @@ static const char* getOp(const char* op)
 	return "";
 }
 
-int gpc_strcmp(const char str1[static 1], const char str2[static 1])
+int gpc_assertStrcmp(const char* str1, const char* str2)
 {
-	if (str1 == str2)
-		return 0;
+	size_t str1len = str1 ? strlen(str1) + sizeof("\"\"") : sizeof("(null)");
+	size_t str2len = str2 ? strlen(str2) + sizeof("\"\"") : sizeof("(null)");
+	gpc_CmpArgs* argBufs = gpc_getCmpArgs(str1len >= str2len ? str1len : str2len);
+	
+	if (str1 != NULL)
+		strcat(strcat(strcpy(argBufs->a, "\""), str1), "\"");
+	else
+		strcpy(argBufs->a, "(null)");
+	if (str2 != NULL)
+		strcat(strcat(strcpy(argBufs->b, "\""), str2), "\"");
+	else
+		strcpy(argBufs->b, "(null)");
+	
 	const char* strp1 = str1 ? str1 : "";
 	const char* strp2 = str2 ? str2 : "";
 	return strcmp(strp1, strp2);
 }
 
-char* gpc_quotify(char** buf, const char* str)
-{
-	(void)buf;
-	if (str == NULL)
-		return strcpy(malloc(sizeof("NULL")), "NULL");
-	const size_t len = strlen(str);
-	char* out = malloc(len + 1/*null*/+ 2/*quotes*/);
-	out[0] = '\"';
-	strcpy(out + 1, str);
-	out[len + 1] = '\"';
-	out[len + 2] = '\0';
-	return out;
-}
+// char* gpc_quotify(char** buf, const char* str)
+// {
+	// (void)buf;
+	// if (str == NULL)
+		// return strcpy(malloc(sizeof("NULL")), "NULL");
+	// const size_t len = strlen(str);
+	// char* out = malloc(len + 1/*null*/+ 2/*quotes*/);
+	// out[0] = '\"';
+	// strcpy(out + 1, str);
+	// out[len + 1] = '\"';
+	// out[len + 2] = '\0';
+	// return out;
+// }
 
 // TODO more logical order
 bool gpc_expect(const bool expr,
@@ -311,13 +322,10 @@ bool gpc_expect(const bool expr,
 	// TODO test allocating, validity of pointers, never calling getCmpArgs() etc.
 	const char* a_eval = gCmpArgs.a;
 	const char* b_eval = gCmpArgs.b;
-	
-	if (gCmpArgs.a != NULL)
+	if ( ! *b)
 	{
-		free(gCmpArgs.a);
-		free(gCmpArgs.b);
-		gCmpArgs.a = NULL;
-		gCmpArgs.b = NULL;
+		a_eval = "false";
+		b_eval = "";
 	}
 	
 	fprintf(stderr, "%s"GPC_ORANGE("%s%s%s")GPC_RED("%s")"%s%s%s"GPC_WHITE_BG("%s%i")"%s",
@@ -327,6 +335,14 @@ bool gpc_expect(const bool expr,
 	fprintf(stderr, GPC_MAGENTA("%s%s%s%s%s")"%s%s"GPC_RED("%s%s%s")"%s%s%s",
 			a, " ", op, b_space, b, b_space, "evaluated to ",
 			a_eval, getOp(op), b_eval, ". ", failMsg, "\n\n");
+	
+	if (gCmpArgs.a != NULL)
+	{
+		free(gCmpArgs.a);
+		free(gCmpArgs.b);
+		gCmpArgs.a = NULL;
+		gCmpArgs.b = NULL;
+	}
 	
 	/*
 	if (gTestStack.length > 0)

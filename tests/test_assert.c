@@ -2,10 +2,6 @@
 // Copyright (c) 2022 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// This file tests the unit testing framework itself. On changes to the
-// to the framework, NON_PASSING_TESTS should be defined to test failing tests
-// and the results should be verified manually.
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -28,13 +24,15 @@ int main(void)
 		unsigned long long u = (unsigned long long)-1;
 		double f = -1.;
 		void* p = malloc(1);
-		char* s = "string";
+		char s[] = "Xtring"; // typo to prevent literals sharing address
+		s[0] = 's';
 		
 		EXPECT(c, ==, i);
 		EXPECT(uc,==, f);
 		EXPECT(uc,==, i);
 		EXPECT(c, ==, f);
-		EXPECT(s, !=, p);
+		EXPECT(s, !=, p); // ptr comparison
+		EXPECT_STR(s, ==, "string");
 		
 		// #define GPC_TEST_WARNINGS
 		#ifdef GPC_TEST_WARNINGS
@@ -53,6 +51,9 @@ int main(void)
 			EXPECT(uc,!=, i);
 			EXPECT(c, !=, f);
 			EXPECT(s, ==, p);
+			EXPECT_STR(s, ==, NULL);
+			EXPECT(false);
+			EXPECT_STR(!"blah");
 		}
 		#endif
 		
