@@ -74,7 +74,7 @@ int main(void)
 		
 		EXPECT_STR(stackPop(&testStack).name, ==, "blah2");
 		EXPECT_STR(stackPop(&testStack).name, ==, "blah1");
-		EXPECT( ! testStack);
+		EXPECT(testStack, ==, &nullStack);
 	}
 
 	while (testSuite("No while loop"))

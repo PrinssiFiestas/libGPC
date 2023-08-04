@@ -11,11 +11,6 @@
 #include "overload.h"
 #include "attributes.h"
 
-
-#pragma GCC diagnostic ignored "-Wcomment" // Temp!
-
-
-
 //----------------------------------------------------------------------------
 //
 //		CORE API
@@ -42,8 +37,8 @@
 		}
 	}
 */
-#define/*bool*/test(/*const char* */name)			gpc_test(name)
-#define/*bool*/testSuite(/*const char* */name)		gpc_testSuite(name)
+#define test(/*const char* */name)			gpc_test(name)
+#define testSuite(/*const char* */name)		gpc_testSuite(name)
 
 // Does nothing when expression is true.
 // Exits program and prints failure message when expression is false.

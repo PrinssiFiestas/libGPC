@@ -13,10 +13,6 @@
 
 static unsigned gPassedAsserts = 0;
 static unsigned gFailedAsserts = 0;
-static unsigned gPassedTests = 0;
-static unsigned gFailedTests = 0;
-static unsigned gPassedSuites = 0;
-static unsigned gFailedSuites = 0;
 
 struct StackData
 {
@@ -29,7 +25,14 @@ struct Stack
 	size_t length;
 	size_t capacity;
 	struct StackData stack[];
-} *gTestStack = NULL, *gSuiteStack = NULL;
+} nullStack = {0};
+
+struct globalData
+{
+	unsigned passed;
+	unsigned failed;
+	struct Stack* stack;
+} gTests = { .stack = &nullStack }, gSuites = { .stack = &nullStack };
 
 static size_t nextPowOf2(size_t x)
 {
@@ -40,7 +43,7 @@ static size_t nextPowOf2(size_t x)
 
 static void stackPush(struct Stack** s, const char* str)
 {
-	if (*s == NULL)
+	if (*s == NULL || *s == &nullStack)
 	{
 		const size_t INIT_CAP = 1;
 		*s = calloc(sizeof(struct Stack) + nextPowOf2(INIT_CAP) * sizeof(struct StackData), 1);
@@ -68,7 +71,7 @@ static struct StackData stackPop(struct Stack** s)
 	if ((*s)->length == 0)
 	{
 		free(*s);
-		*s = NULL;
+		*s = &nullStack;
 	}
 	return out;
 }
@@ -105,8 +108,8 @@ static void exitWithMsgAndStatus(void)
 {
 	fprintf(gpc_anyFails() ? stderr : stdout, "\t\tFinished testing\n\n");
 	
-	printResult("suites",     gPassedSuites,  gFailedSuites);
-	printResult("tests",      gPassedTests,   gFailedTests);
+	printResult("suites",     gSuites.passed, gSuites.failed);
+	printResult("tests",      gTests.passed,  gTests.failed);
 	printResult("assertions", gPassedAsserts, gFailedAsserts);
 	
 	if (gpc_anyFails())
@@ -124,41 +127,56 @@ static void gpc_initStartAndExitMessages(void)
 	}
 }
 
+static bool testOrSuite(const char* name, const char** current, struct globalData* testOrSuite)
+{
+	bool shouldEnd = false;
+	if (name == NULL)
+		shouldEnd = true;
+	if (name != NULL && *current != NULL)
+		shouldEnd = strcmp(name, *current) == 0;
+	
+	bool isSuite = testOrSuite == &gSuites;
+	size_t indentLevel = gSuites.stack->length;
+	
+	if ( ! shouldEnd)
+	{
+		*current = name;
+		stackPush(&testOrSuite->stack, name);
+		if (isSuite)
+		{
+			puts("");
+			indent(stdout, indentLevel);
+			printf("Begin suite " GPC_ORANGE("\"%s\"") "\n", name);
+		}
+		return true;
+	}
+	else // finishing
+	{
+		struct StackData t = stackPop(&testOrSuite->stack);
+		if (t.failed)
+			testOrSuite->failed++;
+		else
+			testOrSuite->passed++;
+		FILE* out = t.failed ? stderr : stdout;
+		indent(out, indentLevel - isSuite);
+		fprintf(out, "%s " GPC_ORANGE("\"%s\"") " %s\n",
+				isSuite ? "Suite" : "Test", t.name,
+				t.failed ? GPC_RED("[FAILED]") : GPC_GREEN("[PASSED]"));
+		if (isSuite)
+			puts("");
+		
+		*current = stackPeek(testOrSuite->stack)->name;
+		
+		return false;
+	}
+}
+
 bool gpc_test(const char* name)
 {	
 	static const char* current = NULL;
 	gpc_initStartAndExitMessages();
-		
-	bool shouldEnd = false;
-	if (name == NULL)
-		shouldEnd = true;
-	if (name != NULL && current != NULL)
-		shouldEnd = strcmp(name, current) == 0;
 	
-	if ( ! shouldEnd)
-	{
-		current = name;
-		stackPush(&gTestStack, name);
-		return true;
-	}
-	else // finishing test
-	{
-		struct StackData test = stackPop(&gTestStack);
-		if (test.failed)
-			gFailedTests++;
-		else
-			gPassedTests++;
-		FILE* out = test.failed ? stderr : stdout;
-		size_t indentLevel = gSuiteStack ? gSuiteStack->length : 0;
-		indent(out, indentLevel);
-		fprintf(out, "Test " GPC_ORANGE("\"%s\"") " %s\n",
-				test.name,
-				test.failed ? GPC_RED("[FAILED]") : GPC_GREEN("[PASSED]"));
-		
-		current = gTestStack ? stackPeek(gTestStack)->name : NULL;
-		
-		return false;
-	}
+	return testOrSuite(name, &current, &gTests);
 }
 
 bool gpc_testSuite(const char* name)
@@ -166,40 +184,7 @@ bool gpc_testSuite(const char* name)
 	static const char* current = NULL;
 	gpc_initStartAndExitMessages();
 	
-	bool shouldEnd = false;
-	if (name == NULL)
-		shouldEnd = true;
-	if (name != NULL && current != NULL)
-		shouldEnd = strcmp(name, current) == 0;
-	
-	if ( ! shouldEnd)
-	{
-		current = name;
-		size_t indentLevel = gSuiteStack ? gSuiteStack->length : 0;
-		stackPush(&gSuiteStack, name);
-		puts("");
-		indent(stdout, indentLevel);
-		printf("Begin suite " GPC_ORANGE("\"%s\"") "\n", name);
-		return true;
-	}
-	else // finishing suite
-	{
-		struct StackData suite = stackPop(&gSuiteStack);
-		if (suite.failed)
-			gFailedSuites++;
-		else
-			gPassedSuites++;
-		FILE* out = suite.failed ? stderr : stdout;
-		size_t indentLevel = gSuiteStack ? gSuiteStack->length : 0;
-		indent(out, indentLevel);
-		fprintf(out, "Suite " GPC_ORANGE("\"%s\"") " %s\n\n",
-				suite.name,
-				suite.failed ? GPC_RED("[FAILED]") : GPC_GREEN("[PASSED]"));
-		
-		current = gSuiteStack ? stackPeek(gSuiteStack)->name : NULL;
-		
-		return false;
-	}
+	return testOrSuite(name, &current, &gSuites);
 }
 
 gpc_CmpArgs gCmpArgs = {0};
@@ -291,11 +276,11 @@ bool gpc_expect(const bool expr,
 	if (expr == true)
 	{
 		gPassedAsserts++;
-		return true;
+		goto finish;
 	}
 
-	func = gTestStack ? stackPeek(gTestStack)->name :
-		   gSuiteStack ? stackPeek(gSuiteStack)->name : func;
+	func = gTests.stack->length  > 0 ? stackPeek(gTests.stack)->name  :
+		   gSuites.stack->length > 0 ? stackPeek(gSuites.stack)->name : func;
 	
 	const char* a_eval = gCmpArgs.a;
 	const char* b_eval = gCmpArgs.b;
@@ -305,8 +290,7 @@ bool gpc_expect(const bool expr,
 		b_eval = "";
 	}
 	
-	size_t indentLevel = (gSuiteStack ? gSuiteStack->length : 0) +
-						 (gTestStack  ? gTestStack->length  : 0);
+	size_t indentLevel = gSuites.stack->length + gTests.stack->length;
 	
 	indent(stderr, indentLevel);
 	fprintf(stderr, "Assertion in " GPC_ORANGE("\"%s\"") " " GPC_RED("[FAILED]") "\n", func);
@@ -320,6 +304,12 @@ bool gpc_expect(const bool expr,
 			a, op, b_space, b, b_space, a_eval, op_space, op, op_space, b_eval);
 	fprintf(stderr, ". " GPC_CYAN("%s") "\n", failMsg);
 	
+	gFailedAsserts++;
+	stackPeek(gTests.stack)->failed = true;
+	stackPeek(gSuites.stack)->failed = true;
+	nullStack = (struct Stack){0}; // in case of accidental modification
+	
+	finish:
 	if (gCmpArgs.a != NULL)
 	{
 		free(gCmpArgs.a);
@@ -327,23 +317,16 @@ bool gpc_expect(const bool expr,
 		gCmpArgs.a = NULL;
 		gCmpArgs.b = NULL;
 	}
-	
-	gFailedAsserts++;
-	if (gTestStack != NULL)
-		stackPeek(gTestStack)->failed = true;
-	if (gSuiteStack != NULL)
-		stackPeek(gSuiteStack)->failed = true;
-	
-	return false;
+	return expr;
 }
 
 bool gpc_exitTests(bool b)
 {
 	if ( ! b)
 		return true;
-	while (gTestStack->length > 0)
+	while (gTests.stack->length > 0)
 		gpc_test(NULL);
-	while (gSuiteStack->length > 0)
+	while (gSuites.stack->length > 0)
 		gpc_testSuite(NULL);
 	// TODO kill all owners
 	exit(EXIT_FAILURE);
