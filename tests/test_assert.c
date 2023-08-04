@@ -54,6 +54,7 @@ int main(void)
 			EXPECT_STR(s, ==, NULL);
 			EXPECT(false);
 			EXPECT_STR(!"blah");
+			EXPECT(0 + 1, &&, false);
 		}
 		#endif
 		

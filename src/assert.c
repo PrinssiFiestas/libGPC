@@ -255,19 +255,19 @@ void* gpc_strfyp(char* buf, ...)
 }
 #undef GET_VAL
 
-static const char* getOp(const char* op)
-{
-	switch(op[0] + op[1])
-	{
-		case '=' + '=' : return " == ";
-		case '!' + '=' : return " != ";
-		case '<' + '\0': return " < " ;
-		case '>' + '\0': return " > " ;
-		case '<' + '=' : return " <= ";
-		case '>' + '=' : return " >= ";
-	}
-	return "";
-}
+// static const char* getOp(const char* op)
+// {
+	// switch(op[0] + op[1])
+	// {
+		// case '=' + '=' : return " == ";
+		// case '!' + '=' : return " != ";
+		// case '<' + '\0': return " < " ;
+		// case '>' + '\0': return " > " ;
+		// case '<' + '=' : return " <= ";
+		// case '>' + '=' : return " >= ";
+	// }
+	// return "";
+// }
 
 int gpc_assertStrcmp(const char* str1, const char* str2)
 {
@@ -288,20 +288,6 @@ int gpc_assertStrcmp(const char* str1, const char* str2)
 	const char* strp2 = str2 ? str2 : "";
 	return strcmp(strp1, strp2);
 }
-
-// char* gpc_quotify(char** buf, const char* str)
-// {
-	// (void)buf;
-	// if (str == NULL)
-		// return strcpy(malloc(sizeof("NULL")), "NULL");
-	// const size_t len = strlen(str);
-	// char* out = malloc(len + 1/*null*/+ 2/*quotes*/);
-	// out[0] = '\"';
-	// strcpy(out + 1, str);
-	// out[len + 1] = '\"';
-	// out[len + 2] = '\0';
-	// return out;
-// }
 
 // TODO more logical order
 bool gpc_expect(const bool expr,
@@ -331,10 +317,11 @@ bool gpc_expect(const bool expr,
 	fprintf(stderr, "%s"GPC_ORANGE("%s%s%s")GPC_RED("%s")"%s%s%s"GPC_WHITE_BG("%s%i")"%s",
 			"Assertion in ","\"",func,"\" ","[FAILED]"," in ",file," ","line ",line,"\n");
 	
-	const char* b_space = *b ? " " : "";
-	fprintf(stderr, GPC_MAGENTA("%s%s%s%s%s")"%s%s"GPC_RED("%s%s%s")"%s%s%s",
+	const char* b_space  = *b  ? " " : "";
+	const char* op_space = *op ? " " : "";
+	fprintf(stderr, GPC_MAGENTA("%s%s%s%s%s")"%s%s"GPC_RED("%s%s%s%s%s")"%s%s%s",
 			a, " ", op, b_space, b, b_space, "evaluated to ",
-			a_eval, getOp(op), b_eval, ". ", failMsg, "\n\n");
+			a_eval, op_space, op, op_space, b_eval, ". ", failMsg, "\n\n");
 	
 	if (gCmpArgs.a != NULL)
 	{
