@@ -10,18 +10,18 @@
 
 int main(void)
 {
-	// while (test("Whitespace"))
+	while (test("Whitespace"))
 	{
 		EXPECT(1,==,1);
 		EXPECT(1,      ==          ,1);
 	}
 	
-	// while (test("Types in expectations"))
+	while (test("Types in expectations"))
 	{
 		char c = -1;
 		unsigned char uc = (unsigned char)-1;
 		long long i = -1;
-		unsigned long long u = (unsigned long long)-1;
+		unsigned long long u = (unsigned long long)-1; (void)u;
 		double f = -1.;
 		void* p = malloc(1);
 		char s[] = "Xtring"; // typo to prevent literals sharing address
@@ -44,7 +44,7 @@ int main(void)
 		
 		//#define GPC_NON_PASSING_TESTS
 		#ifdef GPC_NON_PASSING_TESTS
-		// while (test("Non-passing test error messages"))
+		while (test("Non-passing test error messages"))
 		{
 			EXPECT(c, !=, i);
 			EXPECT(uc,!=, f);
@@ -61,7 +61,7 @@ int main(void)
 		free(p);
 	}
 	
-	// while (test("Stack"))
+	while (test("Stack"))
 	{
 		struct Stack* testStack = NULL;
 	
@@ -76,24 +76,17 @@ int main(void)
 		EXPECT_STR(stackPop(&testStack).name, ==, "blah1");
 		EXPECT( ! testStack);
 	}
-	
-	test("TEST");
-	test("VLAGH");
-	test("VLAGH");
-	test("TEST");
+
+	while (testSuite("No while loop"))
+	{
+		test("TEST");
+		test("TEST"); // ends "TEST"
+		test("OTHER TEST");
+		test(NULL); // ends "OTHER TEST"
+	}
 	
 	while (test("blah"))
 		while (test("blahinner"));;
-	
-	//exit(0);
-	
-	// Suites are always stand alone but tests can be either part of a suite
-	// or stand alone. Suites can be nested arbitrarily but it they have no
-	// awareness of each other. Tests can also be nested arbitrarily and they 
-	// also have no awareness of each other but they get regitered to suites 
-	// they belong if any. 
-	
-	// So a global suite stack is needed and each suite needs a test stack. 
 	
 	while (test("not in suite"))
 		EXPECT(true);
@@ -109,7 +102,7 @@ int main(void)
 				EXPECT(true);
 			
 			while (test("test2 in nested suite"))
-				EXPECT(true*false, "fail msg!");
+				EXPECT(true, "fail msg!");
 		}
 		
 		while (test("test in suite1"))

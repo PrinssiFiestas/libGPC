@@ -11,50 +11,12 @@
 #include "../include/gpc/assert.h"
 #include "terminalcolors.h"
 
-
-// ---------------------------------------------------------------------------
-// MOVE THESE TO overload.c
-
-bool gpc_isUnsigned(const enum gpc_Type T) { return T < GPC_BOOL; }
-bool gpc_isInteger(const enum gpc_Type T) { return T < GPC_FLOAT; }
-bool gpc_isFloating(const enum gpc_Type T) { return GPC_FLOAT <= T && T < GPC_CHAR_PTR; }
-bool gpc_isPointer(const enum gpc_Type T) { return GPC_CHAR_PTR <= T && T < GPC_PTR; }
-
-size_t gpc_sizeof(const enum gpc_Type T)
-{
-	switch (T)
-	{
-		case GPC_UNSIGNED_CHAR:			return sizeof(unsigned char);
-		case GPC_UNSIGNED_SHORT:		return sizeof(unsigned short);
-		case GPC_UNSIGNED:				return sizeof(unsigned);
-		case GPC_UNSIGNED_LONG:			return sizeof(unsigned long);
-		case GPC_UNSIGNED_LONG_LONG:	return sizeof(unsigned long long);
-		case GPC_BOOL:					return sizeof(bool);
-		case GPC_CHAR:					return sizeof(char);
-		case GPC_SHORT:					return sizeof(short);
-		case GPC_INT:					return sizeof(int);
-		case GPC_LONG:					return sizeof(long);
-		case GPC_LONG_LONG:				return sizeof(long long);
-		case GPC_FLOAT:					return sizeof(float);
-		case GPC_DOUBLE:				return sizeof(double);
-		case GPC_CHAR_PTR:				return sizeof(char*);
-		case GPC_PTR:					return sizeof(void*);
-	}
-	return 0;
-}
-// ---------------------------------------------------------------------------
-
-
-
-#pragma GCC diagnostic ignored "-Wunused-parameter" // REMOVE
-#pragma GCC diagnostic ignored "-Wunused-variable" // REMOVE
-
-static unsigned gPassedAsserts			= 0;
-static unsigned gFailedAsserts			= 0;
-static unsigned gPassedTests			= 0;
-static unsigned gFailedTests			= 0;
-static unsigned gPassedSuites			= 0;
-static unsigned gFailedSuites			= 0;
+static unsigned gPassedAsserts = 0;
+static unsigned gFailedAsserts = 0;
+static unsigned gPassedTests = 0;
+static unsigned gFailedTests = 0;
+static unsigned gPassedSuites = 0;
+static unsigned gFailedSuites = 0;
 
 struct StackData
 {
@@ -129,13 +91,26 @@ static void indent(FILE* out, size_t level)
 		fprintf(out, "\t");
 }
 
-static void exitWithMsgAndStatus(void)
+static void printResult(const char* target, unsigned passed, unsigned failed)
 {
 	FILE* out = gpc_anyFails() ? stderr : stdout;
-	fprintf(out, "\t\tFinished testing\n");
+	fprintf(out, "From a total of %u %s ", passed + failed, target);
+	if (failed > 0)
+		fprintf(out, GPC_RED("%u failed!") "\n", failed);
+	else
+		fprintf(out, GPC_GREEN("%u failed.") "\n", failed);
+}
 
+static void exitWithMsgAndStatus(void)
+{
+	fprintf(gpc_anyFails() ? stderr : stdout, "\t\tFinished testing\n\n");
+	
+	printResult("suites",     gPassedSuites,  gFailedSuites);
+	printResult("tests",      gPassedTests,   gFailedTests);
+	printResult("assertions", gPassedAsserts, gFailedAsserts);
+	
 	if (gpc_anyFails())
-		exit(EXIT_FAILURE);
+		exit(EXIT_FAILURE); // set exit status
 }
 
 static void gpc_initStartAndExitMessages(void)
@@ -169,6 +144,10 @@ bool gpc_test(const char* name)
 	else // finishing test
 	{
 		struct StackData test = stackPop(&gTestStack);
+		if (test.failed)
+			gFailedTests++;
+		else
+			gPassedTests++;
 		FILE* out = test.failed ? stderr : stdout;
 		size_t indentLevel = gSuiteStack ? gSuiteStack->length : 0;
 		indent(out, indentLevel);
@@ -206,6 +185,10 @@ bool gpc_testSuite(const char* name)
 	else // finishing suite
 	{
 		struct StackData suite = stackPop(&gSuiteStack);
+		if (suite.failed)
+			gFailedSuites++;
+		else
+			gPassedSuites++;
 		FILE* out = suite.failed ? stderr : stdout;
 		size_t indentLevel = gSuiteStack ? gSuiteStack->length : 0;
 		indent(out, indentLevel);
@@ -306,7 +289,10 @@ bool gpc_expect(const bool expr,
 				const char* func)
 {
 	if (expr == true)
+	{
+		gPassedAsserts++;
 		return true;
+	}
 
 	func = gTestStack ? stackPeek(gTestStack)->name :
 		   gSuiteStack ? stackPeek(gSuiteStack)->name : func;
@@ -342,6 +328,7 @@ bool gpc_expect(const bool expr,
 		gCmpArgs.b = NULL;
 	}
 	
+	gFailedAsserts++;
 	if (gTestStack != NULL)
 		stackPeek(gTestStack)->failed = true;
 	if (gSuiteStack != NULL)
