@@ -15,83 +15,83 @@ int main(void)
 	Owner* thisScope = newOwner();
 	
 	int* arr = newS(int[3], 1, 4, 7);
-	TEST(array_creation)
+	while (test("array creation"))
 	{
-		ASSERT(arr[2] EQ 7);
-		ASSERT(getOwner(arr) EQ thisScope);
+		ASSERT(arr[2],==,7);
+		ASSERT(getOwner(arr),==,thisScope);
 	}
 	
-	TEST(arrSetLength_and_arrLength)
+	while (test("arrSetLength and arrLength"))
 	{
-		ASSERT(arrLength(arr) EQ 3);
+		ASSERT(arrLength(arr),==,(size_t)3);
 		arrSetLength(&arr, 1);
-		ASSERT(size(arr) EQ /*arrLength(arr) * */sizeof(arr[0]));
+		ASSERT(size(arr),==,/*arrLength(arr) * */sizeof(arr[0]));
 		arrSetLength(&arr, 3);
-		ASSERT(arr[2] EQ 0);
-		ASSERT(size(arr) EQ 3*sizeof(arr[0]));
+		ASSERT(arr[2],==,0);
+		ASSERT(size(arr),==,3*sizeof(arr[0]));
 	}
 	
-	TEST(arrSetCapacity_and_arrGetCapacity)
+	while (test("arrSetCapacity and arrGetCapacity"))
 	{
 		newOwner();
 		double* arrd = newS(double[], .4);
 		arrReserve(&arrd, 5);
 		ASSERT(onHeap(arrd));
-		ASSERT(arrCapacity(arrd) EQ /*nextPowerOf(5)=*/8);
+		ASSERT(arrCapacity(arrd),==,/*nextPowerOf(5)=*/(size_t)8);
 		freeOwner(NULL);
 	}
 	
-	TEST(arrBack_and_arrLast)
+	while (test("arrBack and arrLast"))
 	{
 		int* arr2 = newS(int[], 3, 6, 7, 9);
-		ASSERT(*arrBack(arr2) EQ arrLast(arr2));
-		ASSERT(arrLast(arr2) EQ 9);
+		ASSERT(*arrBack(arr2),==,arrLast(arr2));
+		ASSERT(arrLast(arr2),==,9);
 	}
 	
-	TEST(arrPush)
+	while (test("arrPush"))
 	{
 		size_t oldLength = arrLength(arr);
-		ASSERT(arrPush(&arr, 100) EQ 100);
-		ASSERT(arrLast(arr) EQ 100);
-		ASSERT(arrLength(arr) EQ oldLength + 1);
+		ASSERT(arrPush(&arr, 100),==,100);
+		ASSERT(arrLast(arr),==,100);
+		ASSERT(arrLength(arr),==,oldLength + 1);
 	}
 	
-	TEST(arrPushArr)
+	while (test("arrPushArr"))
 	{
 		int* arrS = allocS(35);
 		int* arrH = newH(int[], 6, 8, 12, 5, 7);
 		
 		// Return value
-		ASSERT(arrPushArr(&arrS, arrH) EQ arrH);
+		ASSERT(arrPushArr(&arrS, arrH),==,arrH);
 		
-		ASSERT(arrLast(arrS) EQ 7);
-		ASSERT(size(arrS) EQ size(arrH));
+		ASSERT(arrLast(arrS),==,7);
+		ASSERT(size(arrS),==,size(arrH));
 	}
 	
-	TEST(arrPop)
+	while (test("arrPop"))
 	{
 		int lastValue = arrLast(arr);
 		size_t lastLength = arrLength(arr);
-		ASSERT(arrPop(&arr, 1) EQ lastValue);
-		ASSERT(arrLength(arr) EQ lastLength - 1);
+		ASSERT(arrPop(&arr, 1),==,lastValue);
+		ASSERT(arrLength(arr),==,lastLength - 1);
 		
 		lastLength = arrLength(arr);
 		arrPop(&arr, 2);
-		ASSERT(arrLength(arr) EQ lastLength - 2);
+		ASSERT(arrLength(arr),==,lastLength - 2);
 		
 		arrPop(&arr, 5329);
-		ASSERT(arrLength(arr) EQ 0);
+		ASSERT(arrLength(arr),==,(size_t)0);
 	}
 
-	TEST(arrSwitchElems)
+	while (test("arrSwitchElems"))
 	{
 		wchar_t* str = newH(wchar_t[], L"0123456789");
 		gpc_arrSwitchElems(&str, 2, 6, sizeof(str[0]), 3);
-		if (EXPECT( ! wcscmp(str, L"0167852349")))
-			fprintf(stderr, "%ls", str);
+		if ( ! EXPECT( ! wcscmp(str, L"0167852349")))
+			fprintf(stderr, "%ls\n", str);
 	}
 	
-	TEST(arrInsert)
+	while (test("arrInsert"))
 	{
 		long* arr = newS(long[], 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 		size_t i = 4;
@@ -99,18 +99,18 @@ int main(void)
 		long old_arr_i = arr[i];
 		size_t oldLength = arrLength(arr);
 		
-		ASSERT(arrInsert(&arr, i, newVal) EQ newVal);
+		ASSERT(arrInsert(&arr, i, newVal),==,newVal);
 		
 		for (size_t i = 0; i < arrLength(arr); i++)
 			printf("%li, ", arr[i]);
 		puts("");
 		
-		EXPECT(arr[i] = newVal);
-		ASSERT(arr[i + 1] EQ old_arr_i);
-		ASSERT(arrLength(arr) EQ oldLength + 1);
+		EXPECT((arr[i] = newVal));
+		ASSERT(arr[i + 1],==,old_arr_i);
+		ASSERT(arrLength(arr),==,oldLength + 1);
 	}
 	
-	TEST(arrInsertArr)
+	while (test("arrInsertArr"))
 	{
 		long* arr = newS(long[], 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 		size_t i = 4;
@@ -124,12 +124,12 @@ int main(void)
 			printf("%li, ", arr[i]);
 		puts("");
 		
-		EXPECT(arr[i] EQ arr2[0]);
-		ASSERT(arr[i + arrLength(arr2)] EQ old_arr_i);
-		ASSERT(arrLength(arr) EQ oldLength + arrLength(arr2));
+		EXPECT(arr[i],==,arr2[0]);
+		ASSERT(arr[i + arrLength(arr2)],==,old_arr_i);
+		ASSERT(arrLength(arr),==,oldLength + arrLength(arr2));
 	}
 	
-	TEST(arrDelete)
+	while (test("arrDelete"))
 	{
 		long* arr = newH(long[], 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 		size_t i = 4;
@@ -139,9 +139,9 @@ int main(void)
 		memmove(arr + i, arr + i + n, n * sizeof(*arr)),
 		gpc_arrSetLength(&arr, gpc_arrLength(arr) - n);
 		
-		ASSERT(arr[i - 1] EQ i - 1);
-		ASSERT(arr[i] EQ i + 2);
-		ASSERT(arrLength(arr) EQ oldLength - n);
+		ASSERT(arr[i - 1],==,(long)i - 1);
+		ASSERT(arr[i],==,(long)i + 2);
+		ASSERT(arrLength(arr),==,oldLength - n);
 	}
 	
 	freeOwner(NULL);

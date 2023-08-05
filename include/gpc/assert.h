@@ -150,23 +150,24 @@ typedef struct gpc_CmpArgs
 gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize);
 
 // Store formatted VAR in BUF and return VAR. VAR will be promoted if not bool.
-#define GPC_STRFYT(VAR, BUF)								\
-	_Generic(VAR,											\
-			bool:				gpc_strfyb((BUF), (VAR)),	\
-			short:				gpc_strfyi((BUF), (VAR)),	\
-			int:				gpc_strfyi((BUF), (VAR)),	\
-			long:				gpc_strfyi((BUF), (VAR)),	\
-			long long:			gpc_strfyi((BUF), (VAR)),	\
-			unsigned short:		gpc_strfyu((BUF), (VAR)),	\
-			unsigned int:		gpc_strfyu((BUF), (VAR)),	\
-			unsigned long:		gpc_strfyu((BUF), (VAR)),	\
-			unsigned long long:	gpc_strfyu((BUF), (VAR)),	\
-			float:				gpc_strfyf((BUF), (VAR)),	\
-			double:				gpc_strfyf((BUF), (VAR)),	\
-			char:				gpc_strfyc((BUF), (VAR)),	\
-			unsigned char:		gpc_strfyc((BUF), (VAR)),	\
-			char*:				gpc_strfyp((BUF), (VAR)),	\
-			const char*:		gpc_strfyp((BUF), (VAR)),	\
+
+#define GPC_STRFYT(VAR, BUF)											\
+	_Generic(VAR,														\
+			bool:				gpc_strfyb((BUF), (VAR)),				\
+			short:				gpc_strfyi((BUF), (ptrdiff_t)(VAR)),	\
+			int:				gpc_strfyi((BUF), (ptrdiff_t)(VAR)),	\
+			long:				gpc_strfyi((BUF), (ptrdiff_t)(VAR)),	\
+			long long:			gpc_strfyi((BUF), (ptrdiff_t)(VAR)),	\
+			unsigned short:		gpc_strfyu((BUF), (uintptr_t)(VAR)),	\
+			unsigned int:		gpc_strfyu((BUF), (uintptr_t)(VAR)),	\
+			unsigned long:		gpc_strfyu((BUF), (uintptr_t)(VAR)),	\
+			unsigned long long:	gpc_strfyu((BUF), (uintptr_t)(VAR)),	\
+			float:				gpc_strfyf((BUF), (VAR)),				\
+			double:				gpc_strfyf((BUF), (VAR)),				\
+			char:				gpc_strfyc((BUF), (VAR)),				\
+			unsigned char:		gpc_strfyc((BUF), (VAR)),				\
+			char*:				gpc_strfyp((BUF), (VAR)),				\
+			const char*:		gpc_strfyp((BUF), (VAR)),				\
 			default:			gpc_strfyp((BUF), (VAR))) // pointer
 
 // var is variadic to get around type system when using STRFYT() macro.

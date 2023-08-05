@@ -17,7 +17,7 @@
 
 void foo(void)
 {
-	while (test("Tests and assertions can be anywhere")
+	while (test("Tests and assertions can be anywhere"))
 		EXPECT(true);
 	
 	ASSERT(true);
@@ -72,6 +72,7 @@ int main(void)
 			EXPECT(uc,==, f);
 			EXPECT(uc,==, i);
 			ASSERT(c, ==, f);
+			ASSERT(f, ==, -1.f);
 		}
 		
 		while (test("Pointers"))

@@ -30,38 +30,38 @@ int main(void)
 	
 	gpc_Owner* thisScope = newOwner();
 
-	TEST(nextPowerOf2)
+	while (test("nextPowerOf2"))
 	{
 		unsigned long n = 3;
-		ASSERT(gpc_nextPowerOf2(n) EQ 4);
-		ASSERT(gpc_nextPowerOf2(4) EQ 4, "Prevent needless allocations!");
-		ASSERT(gpc_nextPowerOf2(28) EQ 32);
-		ASSERT(gpc_nextPowerOf2(SIZE_MAX/2 + 1) LE SIZE_MAX);
+		ASSERT(gpc_nextPowerOf2(n),==,(unsigned long)4);
+		ASSERT(gpc_nextPowerOf2(4),==,(unsigned long)4, "Prevent needless allocations!");
+		ASSERT(gpc_nextPowerOf2(28),==,(unsigned long)32);
+		ASSERT(gpc_nextPowerOf2(SIZE_MAX/2 + 1),<=,SIZE_MAX);
 	}
 	
 	const size_t obj0Cap = 4;
 	char* obj0 = mallocAssign(obj0Cap, NULL);
 	
-	TEST(ownermallocate)
-		ASSERT(getOwner(obj0) EQ thisScope);
+	while (test("owner mallocate"))
+		ASSERT(getOwner(obj0),==,thisScope);
 	
 	obj0 = resize(obj0, 2);
 	obj0[0] = 'X';
 	obj0[1] = '\0';
 	
-	TEST(owner)
-		ASSERT(getOwner(obj0) EQ thisScope);
+	while (test("owner"))
+		ASSERT(getOwner(obj0),==,thisScope);
 	
 	int* obj1 = callocAssign(3, sizeof(obj1[0]), thisScope);
 
-	TEST_SUITE(memoryLocationCheck)
+	while (testSuite("memory location check"))
 	{
-		TEST(onHeap)
+		while (test("onHeap"))
 		{
 			ASSERT(doubleCheck(obj1, thisScope));
 			ASSERT(onHeap(obj1));
 		}
-		TEST(onStack)
+		while (test("onStack"))
 		{
 			uint8_t objSmem[sizeof(struct gpc_ObjectList) + 1] = {0};
 			struct gpc_ObjectList* objSdata = (struct gpc_ObjectList*)objSmem;
@@ -74,76 +74,76 @@ int main(void)
 		
 	}
 
-	TEST(newH_and_allocH)
+	while (test("newH and allocH"))
 	{
 		ASSERT(!onStack(newH(int, 0)));
 		ASSERT(onHeap(allocH(sizeof(int))));
-		ASSERT(size(newH(int8_t[15], 0)) EQ 15);
-		ASSERT(*(int*)newH(int, 3) EQ 3);
-		ASSERT(capacity(allocH(sizeof(int8_t[15]))) EQ gpc_nextPowerOf2(15));
+		ASSERT(size(newH(int8_t[15], 0)),==,(size_t)15);
+		ASSERT(*(int*)newH(int, 3),==,3);
+		ASSERT(capacity(allocH(sizeof(int8_t[15]))),==,gpc_nextPowerOf2(15));
 	}
 
-	TEST(newS_and_allocS)
+	while (test("newS and allocS"))
 	{
 		ASSERT(onStack(newS(int, 0)));
 		ASSERT(!onHeap(allocS(sizeof(int))));
-		ASSERT(size(allocS(sizeof(int8_t[15]))) EQ 0);
-		ASSERT(size(newS(int8_t[15], 0)) EQ 15);
-		ASSERT(*(int*)newS(int, 5) EQ 5);
-		ASSERT(capacity(newS(int8_t[15], 0)) EQ 15);
+		ASSERT(size(allocS(sizeof(int8_t[15]))),==,(size_t)0);
+		ASSERT(size(newS(int8_t[15], 0)),==,(size_t)15);
+		ASSERT(*(int*)newS(int, 5),==,5);
+		ASSERT(capacity(newS(int8_t[15], 0)),==,(size_t)15);
 	}
 	
-	TEST(allocaAssign)
+	while (test("allocaAssign"))
 	{
-		ASSERT(size(allocaAssign(5, NULL)) EQ 0);
-		ASSERT(capacity(allocaAssign(5, thisScope)) EQ 5);
+		ASSERT(size(allocaAssign(5, NULL)),==,(size_t)0);
+		ASSERT(capacity(allocaAssign(5, thisScope)),==,(size_t)5);
 	}
 	
-	TEST(callocAssign)
-		ASSERT(obj1[2] EQ 0);
+	while (test("callocAssign"))
+		ASSERT(obj1[2],==,0);
 	
 	// To help debugging
 	obj1[1] = 0xEFBE; // BEEF
 	
-	TEST(reallocate)
+	while (test("reallocate"))
 	{
 		uint32_t* obj0Original = (uint32_t*)obj0;
 		obj0 = reallocate(obj0, obj0Cap * 2);
-		ASSERT(obj0 EQ "X", "Memory not copied!");
-		ASSERT(*obj0Original EQ FREED4);
-		ASSERT(capacity(obj0) EQ obj0Cap * 2);
+		ASSERT(obj0[0],==,'X', "Memory not copied!");
+		ASSERT(*obj0Original,==,FREED4);
+		ASSERT(capacity(obj0),==,obj0Cap * 2);
 	}
 	
-	TEST(setSize_and_reallocate)
+	while (test("setSize and reallocate"))
 	{
 		uint32_t* obj1Original = (uint32_t*)obj1;
 		size_t oldCapacity = capacity(obj1);
 		obj1 = reallocate(obj1, oldCapacity + 1);
-		ASSERT(*obj1Original EQ FREED4);
-		ASSERT(capacity(obj1) EQ gpc_nextPowerOf2(oldCapacity + 1));
+		ASSERT(*obj1Original,==,FREED4);
+		ASSERT(capacity(obj1),==,gpc_nextPowerOf2(oldCapacity + 1));
 		
 		int* obj1NonMoved = obj1;
-		ASSERT(obj1 = resize(obj1, capacity(obj1)) EQ obj1NonMoved);
+		ASSERT(obj1 = resize(obj1, capacity(obj1)),==,obj1NonMoved);
 		
 		// Test that data is copied properly
 		size_t obj1OldCap = capacity(obj1);
 		obj1 = resize(obj1, obj1OldCap + 1);
-		ASSERT(size(obj1) EQ obj1OldCap + 1);
+		ASSERT(size(obj1),==,obj1OldCap + 1);
 	}
 	
-	TEST(duplicate)
+	while (test("duplicate"))
 	{
 		char* copy = duplicate(obj0);
 		obj0[0] = 'Y';
-		ASSERT(obj0 EQ "Y");
-		ASSERT(copy EQ "X");
+		ASSERT(obj0[0],==,'Y');
+		ASSERT(copy[0],==,'X');
 	}
 	
 	// Test nested owners in func()
 	uint32_t* dummy_u = func();
 	(void)dummy_u;
 	
-	TEST(errorHandling)
+	while (test("error handling"))
 	{
 		#ifdef __GNUC__
 		#pragma GCC diagnostic push
@@ -153,7 +153,7 @@ int main(void)
 		
 		void* dummy = mallocAssign(-1, thisScope);
 		(void)dummy;
-		ASSERT(msgBuf EQ GPC_EMSG_OVERALLOC(mallocAssign));
+		ASSERT_STR(msgBuf,==,GPC_EMSG_OVERALLOC(mallocAssign));
 		#ifdef __GNUC__
 		#pragma GCC diagnostic pop
 		#endif
@@ -162,7 +162,7 @@ int main(void)
 	// This test is only here because it might give useful information that can
 	// be used with the arena allocator. It only works now with the replaced 
 	// allocator, but is undefined with real malloc()!
-	TEST(objects_addresses_should_always_grow_in_list)
+	while (test("objects addresses should always grow in list"))
 	{
 		// Does heap grow up or down? Doesn't matter, let's just check that the
 		// sign of p-p->next stays the same throughout the list.
@@ -177,8 +177,8 @@ int main(void)
 	}
 	
 	freeOwner(NULL);
-	TEST(automatic_freeing)
-		ASSERT(fakeHeapFindFirstReserved() EQ EMPTY_HEAP, "Heap not empty after killing owner!");
+	while (test("automatic freeing"))
+		ASSERT(fakeHeapFindFirstReserved(),==,EMPTY_HEAP, "Heap not empty after killing owner!");
 	
 	fakeHeapDestroy();
 }
@@ -192,11 +192,11 @@ uint32_t* func(void)
 	moveOwnership(u2, gDefaultOwner->parent);
 	freeOwner(NULL);
 	
-	TEST(nested_owners)
+	while (test("nested_owners"))
 	{
-		ASSERT(*u1 EQ FREED4);
-		ASSERT(*u2 EQ 2);
-		ASSERT(*u3 EQ FREED4);
+		ASSERT(*u1,==,FREED4);
+		ASSERT(*u2,==,(uint32_t)2);
+		ASSERT(*u3,==,FREED4);
 	}
 	
 	return u2;
