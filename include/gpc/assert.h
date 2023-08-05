@@ -21,9 +21,9 @@
 // without the gpc_ prefix. 
 #if defined(GPC_ASSERT_NAMESPACE) || defined(GPC_NAMESPACE)
 
-// Tests and test suites can be created by calling gpc_test() or gpc_testSuite()
-// and they will be ended by subsequent call with the same argument. First call
-// will return true and next false so it can be used to run a loop once like so:
+// Tests and test suites can be created by calling test() or testSuite() and
+// they will be ended by subsequent call with the same argument. First call will
+// return true and next false so it can be used to run a loop once like so:
 /*
 	while (testSuite("My test suite"))
 	{
@@ -71,8 +71,8 @@ bool gpc_testSuite(const char* name);
 
 bool gpc_exitTests(bool);
 
-#define GPC_COMPARE(A, OP, B)						\
-	(0 ? (A) OP (B):/*better compiler diagnostics*/	\
+#define GPC_COMPARE(A, OP, B)					\
+	(0 ? (A) OP (B):/*compiler diagnostics*/	\
 	GPC_STRFYT(A, gpc_getCmpArgs(25)->a) OP GPC_STRFYT(B, gpc_getCmpArgs(25)->b))
 
 #define GPC_ASSERT(...) GPC_ASSERT_CUSTOM(GPC_COMPARE, __VA_ARGS__)

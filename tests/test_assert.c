@@ -4,19 +4,58 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define GPC_NAMESPACE
 #include "../src/assert.c"
 
+// ---------------------------------------------------------------------------
+//
+//		API TESTS
+//
+// ---------------------------------------------------------------------------
+
+void foo(void)
+{
+	while (test("Tests and assertions can be anywhere")
+		EXPECT(true);
+	
+	ASSERT(true);
+}
+
 int main(void)
 {
-	while (test("Whitespace"))
+	foo();
+	
+	while (test("ignored whitespace"))
 	{
-		EXPECT(1,==,1);
+		ASSERT(1,==,1);
 		EXPECT(1,      ==          ,1);
 	}
 	
-	while (test("Types in expectations"))
+	while (testSuite("Operators"))
+	{
+		while (test("Numeric comparisons"))
+		{
+			EXPECT(1, !=, 0);
+			EXPECT(1, > , 0);
+			ASSERT(1, &&, true);
+			EXPECT(1, ||, 0);
+		}
+		while (test("String comparisons"))
+		{
+			EXPECT_STR("A", ==, "A");
+			ASSERT_STR("A", !=, "B");
+			EXPECT_STR("A", < , "B");
+			ASSERT_STR("1", < , "2");
+			EXPECT_STR("1", < , "A");
+			EXPECT_STR("a", > , "A");
+			EXPECT_STR("1", > , NULL);
+			ASSERT_STR("2", >=, "1999", "Ordering is alphabetic, not numeric!");
+		}
+	}
+	
+	while (testSuite("Types"))
 	{
 		char c = -1;
 		unsigned char uc = (unsigned char)-1;
@@ -24,69 +63,71 @@ int main(void)
 		unsigned long long u = (unsigned long long)-1; (void)u;
 		double f = -1.;
 		void* p = malloc(1);
-		char s[] = "Xtring"; // typo to prevent literals sharing address
+		char s[] = "Xtring"; // typo to prevent literals sharing addresses
 		s[0] = 's';
 		
-		EXPECT(c, ==, i);
-		EXPECT(uc,==, f);
-		EXPECT(uc,==, i);
-		EXPECT(c, ==, f);
-		EXPECT(s, !=, p); // ptr comparison
-		EXPECT_STR(s, ==, "string");
-		
-		// #define GPC_TEST_WARNINGS
-		#ifdef GPC_TEST_WARNINGS
-		EXPECT(i,!=,u);        // GCC, Clang: different sign
-		EXPECT(c,!=,p);        // GCC, Clang: comparison between pointer and integer
-		EXPECT(i,!=,f);        // Clang: int to float may lose precision
-		EXPECT(s,==,"string"); // Clang: comparison against string literal
-		#endif
-		
-		//#define GPC_NON_PASSING_TESTS
-		#ifdef GPC_NON_PASSING_TESTS
-		while (test("Non-passing test error messages"))
+		while (test("Numbers without precision loss or sign mismatch"))
 		{
-			EXPECT(c, !=, i);
-			EXPECT(uc,!=, f);
-			EXPECT(uc,!=, i);
-			EXPECT(c, !=, f);
-			EXPECT(s, ==, p);
-			EXPECT_STR(s, ==, NULL);
-			EXPECT(false);
-			EXPECT_STR(!"blah");
-			EXPECT(0 + 1, &&, false);
+			ASSERT(c, ==, i);
+			EXPECT(uc,==, f);
+			EXPECT(uc,==, i);
+			ASSERT(c, ==, f);
+		}
+		
+		while (test("Pointers"))
+		{
+			ASSERT(s, !=, p);
+			char* s2 = "string";
+			EXPECT(s, !=, s2, "char* is compared as pointer!");
+			EXPECT_STR(s2, "EXPECT_STR() with single arg checks for NULL");
+		}
+		
+		while (test("Strings"))
+		{
+			ASSERT_STR(s, ==, "string");
+			ASSERT_STR(s, !=, NULL);
+			EXPECT_STR(NULL, ==, NULL);
+		}
+		
+		//#define GPC_TEST_WARNINGS
+		#ifdef GPC_TEST_WARNINGS
+		while (test("Compiler warnings"))
+		{
+			EXPECT(i,==,u); // GCC, Clang: different sign
+			EXPECT(c,!=,p); // GCC, Clang: comparison between pointer and integer
+			EXPECT(i,==,f); // Clang: int to float may lose precision
+			EXPECT(1,*, 1); // GCC: '*' in boolean context
+			ASSERT("string",==,"string"); // Clang: comparison against string literal
 		}
 		#endif
 		
 		free(p);
 	}
 	
-	while (test("Stack"))
-	{
-		struct Stack* testStack = NULL;
+	// -----------------------------------------------------------------------
 	
-		stackPush(&testStack, "blah1");
-		EXPECT(testStack->length, ==, (size_t)1);
-		EXPECT_STR(stackPeek(testStack)->name, ==, "blah1");
-		stackPush(&testStack, "blah2");
-		EXPECT_STR(stackPeek(testStack)->name, ==, "blah2");
-		EXPECT(testStack->length, ==, (size_t)2);
-		
-		EXPECT_STR(stackPop(&testStack).name, ==, "blah2");
-		EXPECT_STR(stackPop(&testStack).name, ==, "blah1");
-		EXPECT(testStack, ==, &nullStack);
-	}
-
 	while (testSuite("No while loop"))
 	{
 		test("TEST");
-		test("TEST"); // ends "TEST"
+		test("TEST"); // same name ends "TEST"
 		test("OTHER TEST");
 		test(NULL); // ends "OTHER TEST"
 	}
 	
-	while (test("blah"))
-		while (test("blahinner"));;
+	while (test("No expectations always pass"));
+	
+	while (testSuite("same name"))
+	{
+		while (test("same name"));
+		while (test("same name"));
+		
+		// Forbidden! Infinite loop caused by nested tests with same name!
+		// while (test("same name"))
+			// while (test("same name"));
+	}
+	
+	// -----------------------------------------------------------------------
+	//		Nesting tests and suites
 	
 	while (test("not in suite"))
 		EXPECT(true);
@@ -133,169 +174,100 @@ int main(void)
 	
 	// -----------------------------------------------------------------------
 	
-	// // while (test("EXPECT()"))
+	//#define GPC_NON_PASSING_TESTS
+	#ifdef GPC_NON_PASSING_TESTS
+	
+	while (test("Failing expectations"))
 	{
-		//ASSERT(false);
-		//EXPECT(!"Fail!"); // does not work!
+		EXPECT('c',==, 5);
+		EXPECT((unsigned char)3, ==, .5);
+		EXPECT(1, !=, 1, "Additional message");
+		EXPECT_STR("string", ==, NULL);
+		EXPECT(false);
+		EXPECT(0, "Other additional message");
+		EXPECT_STR(!"blah");
+		EXPECT_STR(NULL);
+		EXPECT(0 + 1, &&, false);
+	}
+	
+	puts("\n\t\tStart testing nested suites and tests\n");
+	
+	srand((unsigned)time(NULL));
+	#define COIN (rand()%2)
+	#define MAY_ASSERT(...)		\
+		(COIN ? EXPECT(__VA_ARGS__) : ASSERT(__VA_ARGS__, "Aborting"))
+	
+	while (test("not in suite"))
+		MAY_ASSERT(COIN);
+	
+	while (testSuite("suite1"))
+	{
+		while (test("test in suite1 before nested suite"))
+			MAY_ASSERT(1, ==, COIN);
 		
-		//EXPECT((bool)0, !=, (bool)false); // .--jfdsagfdk-sajg
+		while (testSuite("nested suite"))
+		{
+			while (test("test1 in nested suite"))
+				MAY_ASSERT(COIN ? true : false);
+			
+			while (test("test2 in nested suite"))
+				MAY_ASSERT(true * COIN);
+		}
 		
-		/*EXPECT((bool)0);
-		EXPECT((bool)0, NE, (bool)false);
-		EXPECT(0, "Failed message!");
-		EXPECT(.5, GT, 8);
-		EXPECT((void*)4, NE, (char*)4, "Other fail message!");
+		while (test("test in suite1"))
+			MAY_ASSERT(COIN - 1, ==, false);
 		
-		//EXPECT_STR("Literal ptr!", EQ, NULL); // non-compliant!
-		//EXPECT_STR(NULL, EQ, "Literal ptr!"); // non-compliant!
-		EXPECT_STR("bloink", NE, "bloink");
-		EXPECT_STR("abc", GT, "cde");*/
-
+		while (test("test2 in suite1"))
+			MAY_ASSERT(COIN + 0*15, >=, true);
+	}
+	
+	while (test("also not in suite"))
+		MAY_ASSERT(COIN, ||, false);
+	
+	while (test("this as well is not in suite"))
+		MAY_ASSERT(1, &&, COIN);
+	
+	while (testSuite("suite2"))
+	{
+		while (test("test in suite2"))
+			MAY_ASSERT(true * COIN, <, 1);
+		
+		while (test("test2 in suite2"))
+		{
+			MAY_ASSERT(COIN, +, 0);
+			while (test("nested test"))
+				MAY_ASSERT(COIN, -, 1);
+		}
+	}
+	
+	#endif // GPC_NON_PASSING_TESTS
+	
+	// -----------------------------------------------------------------------
+	//
+	//		END OF API TESTS
+	//
+	//		Tests below test internals
+	//
+	// -----------------------------------------------------------------------
+	
+	while (testSuite("Stack"))
+	{
+		struct Stack* testStack = NULL;
+	
+		while (test("Push"))
+		{
+			stackPush(&testStack, "blah1");
+			EXPECT(testStack->length, ==, (size_t)1);
+			EXPECT_STR(stackPeek(testStack)->name, ==, "blah1");
+			stackPush(&testStack, "blah2");
+			EXPECT_STR(stackPeek(testStack)->name, ==, "blah2");
+			EXPECT(testStack->length, ==, (size_t)2);
+		}
+		while (test("Pop"))
+		{
+			EXPECT_STR(stackPop(&testStack).name, ==, "blah2");
+			EXPECT_STR(stackPop(&testStack).name, ==, "blah1");
+			EXPECT(testStack, ==, &nullStack);
+		}
 	}
 }
-
-// int factorial(int x)
-// {
-	// int y = 1;
-	// for(int i = 1; i <= x; i++)
-		// y *= i;
-	// return y;
-// }
-
-// int main(void)
-// {
-	// //#define NON_PASSING_TESTS
-	// #ifndef NON_PASSING_TESTS
-	// TEST_SUITE(passingSuite)
-	// {
-		// TEST(passingTest0)
-		// {
-			// ASSERT(true);
-		// }
-
-		// TEST(passingTest1)
-		// {
-			// ASSERT(-1 LT 0);
-		// }
-	// }
-	// TEST(types)
-	// {
-		// ASSERT((uint32_t)5 EQ 5.f);
-		// ASSERT((const int)6 NE 9);
-		// ASSERT((bool)true);
-		// ASSERT((bool)true EQ 1==1);
-	// }
-	// TEST(pointerComparison)
-	// {
-		// void* ptr1 = malloc(1);
-		// void* ptr2 = ptr1;
-		// void* ptr3 = (char*)ptr1 + 1;
-		// ASSERT(ptr1 EQ ptr2);
-		// ASSERT(ptr1 NE ptr3);
-		// free(ptr1);
-	// }
-	// TEST(stringComparison)
-	// {
-		// const char* str1 = "Same string";
-		// char str2[]      = "Xame string"; // typo to prevent pointing to same literal
-		// str2[0] = 'S';
-		// ASSERT(str1 EQ str2);
-		// ASSERT(str1 NE "Different string");
-		// ASSERT("1" LT "2");
-		// ASSERT("0" GE "0");
-		// ASSERT("4" GT "2");
-	// }
-
-	// #else // NON_PASSING_TESTS -----------------------------------------------
-	
-	// TEST(types)
-	// {
-		// EXPECT((uint32_t)5 NE 5.f);
-		// EXPECT((const int)6 EQ 9);
-		// EXPECT((bool)false);
-		
-		// // When using operators (EQ, NE etc.) failure message should not print 
-		// // "true" or "false" to prevent printing "true == true" on 2 different
-		// // non-zero values
-		// EXPECT((bool)false EQ 1==1);
-	// }
-
-	// EXPECT(0+0 EQ 1+1, "Example fail message");
-	
-	// TEST(string)
-	// {
-		// EXPECT("bad""append" EQ "bad append");
-	// }
-
-	// TEST_SUITE(factorial)
-	// {
-		// TEST(zero)
-		// {
-			// ASSERT(factorial(0) EQ 1);
-		// }
-
-		// EXPECT(factorial(3) EQ -1);
-
-		// TEST(positiveNumbers)
-		// {
-			// ASSERT(factorial(1) EQ 1);
-			// ASSERT(factorial(2) EQ 2);
-			// ASSERT(factorial(3) EQ 6);
-			// ASSERT(factorial(12) EQ 479001600);
-		// }
-	// }
-
-	// TEST_SUITE(nested)
-	// {
-		// TEST(first)
-		// {
-			// EXPECT(1 == 1);
-
-			// TEST(first_inner)
-			// {
-				// EXPECT(0, "Another example fail message");
-			// }
-		// }
-		
-		// TEST(second)
-		// {
-			// EXPECT(1 == 1);
-		// }
-	// }
-
-	// TEST(suiteInTest)
-	// {
-		// TEST_SUITE(suite)
-		// {
-			// TEST(right)
-			// {
-				// ASSERT(1 + 1 EQ 2);
-			// }
-			// TEST(wrong)
-			// {
-				// EXPECT(1 + 1 NE 2);
-			// }
-		// }
-	// }
-
-	// #endif // NON_PASSING_TESTS
-
-	// //#define ASSERT_TEST
-	// #ifdef  ASSERT_TEST
-	// TEST(assert)
-	// {
-		// TEST_SUITE(assertSuite)
-		// {
-			// TEST(notYetTheActualTest)
-			// {
-				// TEST(actualAssertTest)
-				// {
-					// ASSERT(factorial(3) LE 0 - 1);
-				// }
-			// }
-		// }
-	// }
-	// #endif // ASSERT_TEST
-
-	// return 0;
-// }

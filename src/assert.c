@@ -150,7 +150,7 @@ static bool testOrSuite(const char* name, const char** current, struct globalDat
 		}
 		return true;
 	}
-	else // finishing
+	else
 	{
 		struct StackData t = stackPop(&testOrSuite->stack);
 		if (t.failed)
