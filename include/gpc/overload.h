@@ -5,10 +5,6 @@
 #ifndef GPC_OVERLOAD_H
 #define GPC_OVERLOAD_H
 
-#ifdef __clang__
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-#endif
-
 #define GPC_1ST_ARG(A, ...) A
 #define GPC_COMMA(...) ,
 #define GPC_DUMP(...) 

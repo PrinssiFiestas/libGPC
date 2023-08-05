@@ -150,7 +150,9 @@ typedef struct gpc_CmpArgs
 gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize);
 
 // Store formatted VAR in BUF and return VAR. VAR will be promoted if not bool.
-
+// The casts fix GCC converting -1 to UINT_MAX when passed as variadic arg to 
+// strfyi(). They have to be pointer sized to prevent compiler complaints with
+// pointers. 
 #define GPC_STRFYT(VAR, BUF)											\
 	_Generic(VAR,														\
 			bool:				gpc_strfyb((BUF), (VAR)),				\
