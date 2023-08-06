@@ -2,6 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#if 0
+
 #include <string.h>
 #include <stdint.h>
 #include "../include/gpc/array.h"
@@ -44,3 +46,6 @@ void* gpc_arrSwitchElems(void* parr, size_t pos1, size_t pos2, size_t elemSize, 
 	}
 	return *arr;
 }
+
+#endif
+void temp(void);

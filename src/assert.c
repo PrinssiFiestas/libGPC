@@ -106,7 +106,7 @@ static void printResult(const char* target, unsigned passed, unsigned failed)
 
 static void exitWithMsgAndStatus(void)
 {
-	fprintf(gpc_anyFails() ? stderr : stdout, "\t\tFinished testing\n\n");
+	fprintf(gpc_anyFails() ? stderr : stdout, "\n\t\tFinished testing\n\n");
 	
 	printResult("suites",     gSuites.passed, gSuites.failed);
 	printResult("tests",      gTests.passed,  gTests.failed);

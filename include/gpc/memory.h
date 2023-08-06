@@ -28,7 +28,6 @@ typedef struct gpc_Owner Owner;
 
 // Pointer to owner created with newOwner(). Pointer to owner created earlier 
 // with newOwner() can be obtained with defaultOwner->parent. 
-// Don't write values to it!
 #define gDefaultOwner							gpc_gDefaultOwner
 
 // Returns a pointer to a new block scoped owner
@@ -60,6 +59,10 @@ typedef struct gpc_Owner Owner;
 // Returns pointer to newly allocated block and NULL on failure. 
 // Does nothing if newCapacity<=capacity(object).
 #define reallocate(object, newCapacity)			gpc_reallocate(object, newCapacity)
+
+// Move objects ownership from it's owner to it's owner's parent so it's owner
+// can be freed. 
+#define giveToParent(object)					gpc_giveToParent(object)
 
 // Assign a new owner
 #define moveOwnership(object, newOwner)			gpc_moveOwnership(object, newOwner)
@@ -96,10 +99,15 @@ typedef struct gpc_Owner Owner;
 // Reallocates if newSize exceeds size of block allocated for object. This 
 // means that the return value has to be stored to object. 
 // Does nothing if newSize == size(object).
-#define resize(object, newSize)					gpc_resize(object, newSize)
+#define resize(pobject, newSize)				gpc_resize(pobject, newSize)
 
 // Gets size of memory block allocated for object
 #define capacity(object)						gpc_capacity(object)
+
+// Reallocate object
+// Returns pointer to newly allocated block and NULL on failure. 
+// Does nothing if newCapacity<=capacity(*pobject).
+#define reserve(pobject, newCapacity)			gpc_reserve(pobject, newCapacity)
 
 // Returns a copy of object on heap
 #define duplicate(object)						gpc_duplicate(object)
@@ -153,15 +161,33 @@ GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity);
 
 void gpc_freeOwner(gpc_Owner*);
 
+void* gpc_giveToParent(void* object);
+
 void gpc_moveOwnership(void* object, gpc_Owner* newOwner);
 
 gpc_Owner* gpc_getOwner(const void *const object);
 
 size_t gpc_size(const void *const object);
 
-GPC_NODISCARD void* gpc_resize(void* object, size_t newSize);
+inline void* gpc_ptrPass(void* p)
+{
+	return p;
+}
+// Tests if pointer is passed by reference. Compilation fails if PTR cant be
+// dereferenced to a pointer. 
+#define GPC_PTR_REF(PTR) (0 ? gpc_ptrPass(*(PTR)) : (PTR))
+
+#define gpc_resize(pObject, newSize)	\
+	gpc_resizeObj(GPC_PTR_REF(pObject), (newSize))
+
+void* gpc_resizeObj(void* pObject, size_t newSize);
 
 size_t gpc_capacity(const void *const object);
+
+#define gpc_reserve(pObject, newCapacity)	\
+	gpc_reserveObj(GPC_PTR_REF(pObject), (newCapacity))
+
+void* gpc_reserveObj(void* pObject, size_t newCapacity);
 
 GPC_NODISCARD void* gpc_duplicate(const void *const object);
 
@@ -199,7 +225,7 @@ struct gpc_ObjectList
 // Copies object and it's data to outBuf so the object can be used with dynamic
 // functionality. 
 // Returns pointer to object with address outBuf+sizeof(gpc_ObjectList).
-void* gpc_buildObject(void* outBuf, const struct gpc_ObjectList, const void* obj);
+GPC_NODISCARD void* gpc_buildObject(void* outBuf, const struct gpc_ObjectList, const void* obj);
 
 // Allocates memory and returns a pointer to an object with capacity of
 // nextPowerOf2(size). 

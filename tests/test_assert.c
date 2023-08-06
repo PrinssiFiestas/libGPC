@@ -27,7 +27,7 @@ int main(void)
 {
 	foo();
 	
-	while (test("ignored whitespace"))
+	while (test("Ignored whitespace"))
 	{
 		ASSERT(1,==,1);
 		EXPECT(1,      ==          ,1);
@@ -91,7 +91,7 @@ int main(void)
 		}
 		
 		//#define GPC_TEST_WARNINGS
-		#ifdef GPC_TEST_WARNINGS
+		#if defined(GPC_TEST_WARNINGS) && defined(__GNUC__)
 		while (test("Compiler warnings"))
 		{
 			EXPECT(i,==,u); // GCC, Clang: different sign
@@ -109,18 +109,18 @@ int main(void)
 	
 	while (testSuite("No while loop"))
 	{
-		test("TEST");
-		test("TEST"); // same name ends "TEST"
-		test("OTHER TEST");
-		test(NULL); // ends "OTHER TEST"
+		test("Test");
+		test("Test"); // same name ends "Test"
+		test("Other test");
+		test(NULL); // ends "Other test"
 	}
 	
 	while (test("No expectations always pass"));
 	
-	while (testSuite("same name"))
+	while (testSuite("Same name"))
 	{
-		while (test("same name"));
-		while (test("same name"));
+		while (test("Same name"));
+		while (test("Same name"));
 		
 		// Forbidden! Infinite loop caused by nested tests with same name!
 		// while (test("same name"))
@@ -130,50 +130,51 @@ int main(void)
 	// -----------------------------------------------------------------------
 	//		Nesting tests and suites
 	
-	while (test("not in suite"))
+	while (test("Not in suite"))
 		EXPECT(true);
 	
-	while (testSuite("suite1"))
+	while (testSuite("Suite1"))
 	{
-		while (test("test in suite1 before nested suite"))
+		while (test("Test in suite1 before nested suite"))
 			EXPECT(true);
 		
-		while (testSuite("nested suite"))
+		while (testSuite("Nested suite"))
 		{
-			while (test("test1 in nested suite"))
+			while (test("Test1 in nested suite"))
 				EXPECT(true);
 			
-			while (test("test2 in nested suite"))
+			while (test("Test2 in nested suite"))
 				EXPECT(true, "fail msg!");
 		}
 		
-		while (test("test in suite1"))
+		while (test("Test in suite1"))
 			EXPECT(true);
 		
-		while (test("test2 in suite1"))
+		while (test("Test2 in suite1"))
 			EXPECT(true);
 	}
 	
-	while (test("also not in suite"))
+	while (test("Also not in suite"))
 		EXPECT(true);
 	
-	while (test("this as well is not in suite"))
+	while (test("This as well is not in suite"))
 		EXPECT(true);
 	
-	while (testSuite("suite2"))
+	while (testSuite("Suite2"))
 	{
-		while (test("test in suite2"))
+		while (test("Test in suite2"))
 			EXPECT(true);
 		
-		while (test("test2 in suite2"))
+		while (test("Test2 in suite2"))
 		{
 			EXPECT(true);
-			while (test("nested test"))
+			while (test("Nested test"))
 				EXPECT(true);
 		}
 	}
 	
 	// -----------------------------------------------------------------------
+	//		Define the macro below to see how tests might fail
 	
 	//#define GPC_NON_PASSING_TESTS
 	#ifdef GPC_NON_PASSING_TESTS

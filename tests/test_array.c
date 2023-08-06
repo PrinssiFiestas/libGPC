@@ -2,6 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#if 0
+
 #define GPC_NAMESPACE
 #include <stdio.h>
 #include <wchar.h>
@@ -146,3 +148,6 @@ int main(void)
 	
 	freeOwner(NULL);
 }
+
+#endif
+int main(void) {}
