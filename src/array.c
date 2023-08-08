@@ -2,8 +2,6 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#if 0
-
 #include <string.h>
 #include <stdint.h>
 #include "../include/gpc/array.h"
@@ -25,7 +23,7 @@ void* gpc_arrPushGpcArr(void* pDest, void* src)
 		return NULL;
 		
 	size_t destOldSize = gpc_size(*_pDest);
-	*_pDest = gpc_resize(*_pDest, destOldSize + gpc_size(src));
+	*_pDest = gpc_resize(_pDest, destOldSize + gpc_size(src));
 	
 	if (gpc_handleError(*_pDest == NULL, "resize() failed in arrPushArr()"))
 		return NULL;
@@ -46,6 +44,3 @@ void* gpc_arrSwitchElems(void* parr, size_t pos1, size_t pos2, size_t elemSize, 
 	}
 	return *arr;
 }
-
-#endif
-void temp(void);

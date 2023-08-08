@@ -2,8 +2,6 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#if 0
-
 #define GPC_NAMESPACE
 #include <stdio.h>
 #include <wchar.h>
@@ -35,12 +33,12 @@ int main(void)
 	
 	while (test("arrSetCapacity and arrGetCapacity"))
 	{
-		newOwner();
+		Owner* scope = newOwner();
 		double* arrd = newS(double[], .4);
 		arrReserve(&arrd, 5);
 		ASSERT(onHeap(arrd));
 		ASSERT(arrCapacity(arrd),==,/*nextPowerOf(5)=*/(size_t)8);
-		freeOwner(NULL);
+		freeOwner(scope, NULL);
 	}
 	
 	while (test("arrBack and arrLast"))
@@ -146,8 +144,5 @@ int main(void)
 		ASSERT(arrLength(arr),==,oldLength - n);
 	}
 	
-	freeOwner(NULL);
+	freeOwner(thisScope, NULL);
 }
-
-#endif
-int main(void) {}

@@ -79,12 +79,12 @@
 #define gpc_arrLength(arr)						gpc_size(arr)/sizeof((arr)[0])
 
 #define gpc_arrSetLength(parr, newLen)		\
-	(*(parr) = gpc_resize(*(parr), (newLen) * sizeof((*(parr))[0])))
+	(*(parr) = gpc_resize((parr), (newLen) * sizeof((*(parr))[0])))
 
 #define gpc_arrCapacity(arr)					gpc_capacity(arr)/sizeof((arr)[0])
 
 #define gpc_arrReserve(parr, newCap)	\
-	(*(parr) = gpc_reallocate(*(parr), newCap * sizeof((*(parr))[0])))
+	(*(parr) = gpc_reserve((parr), (newCap) * sizeof((*(parr))[0])))
 
 #define gpc_arrLast(arr)						((arr)[gpc_size(arr)/sizeof((arr)[0]) - 1])
 
@@ -93,27 +93,27 @@
 #define gpc_arrIsEmpty(arr)						(gpc_size(arr) == 0)
 
 #define gpc_arrPush(parr, elem)								\
-	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + 1),	\
+	( gpc_arrSetLength((parr), gpc_arrLength(*(parr)) + 1),	\
 		arr[gpc_arrLength(*(parr)) - 1] = (elem) )
 
 #define gpc_arrPushArr(parr, arr)	\
-	(gpc_arrPushGpcArr(parr, arr), (arr))
+	(gpc_arrPushGpcArr((parr), (arr)), (arr))
 
 #define gpc_arrPop(parr, nElems)						\
-	( gpc_arrSetLength( parr,							\
+	( gpc_arrSetLength( (parr),							\
 		gpc_arrLength(*(parr)) >= (nElems) ?			\
 			gpc_arrLength(*(parr)) - (nElems) : 0 ),	\
 				*(gpc_arrBack(*(parr)) + 1) ) 
 
 #define gpc_arrInsert(parr, pos, elem)							\
-	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + 1),		\
+	( gpc_arrSetLength( (parr), gpc_arrLength(*(parr)) + 1),	\
 		memmove(*(parr) + (pos) + 1,							\
 				*(parr) + (pos),								\
 				gpc_size(*(parr)) - (pos)*sizeof(**(parr))),	\
 			arr[pos] = (elem) )
 
 #define gpc_arrInsertArr(parr, pos, arr)									\
-	( gpc_arrSetLength(parr, gpc_arrLength(*(parr)) + gpc_arrLength(arr)),	\
+	( gpc_arrSetLength((parr), gpc_arrLength(*(parr)) + gpc_arrLength(arr)),\
 		memmove(*(parr) + (pos) + gpc_arrLength(arr),						\
 				*(parr) + (pos),											\
 				gpc_size(*(parr)) - (pos)*sizeof(**(parr))),				\
