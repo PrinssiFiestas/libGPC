@@ -10,9 +10,9 @@
 #include "../include/gpc/error.h"
 #include "errormsgs.h"
 
-// globalOwner makes sure that gpc_gpc_gDefaultOwner always has a parent
+// globalOwner makes sure that gCurrentOwner always has a parent
 static GPC_THREAD_LOCAL gpc_Owner globalOwner = {0};
-GPC_THREAD_LOCAL gpc_Owner* gpc_gDefaultOwner = NULL;
+static GPC_THREAD_LOCAL gpc_Owner* gCurrentOwner = NULL;
 
 inline void* gpc_ptrPass(void* p);
 
@@ -30,14 +30,14 @@ static size_t gpc_nextPowerOf2(size_t n)
 
 static void assignOwner(struct gpc_ObjectList* obj, gpc_Owner* owner)
 {
-	// initialize gpc_gDefaultOwner
-	if ( ! gpc_gDefaultOwner)
-		gpc_gDefaultOwner = &globalOwner;
+	// initialize gCurrentOwner
+	if ( ! gCurrentOwner)
+		gCurrentOwner = &globalOwner;
 	
 	if (gpc_handleError(obj == NULL, GPC_EMSG_INTERNAL GPC_EMSG_NULL_ARG(obj, assignOwner)))
 		return;
 	
-	obj->owner = owner = owner ? owner : gpc_gDefaultOwner;
+	obj->owner = owner = owner ? owner : gCurrentOwner;
 	if (owner->firstObject == NULL)
 	{
 		owner->firstObject = owner->lastObject = obj;
@@ -59,12 +59,12 @@ GPC_NODISCARD void* gpc_allocH(size_t capacity)
 	if (gpc_handleError(capacity >= PTRDIFF_MAX, GPC_EMSG_OVERALLOC(allocH)))
 		return NULL;
 	
-	return gpc_callocAssign(capacity, 1, gpc_gDefaultOwner);
+	return gpc_callocAssign(capacity, 1, gCurrentOwner);
 }
 
 GPC_NODISCARD void* gpc_mallocAssign(size_t capacity, gpc_Owner* owner)
 {
-	owner = owner ? owner : gpc_gDefaultOwner;
+	owner = owner ? owner : gCurrentOwner;
 	
 	if (gpc_handleError(capacity == 0, GPC_EMSG_0ALLOC(mallocAssign)))
 		return NULL;
@@ -84,7 +84,7 @@ GPC_NODISCARD void* gpc_mallocAssign(size_t capacity, gpc_Owner* owner)
 
 GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_Owner* owner)
 {
-	owner = owner ? owner : gpc_gDefaultOwner;
+	owner = owner ? owner : gCurrentOwner;
 	
 	if (gpc_handleError(nmemb * size == 0, GPC_EMSG_0ALLOC(callocAssign)))
 		return NULL;
@@ -156,18 +156,12 @@ GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity)
 	return newMe + 1;
 }
 
-void* gpc_giveToParent(void* object)
-{
-	gpc_moveOwnership(object, gpc_getOwner(object)->parent);
-	return object;
-}
-
 void gpc_moveOwnership(void* object, gpc_Owner* newOwner)
 {
 	if (gpc_handleError(object == NULL, GPC_EMSG_NULL_ARG(object, moveOwnership)))
 		return;
 
-	newOwner = newOwner ? newOwner : gpc_gDefaultOwner;
+	newOwner = newOwner ? newOwner : gCurrentOwner;
 	
 	struct gpc_ObjectList* me = listData(object);
 	if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(moveOwnership)))
@@ -191,22 +185,30 @@ void gpc_moveOwnership(void* object, gpc_Owner* newOwner)
 	assignOwner(me, newOwner);
 }
 
-gpc_Owner* gpc_registerOwner(gpc_Owner* owner)
+GPC_NODISCARD gpc_Owner* gpc_registerOwner(gpc_Owner* owner)
 {
-	// initialize gpc_gDefaultOwner
-	if ( ! gpc_gDefaultOwner)
-		gpc_gDefaultOwner = &globalOwner;
+	// initialize gCurrentOwner
+	if ( ! gCurrentOwner)
+		gCurrentOwner = &globalOwner;
 	
 	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_PASSED(registerOwner)))
 		return NULL;
 	
-	owner->parent = gpc_gDefaultOwner;
-	return gpc_gDefaultOwner = owner;
+	owner->parent = gCurrentOwner;
+	return gCurrentOwner = owner;
 }
 
-void gpc_freeOwner(gpc_Owner* owner)
+void* gpc_freeOwner(gpc_Owner owner[GPC_STATIC 1], void* returnObject)
 {
-	owner = owner ? owner : gpc_gDefaultOwner;
+	if (gpc_handleError(owner == NULL, GPC_EMSG_NULL_ARG(owner, freeOwner)))
+		return NULL;
+	
+	if (returnObject != NULL && gpc_getOwner(returnObject) == owner)
+	{
+		if (gpc_onStack(returnObject))
+			returnObject = gpc_duplicate(returnObject);
+		gpc_moveOwnership(returnObject, owner->parent);
+	}
 	
 	for (struct gpc_ObjectList *obj = owner->firstObject, *next = NULL;
 		 obj != NULL; obj = next)
@@ -215,8 +217,10 @@ void gpc_freeOwner(gpc_Owner* owner)
 		free(obj);
 	}
 	
-	if (owner->parent != NULL && owner == gpc_gDefaultOwner)
-		gpc_gDefaultOwner = gpc_gDefaultOwner->parent;
+	if (owner->parent != NULL && owner == gCurrentOwner)
+		gCurrentOwner = gCurrentOwner->parent;
+	
+	return returnObject;
 }
 
 gpc_Owner* gpc_getOwner(const void *const object)
@@ -298,7 +302,7 @@ GPC_NODISCARD void* gpc_duplicate(const void *const object)
 	if (gpc_handleError(gpc_getOwner(object) == NULL, GPC_EMSG_OBJ_NO_OWNER(duplicate)))
 		return NULL;
 	
-	void* copy = gpc_mallocAssign(gpc_capacity(object), gpc_getOwner(object));
+	void* copy = gpc_mallocAssign(gpc_capacity(object), gCurrentOwner);
 	if (gpc_handleError(copy == NULL, "mallocAssign() failed in duplicate()."))
 		return NULL;
 	memcpy(copy, object, gpc_size(object));
@@ -342,13 +346,13 @@ GPC_NODISCARD void* gpc_buildObject(void* outBuf, const struct gpc_ObjectList da
 	
 	struct gpc_ObjectList* me = (struct gpc_ObjectList*)outBuf;
 	*me = data;
-	me->owner = me->owner ? me->owner : gpc_gDefaultOwner;
+	me->owner = me->owner ? me->owner : gCurrentOwner;
 	return memcpy(me + 1, initVal, data.size);
 }
 
 void* gpc_buildHeapObject(const size_t size, const void* initVal, gpc_Owner* owner)
 {
-	owner = owner ? owner : gpc_gDefaultOwner;
+	owner = owner ? owner : gCurrentOwner;
 	if (gpc_handleError(size >= PTRDIFF_MAX, GPC_EMSG_OVERALLOC(buildHeapObject)))
 		return NULL;
 	if (gpc_handleError(size == 0, GPC_EMSG_0ALLOC(buildHeapObject)))

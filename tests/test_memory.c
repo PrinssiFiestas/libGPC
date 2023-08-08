@@ -16,7 +16,31 @@
 char msgBuf[500];
 void getMsg(const char* msg);
 bool doubleCheck(void* obj, Owner* owner);
-uint32_t* func(void);
+
+// These are only used by func(), but are global so they can be tested. Check
+// the test below. 
+int* i1;
+int* i2;
+int* i3;
+int* i;
+static int* func(void)
+{
+	Owner* innerScope = newOwner();
+	i1 = newH(int, 1);
+	i2 = newH(int, 2);
+	i  = newH(int, 0);
+	i3 = newH(int, 3);
+	int* is = newS(int, 4); // Object on stack
+	*i = *i1 + *i2 + *i3 + *is;
+	return freeOwner(innerScope, i); // returns i, frees everything else
+}
+
+static int* returnStackObject(void)
+{
+	Owner* scope = newOwner();
+	int* is = newS(int, 4);
+	return freeOwner(scope, is); // is will be copied to heap so it can be returned
+}
 
 int main(void)
 {
@@ -31,9 +55,40 @@ int main(void)
 	//
 	// -----------------------------------------------------------------------
 	
+	while (testSuite("Owner memory handling"))
+	{
+		Owner* outerScope = newOwner();
+		int* validObject = func();
+		
+		while (test("Ownership transfer"))
+		{
+			EXPECT(*validObject,==,1 + 2 + 3 + 4, "Shouldn't crash.");
+			EXPECT(getOwner(validObject),==,outerScope);
+		}
+		
+		while (test("Freed objects"))
+		{
+			// FREED4 is a sentinel value used by fake heap to signify free
+			// memory block. In real programs these would be free. 
+			EXPECT((uint32_t)*i1,==,FREED4);
+			EXPECT((uint32_t)*i2,==,FREED4);
+			EXPECT((uint32_t)*i3,==,FREED4);
+			EXPECT((uint32_t)*i, !=,FREED4);
+		}
+		
+		while (test("Stack object returned to heap"))
+			EXPECT(onHeap(returnStackObject()));
+		
+		freeOwner(outerScope, NULL);
+		
+		while (test("All memory freed"))
+			ASSERT(fakeHeapFindFirstReserved(),==,EMPTY_HEAP,
+				"Heap should be freed after freeing all owners!");
+	}
+	
 	while (testSuite("Objects"))
 	{
-		newOwner();
+		Owner* objectsScope = newOwner();
 		
 		int* intOnHeap  = newH(int, 1);
 		int* arrOnStack = newS(int[], 2, 3);
@@ -41,7 +96,7 @@ int main(void)
 		int* emptyIntOnHeap  = allocH(sizeof(int));
 		int* emptyIntOnStack = allocS(sizeof(int));
 		
-		while (test("Onit values"))
+		while (test("Init values"))
 		{
 			EXPECT(*intOnHeap,==,1);
 			EXPECT(arrOnStack[0],==,2);
@@ -96,12 +151,12 @@ int main(void)
 		}
 		#endif
 		
-		freeOwner(NULL);
+		freeOwner(objectsScope, NULL);
 	}
 	
 	while (testSuite("Object modification"))
 	{
-		newOwner();
+		Owner* scope = newOwner();
 		
 		while (test("Resize"))
 		{
@@ -143,46 +198,7 @@ int main(void)
 		}
 		#endif
 		
-		freeOwner(NULL);
-	}
-	
-	while (testSuite("Owner memory handling"))
-	{
-		Owner* outerScope = newOwner();
-		int* validObject;
-		{
-			ASSERT(gDefaultOwner,==,outerScope);
-			
-			Owner* innerScope = newOwner();
-			int* i1 = newS(int, 1);
-			int* i2 = newH(int, 2);
-			int* i  = newH(int, 0);
-			int* i3 = newH(int, 3);
-			*i = *i1 + *i2 + *i3;
-			validObject = giveToParent(i);
-			freeOwner(innerScope);
-			while (test("Freed objects"))
-			{
-				// This test only works because of the replaced allocator. 
-				// Normally the pointers are actually freed and can't be 
-				// dereferenced. 
-				EXPECT((uint32_t)*i1,!=,FREED4, "Object on stack shouldn't be freed");
-				EXPECT((uint32_t)*i2,==,FREED4);
-				EXPECT((uint32_t)*i3,==,FREED4);
-				EXPECT((uint32_t)*i ,!=,FREED4);
-			}
-		}
-		while (test("Ownership transfer"))
-		{
-			EXPECT(*validObject,==,1 + 2 + 3, "Shouldn't crash.");
-			EXPECT(getOwner(validObject),==,outerScope);
-		}
-		
-		freeOwner(NULL); // frees outerScope
-		
-		while (test("All memory freed"))
-			ASSERT(fakeHeapFindFirstReserved(),==,EMPTY_HEAP,
-				"Heap should be freed after freeing all owners!");
+		freeOwner(scope, NULL);
 	}
 	
 	// -----------------------------------------------------------------------
@@ -298,10 +314,6 @@ int main(void)
 		ASSERT(copy[0],==,'X');
 	}
 	
-	// Test nested owners in func()
-	uint32_t* dummy_u = func();
-	(void)dummy_u;
-	
 	while (test("error handling"))
 	{
 		#ifdef __GNUC__
@@ -335,7 +347,7 @@ int main(void)
 		EXPECT( ! signChanged);
 	}
 	
-	freeOwner(NULL);
+	freeOwner(thisScope, NULL);
 	while (test("automatic freeing"))
 		ASSERT(fakeHeapFindFirstReserved(),==,EMPTY_HEAP, "Heap not empty after killing owner!");
 	
@@ -349,25 +361,6 @@ int main(void)
 	}
 	
 	fakeHeapDestroy();
-}
-
-uint32_t* func(void)
-{
-	newOwner();
-	uint32_t* u1 = newH(uint32_t, 1);
-	uint32_t* u2 = newH(uint32_t, 2);
-	uint32_t* u3 = newH(uint32_t, 3);
-	moveOwnership(u2, gDefaultOwner->parent);
-	freeOwner(NULL);
-	
-	while (test("nested_owners"))
-	{
-		ASSERT(*u1,==,FREED4);
-		ASSERT(*u2,==,(uint32_t)2);
-		ASSERT(*u3,==,FREED4);
-	}
-	
-	return u2;
 }
 
 // ---------------------------------------------------------------------------

@@ -27,4 +27,12 @@
 #define GPC_LG_FORMAT "%Lg"
 #endif
 
+// Use for pointer validation in function arguments with GCC and Clang. Example:
+// void foo(int pointer[GPC_STATIC 1]);
+#ifdef __GNUC__
+#define GPC_STATIC static
+#else
+#define GPC_STATIC
+#endif
+
 #endif // GPC_ATTRIBUTES_H
