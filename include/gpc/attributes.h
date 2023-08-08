@@ -5,8 +5,9 @@
 #ifndef GPC_ATTRIBUTES_H
 #define GPC_ATTRIBUTES_H
 
-// TODO check for C23 once it comes out for [[nodiscard]]
-#ifdef __GNUC__
+// TODO check for C23 once it comes out for [[nodiscard]] and typeof()
+
+#if defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Wattributes"
 #define GPC_NODISCARD __attribute__((__warn_unused_result__))
 #else
@@ -27,12 +28,16 @@
 #define GPC_LG_FORMAT "%Lg"
 #endif
 
+#if defined(__GNUC__)
 // Use for pointer validation in function arguments with GCC and Clang. Example:
 // void foo(int pointer[GPC_STATIC 1]);
-#ifdef __GNUC__
 #define GPC_STATIC static
+#define GPC_TYPEOF(X) typeof(X)
+#define GPC_CAST_TO_TYPEOF(X) (typeof(X))
 #else
 #define GPC_STATIC
+#define GPC_TYPEOF(X)
+#define GPC_CAST_TO_TYPEOF(X)
 #endif
 
 #endif // GPC_ATTRIBUTES_H

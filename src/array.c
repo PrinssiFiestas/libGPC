@@ -9,8 +9,18 @@
 #include "errormsgs.h"
 
 extern inline void* gpc_passTrough(void*);
+extern inline void* gpc_arrLastElem(void* arr, size_t elemSize);
+extern inline bool gpc_arrIsEmpty(void* arr);
+extern inline void* gpc_arrPushMem(void* parr, const void* src, size_t count);
 
-void* gpc_arrPushGpcArr(void* pDest, void* src)
+size_t gpc_arrIncSize(void* parr, size_t elemSize)
+{
+	size_t oldSize = gpc_size(*(void**)parr);
+	gpc_resizeObj(parr, oldSize + elemSize);
+	return oldSize/elemSize;
+}
+
+void* gpc_arrPushGpcArr(void* pDest, const void* src)
 {
 	if (gpc_handleError(pDest == NULL, GPC_EMSG_NULL_ARG(pDestination, arrPushArr)))
 		return NULL;
@@ -30,7 +40,7 @@ void* gpc_arrPushGpcArr(void* pDest, void* src)
 	
 	memcpy(*_pDest + destOldSize, src, gpc_size(src));
 	
-	return src;
+	return *_pDest;
 }
 
 void* gpc_arrSwitchElems(void* parr, size_t pos1, size_t pos2, size_t elemSize, size_t nElems)

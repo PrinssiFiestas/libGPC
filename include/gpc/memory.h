@@ -115,6 +115,8 @@ typedef struct gpc_Owner Owner;
 
 typedef struct gpc_Owner gpc_Owner;
 
+typedef unsigned char gpc_Byte;
+
 #define gpc_newOwner() gpc_registerOwner(&(gpc_Owner){0})
 
 #define gpc_newH(type, ...)	\

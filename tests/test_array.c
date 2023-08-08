@@ -51,9 +51,16 @@ int main(void)
 	while (test("arrPush"))
 	{
 		size_t oldLength = arrLength(arr);
-		ASSERT(arrPush(&arr, 100),==,100);
-		ASSERT(arrLast(arr),==,100);
+		EXPECT(arrPush(&arr, 100),==,arr);
+		EXPECT(arrLast(arr),==,100);
 		ASSERT(arrLength(arr),==,oldLength + 1);
+		
+		// TODO check for C23 once it comes out
+		#if defined(__GNUC__)
+		// many elements
+		arrPush(&arr, 54, 8, 10);
+		EXPECT(arrLength(arr),==,oldLength + 4);
+		#endif
 	}
 	
 	while (test("arrPushArr"))
@@ -62,7 +69,7 @@ int main(void)
 		int* arrH = newH(int[], 6, 8, 12, 5, 7);
 		
 		// Return value
-		ASSERT(arrPushArr(&arrS, arrH),==,arrH);
+		ASSERT(arrPushArr(&arrS, arrH),==,arrS);
 		
 		ASSERT(arrLast(arrS),==,7);
 		ASSERT(size(arrS),==,size(arrH));
