@@ -9,6 +9,9 @@
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Wattributes"
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wlanguage-extension-token"
+#endif
 #define GPC_NODISCARD __attribute__((__warn_unused_result__))
 #else
 #define GPC_NODISCARD

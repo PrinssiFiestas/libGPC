@@ -57,25 +57,24 @@
 // Returns *parrDestination as typeof(*parr) if C23 or GNUC, void* otherwise
 #define arrPushArr(parrDestination, arr)		gpc_arrPushArr(parrDestination, arr)
 
-// Remove n elements from the back of arr
-// Returns last element removed
-#define arrPop(parr, nElements)					gpc_arrPop(parr, nElements)
+// Remove an element from the back of arr
+// arr is evaluated twice if not using C23 or GNUC.
+// Returns element removed
+#define arrPop(parr)							gpc_arrPop(parr)
 
 // Insert an element in index pos of arr
-// Returns element
+// parr is evaluated multiple times if not using C23 or GNUC. 
+// Returns *parr
 #define arrInsert(parr, pos, element)			gpc_arrInsert(parr, pos, element)
 
-// Insert an array in index pos of arr
-// Returns pointer to blah // TODO SOME MEANINGFUL RETURN VALUE
+// Add all elements from arr to the back of *parrDestination
+// Returns *parrDestination as typeof(*parr) if C23 or GNUC, void* otherwise
 #define arrInsertArr(parrDestination,pos,arr)	gpc_arrInsertArr(parrDestination,pos,arr)
 
-// Delete n elements from index pos of arr
-// Returns pointer to deleted item from arr // TODO CHANGE THIS AS WELL
-#define arrDelete(parr, pos, nElements)			gpc_arrDelete(parr, pos, nElements)
-
-// Returns number of elements in a C array declared with []
-// Don't use for pointers or array types from this library!
-#define carrLength(arr) 						gpc_carrLength(arr)
+// Delete an elements from index pos of arr
+// parr is evaluated multiple times if not using C23 or GNUC. 
+// Returns *parr
+#define arrDelete(parr, pos)					gpc_arrDelete(parr, pos)
 
 #endif // GPC_NAMESPACING ----------------------------------------------------
 
@@ -103,7 +102,19 @@
 						(parr),									\
 						(typeof(*(parr)[0])[]){__VA_ARGS__},	\
 						sizeof((typeof(*(parr)[0])[]){__VA_ARGS__})))
-						
+
+#define gpc_arrPop(parr)	\
+	(*(typeof(*(parr)))gpc_arrPopElem((parr), sizeof(*(parr)[0])))
+
+#define gpc_arrInsert(parr, pos, ...)							\
+	((typeof(*(parr)))gpc_arrInsertMem(							\
+						(parr),									\
+						(pos)*sizeof(*(parr)[0]),				\
+						(typeof(*(parr)[0])[]){__VA_ARGS__},	\
+						sizeof((typeof(*(parr)[0])[]){__VA_ARGS__})))
+
+#define gpc_arrDelete(parr, pos)	\
+	((typeof(*(parr)))gpc_arrMoveElemsL((parr), (pos)*sizeof(*(parr)[0]), sizeof(*(parr)[0])))
 
 #else
 
@@ -116,6 +127,16 @@
 #define gpc_arrPush(parr, elem)		\
 	(gpc_arrIncSize((parr), sizeof(**(parr))), gpc_arrLast(*(parr)) = elem, *(parr))
 
+#define gpc_arrPop(parr)	\
+	((*(parr))[gpc_arrDecSize((parr), sizeof(*(parr)[0]))])
+
+#define gpc_arrInsert(parr, pos, elem)	\
+	(gpc_arrMoveElemsR(	\
+		(parr), (pos)*sizeof(elem), sizeof(elem)), (*(parr))[pos] = (elem), *(parr))
+
+#define gpc_arrDelete(parr, pos)	\
+	(gpc_arrMoveElemsL((parr), (pos)*sizeof(*(parr)[0]), sizeof(*(parr)[0])), *(parr))
+
 #endif // defined(__GNUC__)
 
 inline bool gpc_arrIsEmpty(void* arr)
@@ -124,33 +145,11 @@ inline bool gpc_arrIsEmpty(void* arr)
 }
 
 #define gpc_arrPushArr(parr, arr)	\
-	GPC_CAST_TO_TYPEOF(*(parr))gpc_arrPushGpcArr(GPC_PTR_REF(parr), (arr))
+	(GPC_CAST_TO_TYPEOF(*(parr))gpc_arrPushGpcArr(GPC_PTR_REF(parr), (arr)))
 
-#define gpc_arrPop(parr, nElems)						\
-	( gpc_arrSetLength( (parr),							\
-		gpc_arrLength(*(parr)) >= (nElems) ?			\
-			gpc_arrLength(*(parr)) - (nElems) : 0 ),	\
-				*(gpc_arrBack(*(parr)) + 1) ) 
-
-#define gpc_arrInsert(parr, pos, elem)							\
-	( gpc_arrSetLength( (parr), gpc_arrLength(*(parr)) + 1),	\
-		memmove(*(parr) + (pos) + 1,							\
-				*(parr) + (pos),								\
-				gpc_size(*(parr)) - (pos)*sizeof(**(parr))),	\
-			arr[pos] = (elem) )
-
-#define gpc_arrInsertArr(parr, pos, arr)									\
-	( gpc_arrSetLength((parr), gpc_arrLength(*(parr)) + gpc_arrLength(arr)),\
-		memmove(*(parr) + (pos) + gpc_arrLength(arr),						\
-				*(parr) + (pos),											\
-				gpc_size(*(parr)) - (pos)*sizeof(**(parr))),				\
-			memcpy(*(parr) + pos, arr, gpc_size(arr)) )
-
-#define gpc_arrDelete(parr, pos, nElems)				\
-	( memmove(arr + i, arr + i + n, n * sizeof(*arr)),	\
-		gpc_arrSetLength(&arr, gpc_arrLength(arr) - n)) )
-
-#define gpc_carrLength(arr) 					(sizeof(arr)/sizeof(arr[0]))
+#define gpc_arrInsertArr(parr, pos, arr)			\
+	(GPC_CAST_TO_TYPEOF(*(parr))gpc_arrInsertMem(	\
+		GPC_PTR_REF(parr), (pos)*sizeof((arr)[0]), (arr), gpc_size(arr)))
 
 //----------------------------------------------------------------------------
 //
@@ -165,23 +164,36 @@ inline void* gpc_arrLastElem(void* arr, size_t elemSize)
 	return ((gpc_Byte*)arr) + gpc_size(arr) - elemSize;
 }
 
-inline void* gpc_arrPushMem(void* parr, const void* src, size_t count)
+// Returns *parr
+void* gpc_arrPushMem(void* parr, const void* src, size_t srcSize);
+
+inline void* gpc_arrPushGpcArr(void* parr, void* arr)
 {
-	size_t oldSize = gpc_size(*(void**)parr);
-	gpc_resizeObj(parr, oldSize + count);
-	memcpy(*(gpc_Byte**)parr + oldSize, src, count);
-	return *(void**)parr;
+	return gpc_arrPushMem(parr, arr, gpc_size(arr));
 }
+
+// Returns a pointer to the lastly popped element
+void* gpc_arrPopElem(void* parr, size_t elemSize);
 
 // Increments array length by one and returns old array length
 size_t gpc_arrIncSize(void* parr, size_t elemSize);
 
+// Decrements array length by one and returns new array length
+size_t gpc_arrDecSize(void* parr, size_t elemSize);
+
+// Returns *parr
+void* gpc_arrInsertMem(void* parr, size_t pos, const void* src, size_t srcSize);
+
+// Increments array length by one and moves all elemets from pos to right
+// Returns *parr
+void* gpc_arrMoveElemsR(void* parr, size_t pos, size_t elemSize);
+
+// Decrements array length by one and moves all elemets from pos to left
+// Returns *parr
+void* gpc_arrMoveElemsL(void* parr, size_t pos, size_t elemSize);
+
 // Switch elements. parr is a pointer to an array. Returns *parr
 void* gpc_arrSwitchElems(void* parr, size_t pos1, size_t pos2, size_t elemSize, size_t nElems);
-
-// Copies source to the end of *pDestination. Returns *pDestination. 
-// Use arrPushArr() macro for better type safety. 
-void* gpc_arrPushGpcArr(void* pDestination, const void* source);
 
 // Used by some macros to return self like this:
 // #define macro(parr) (modifyArrAndRetSomethingElse(parr), *(parr) = gpc_passTrough(parr))

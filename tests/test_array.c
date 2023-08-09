@@ -79,23 +79,8 @@ int main(void)
 	{
 		int lastValue = arrLast(arr);
 		size_t lastLength = arrLength(arr);
-		ASSERT(arrPop(&arr, 1),==,lastValue);
+		EXPECT(arrPop(&arr),==,lastValue);
 		ASSERT(arrLength(arr),==,lastLength - 1);
-		
-		lastLength = arrLength(arr);
-		arrPop(&arr, 2);
-		ASSERT(arrLength(arr),==,lastLength - 2);
-		
-		arrPop(&arr, 5329);
-		ASSERT(arrLength(arr),==,(size_t)0);
-	}
-
-	while (test("arrSwitchElems"))
-	{
-		wchar_t* str = newH(wchar_t[], L"0123456789");
-		gpc_arrSwitchElems(&str, 2, 6, sizeof(str[0]), 3);
-		if ( ! EXPECT( ! wcscmp(str, L"0167852349")))
-			fprintf(stderr, "%ls\n", str);
 	}
 	
 	while (test("arrInsert"))
@@ -106,7 +91,7 @@ int main(void)
 		long old_arr_i = arr[i];
 		size_t oldLength = arrLength(arr);
 		
-		ASSERT(arrInsert(&arr, i, newVal),==,newVal);
+		ASSERT(arrInsert(&arr, i, newVal),==,arr);
 		
 		for (size_t i = 0; i < arrLength(arr); i++)
 			printf("%li, ", arr[i]);
@@ -140,15 +125,20 @@ int main(void)
 	{
 		long* arr = newH(long[], 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
 		size_t i = 4;
-		size_t n = 2;
 		size_t oldLength = arrLength(arr);
 		
-		memmove(arr + i, arr + i + n, n * sizeof(*arr)),
-		gpc_arrSetLength(&arr, gpc_arrLength(arr) - n);
+		arrDelete(&arr, i);
 		
-		ASSERT(arr[i - 1],==,(long)i - 1);
-		ASSERT(arr[i],==,(long)i + 2);
-		ASSERT(arrLength(arr),==,oldLength - n);
+		EXPECT(arr[i],==,(long)i + 1);
+		EXPECT(arrLength(arr),==,oldLength - 1);
+	}
+	
+	while (test("arrSwitchElems"))
+	{
+		wchar_t* str = newH(wchar_t[], L"0123456789");
+		gpc_arrSwitchElems(&str, 2, 6, sizeof(str[0]), 3);
+		if ( ! EXPECT( ! wcscmp(str, L"0167852349")))
+			fprintf(stderr, "%ls\n", str);
 	}
 	
 	freeOwner(thisScope, NULL);
