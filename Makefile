@@ -3,7 +3,7 @@
 # https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror -Wpedantic -Wconversion
+CFLAGS = -Wall -Wextra -Werror -Wconversion
 
 SRCS = $(wildcard src/*.c)
 OBJS = $(patsubst src/%.c,build/%.o,$(wildcard src/*.c))

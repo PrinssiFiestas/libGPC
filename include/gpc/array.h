@@ -80,61 +80,65 @@
 
 #define gpc_arrLength(arr)						(gpc_size(arr)/sizeof((arr)[0]))
 
-#define gpc_arrSetLength(parr, newLen)		\
+#define gpc_arrSetLength(parr, newLen) \
 	(GPC_CAST_TO_TYPEOF(*parr)gpc_resize((parr), (newLen) * sizeof((*(parr))[0])))
 
 #define gpc_arrCapacity(arr)					gpc_capacity(arr)/sizeof((arr)[0])
 
-#define gpc_arrReserve(parr, newCap)	\
+#define gpc_arrReserve(parr, newCap) \
 	(GPC_CAST_TO_TYPEOF(*parr)gpc_reserve((parr), (newCap) * sizeof((*(parr))[0])))
 
 // TODO check for C23 once it comes out
 #if defined(__GNUC__)
 
-#define gpc_arrLast(arr)	\
+#define gpc_arrLast(arr) \
 	(*(typeof(arr))gpc_arrLastElem((arr), sizeof((arr)[0])))
 
-#define gpc_arrBack(arr)	\
+#define gpc_arrBack(arr) \
 	((typeof(arr))gpc_arrLastElem((arr), sizeof((arr)[0])))
 
-#define gpc_arrPush(parr, ...)									\
-	((typeof(*(parr)))gpc_arrPushMem(							\
-						(parr),									\
-						(typeof(*(parr)[0])[]){__VA_ARGS__},	\
+#define gpc_arrPush(parr, ...) \
+	((typeof(*(parr)))gpc_arrPushMem( \
+						(parr), \
+						(typeof(*(parr)[0])[]){__VA_ARGS__}, \
 						sizeof((typeof(*(parr)[0])[]){__VA_ARGS__})))
 
-#define gpc_arrPop(parr)	\
-	(*(typeof(*(parr)))gpc_arrPopElem((parr), sizeof(*(parr)[0])))
+#define gpc_arrPop(parr) \
+	({ \
+		typeof(*(parr)[0]) gpc_arrPopTemp = \
+			*(typeof(*(parr)))gpc_arrPopElem((parr), sizeof(*(parr)[0])); \
+		gpc_arrPopTemp; \
+	})
 
-#define gpc_arrInsert(parr, pos, ...)							\
-	((typeof(*(parr)))gpc_arrInsertMem(							\
-						(parr),									\
-						(pos)*sizeof(*(parr)[0]),				\
-						(typeof(*(parr)[0])[]){__VA_ARGS__},	\
+#define gpc_arrInsert(parr, pos, ...) \
+	((typeof(*(parr)))gpc_arrInsertMem( \
+						(parr), \
+						(pos)*sizeof(*(parr)[0]), \
+						(typeof(*(parr)[0])[]){__VA_ARGS__}, \
 						sizeof((typeof(*(parr)[0])[]){__VA_ARGS__})))
 
-#define gpc_arrDelete(parr, pos)	\
+#define gpc_arrDelete(parr, pos) \
 	((typeof(*(parr)))gpc_arrMoveElemsL((parr), (pos)*sizeof(*(parr)[0]), sizeof(*(parr)[0])))
 
 #else
 
-#define gpc_arrLast(arr)	\
+#define gpc_arrLast(arr) \
 	((arr)[gpc_size(arr)/sizeof((arr)[0]) - 1])
 
-#define gpc_arrBack(arr)	\
+#define gpc_arrBack(arr) \
 	(&(arr)[gpc_size(arr)/sizeof((arr)[0]) - 1])
 
-#define gpc_arrPush(parr, elem)		\
+#define gpc_arrPush(parr, elem) \
 	(gpc_arrIncSize((parr), sizeof(**(parr))), gpc_arrLast(*(parr)) = elem, *(parr))
 
-#define gpc_arrPop(parr)	\
+#define gpc_arrPop(parr) \
 	((*(parr))[gpc_arrDecSize((parr), sizeof(*(parr)[0]))])
 
-#define gpc_arrInsert(parr, pos, elem)	\
-	(gpc_arrMoveElemsR(	\
+#define gpc_arrInsert(parr, pos, elem) \
+	(gpc_arrMoveElemsR( \
 		(parr), (pos)*sizeof(elem), sizeof(elem)), (*(parr))[pos] = (elem), *(parr))
 
-#define gpc_arrDelete(parr, pos)	\
+#define gpc_arrDelete(parr, pos) \
 	(gpc_arrMoveElemsL((parr), (pos)*sizeof(*(parr)[0]), sizeof(*(parr)[0])), *(parr))
 
 #endif // defined(__GNUC__)
@@ -144,11 +148,11 @@ inline bool gpc_arrIsEmpty(void* arr)
 	return gpc_size(arr) == 0;
 }
 
-#define gpc_arrPushArr(parr, arr)	\
+#define gpc_arrPushArr(parr, arr) \
 	(GPC_CAST_TO_TYPEOF(*(parr))gpc_arrPushGpcArr(GPC_PTR_REF(parr), (arr)))
 
-#define gpc_arrInsertArr(parr, pos, arr)			\
-	(GPC_CAST_TO_TYPEOF(*(parr))gpc_arrInsertMem(	\
+#define gpc_arrInsertArr(parr, pos, arr) \
+	(GPC_CAST_TO_TYPEOF(*(parr))gpc_arrInsertMem( \
 		GPC_PTR_REF(parr), (pos)*sizeof((arr)[0]), (arr), gpc_size(arr)))
 
 //----------------------------------------------------------------------------

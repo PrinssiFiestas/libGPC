@@ -57,8 +57,12 @@
 // detailed fail messages e.g. EXPECT(1 + 1,!=,2) instead of EXPECT(1 + 1 != 2).
 #define EXPECT(/*expression, failMsessage=""*/...) GPC_EXPECT(__VA_ARGS__)
 
+// TODO docs
 #define ASSERT_STR(...) GPC_ASSERT_STR(__VA_ARGS__)
 #define EXPECT_STR(...) GPC_EXPECT_STR(__VA_ARGS__)
+
+#define ASSERT_ARR(...) GPC_ASSERT_ARR(__VA_ARGS__)
+#define EXPECT_ARR(...) GPC_EXPECT_ARR(__VA_ARGS__)
 
 // Ends current test and suite and exits the program if argument is true,
 // returns true otherwise. 
@@ -71,18 +75,34 @@ bool gpc_testSuite(const char* name);
 
 bool gpc_exitTests(bool);
 
-#define GPC_COMPARE(A, OP, B)					\
-	(0 ? (A) OP (B):/*compiler diagnostics*/	\
+// -------------------------
+// ASSERT()
+
+#define GPC_COMPARE(A, OP, B) \
+	(0 ? (A) OP (B):/*compiler diagnostics*/ \
 	GPC_STRFYT(A, gpc_getCmpArgs(25)->a) OP GPC_STRFYT(B, gpc_getCmpArgs(25)->b))
 
 #define GPC_ASSERT(...) GPC_ASSERT_CUSTOM(GPC_COMPARE, __VA_ARGS__)
 #define GPC_EXPECT(...) GPC_EXPECT_CUSTOM(GPC_COMPARE, __VA_ARGS__)
+
+// -------------------------
+// ASSERT_STR()
 
 int gpc_assertStrcmp(const char* str1, const char* str2);
 #define GPC_STR_COMPARE(A, OP, B) (gpc_assertStrcmp((A), (B)) OP 0)
 
 #define GPC_ASSERT_STR(...) GPC_ASSERT_CUSTOM(GPC_STR_COMPARE, __VA_ARGS__)
 #define GPC_EXPECT_STR(...) GPC_EXPECT_CUSTOM(GPC_STR_COMPARE, __VA_ARGS__)
+
+// -------------------------
+// ASSERT_ARR()
+
+int gpc_assertArrcmp(enum gpc_Type at, const void* a, enum gpc_Type bt, const void* b);
+#define GPC_ARR_COMPARE(A, OP, B) \
+	(gpc_assertArrcmp(GPC_TYPE(*(A)), (A), GPC_TYPE(*(B)), (B)) OP 0)
+
+#define GPC_ASSERT_ARR(...) GPC_ASSERT_CUSTOM(GPC_ARR_COMPARE, __VA_ARGS__)
+#define GPC_EXPECT_ARR(...) GPC_EXPECT_CUSTOM(GPC_ARR_COMPARE, __VA_ARGS__)
 
 // ---------------------------------------------------------------------------
 

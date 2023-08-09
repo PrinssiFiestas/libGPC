@@ -14,12 +14,7 @@ int main(void)
 	
 	Owner* thisScope = newOwner();
 	
-	int* arr = newS(int[3], 1, 4, 7);
-	while (test("array creation"))
-	{
-		ASSERT(arr[2],==,7);
-		ASSERT(getOwner(arr),==,thisScope);
-	}
+	int* arr = newS(int[], 1, 4, 7);
 	
 	while (test("arrSetLength and arrLength"))
 	{

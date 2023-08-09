@@ -53,6 +53,12 @@ int main(void)
 			EXPECT_STR("1", > , NULL);
 			ASSERT_STR("2", >=, "1999", "Ordering is alphabetic, not numeric!");
 		}
+		while (test("Array comparisons"))
+		{
+			int* arr1 = newS(int[], 1, 2, 3);
+			int* arr2 = newH(int[], 1, 2, 3);
+			EXPECT_ARR(arr1,==,arr2);
+		}
 	}
 	
 	while (testSuite("Types"))

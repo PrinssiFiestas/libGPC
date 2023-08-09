@@ -5,6 +5,9 @@
 #ifndef GPC_OVERLOAD_H
 #define GPC_OVERLOAD_H
 
+#include <stdbool.h>
+#include <stddef.h>
+
 #define GPC_1ST_ARG(A, ...) A
 #define GPC_COMMA(...) ,
 #define GPC_DUMP(...) 
@@ -65,6 +68,13 @@ enum gpc_Type
 	GPC_CHAR_PTR,
 	GPC_PTR,
 };
+
+inline bool gpc_isUnsigned(const enum gpc_Type T) { return T <= GPC_UNSIGNED_LONG_LONG; }
+inline bool gpc_isInteger(const enum gpc_Type T) { return T <= GPC_LONG_LONG; }
+inline bool gpc_isFloating(const enum gpc_Type T) { return GPC_FLOAT <= T && T <= GPC_DOUBLE; }
+inline bool gpc_isPointer(const enum gpc_Type T) { return GPC_CHAR_PTR <= T && T <= GPC_PTR; }
+
+size_t gpc_sizeof(const enum gpc_Type T);
 
 #define GPC_TYPE(VAR)									\
 	_Generic(VAR,										\

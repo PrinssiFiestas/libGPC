@@ -119,18 +119,19 @@ typedef unsigned char gpc_Byte;
 
 #define gpc_newOwner() gpc_registerOwner(&(gpc_Owner){0})
 
-#define gpc_newH(type, ...)	\
-	gpc_buildHeapObject(sizeof((type){__VA_ARGS__}), &(type){__VA_ARGS__}, NULL)
+#define gpc_newH(type, ...) \
+	gpc_buildHeapObject( \
+		sizeof((type){__VA_ARGS__}), &(type){__VA_ARGS__}, NULL)
 
 #define gpc_newS(type, ...)											\
-	gpc_buildObject(												\
+	(gpc_buildObject(					\
 		&(uint8_t[sizeof(struct gpc_ObjectList) + sizeof((type){__VA_ARGS__})]){0},\
 		(struct gpc_ObjectList)										\
 		{															\
 			.owner = NULL,											\
 			.size = sizeof((type){__VA_ARGS__}),					\
 			.capacity = sizeof((type){__VA_ARGS__})					\
-		}, &(type){__VA_ARGS__})
+		}, &(type){__VA_ARGS__}))
 
 GPC_NODISCARD void* gpc_allocH(size_t capacity);
 
