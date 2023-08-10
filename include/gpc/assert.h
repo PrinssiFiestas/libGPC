@@ -167,6 +167,8 @@ typedef struct gpc_CmpArgs
 
 // Returns a pointer to struct of character buffers of size bufSize that can be
 // used to store formatted values of arguments given to custom comparison function.
+// The returned string might not be 0 initialized.
+// TODO change this to gpc_String once it's implemented!
 gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize);
 
 // Store formatted VAR in BUF and return VAR. VAR will be promoted if not bool.

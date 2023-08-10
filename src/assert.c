@@ -265,86 +265,84 @@ int gpc_assertStrcmp(const char* str1, const char* str2)
 	return strcmp(strp1, strp2);
 }
 
+static void arrElemStrfy(char* outBuf, enum gpc_Type T, const void* _arr)
+{
+	const gpc_Byte* arr = _arr;
+	
+	#define BUF_SIZE 25
+	char buf[BUF_SIZE] = "";
+	
+	if (arr != NULL)
+	{
+		strcpy(outBuf, "{ ");
+		//for (size_t i = 0; i < gpc_size(arr); i += gpc_sizeof(T))
+		for (const gpc_Byte* item = arr; item != arr + gpc_size(arr); item += gpc_sizeof(T))
+		{
+			switch (T)
+			{
+				case GPC_UNSIGNED_CHAR:      sprintf(buf,"%c",  *(unsigned char*)item); break;
+				case GPC_UNSIGNED_SHORT:     sprintf(buf,"%hu", *(unsigned short*)item); break;
+				case GPC_UNSIGNED:           sprintf(buf,"%u",  *(unsigned*)item); break;
+				case GPC_UNSIGNED_LONG:      sprintf(buf,"%lu", *(unsigned long*)item); break;
+				case GPC_UNSIGNED_LONG_LONG: sprintf(buf,"%llu",*(unsigned long long*)item);break;
+				case GPC_BOOL:               sprintf(buf,"%s",  *(int*)item?"true":"false");break;
+				case GPC_CHAR:               sprintf(buf,"%c",  *(char*)item); break;
+				case GPC_SHORT:              sprintf(buf,"%hi", *(short*)item); break;
+				case GPC_INT:                sprintf(buf,"%i",  *(int*)item); break;
+				case GPC_LONG:               sprintf(buf,"%li", *(long*)item); break;
+				case GPC_LONG_LONG:          sprintf(buf,"%lli",*(long long*)item); break;
+				case GPC_FLOAT:              sprintf(buf,"%g",  *(float*)item); break;
+				case GPC_DOUBLE:             sprintf(buf,"%g",  *(double*)item); break;
+				case GPC_PTR:                sprintf(buf,"%p",  *(void**)item); break;
+				
+				// TEMP MAY OVERFLOW
+				case GPC_CHAR_PTR:           sprintf(buf,"%s",  *(char**)item); break;
+			}
+			strcat(outBuf, buf);
+			strcat(outBuf, item != arr + gpc_size(arr) - gpc_sizeof(T) ? ", " : "");
+			memset(buf, 0, BUF_SIZE);
+		}
+		// {
+			// switch (T)
+			// {
+				// case GPC_UNSIGNED_CHAR:      sprintf(buf,"%c",  *(unsigned char*)arr); break;
+				// case GPC_UNSIGNED_SHORT:     sprintf(buf,"%hu", *(unsigned short*)arr); break;
+				// case GPC_UNSIGNED:           sprintf(buf,"%u",  *(unsigned*)arr); break;
+				// case GPC_UNSIGNED_LONG:      sprintf(buf,"%lu", *(unsigned long*)arr); break;
+				// case GPC_UNSIGNED_LONG_LONG: sprintf(buf,"%llu",*(unsigned long long*)arr);break;
+				// case GPC_BOOL:               sprintf(buf,"%s",  *(int*)arr?"true":"false");break;
+				// case GPC_CHAR:               sprintf(buf,"%c",  *(char*)arr); break;
+				// case GPC_SHORT:              sprintf(buf,"%hi", *(short*)arr); break;
+				// case GPC_INT:                sprintf(buf,"%i",  *(int*)arr); break;
+				// case GPC_LONG:               sprintf(buf,"%li", *(long*)arr); break;
+				// case GPC_LONG_LONG:          sprintf(buf,"%lli",*(long long*)arr); break;
+				// case GPC_FLOAT:              sprintf(buf,"%g",  *(float*)arr); break;
+				// case GPC_DOUBLE:             sprintf(buf,"%g",  *(double*)arr); break;
+				// case GPC_PTR:                sprintf(buf,"%p",  *(void**)arr); break;
+				
+				// //TEMP MAY OVERFLOW
+				// case GPC_CHAR_PTR:           sprintf(buf,"%s",  *(char**)arr); break;
+			// }
+			// strcat(outBuf, buf);
+			// strcat(outBuf, i < gpc_size(arr) - gpc_sizeof(T) ? ", " : "");
+			// memset(buf, 0, BUF_SIZE);
+		// }
+		strcat(outBuf, " }");
+	}
+	else
+	{
+		strcpy(outBuf, "(null)");
+	}
+}
+
 int gpc_assertArrcmp(enum gpc_Type lhst, const void* lhs, enum gpc_Type rhst, const void* rhs)
 {
 	size_t lhslen = lhs ? sizeof("{,}")*gpc_size(lhs)/gpc_sizeof(lhst) : sizeof("(null)");
 	size_t rhslen = rhs ? sizeof("{,}")*gpc_size(rhs)/gpc_sizeof(rhst) : sizeof("(null)");
 	gpc_CmpArgs* argBufs = gpc_getCmpArgs(lhslen >= rhslen ? lhslen : rhslen);
 	
-	#define BUF_SIZE 25
-	char buf[BUF_SIZE] = "";
-	
-	if (lhs != NULL)
-	{
-		strcat(argBufs->a, "{ ");
-		for (size_t i = 0; i < gpc_size(lhs); i += gpc_sizeof(lhst))
-		{
-			switch (lhst)
-			{
-				case GPC_UNSIGNED_CHAR:      sprintf(buf,"%c",  *(unsigned char*)lhs); break;
-				case GPC_UNSIGNED_SHORT:     sprintf(buf,"%hu", *(unsigned short*)lhs); break;
-				case GPC_UNSIGNED:           sprintf(buf,"%u",  *(unsigned*)lhs); break;
-				case GPC_UNSIGNED_LONG:      sprintf(buf,"%lu", *(unsigned long*)lhs); break;
-				case GPC_UNSIGNED_LONG_LONG: sprintf(buf,"%llu",*(unsigned long long*)lhs);break;
-				case GPC_BOOL:               sprintf(buf,"%s",  *(int*)lhs?"true":"false");break;
-				case GPC_CHAR:               sprintf(buf,"%c",  *(char*)lhs); break;
-				case GPC_SHORT:              sprintf(buf,"%hi", *(short*)lhs); break;
-				case GPC_INT:                sprintf(buf,"%i",  *(int*)lhs); break;
-				case GPC_LONG:               sprintf(buf,"%li", *(long*)lhs); break;
-				case GPC_LONG_LONG:          sprintf(buf,"%lli",*(long long*)lhs); break;
-				case GPC_FLOAT:              sprintf(buf,"%g",  *(float*)lhs); break;
-				case GPC_DOUBLE:             sprintf(buf,"%g",  *(double*)lhs); break;
-				case GPC_PTR:                sprintf(buf,"%p",  *(void**)lhs); break;
-				
-				// TEMP MAY OVERFLOW
-				case GPC_CHAR_PTR:           sprintf(buf,"%s",  *(char**)lhs); break;
-			}
-			strcat(argBufs->a, buf);
-			strcat(argBufs->a, i < gpc_size(lhs) - gpc_sizeof(lhst) ? ", " : "");
-			memset(buf, 0, BUF_SIZE);
-		}
-		strcat(argBufs->a, " }");
-	}
-	else
-	{
-		strcpy(argBufs->a, "(null)");
-	}
-	
-	if (rhs != NULL)
-	{
-		strcat(argBufs->b, "{ ");
-		for (size_t i = 0; i < gpc_size(rhs); i += gpc_sizeof(rhst))
-		{
-			switch (rhst)
-			{
-				case GPC_UNSIGNED_CHAR:      sprintf(buf,"%c",  *(unsigned char*)rhs); break;
-				case GPC_UNSIGNED_SHORT:     sprintf(buf,"%hu", *(unsigned short*)rhs); break;
-				case GPC_UNSIGNED:           sprintf(buf,"%u",  *(unsigned*)rhs); break;
-				case GPC_UNSIGNED_LONG:      sprintf(buf,"%lu", *(unsigned long*)rhs); break;
-				case GPC_UNSIGNED_LONG_LONG: sprintf(buf,"%llu",*(unsigned long long*)rhs);break;
-				case GPC_BOOL:               sprintf(buf,"%s",  *(int*)rhs?"true":"false");break;
-				case GPC_CHAR:               sprintf(buf,"%c",  *(char*)rhs); break;
-				case GPC_SHORT:              sprintf(buf,"%hi", *(short*)rhs); break;
-				case GPC_INT:                sprintf(buf,"%i",  *(int*)rhs); break;
-				case GPC_LONG:               sprintf(buf,"%li", *(long*)rhs); break;
-				case GPC_LONG_LONG:          sprintf(buf,"%lli",*(long long*)rhs); break;
-				case GPC_FLOAT:              sprintf(buf,"%g",  *(float*)rhs); break;
-				case GPC_DOUBLE:             sprintf(buf,"%g",  *(double*)rhs); break;
-				case GPC_PTR:                sprintf(buf,"%p",  *(void**)rhs); break;
-				
-				// TEMP MAY OVERFLOW
-				case GPC_CHAR_PTR:           sprintf(buf,"%s",  *(char**)rhs); break;
-			}
-			strcat(argBufs->b, buf);
-			strcat(argBufs->b, i < gpc_size(lhs) - gpc_sizeof(lhst) ? ", " : "");
-			memset(buf, 0, BUF_SIZE);
-		}
-		strcat(argBufs->b, " }");
-	}
-	else
-	{
-		strcpy(argBufs->b, "(null)");
-	}
+	arrElemStrfy(argBufs->a, lhst, lhs);
+	arrElemStrfy(argBufs->b, rhst, rhs);
 	
 	// const char* strp1 = str1 ? str1 : "";
 	// const char* strp2 = str2 ? str2 : "";

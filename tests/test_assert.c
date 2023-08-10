@@ -180,22 +180,40 @@ int main(void)
 	}
 	
 	// -----------------------------------------------------------------------
+	//
+	//		FAILING TESTS
+	//
+	// -----------------------------------------------------------------------
 	//		Define the macro below to see how tests might fail
 	
-	//#define GPC_NON_PASSING_TESTS
+	#define GPC_NON_PASSING_TESTS
 	#ifdef GPC_NON_PASSING_TESTS
 	
 	while (test("Failing expectations"))
 	{
-		EXPECT('c',==, 5);
-		EXPECT((unsigned char)3, ==, .5);
-		EXPECT(1, !=, 1, "Additional message");
-		EXPECT_STR("string", ==, NULL);
+		EXPECT('c',==,5);
+		EXPECT((unsigned char)3, ==,.5);
+		EXPECT(1,!=,1, "Additional message");
 		EXPECT(false);
 		EXPECT(0, "Other additional message");
+		EXPECT(0 + 1,&&,false);
+		
 		EXPECT_STR(!"blah");
 		EXPECT_STR(NULL);
-		EXPECT(0 + 1, &&, false);
+		EXPECT_STR("string",==,NULL);
+		
+		char* c          = newS(char[], '1', '2', '3');
+		char** s         = newS(char*[], "1", "2", "3");
+		void** p         = newS(void*[], (void*)0, (void*)1, (void*)2);
+		int* i           = newS(int[], -1, -2, -3);
+		unsigned long* u = newS(unsigned long[], 1, 2, 3);
+		float* f         = newS(float[], .1f, .2f, .3f);
+		
+		puts("\n\n");
+		
+		EXPECT_ARR(c,==,s);
+		EXPECT_ARR(p,==,i);
+		ASSERT_ARR(u,==,f);
 	}
 	
 	puts("\n\t\tStart testing nested suites and tests\n");
