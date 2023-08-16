@@ -202,8 +202,10 @@ int main(void)
 		EXPECT_STR(NULL);
 		EXPECT_STR("string",==,NULL);
 		
+		char* longStr = "Truncate over 20 character strings";
+		
 		char* c          = newS(char[], '1', '2', '3');
-		char** s         = newS(char*[], "1", "2", "3");
+		char** s         = newS(char*[], "1", longStr, "3");
 		void** p         = newS(void*[], (void*)0, (void*)1, (void*)2);
 		int* i           = newS(int[], -1, -2, -3);
 		unsigned long* u = newS(unsigned long[], 1, 2, 3);

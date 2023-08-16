@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{78d37367-5ab0-4213-b05d-0fab8fba4de9}</ProjectGuid>
-    <RootNamespace>testerror</RootNamespace>
+    <ProjectGuid>{382fac4c-d3e0-4e5b-afbb-f3673ea4dae5}</ProjectGuid>
+    <RootNamespace>testoverload</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -71,12 +71,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)build\</OutDir>
     <IntDir>$(SolutionDir)build\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)build\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)build\</OutDir>
     <IntDir>$(SolutionDir)build\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)build\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -138,9 +138,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\assert.c" />
+    <ClCompile Include="..\..\..\src\error.c" />
     <ClCompile Include="..\..\..\src\memory.c" />
-    <ClCompile Include="..\..\..\src\overload.c" />
-    <ClCompile Include="..\..\test_error.c" />
+    <ClCompile Include="..\..\test_overoad.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

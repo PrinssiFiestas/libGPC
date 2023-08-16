@@ -265,69 +265,54 @@ int gpc_assertStrcmp(const char* str1, const char* str2)
 	return strcmp(strp1, strp2);
 }
 
-static void arrElemStrfy(char* outBuf, enum gpc_Type T, const void* _arr)
+#define MAX_DIGITS 20
+static int arrItemStrfy(char* buf, enum gpc_Type T, const void* item)
+{
+	switch (T)
+	{ 
+	case GPC_UNSIGNED_CHAR:      return sprintf(buf,"%c",    *(unsigned char*)item);
+	case GPC_UNSIGNED_SHORT:     return sprintf(buf,"%hu",   *(unsigned short*)item);
+	case GPC_UNSIGNED:           return sprintf(buf,"%u",    *(unsigned*)item);
+	case GPC_UNSIGNED_LONG:      return sprintf(buf,"%lu",   *(unsigned long*)item);
+	case GPC_UNSIGNED_LONG_LONG: return sprintf(buf,"%llu",  *(unsigned long long*)item);
+	case GPC_BOOL:               return sprintf(buf,"%s",    *(int*)item?"true":"false");
+	case GPC_CHAR:               return sprintf(buf,"\'%c\'",*(char*)item);
+	case GPC_SHORT:              return sprintf(buf,"%hi",   *(short*)item);
+	case GPC_INT:                return sprintf(buf,"%i",    *(int*)item);
+	case GPC_LONG:               return sprintf(buf,"%li",   *(long*)item);
+	case GPC_LONG_LONG:          return sprintf(buf,"%lli",  *(long long*)item);
+	case GPC_FLOAT:              return sprintf(buf,"%g",    *(float*)item);
+	case GPC_DOUBLE:             return sprintf(buf,"%g",    *(double*)item);
+	case GPC_PTR:                return sprintf(buf,"%p",    *(void**)item);
+	case GPC_CHAR_PTR:
+		int printed = snprintf(buf, MAX_DIGITS, "\"%s\"", *(char**)item);
+		if (printed > MAX_DIGITS)
+		{
+			strcpy(buf + MAX_DIGITS - 3, "...");
+			printed = MAX_DIGITS;
+		}
+		return printed;
+	}
+	return 0;
+}
+
+static void arrStrfy(char* outBuf, enum gpc_Type T, const void* _arr)
 {
 	const gpc_Byte* arr = _arr;
-	
-	#define BUF_SIZE 25
-	char buf[BUF_SIZE] = "";
+	const size_t arrSize = gpc_size(arr);
+	const size_t typeSize = gpc_sizeof(T);
 	
 	if (arr != NULL)
 	{
-		strcpy(outBuf, "{ ");
-		//for (size_t i = 0; i < gpc_size(arr); i += gpc_sizeof(T))
-		for (const gpc_Byte* item = arr; item != arr + gpc_size(arr); item += gpc_sizeof(T))
+		outBuf += sprintf(outBuf, "{ ");
+		for (const gpc_Byte* item = arr; item != arr + arrSize; item += typeSize)
 		{
-			switch (T)
-			{
-				case GPC_UNSIGNED_CHAR:      sprintf(buf,"%c",  *(unsigned char*)item); break;
-				case GPC_UNSIGNED_SHORT:     sprintf(buf,"%hu", *(unsigned short*)item); break;
-				case GPC_UNSIGNED:           sprintf(buf,"%u",  *(unsigned*)item); break;
-				case GPC_UNSIGNED_LONG:      sprintf(buf,"%lu", *(unsigned long*)item); break;
-				case GPC_UNSIGNED_LONG_LONG: sprintf(buf,"%llu",*(unsigned long long*)item);break;
-				case GPC_BOOL:               sprintf(buf,"%s",  *(int*)item?"true":"false");break;
-				case GPC_CHAR:               sprintf(buf,"%c",  *(char*)item); break;
-				case GPC_SHORT:              sprintf(buf,"%hi", *(short*)item); break;
-				case GPC_INT:                sprintf(buf,"%i",  *(int*)item); break;
-				case GPC_LONG:               sprintf(buf,"%li", *(long*)item); break;
-				case GPC_LONG_LONG:          sprintf(buf,"%lli",*(long long*)item); break;
-				case GPC_FLOAT:              sprintf(buf,"%g",  *(float*)item); break;
-				case GPC_DOUBLE:             sprintf(buf,"%g",  *(double*)item); break;
-				case GPC_PTR:                sprintf(buf,"%p",  *(void**)item); break;
-				
-				// TEMP MAY OVERFLOW
-				case GPC_CHAR_PTR:           sprintf(buf,"%s",  *(char**)item); break;
-			}
-			strcat(outBuf, buf);
-			strcat(outBuf, item != arr + gpc_size(arr) - gpc_sizeof(T) ? ", " : "");
-			memset(buf, 0, BUF_SIZE);
+			outBuf += arrItemStrfy(outBuf, T, item);
+			bool lastItem = item == arr + arrSize - typeSize;
+			if ( ! lastItem)
+				outBuf += sprintf(outBuf, ", ");
 		}
-		// {
-			// switch (T)
-			// {
-				// case GPC_UNSIGNED_CHAR:      sprintf(buf,"%c",  *(unsigned char*)arr); break;
-				// case GPC_UNSIGNED_SHORT:     sprintf(buf,"%hu", *(unsigned short*)arr); break;
-				// case GPC_UNSIGNED:           sprintf(buf,"%u",  *(unsigned*)arr); break;
-				// case GPC_UNSIGNED_LONG:      sprintf(buf,"%lu", *(unsigned long*)arr); break;
-				// case GPC_UNSIGNED_LONG_LONG: sprintf(buf,"%llu",*(unsigned long long*)arr);break;
-				// case GPC_BOOL:               sprintf(buf,"%s",  *(int*)arr?"true":"false");break;
-				// case GPC_CHAR:               sprintf(buf,"%c",  *(char*)arr); break;
-				// case GPC_SHORT:              sprintf(buf,"%hi", *(short*)arr); break;
-				// case GPC_INT:                sprintf(buf,"%i",  *(int*)arr); break;
-				// case GPC_LONG:               sprintf(buf,"%li", *(long*)arr); break;
-				// case GPC_LONG_LONG:          sprintf(buf,"%lli",*(long long*)arr); break;
-				// case GPC_FLOAT:              sprintf(buf,"%g",  *(float*)arr); break;
-				// case GPC_DOUBLE:             sprintf(buf,"%g",  *(double*)arr); break;
-				// case GPC_PTR:                sprintf(buf,"%p",  *(void**)arr); break;
-				
-				// //TEMP MAY OVERFLOW
-				// case GPC_CHAR_PTR:           sprintf(buf,"%s",  *(char**)arr); break;
-			// }
-			// strcat(outBuf, buf);
-			// strcat(outBuf, i < gpc_size(arr) - gpc_sizeof(T) ? ", " : "");
-			// memset(buf, 0, BUF_SIZE);
-		// }
-		strcat(outBuf, " }");
+		outBuf += sprintf(outBuf, " }");
 	}
 	else
 	{
@@ -337,20 +322,15 @@ static void arrElemStrfy(char* outBuf, enum gpc_Type T, const void* _arr)
 
 int gpc_assertArrcmp(enum gpc_Type lhst, const void* lhs, enum gpc_Type rhst, const void* rhs)
 {
-	size_t lhslen = lhs ? sizeof("{,}")*gpc_size(lhs)/gpc_sizeof(lhst) : sizeof("(null)");
-	size_t rhslen = rhs ? sizeof("{,}")*gpc_size(rhs)/gpc_sizeof(rhst) : sizeof("(null)");
-	gpc_CmpArgs* argBufs = gpc_getCmpArgs(lhslen >= rhslen ? lhslen : rhslen);
+	gpc_CmpArgs* argBufs = gpc_getCmpArgs(81); // TODO magic!!
 	
-	arrElemStrfy(argBufs->a, lhst, lhs);
-	arrElemStrfy(argBufs->b, rhst, rhs);
+	arrStrfy(argBufs->a, lhst, lhs);
+	arrStrfy(argBufs->b, rhst, rhs);
 	
-	// const char* strp1 = str1 ? str1 : "";
-	// const char* strp2 = str2 ? str2 : "";
-	// return strcmp(strp1, strp2);
 	size_t lhssize = lhs ? gpc_size(lhs) : 0;
 	size_t rhssize = rhs ? gpc_size(rhs) : 0;
 	if (lhssize == rhssize)
-		return memcmp(lhs, rhs, lhssize);
+		return memcmp(lhs, rhs, lhssize); // TODO something for string comparisons!
 	else if (lhssize > rhssize) // TODO test this!
 		return 1;
 	else
