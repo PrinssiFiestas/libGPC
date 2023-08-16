@@ -94,16 +94,6 @@ int gpc_assertStrcmp(const char* str1, const char* str2);
 #define GPC_ASSERT_STR(...) GPC_ASSERT_CUSTOM(GPC_STR_COMPARE, __VA_ARGS__)
 #define GPC_EXPECT_STR(...) GPC_EXPECT_CUSTOM(GPC_STR_COMPARE, __VA_ARGS__)
 
-// -------------------------
-// ASSERT_ARR()
-
-int gpc_assertArrcmp(enum gpc_Type at, const void* a, enum gpc_Type bt, const void* b);
-#define GPC_ARR_COMPARE(A, OP, B) \
-	(gpc_assertArrcmp(GPC_TYPE(*(A)), (A), GPC_TYPE(*(B)), (B)) OP 0)
-
-#define GPC_ASSERT_ARR(...) GPC_ASSERT_CUSTOM(GPC_ARR_COMPARE, __VA_ARGS__)
-#define GPC_EXPECT_ARR(...) GPC_EXPECT_CUSTOM(GPC_ARR_COMPARE, __VA_ARGS__)
-
 // ---------------------------------------------------------------------------
 
 #define GPC_ASSERT_CUSTOM(COMPARATOR, ...)	\

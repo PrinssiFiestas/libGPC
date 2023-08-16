@@ -53,12 +53,6 @@ int main(void)
 			EXPECT_STR("1", > , NULL);
 			ASSERT_STR("2", >=, "1999", "Ordering is alphabetic, not numeric!");
 		}
-		while (test("Array comparisons"))
-		{
-			int* arr1 = newS(int[], 1, 2, 3);
-			int* arr2 = newH(int[], 1, 2, 3);
-			EXPECT_ARR(arr1,==,arr2);
-		}
 	}
 	
 	while (testSuite("Types"))
@@ -186,7 +180,7 @@ int main(void)
 	// -----------------------------------------------------------------------
 	//		Define the macro below to see how tests might fail
 	
-	#define GPC_NON_PASSING_TESTS
+	//#define GPC_NON_PASSING_TESTS
 	#ifdef GPC_NON_PASSING_TESTS
 	
 	while (test("Failing expectations"))
@@ -201,21 +195,6 @@ int main(void)
 		EXPECT_STR(!"blah");
 		EXPECT_STR(NULL);
 		EXPECT_STR("string",==,NULL);
-		
-		char* longStr = "Truncate over 20 character strings";
-		
-		char* c          = newS(char[], '1', '2', '3');
-		char** s         = newS(char*[], "1", longStr, "3");
-		void** p         = newS(void*[], (void*)0, (void*)1, (void*)2);
-		int* i           = newS(int[], -1, -2, -3);
-		unsigned long* u = newS(unsigned long[], 1, 2, 3);
-		float* f         = newS(float[], .1f, .2f, .3f);
-		
-		puts("\n\n");
-		
-		EXPECT_ARR(c,==,s);
-		EXPECT_ARR(p,==,i);
-		ASSERT_ARR(u,==,f);
 	}
 	
 	puts("\n\t\tStart testing nested suites and tests\n");
