@@ -15,6 +15,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_error", "tests\vsproj\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_overload", "tests\vsproj\test_overload\test_overload.vcxproj", "{382FAC4C-D3E0-4E5B-AFBB-F3673EA4DAE5}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_string", "tests\vsproj\test_string\test_string.vcxproj", "{2665A32F-AEDB-4ECD-98F9-22CEC8EB26C5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -71,6 +73,14 @@ Global
 		{382FAC4C-D3E0-4E5B-AFBB-F3673EA4DAE5}.Release|x64.Build.0 = Release|x64
 		{382FAC4C-D3E0-4E5B-AFBB-F3673EA4DAE5}.Release|x86.ActiveCfg = Release|Win32
 		{382FAC4C-D3E0-4E5B-AFBB-F3673EA4DAE5}.Release|x86.Build.0 = Release|Win32
+		{2665A32F-AEDB-4ECD-98F9-22CEC8EB26C5}.Debug|x64.ActiveCfg = Debug|x64
+		{2665A32F-AEDB-4ECD-98F9-22CEC8EB26C5}.Debug|x64.Build.0 = Debug|x64
+		{2665A32F-AEDB-4ECD-98F9-22CEC8EB26C5}.Debug|x86.ActiveCfg = Debug|Win32
+		{2665A32F-AEDB-4ECD-98F9-22CEC8EB26C5}.Debug|x86.Build.0 = Debug|Win32
+		{2665A32F-AEDB-4ECD-98F9-22CEC8EB26C5}.Release|x64.ActiveCfg = Release|x64
+		{2665A32F-AEDB-4ECD-98F9-22CEC8EB26C5}.Release|x64.Build.0 = Release|x64
+		{2665A32F-AEDB-4ECD-98F9-22CEC8EB26C5}.Release|x86.ActiveCfg = Release|Win32
+		{2665A32F-AEDB-4ECD-98F9-22CEC8EB26C5}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

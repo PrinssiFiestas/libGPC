@@ -205,8 +205,8 @@ int main(void)
 	//
 	//		END OF API TESTS
 	//
-	//		Tests below test internals. There's also some old tests for some
-	//		double checks. 
+	//		Tests below test internals. There's also some old tests for double
+	//		checks. 
 	//
 	// -----------------------------------------------------------------------
 

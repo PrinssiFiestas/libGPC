@@ -8,11 +8,90 @@
 #include "../include/gpc/assert.h"
 #include "../src/array.c"
 
+size_t nextPowerOf2(size_t x)
+{
+	size_t y = 1;
+	while ((y *= 2) <= x);
+	return y;
+}
+
 int main(void)
 {
 	gpc_setErrorHandlingMode(GPC_ERROR_SEND_MESSAGE);
 	
 	Owner* thisScope = newOwner();
+	
+	// -----------------------------------------------------------------------
+	//
+	//		API TESTS
+	//
+	// -----------------------------------------------------------------------
+	
+	while (testSuite("Array size"))
+	{
+		int* arr;
+		while (test("arrLength"))
+			EXPECT(arrLength(arr = newS(int[], 1, 2, 3)),==,(size_t)3);
+		
+		while (test("arrSetLength"))
+		{
+			#if defined(__GNUC__)
+			EXPECT(arrLength(arrSetLength(&arr, 2)),==,(size_t)2);
+			#else
+			// arrSetLength() returns void* and must be casted
+			EXPECT(arrLength((int*)arrSetLength(&arr, 2)),==,(size_t)2);
+			#endif
+			
+			EXPECT(onStack(arrSetLength(&arr, arrLength(arr) - 1)),
+				"Should not allocate on shrinks.");
+			
+			EXPECT(onHeap(arrSetLength(&arr, arrCapacity(arr) + 1)),
+				"Should allocate when exceeding capacity.");
+			
+			size_t oldLen = arrLength(arr);
+			EXPECT(((int*)arrSetLength(&arr, oldLen + 1))[oldLen],==,0,
+				"New elements should be zeroed on grows.");
+		}
+		
+		while (test("arrCapacity"))
+		{
+			EXPECT(arrCapacity(arr = newH(int[], 1, 2, 3)),==,nextPowerOf2(3),
+				"Capacity should be rounded up for arrays on heap.");
+			EXPECT(arrCapacity(arr = newS(int[], 1, 2, 3)),==,(size_t)3,
+				"Capacity should be exact for arrays on stack.");
+		}
+		
+		while (test("arrCapacity"))
+		{
+			arr = newS(int[], 1, 2, 3); // Shut up MSVC
+			size_t oldCap = arrCapacity(arr);
+			EXPECT(arrCapacity((int*)arrReserve(&arr, oldCap - 1)),==,oldCap,
+				"arrReserve() shouldn't do anything if capacity doesn't grow.");
+			
+			EXPECT(onHeap(arrReserve(&arr, arrCapacity(arr) + 1)),
+				"Should allocate when exceeding capacity.");
+			
+			oldCap = arrCapacity(arr);
+			EXPECT(arrCapacity((int*)arrReserve(&arr, oldCap + 1)),==,nextPowerOf2(oldCap),
+				"Capacity should be rounded up.");
+		}
+	}
+	
+	// -----------------------------------------------------------------------
+	//
+	//		END OF API TESTS
+	//
+	//		Tests below test internals. There's also some old tests for double
+	//		checks. 
+	//
+	// -----------------------------------------------------------------------
+	
+	while (test("nextPowerOf2"))
+	{
+		EXPECT(nextPowerOf2(7),==,(size_t)8);
+		EXPECT(nextPowerOf2(8),==,(size_t)16);
+		EXPECT(nextPowerOf2(9),==,(size_t)16);
+	}
 	
 	int* arr = newS(int[], 1, 4, 7);
 	
