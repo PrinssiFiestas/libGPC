@@ -138,6 +138,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\assert.c" />
+    <ClCompile Include="..\..\..\src\error.c" />
+    <ClCompile Include="..\..\..\src\memory.c" />
     <ClCompile Include="..\..\test_string.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

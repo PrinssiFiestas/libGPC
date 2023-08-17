@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include "overload.h"
 #include "attributes.h"
+#include "string.h"
 
 //----------------------------------------------------------------------------
 //
@@ -89,7 +90,8 @@ bool gpc_exitTests(bool);
 // ASSERT_STR()
 
 int gpc_assertStrcmp(const char* str1, const char* str2);
-#define GPC_STR_COMPARE(A, OP, B) (gpc_assertStrcmp((A), (B)) OP 0)
+#define GPC_STR_COMPARE(A, OP, B) \
+	(gpc_assertStrcmp(GPC_ANY_STRING(A), GPC_ANY_STRING(B)) OP 0)
 
 #define GPC_ASSERT_STR(...) GPC_ASSERT_CUSTOM(GPC_STR_COMPARE, __VA_ARGS__)
 #define GPC_EXPECT_STR(...) GPC_EXPECT_CUSTOM(GPC_STR_COMPARE, __VA_ARGS__)

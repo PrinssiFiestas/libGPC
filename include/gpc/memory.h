@@ -32,13 +32,15 @@ typedef struct gpc_Owner Owner;
 // Allocate zero initialized memory on stack and assign ownership to the last 
 // owner created with newOwner().
 // size and capacity will be sizeof(type).
-// Returns newly created object. 
+// type must be char[] for C strings. 
+// Returns newly created object.
 #define newS(type,/*initVal=0*/...)				gpc_newS(type, __VA_ARGS__)
 
 // Allocate zero initialized memory on heap and assign ownership to the last 
 // owner created with newOwner().
 // size will be sizeof(type) and capacity will be nextPowerOf2(sizeof(type)).
-// Returns newly created object. 
+// type must be char[] for C strings. 
+// Returns newly created object.
 #define newH(type,/*initVal=0*/...)				gpc_newH(type, __VA_ARGS__)
 
 // Allocate zero initialized memory on stack and assign ownership to be the last
@@ -123,28 +125,28 @@ typedef unsigned char gpc_Byte;
 	gpc_buildHeapObject( \
 		sizeof((type){__VA_ARGS__}), &(type){__VA_ARGS__}, NULL)
 
-#define gpc_newS(type, ...)											\
-	(gpc_buildObject(					\
+#define gpc_newS(type, ...) \
+	(gpc_buildObject( \
 		&(uint8_t[sizeof(struct gpc_ObjectList) + sizeof((type){__VA_ARGS__})]){0},\
-		(struct gpc_ObjectList)										\
-		{															\
-			.owner = NULL,											\
-			.size = sizeof((type){__VA_ARGS__}),					\
-			.capacity = sizeof((type){__VA_ARGS__})					\
+		(struct gpc_ObjectList) \
+		{ \
+			.owner = NULL, \
+			.size = sizeof((type){__VA_ARGS__}), \
+			.capacity = sizeof((type){__VA_ARGS__}) \
 		}, &(type){__VA_ARGS__}))
 
 GPC_NODISCARD void* gpc_allocH(size_t capacity);
 
 #define gpc_allocS(capacity) gpc_allocaAssign(capacity, NULL)
 
-#define gpc_allocaAssign(_capacity, _owner)							\
-	gpc_buildObject(												\
-		&(uint8_t[sizeof(struct gpc_ObjectList) + _capacity]){0},	\
-		(struct gpc_ObjectList)										\
-		{															\
-			.owner = _owner,										\
-			.size = 0,												\
-			.capacity = _capacity									\
+#define gpc_allocaAssign(_capacity, _owner) \
+	gpc_buildObject( \
+		&(uint8_t[sizeof(struct gpc_ObjectList) + _capacity]){0}, \
+		(struct gpc_ObjectList) \
+		{ \
+			.owner = _owner, \
+			.size = 0, \
+			.capacity = _capacity \
 		}, NULL)
 
 GPC_NODISCARD void* gpc_mallocAssign(size_t, gpc_Owner*);
