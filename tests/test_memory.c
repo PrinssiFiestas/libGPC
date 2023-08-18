@@ -283,10 +283,10 @@ int main(void)
 	while (test("reallocate"))
 	{
 		uint32_t* obj0Original = (uint32_t*)obj0;
-		obj0 = reallocate(obj0, obj0Cap * 2);
+		obj0 = reallocate(obj0, obj0Cap * 2 + 1);
 		ASSERT(obj0[0],==,'X', "Memory not copied!");
 		ASSERT(*obj0Original,==,FREED4);
-		ASSERT(capacity(obj0),==,obj0Cap * 2);
+		ASSERT(capacity(obj0),==,gpc_nextPowerOf2(obj0Cap * 2 + 1));
 	}
 	
 	while (test("setSize and reallocate"))
@@ -355,7 +355,10 @@ int main(void)
 	{
 		unsigned long n = 3;
 		ASSERT(gpc_nextPowerOf2(n),==,(unsigned long)4);
-		ASSERT(gpc_nextPowerOf2(4),==,(unsigned long)4, "Prevent needless allocations!");
+		ASSERT(gpc_nextPowerOf2(4),==,(unsigned long)8,
+			"Objects only require memory management if they're expected to "
+			"grow. Therefore, objects always have extra capacity just in case. "
+			"Null-terminated strings require this extra space anyway. ");
 		ASSERT(gpc_nextPowerOf2(28),==,(unsigned long)32);
 		ASSERT(gpc_nextPowerOf2(SIZE_MAX/2 + 1),<=,SIZE_MAX);
 	}

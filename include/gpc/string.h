@@ -5,6 +5,9 @@
 #ifndef STRING_H
 #define STRING_H
 
+#include "attributes.h"
+#include "overload.h"
+
 typedef struct gpc_Char
 {
 	char c;
@@ -136,6 +139,16 @@ typedef gpc_String String;
 			.size = sizeof((char[]){literal}) - 1, \
 			.capacity = sizeof((char[]){literal}) \
 		}, &(char[]){literal}))
+
+#define gpc_newStringH(literal) \
+gpc_buildHeapObject( \
+		sizeof((char[]){literal}) - 1, &(char[]){literal}, NULL)
+
+#define gpc_strAppend(pdest, ...) \
+	gpc_strAppendCharArrs(pdest, \
+		(const char*[]){GPC_LIST_ALL(GPC_ANY_STRING, GPC_COMMA, __VA_ARGS__), NULL})
+
+gpc_String gpc_strAppendCharArrs(gpc_String* dest, const char* arr[GPC_STATIC 1]);
 
 const char* gpc_strCstr(gpc_String);
 
