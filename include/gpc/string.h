@@ -10,14 +10,14 @@
 
 typedef struct gpc_Char
 {
-	char c;
+    char c;
 } gpc_Char;
 
 typedef gpc_Char* gpc_String;
 
 //----------------------------------------------------------------------------
 //
-//		CORE API
+//        CORE API
 //
 //----------------------------------------------------------------------------
 
@@ -80,14 +80,14 @@ typedef gpc_String String;
 #define strReplaceFirst(phaystack, needle, replacement)           \
 /* String */ gpc_strReplaceFirst(/* String          */ phaystack, \
                                  /* String or char* */ needle,    \
-								 /* String or char* */ replacement)
+                                 /* String or char* */ replacement)
 
 // Replaces last occurrence of needle in *phaystack with replacement.
 // Returns *phaystack.
 #define strReplaceLast(phaystack, needle, replacement)           \
 /* String */ gpc_strReplaceLast(/* String          */ phaystack, \
                                 /* String or char* */ needle,    \
-								/* String or char* */ replacement)
+                                /* String or char* */ replacement)
 
 // Replaces all occurrences of needle in *phaystack with replacement.
 // Returns *phaystack.
@@ -124,39 +124,39 @@ typedef gpc_String String;
 
 //----------------------------------------------------------------------------
 //
-//		END OF CORE API
+//        END OF CORE API
 //
-//		Structs, functions and macros below are for internal or advanced use
+//        Structs, functions and macros below are for internal or advanced use
 //
 //----------------------------------------------------------------------------
 
 #define gpc_newStringS(literal) \
 (gpc_buildObject( \
-		&(uint8_t[sizeof(struct gpc_ObjectList) + sizeof((char[]){literal})]){0},\
-		(struct gpc_ObjectList) \
-		{ \
-			.owner = NULL, \
-			.size = sizeof((char[]){literal}) - 1, \
-			.capacity = sizeof((char[]){literal}) \
-		}, &(char[]){literal}))
+        &(uint8_t[sizeof(struct gpc_ObjectList) + sizeof((char[]){literal})]){0},\
+        (struct gpc_ObjectList) \
+        { \
+            .owner = NULL, \
+            .size = sizeof((char[]){literal}) - 1, \
+            .capacity = sizeof((char[]){literal}) \
+        }, &(char[]){literal}))
 
 #define gpc_newStringH(literal) \
 gpc_buildHeapObject( \
-		sizeof((char[]){literal}) - 1, &(char[]){literal}, NULL)
+        sizeof((char[]){literal}) - 1, &(char[]){literal}, NULL)
 
 #define gpc_strAppend(pdest, ...) \
-	gpc_strAppendCharArrs(pdest, \
-		(const char*[]){GPC_LIST_ALL(GPC_ANY_STRING, GPC_COMMA, __VA_ARGS__), NULL})
+    gpc_strAppendCharArrs(pdest, \
+        (const char*[]){GPC_LIST_ALL(GPC_ANY_STRING, GPC_COMMA, __VA_ARGS__), NULL})
 
 gpc_String gpc_strAppendCharArrs(gpc_String* dest, const char* arr[GPC_STATIC 1]);
 
 const char* gpc_strCstr(gpc_String);
 
 #define GPC_ANY_STRING(STR) \
-	_Generic((STR), \
-		char*: (STR), \
-		const char*: (STR), \
-		gpc_String: gpc_strCstr((gpc_String)(STR)), \
-		void*: (STR)) // for NULL
+    _Generic((STR), \
+        char*: (STR), \
+        const char*: (STR), \
+        gpc_String: gpc_strCstr((gpc_String)(STR)), \
+        void*: (STR)) // for NULL
 
 #endif // STRING_H

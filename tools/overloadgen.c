@@ -30,67 +30,67 @@
 
 int main(void)
 {
-	// Test if running this script from script directory. If not, project root 
-	// assumed. 
-	FILE* ftest = fopen("overloadgen.c", "r");
-	bool inScriptDir = ftest != NULL;
-	if (ftest)
-		fclose(ftest);
-	
-	const char* outPath = inScriptDir ? "../build/overload.h" : "build/overload.h";
-	
-	FILE* f = fopen(outPath, "w+");
-	if (f == NULL)
-	{
-		perror("couldn't create overload.h");
-		return EXIT_FAILURE;
-	}
-	
-	// Hold string to be printed in buf before printing so aligment can be made
-	char buf[100] = {0};
-	int col = 0;
-	
-	// Print to f aligned. Aligment happens between fpf() calls. 
-	#define fpf(...) (col += sprintf(buf, __VA_ARGS__),			\
-		col >= COLW - TABW ?									\
-			col = 0 * fprintf(f, "\t\\\n%s", buf) :				\
-			fprintf(f, "%s", buf)								\
-		)
-	
-	// Print newline and reset column
-	#define endl() (col = 0 * fprintf(f, "\n"))
-	
-	for (int i = 1; i <= MAX_ARGS; i++)
-	{
-		fpf("#define GPC_OVERLOAD%i(...) GPC_CHOOSE_%iTH(__VA_ARGS__)", i, i);
-		endl();
-	}
-	endl();
-	
-	for (int i = 1; i <= MAX_ARGS; i++)
-	{
-		fpf("#define GPC_CHOOSE_%iTH(", i);
-		for (int j = 0; j < i; j++)
-			fpf("_%i, ", j);
-		fpf("THIS, ");
-		fpf("...) ");
-		fpf("THIS");
-		endl();
-	}
-	endl();
-	
-	for (int i = 1; i <= MAX_ARGS; i++)
-	{
-		fpf("#define OVERLOAD%i(...) GPC_OVERLOAD%i(__VA_ARGS__)", i, i);
-		endl();
-	}
-	endl();
-	
-	for (int i = 1; i <= MAX_ARGS; i++)
-	{
-		fpf("#define CHOOSE_%iTH(...) GPC_CHOOSE_%iTH(__VA_ARGS__)", i, i);
-		endl();
-	}
-	
-	fclose(f);
+    // Test if running this script from script directory. If not, project root 
+    // assumed. 
+    FILE* ftest = fopen("overloadgen.c", "r");
+    bool inScriptDir = ftest != NULL;
+    if (ftest)
+        fclose(ftest);
+    
+    const char* outPath = inScriptDir ? "../build/overload.h" : "build/overload.h";
+    
+    FILE* f = fopen(outPath, "w+");
+    if (f == NULL)
+    {
+        perror("couldn't create overload.h");
+        return EXIT_FAILURE;
+    }
+    
+    // Hold string to be printed in buf before printing so aligment can be made
+    char buf[100] = {0};
+    int col = 0;
+    
+    // Print to f aligned. Aligment happens between fpf() calls. 
+    #define fpf(...) (col += sprintf(buf, __VA_ARGS__),            \
+        col >= COLW - TABW ?                                    \
+            col = 0 * fprintf(f, "\t\\\n%s", buf) :                \
+            fprintf(f, "%s", buf)                                \
+        )
+    
+    // Print newline and reset column
+    #define endl() (col = 0 * fprintf(f, "\n"))
+    
+    for (int i = 1; i <= MAX_ARGS; i++)
+    {
+        fpf("#define GPC_OVERLOAD%i(...) GPC_CHOOSE_%iTH(__VA_ARGS__)", i, i);
+        endl();
+    }
+    endl();
+    
+    for (int i = 1; i <= MAX_ARGS; i++)
+    {
+        fpf("#define GPC_CHOOSE_%iTH(", i);
+        for (int j = 0; j < i; j++)
+            fpf("_%i, ", j);
+        fpf("THIS, ");
+        fpf("...) ");
+        fpf("THIS");
+        endl();
+    }
+    endl();
+    
+    for (int i = 1; i <= MAX_ARGS; i++)
+    {
+        fpf("#define OVERLOAD%i(...) GPC_OVERLOAD%i(__VA_ARGS__)", i, i);
+        endl();
+    }
+    endl();
+    
+    for (int i = 1; i <= MAX_ARGS; i++)
+    {
+        fpf("#define CHOOSE_%iTH(...) GPC_CHOOSE_%iTH(__VA_ARGS__)", i, i);
+        endl();
+    }
+    
+    fclose(f);
 }

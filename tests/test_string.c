@@ -12,55 +12,55 @@
 
 int main(void)
 {
-	Owner* thisScope = newOwner();
-	
-	gpc_setErrorHandlingMode(GPC_ERROR_SEND_MESSAGE);
-	
-	while (testSuite("String constructor"))
-	{
-		String str = newStringS("string");
-		
-		EXPECT_STR(str,==,"string");
-		
-		EXPECT(size(str),==,strlen("string"));
-		EXPECT(capacity(str),==,strlen("string") + 1,
-			"String should always have capacity for null-terminator.");
-		
-		//#define GPC_TEST_WARNINGS
-		#ifdef GPC_TEST_WARNINGS
-		char* charPointer = "Initializer must be a string literal!";
-		String str2 = newStringS(charPointer);
-		(void)str2;
-		#endif
-	}
-	
-	while (test("strAppend"))
-	{
-		String heres    = newStringH("Here's ");
-		String sentence = newStringH("sentence.");
-		EXPECT_STR(strAppend(&heres, "a ", sentence),==,"Here's a sentence.",
-			"strAppend() should take any number of Strings and char*s");
-	}
-	
-	String str;
-	String str1 = newStringS("blah");
-	clock_t t;
-	
-	str = newStringH("");
-	t = clock();
-	for (size_t i = 0; i < 100; i++)
-	{
-		strAppend(&str, str1, "blah", str1, "blah");
-	}
-	printf("%s\n\n%li\n\n", (const char*)str, clock() - t);
-	
-	str = newStringH("START");
-	t = clock();
-	for (size_t i = 0; i < 100; i++)
-	{
-		strAppend(&str, str1, "blah", str1, "blah");
-	}
-	printf("%s\n\n%li\n\n", (const char*)str, clock() - t);
-	
-	freeOwner(thisScope, NULL);
+    Owner* thisScope = newOwner();
+    
+    gpc_setErrorHandlingMode(GPC_ERROR_SEND_MESSAGE);
+    
+    while (testSuite("String constructor"))
+    {
+        String str = newStringS("string");
+        
+        EXPECT_STR(str,==,"string");
+        
+        EXPECT(size(str),==,strlen("string"));
+        EXPECT(capacity(str),==,strlen("string") + 1,
+            "String should always have capacity for null-terminator.");
+        
+        //#define GPC_TEST_WARNINGS
+        #ifdef GPC_TEST_WARNINGS
+        char* charPointer = "Initializer must be a string literal!";
+        String str2 = newStringS(charPointer);
+        (void)str2;
+        #endif
+    }
+    
+    while (test("strAppend"))
+    {
+        String heres    = newStringH("Here's ");
+        String sentence = newStringH("sentence.");
+        EXPECT_STR(strAppend(&heres, "a ", sentence),==,"Here's a sentence.",
+            "strAppend() should take any number of Strings and char*s");
+    }
+    
+    String str;
+    String str1 = newStringS("blah");
+    clock_t t;
+    
+    str = newStringH("");
+    t = clock();
+    for (size_t i = 0; i < 100; i++)
+    {
+        strAppend(&str, str1, "blah", str1, "blah");
+    }
+    printf("%s\n\n%li\n\n", (const char*)str, clock() - t);
+    
+    str = newStringH("START");
+    t = clock();
+    for (size_t i = 0; i < 100; i++)
+    {
+        strAppend(&str, str1, "blah", str1, "blah");
+    }
+    printf("%s\n\n%li\n\n", (const char*)str, clock() - t);
+    
+    freeOwner(thisScope, NULL);
 }
