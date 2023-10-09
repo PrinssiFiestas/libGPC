@@ -17,14 +17,14 @@
 // without the gpc_ prefix. 
 #if defined(GPC_OVERLOAD_NAMESPACE) || defined(GPC_NAMESPACE)
 
-// Overload function by the number of arguments up to NARGS. Usage example:
+// Overload function by the number of arguments up to N. Usage example:
 /*
     int f1Arg(int arg) { return arg; }
     #define f2Args(a, b) a + b
     void f3Args(int i1, int i2, int i3) { printf("%i%i%i\n", i1, i2, i3); }
     #define func(...) OVERLOAD3(__VA_ARGS__, f3Args, f2Args, f1Arg)(__VA_ARGS__)
 */
-// This is a dummy macro! Replace N with max arguments like in the example above.
+// Replace N with max arguments like in the example above.
 #define OVERLOADN(...) GPC_OVERLOADN(__VA_ARGS__)
 
 // Returns EXPR_IF_TRUE if VAR is a number
@@ -32,12 +32,12 @@
 // (aka char), uint8_t (aka unsigned char), or bool needs to be considered as 
 // numbers, use IF_IS_NUMERIC() instead.
 // enum types are not numbers on MSVC. 
-#define IF_IS_NUMBER(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE)        \
+#define IF_IS_NUMBER(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE) \
     GPC_IF_IS_NUMBER(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE)
 
 // Returns EXPR_IF_TRUE if VAR is a number, char, or bool
 // enum types are not numberic on MSVC. 
-#define IF_IS_NUMERIC(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE)    \
+#define IF_IS_NUMERIC(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE) \
     GPC_IF_IS_NUMERIC(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE)
 
 // Returns number of arguments
@@ -76,43 +76,43 @@ inline bool gpc_isPointer(const enum gpc_Type T) { return GPC_CHAR_PTR <= T && T
 
 size_t gpc_sizeof(const enum gpc_Type T);
 
-#define GPC_TYPE(VAR)                                    \
-    _Generic(VAR,                                        \
-            bool:                GPC_BOOL,                \
-            short:                GPC_SHORT,                \
+#define GPC_TYPE(VAR)                                   \
+    _Generic(VAR,                                       \
+            bool:               GPC_BOOL,               \
+            short:              GPC_SHORT,              \
             int:                GPC_INT,                \
-            long:                GPC_LONG,                \
-            long long:            GPC_LONG_LONG,            \
-            unsigned short:        GPC_UNSIGNED_LONG,        \
-            unsigned int:        GPC_UNSIGNED,            \
-            unsigned long:        GPC_UNSIGNED_LONG,        \
-            unsigned long long:    GPC_UNSIGNED_LONG_LONG,    \
-            float:                GPC_FLOAT,                \
-            double:                GPC_DOUBLE,                \
-            char:                GPC_CHAR,                \
-            unsigned char:        GPC_UNSIGNED_CHAR,        \
-            char*:                GPC_CHAR_PTR,            \
-            const char*:        GPC_CHAR_PTR,            \
+            long:               GPC_LONG,               \
+            long long:          GPC_LONG_LONG,          \
+            unsigned short:     GPC_UNSIGNED_LONG,      \
+            unsigned int:       GPC_UNSIGNED,           \
+            unsigned long:      GPC_UNSIGNED_LONG,      \
+            unsigned long long: GPC_UNSIGNED_LONG_LONG, \
+            float:              GPC_FLOAT,              \
+            double:             GPC_DOUBLE,             \
+            char:               GPC_CHAR,               \
+            unsigned char:      GPC_UNSIGNED_CHAR,      \
+            char*:              GPC_CHAR_PTR,           \
+            const char*:        GPC_CHAR_PTR,           \
             default:            GPC_PTR)
 
 #define GPC_OVERLOAD(NARGS, ...) GPC_LIST##NARGS (GPC_DUMP, GPC_DUMP, GPC_1ST_ARG, __VA_ARGS__)
 
-#define GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR,        \
-short: EXPR_IF_TRUE, unsigned short: EXPR_IF_TRUE, int: EXPR_IF_TRUE,            \
-unsigned: EXPR_IF_TRUE, long: EXPR_IF_TRUE, unsigned long: EXPR_IF_TRUE,         \
-long long: EXPR_IF_TRUE, unsigned long long: EXPR_IF_TRUE, float: EXPR_IF_TRUE, \
+#define GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR,       \
+short: EXPR_IF_TRUE, unsigned short: EXPR_IF_TRUE, int: EXPR_IF_TRUE,          \
+unsigned: EXPR_IF_TRUE, long: EXPR_IF_TRUE, unsigned long: EXPR_IF_TRUE,       \
+long long: EXPR_IF_TRUE, unsigned long long: EXPR_IF_TRUE, float: EXPR_IF_TRUE,\
 double: EXPR_IF_TRUE, long double: EXPR_IF_TRUE, default: EXPR_IF_FALSE)
 
-#define GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR,     \
+#define GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR, \
 char: EXPR_IF_TRUE, unsigned char: EXPR_IF_TRUE, default: EXPR_IF_FALSE)
 
 // TODO check for C23 once it comes out
 #if __STDC_VERSION__ >= 199901L
-#define GPC_IF_IS_NUMERIC(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR,    \
-_Bool: EXPR_IF_TRUE, default: GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE,             \
+#define GPC_IF_IS_NUMERIC(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR, \
+_Bool: EXPR_IF_TRUE, default: GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE,         \
 GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE)))
 #else
-#define GPC_IF_IS_NUMERIC(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE)        \
+#define GPC_IF_IS_NUMERIC(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) \
 GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE))
 #endif
 
@@ -124,7 +124,7 @@ GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FA
 
 // ---------------------------------------------------------------------------
 
-#define GPC_LIST_ALL(FUNC, OP, ...) GPC_CHOOSE_64TH(__VA_ARGS__, GPC_LIST64, GPC_LIST63,        \
+#define GPC_LIST_ALL(FUNC, OP, ...) GPC_CHOOSE_64TH(__VA_ARGS__, GPC_LIST64, GPC_LIST63,       \
 GPC_LIST62, GPC_LIST61, GPC_LIST60, GPC_LIST59, GPC_LIST58, GPC_LIST57, GPC_LIST56, GPC_LIST55,\
 GPC_LIST54, GPC_LIST53, GPC_LIST52, GPC_LIST51, GPC_LIST50, GPC_LIST49, GPC_LIST48, GPC_LIST47,\
 GPC_LIST46, GPC_LIST45, GPC_LIST44, GPC_LIST43, GPC_LIST42, GPC_LIST41, GPC_LIST40, GPC_LIST39,\

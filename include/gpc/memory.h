@@ -27,91 +27,119 @@ typedef struct gpc_Owner Owner;
 // Newly created owner will be registered to be the owner of all objects created
 // with subsequent calls to newS(), newH(), allocS(), allocH(), and duplicate().
 // Returns pointer to newly created owner. 
-#define newOwner()                                gpc_newOwner()
+#define newOwner() \
+/* Owner* */ gpc_newOwner()
 
 // Allocate zero initialized memory on stack and assign ownership to the last 
 // owner created with newOwner().
 // size and capacity will be sizeof(type).
 // type must be char[] for C strings. 
 // Returns newly created object.
-#define newS(type,/*initVal=0*/...)                gpc_newS(type, __VA_ARGS__)
+#define newS(type, ...) \
+/* void* */ gpc_newS(type,/* initVals=0 */__VA_ARGS__)
 
 // Allocate zero initialized memory on heap and assign ownership to the last 
 // owner created with newOwner().
 // size will be sizeof(type) and capacity will be nextPowerOf2(sizeof(type)).
 // type must be char[] for C strings. 
 // Returns newly created object.
-#define newH(type,/*initVal=0*/...)                gpc_newH(type, __VA_ARGS__)
+#define newH(type,...) \
+/* void* */ gpc_newH(type,/* initVals=0 */__VA_ARGS__)
 
 // Allocate zero initialized memory on stack and assign ownership to be the last
 // owner created with newOwner().
 // size will be 0. 
-#define allocS(capacity)                        gpc_allocS(capacity)
+#define allocS(capacity) \
+/* void* */ gpc_allocS(/* size_t */ capacity)
 
 // Allocate zero initialized memory on heap and assign ownership to be the last
 // owner created with newOwner().
 // size will be 0. 
-#define allocH(capacity)                        gpc_allocH(capacity)
+#define allocH(capacity) \
+/* void* */ gpc_allocH(/* size_t */ capacity)
 
 // Frees owner and all of it's objects and returns returnObject
 // If the owner of returnObject is owner being freed, it's ownership will be
 // moved to owner->parent. If returnObject is on stack, it will be copied on
 // heap. Registers owner->parent to be the memory handler. 
-#define freeOwner(owner, returnObject)            gpc_freeOwner(owner, returnObject)
+#define freeOwner(owner, returnObject)        \
+/* void* */ gpc_freeOwner(/* Owner* */ owner, \
+                          /* T*     */ returnObject)
 
 // Gets size of object excluding it's metadata
-#define size(object)                            gpc_size(object)
+#define size(object) \
+/* size_t */ gpc_size(/* void* */ object)
 
 // Sets size of object excluding it's metadata.
 // Rerturns object and NULL on failure. 
 // Reallocates if newSize exceeds size of block allocated for object. This 
 // means that the return value has to be stored to object. 
 // Does nothing if newSize == size(object).
-#define resize(pobject, newSize)                gpc_resize(pobject, newSize)
+#define resize(pobject, newSize)             \
+/* void* */ gpc_resize(/* T**    */ pobject, \
+                       /* size_t */ newSize)
 
 // Gets size of memory block allocated for object
-#define capacity(object)                        gpc_capacity(object)
+#define capacity(object) \
+/* size_t */ gpc_capacity(/* T* */ object)
 
 // Reallocate object
 // Returns pointer to newly allocated block and NULL on failure. 
 // Does nothing if newCapacity<=capacity(*pobject).
-#define reserve(pobject, newCapacity)            gpc_reserve(pobject, newCapacity)
+#define reserve(pobject, newCapacity)         \
+/* void* */ gpc_reserve(/* T**    */ pobject, \
+                        /* size_t */ newCapacity)
 
 // Returns a copy of object on heap
-#define duplicate(object)                        gpc_duplicate(object)
+#define duplicate(object) \
+/* void* */ gpc_duplicate(/* T* */ object)
 
 // Returns true if object is allocated on stack, false otherwise
-#define onStack(object)                            gpc_onStack(object)
+#define onStack(object) \
+/* bool */ gpc_onStack(/* T* */ object)
 
 // Returns true if object is allocated on heap, false otherwise
-#define onHeap(object)                            gpc_onHeap(object)
+#define onHeap(object) \
+/* bool */ gpc_onHeap(/* T* */ object)
 
 // Assign a new owner
-#define moveOwnership(object, newOwner)            gpc_moveOwnership(object, newOwner)
+#define moveOwnership(object, newOwner)           \
+/* void */ gpc_moveOwnership(/* T*     */ object, \
+                             /* Owber* */ newOwner)
 
 // Allocate memory on stack and assign ownership
 // owner will be the last one created with newOwner() if NULL
 // Memory will be zeroed and size will be 0 and NULL on failure.
-#define allocaAssign(capacity, owner)            gpc_allocaAssign(capacity, owner)
+#define allocaAssign(capacity, owner)              \
+/* void* */ gpc_allocaAssign(/* size_t */capacity, \
+                             /* Owner* */owner)
 
 // malloc and assign ownership
 // owner will be the last one created with newOwner() if NULL
 // Returns pointer to an object of size 0 and NULL on failure.
-#define mallocAssign(capacity, owner)            gpc_mallocAssign(capacity, owner)
+#define mallocAssign(capacity, owner)               \
+/* void* */ gpc_mallocAssign(/* size_t */ capacity, \
+                             /* Owner* */ owner)
 
 // calloc and assign ownership
 // owner will be the last one created with newOwner() if NULL
 // Memory will be zeroed and size will be 0.
 // Returns NULL on failure.
-#define callocAssign(nmemb, size, owner)        gpc_callocAssign(nmemb, size, owner)
+#define callocAssign(nmemb, size, owner)         \
+/* void* */ gpc_callocAssign(/* size_t */ nmemb, \
+                             /* size_t */ size,  \
+                             /* Owner* */ owner) \
 
 // Reallocate object
 // Returns pointer to newly allocated block and NULL on failure. 
 // Does nothing if newCapacity<=capacity(object).
-#define reallocate(object, newCapacity)            gpc_reallocate(object, newCapacity)
+#define reallocate(object, newCapacity)         \
+/* void* */ gpc_reallocate(/* void*  */ object, \
+                           /* size_t */ newCapacity)
 
 // Returns pointer to object's owner
-#define getOwner(object)                        gpc_getOwner(object)
+#define getOwner(object) \
+/* Owner* */ gpc_getOwner(/* T* */object)
 
 #endif // GPC_NAMESPACING ----------------------------------------------------
 
