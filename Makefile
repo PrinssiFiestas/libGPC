@@ -41,7 +41,7 @@ define NEWLINE
 
 endef
 tests:
-	msbuild libGPC.sln
+	msbuild.exe libGPC.sln
 	$(foreach test,$(TESTS),./$(test)$(NEWLINE))
 endif
 
@@ -54,7 +54,7 @@ testallc:
 	wsl make tests CC=gcc
 	make clean
 	wsl make tests CC=clang
-	make tests CC=msbuild
+	make tests CC=msbuild.exe
 	make clean
 
 clean:
