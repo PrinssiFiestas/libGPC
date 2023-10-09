@@ -28,7 +28,7 @@ static size_t gpc_nextPowerOf2(size_t n)
     return result;
 }
 
-static void assignOwner(struct gpc_ObjectList* obj, gpc_Owner* owner)
+static void assignOwner(struct gpc_Object* obj, gpc_Owner* owner)
 {
     // initialize gCurrentOwner
     if ( ! gCurrentOwner)
@@ -72,7 +72,7 @@ GPC_NODISCARD void* gpc_mallocAssign(size_t capacity, gpc_Owner* owner)
         return NULL;
     
     capacity = gpc_nextPowerOf2(capacity);
-    struct gpc_ObjectList* p = malloc(sizeof(p[0]) + capacity);
+    struct gpc_Object* p = malloc(sizeof(p[0]) + capacity);
     if (gpc_handleError(p == NULL, "malloc() failed in mallocAssign()"))
         return NULL;
     assignOwner(p, owner);
@@ -92,7 +92,7 @@ GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_Owner* owner
         return NULL;
     
     size_t blockSize = gpc_nextPowerOf2(nmemb * size);
-    struct gpc_ObjectList* p = calloc(sizeof(p[0]) + blockSize, 1);
+    struct gpc_Object* p = calloc(sizeof(p[0]) + blockSize, 1);
     if (gpc_handleError(p == NULL, "calloc() failed in callocAssign()"))
         return NULL;
     assignOwner(p, owner);
@@ -101,11 +101,11 @@ GPC_NODISCARD void* gpc_callocAssign(size_t nmemb, size_t size, gpc_Owner* owner
     return p + 1;
 }
 
-static struct gpc_ObjectList* listData(const void *const object)
+static struct gpc_Object* listData(const void *const object)
 {
     if (gpc_handleError(object == NULL, GPC_EMSG_INTERNAL GPC_EMSG_NULL_ARG(object, listData)))
         return NULL;
-    return ((struct gpc_ObjectList*)object) - 1;
+    return ((struct gpc_Object*)object) - 1;
 }
 
 GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity)
@@ -115,7 +115,7 @@ GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity)
     if (gpc_handleError(newCapacity >= PTRDIFF_MAX, GPC_EMSG_OVERALLOC(reallocate)))
         return NULL;
     
-    struct gpc_ObjectList* me = listData(object);
+    struct gpc_Object* me = listData(object);
     if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(reallocate)))
         return NULL;
     
@@ -138,7 +138,7 @@ GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity)
     else if (me->owner->firstObject == me)
         me->owner->firstObject = me->next;    
     
-    struct gpc_ObjectList* newMe;
+    struct gpc_Object* newMe;
     if (gpc_onStack(object))
         newMe = malloc(sizeof(*me) + newCapacity);
     else
@@ -163,7 +163,7 @@ void gpc_moveOwnership(void* object, gpc_Owner* newOwner)
 
     newOwner = newOwner ? newOwner : gCurrentOwner;
     
-    struct gpc_ObjectList* me = listData(object);
+    struct gpc_Object* me = listData(object);
     if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(moveOwnership)))
         return;
     
@@ -210,7 +210,7 @@ void* gpc_freeOwner(gpc_Owner owner[GPC_STATIC 1], void* returnObject)
         gpc_moveOwnership(returnObject, owner->parent);
     }
     
-    for (struct gpc_ObjectList *obj = owner->firstObject, *next = NULL;
+    for (struct gpc_Object *obj = owner->firstObject, *next = NULL;
          obj != NULL; obj = next)
     {
         next = obj->next;
@@ -228,7 +228,7 @@ gpc_Owner* gpc_getOwner(const void *const object)
     if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(getOwner)))
         return NULL;
     
-    struct gpc_ObjectList* me = listData(object);
+    struct gpc_Object* me = listData(object);
     if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(getOwner)))
         return NULL;
     
@@ -240,7 +240,7 @@ size_t gpc_size(const void *const object)
     if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(getSize)))
         return 0;
     
-    struct gpc_ObjectList* me = listData(object);
+    struct gpc_Object* me = listData(object);
     if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(getSize)))
         return 0;
     
@@ -258,7 +258,7 @@ void* gpc_resizeObj(void* pobject, size_t newSize)
     if (gpc_handleError(gpc_getOwner(object) == NULL, GPC_EMSG_OBJ_NO_OWNER(setSize)))
         return NULL;
     
-    struct gpc_ObjectList* me = listData(object);
+    struct gpc_Object* me = listData(object);
     if (newSize <= me->size)
     {
         me->size = newSize;
@@ -286,7 +286,7 @@ size_t gpc_capacity(const void *const object)
     if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(getCapacity)))
         return 0;
     
-    struct gpc_ObjectList* me = listData(object);
+    struct gpc_Object* me = listData(object);
     if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(getCapacity)))
         return 0;
     
@@ -317,7 +317,7 @@ bool gpc_onStack(const void *const object)
     if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(onStack)))
         return false;
     
-    struct gpc_ObjectList* me = listData(object);
+    struct gpc_Object* me = listData(object);
     if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(onStack)))
         return false;
     return !(me->previous || me->next || me->owner->firstObject == me);
@@ -328,13 +328,13 @@ bool gpc_onHeap(const void *const object)
     if (gpc_handleError(object == NULL, GPC_EMSG_NULL_PASSED(onHeap)))
         return false;
     
-    struct gpc_ObjectList* me = listData(object);
+    struct gpc_Object* me = listData(object);
     if (gpc_handleError(me->owner == NULL, GPC_EMSG_OBJ_NO_OWNER(onHeap)))
         return false;
     return me->previous || me->next || me->owner->firstObject == me;
 }
 
-GPC_NODISCARD void* gpc_buildObject(void* outBuf, const struct gpc_ObjectList data, const void* initVal)
+GPC_NODISCARD void* gpc_buildObject(void* outBuf, const struct gpc_Object data, const void* initVal)
 {
     if (gpc_handleError(data.capacity == 0, "Failed to build object with 0 capacity in buildObject()"))
         return NULL;
@@ -347,7 +347,7 @@ GPC_NODISCARD void* gpc_buildObject(void* outBuf, const struct gpc_ObjectList da
     if (gpc_handleError(!initVal && data.size, GPC_EMSG_NULL_ARG(initVal, buildObject)))
         return NULL;
     
-    struct gpc_ObjectList* me = (struct gpc_ObjectList*)outBuf;
+    struct gpc_Object* me = (struct gpc_Object*)outBuf;
     *me = data;
     me->owner = me->owner ? me->owner : gCurrentOwner;
     return memcpy(me + 1, initVal, data.size);

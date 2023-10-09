@@ -127,8 +127,8 @@ typedef unsigned char gpc_Byte;
 
 #define gpc_newS(type, ...) \
     (gpc_buildObject( \
-        &(uint8_t[sizeof(struct gpc_ObjectList) + sizeof((type){__VA_ARGS__})]){0},\
-        (struct gpc_ObjectList) \
+        &(uint8_t[sizeof(struct gpc_Object) + sizeof((type){__VA_ARGS__})]){0},\
+        (struct gpc_Object) \
         { \
             .owner = NULL, \
             .size = sizeof((type){__VA_ARGS__}), \
@@ -141,8 +141,8 @@ GPC_NODISCARD void* gpc_allocH(size_t capacity);
 
 #define gpc_allocaAssign(_capacity, _owner) \
     gpc_buildObject( \
-        &(uint8_t[sizeof(struct gpc_ObjectList) + _capacity]){0}, \
-        (struct gpc_ObjectList) \
+        &(uint8_t[sizeof(struct gpc_Object) + _capacity]){0}, \
+        (struct gpc_Object) \
         { \
             .owner = _owner, \
             .size = 0, \
@@ -161,8 +161,8 @@ GPC_NODISCARD void* gpc_reallocate(void* object, size_t newCapacity);
 // provided by the core API to interact with dynamic objects. 
 typedef struct gpc_Owner
 {
-    struct gpc_ObjectList* firstObject;
-    struct gpc_ObjectList* lastObject;
+    struct gpc_Object* firstObject;
+    struct gpc_Object* lastObject;
     struct gpc_Owner* parent;
 } gpc_Owner;
 
@@ -212,12 +212,12 @@ bool gpc_onHeap(const void *const object);
 // objects in the list. Modifying the list manually will most likely cause a 
 // memory leak or crash so it's adviseable to only use functions provided by the
 // core API to interact with dynamic objects. 
-struct gpc_ObjectList
+struct gpc_Object
 {
     // If previous and next is NULL and owner->firstObject and owner->lastObject
     // does not point to self then object is stack allocated. 
-    struct gpc_ObjectList* previous;
-    struct gpc_ObjectList* next;
+    struct gpc_Object* previous;
+    struct gpc_Object* next;
     
     // Owner is required even for stack allocated objects so they can be 
     // assigned for correct owner capacity needs to be exceeded.
@@ -229,8 +229,8 @@ struct gpc_ObjectList
 
 // Copies object and it's data to outBuf so the object can be used with dynamic
 // functionality. 
-// Returns pointer to object with address outBuf+sizeof(gpc_ObjectList).
-GPC_NODISCARD void* gpc_buildObject(void* outBuf, const struct gpc_ObjectList, const void* obj);
+// Returns pointer to object with address outBuf+sizeof(gpc_Object).
+GPC_NODISCARD void* gpc_buildObject(void* outBuf, const struct gpc_Object, const void* obj);
 
 // Allocates memory and returns a pointer to an object with capacity of
 // nextPowerOf2(size). 

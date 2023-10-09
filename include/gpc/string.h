@@ -132,8 +132,8 @@ typedef gpc_String String;
 
 #define gpc_newStringS(literal) \
 (gpc_buildObject( \
-        &(uint8_t[sizeof(struct gpc_ObjectList) + sizeof((char[]){literal})]){0},\
-        (struct gpc_ObjectList) \
+        &(uint8_t[sizeof(struct gpc_Object) + sizeof((char[]){literal})]){0},\
+        (struct gpc_Object) \
         { \
             .owner = NULL, \
             .size = sizeof((char[]){literal}) - 1, \

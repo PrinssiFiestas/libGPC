@@ -238,8 +238,8 @@ int main(void)
         }
         while (test("onStack"))
         {
-            uint8_t objSmem[sizeof(struct gpc_ObjectList) + 1] = {0};
-            struct gpc_ObjectList* objSdata = (struct gpc_ObjectList*)objSmem;
+            uint8_t objSmem[sizeof(struct gpc_Object) + 1] = {0};
+            struct gpc_Object* objSdata = (struct gpc_Object*)objSmem;
             objSdata->owner = thisScope;
             void* objS = objSdata + 1;
             
@@ -341,7 +341,7 @@ int main(void)
         #define signb(i) ((i)<0)
         ptrdiff_t sign = signb(diff);
         bool signChanged = false;
-        for (struct gpc_ObjectList* p = thisScope->firstObject; p->next != NULL; p = p->next)
+        for (struct gpc_Object* p = thisScope->firstObject; p->next != NULL; p = p->next)
             if ((signChanged = signb((ptrdiff_t)(p - p->next)) != sign))
                 break;
         EXPECT( ! signChanged);
@@ -379,7 +379,7 @@ void getMsg(const char* msg)
 bool doubleCheck(void* obj, Owner* owner)
 {
     bool onObjectList = false;
-    for (struct gpc_ObjectList* p = owner->firstObject; p != NULL; p = p->next)
+    for (struct gpc_Object* p = owner->firstObject; p != NULL; p = p->next)
         onObjectList = p + 1 == obj;
     return onObjectList;
 }
