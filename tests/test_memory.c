@@ -253,7 +253,7 @@ int main(void)
     {
         ASSERT(!onStack(newH(int, 0)));
         ASSERT(onHeap(allocH(sizeof(int))));
-        ASSERT(size(newH(int8_t[15], 0)),==,(size_t)15);
+        ASSERT(size(newH(int8_t[15], 0)),==,15llu);
         ASSERT(*(int*)newH(int, 3),==,3);
         ASSERT(capacity(allocH(sizeof(int8_t[15]))),==,gpc_nextPowerOf2(15));
     }
@@ -262,16 +262,16 @@ int main(void)
     {
         ASSERT(onStack(newS(int, 0)));
         ASSERT(!onHeap(allocS(sizeof(int))));
-        ASSERT(size(allocS(sizeof(int8_t[15]))),==,(size_t)0);
-        ASSERT(size(newS(int8_t[15], 0)),==,(size_t)15);
+        ASSERT(size(allocS(sizeof(int8_t[15]))),==,0llu);
+        ASSERT(size(newS(int8_t[15], 0)),==,15llu);
         ASSERT(*(int*)newS(int, 5),==,5);
-        ASSERT(capacity(newS(int8_t[15], 0)),==,(size_t)15);
+        ASSERT(capacity(newS(int8_t[15], 0)),==,15llu);
     }
     
     while (test("allocaAssign"))
     {
-        ASSERT(size(allocaAssign(5, NULL)),==,(size_t)0);
-        ASSERT(capacity(allocaAssign(5, thisScope)),==,(size_t)5);
+        ASSERT(size(allocaAssign(5, NULL)),==,0llu);
+        ASSERT(capacity(allocaAssign(5, thisScope)),==,5llu);
     }
     
     while (test("callocAssign"))
@@ -354,12 +354,12 @@ int main(void)
     while (test("nextPowerOf2"))
     {
         unsigned long n = 3;
-        ASSERT(gpc_nextPowerOf2(n),==,(unsigned long)4);
-        ASSERT(gpc_nextPowerOf2(4),==,(unsigned long)8,
+        ASSERT(gpc_nextPowerOf2(n),==,4lu);
+        ASSERT(gpc_nextPowerOf2(4),==,8lu,
             "Objects only require memory management if they're expected to "
             "grow. Therefore, objects always have extra capacity just in case. "
             "Null-terminated strings require this extra space anyway. ");
-        ASSERT(gpc_nextPowerOf2(28),==,(unsigned long)32);
+        ASSERT(gpc_nextPowerOf2(28),==,32lu);
         ASSERT(gpc_nextPowerOf2(SIZE_MAX/2 + 1),<=,SIZE_MAX);
     }
     

@@ -42,25 +42,5 @@ int main(void)
             "strAppend() should take any number of Strings and char*s");
     }
     
-    String str;
-    String str1 = newStringS("blah");
-    clock_t t;
-    
-    str = newStringH("");
-    t = clock();
-    for (size_t i = 0; i < 100; i++)
-    {
-        strAppend(&str, str1, "blah", str1, "blah");
-    }
-    printf("%s\n\n%li\n\n", (const char*)str, clock() - t);
-    
-    str = newStringH("START");
-    t = clock();
-    for (size_t i = 0; i < 100; i++)
-    {
-        strAppend(&str, str1, "blah", str1, "blah");
-    }
-    printf("%s\n\n%li\n\n", (const char*)str, clock() - t);
-    
     freeOwner(thisScope, NULL);
 }

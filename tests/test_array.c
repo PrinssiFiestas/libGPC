@@ -31,15 +31,15 @@ int main(void)
     {
         int* arr;
         while (test("arrLength"))
-            EXPECT(arrLength(arr = newS(int[], 1, 2, 3)),==,(size_t)3);
+            EXPECT(arrLength(arr = newS(int[], 1, 2, 3)),==,3llu);
         
         while (test("arrSetLength"))
         {
             #if defined(__GNUC__)
-            EXPECT(arrLength(arrSetLength(&arr, 2)),==,(size_t)2);
+            EXPECT(arrLength(arrSetLength(&arr, 2)),==,2llu);
             #else
             // arrSetLength() returns void* and must be casted
-            EXPECT(arrLength((int*)arrSetLength(&arr, 2)),==,(size_t)2);
+            EXPECT(arrLength((int*)arrSetLength(&arr, 2)),==,2llu);
             #endif
             
             EXPECT(onStack(arrSetLength(&arr, arrLength(arr) - 1)),
@@ -57,7 +57,7 @@ int main(void)
         {
             EXPECT(arrCapacity(arr = newH(int[], 1, 2, 3)),==,nextPowerOf2(3),
                 "Capacity should be rounded up for arrays on heap.");
-            EXPECT(arrCapacity(arr = newS(int[], 1, 2, 3)),==,(size_t)3,
+            EXPECT(arrCapacity(arr = newS(int[], 1, 2, 3)),==,3llu,
                 "Capacity should be exact for arrays on stack.");
         }
         
@@ -88,16 +88,16 @@ int main(void)
     
     while (test("nextPowerOf2"))
     {
-        EXPECT(nextPowerOf2(7),==,(size_t)8);
-        EXPECT(nextPowerOf2(8),==,(size_t)16);
-        EXPECT(nextPowerOf2(9),==,(size_t)16);
+        EXPECT(nextPowerOf2(7),==,8llu);
+        EXPECT(nextPowerOf2(8),==,16llu);
+        EXPECT(nextPowerOf2(9),==,16llu);
     }
     
     int* arr = newS(int[], 1, 4, 7);
     
     while (test("arrSetLength and arrLength"))
     {
-        ASSERT(arrLength(arr),==,(size_t)3);
+        ASSERT(arrLength(arr),==,3llu);
         arrSetLength(&arr, 1);
         ASSERT(size(arr),==,/*arrLength(arr) * */sizeof(arr[0]));
         arrSetLength(&arr, 3);
@@ -111,7 +111,7 @@ int main(void)
         double* arrd = newS(double[], .4);
         arrReserve(&arrd, 5);
         ASSERT(onHeap(arrd));
-        ASSERT(arrCapacity(arrd),==,/*nextPowerOf(5)=*/(size_t)8);
+        ASSERT(arrCapacity(arrd),==,/*nextPowerOf(5)=*/8llu);
         freeOwner(scope, NULL);
     }
     

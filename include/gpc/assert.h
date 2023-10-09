@@ -39,7 +39,7 @@
     }
 */
 #define test(/*const char* */name)            gpc_test(name)
-#define testSuite(/*const char* */name)        gpc_testSuite(name)
+#define testSuite(/*const char* */name)       gpc_testSuite(name)
 
 // Does nothing when expression is true.
 // Exits program and prints failure message when expression is false.
@@ -168,30 +168,30 @@ gpc_CmpArgs* gpc_getCmpArgs(size_t bufSize);
 // strfyi(). They have to be pointer sized to prevent compiler complaints with
 // pointers. 
 #define GPC_STRFYT(VAR, BUF)                                            \
-    _Generic(VAR,                                                        \
-            bool:                gpc_strfyb((BUF), (VAR)),                \
-            short:                gpc_strfyi((BUF), (ptrdiff_t)(VAR)),    \
+    _Generic(VAR,                                                       \
+            bool:               gpc_strfyb((BUF), (VAR)),               \
+            short:              gpc_strfyi((BUF), (ptrdiff_t)(VAR)),    \
             int:                gpc_strfyi((BUF), (ptrdiff_t)(VAR)),    \
-            long:                gpc_strfyi((BUF), (ptrdiff_t)(VAR)),    \
-            long long:            gpc_strfyi((BUF), (ptrdiff_t)(VAR)),    \
-            unsigned short:        gpc_strfyu((BUF), (uintptr_t)(VAR)),    \
-            unsigned int:        gpc_strfyu((BUF), (uintptr_t)(VAR)),    \
-            unsigned long:        gpc_strfyu((BUF), (uintptr_t)(VAR)),    \
-            unsigned long long:    gpc_strfyu((BUF), (uintptr_t)(VAR)),    \
-            float:                gpc_strfyf((BUF), (VAR)),                \
-            double:                gpc_strfyf((BUF), (VAR)),                \
-            char:                gpc_strfyc((BUF), (VAR)),                \
-            unsigned char:        gpc_strfyc((BUF), (VAR)),                \
-            char*:                gpc_strfyp((BUF), (VAR)),                \
-            const char*:        gpc_strfyp((BUF), (VAR)),                \
+            long:               gpc_strfyi((BUF), (ptrdiff_t)(VAR)),    \
+            long long:          gpc_strfyi((BUF), (ptrdiff_t)(VAR)),    \
+            unsigned short:     gpc_strfyu((BUF), (uintptr_t)(VAR)),    \
+            unsigned int:       gpc_strfyu((BUF), (uintptr_t)(VAR)),    \
+            unsigned long:      gpc_strfyu((BUF), (uintptr_t)(VAR)),    \
+            unsigned long long: gpc_strfyu((BUF), (uintptr_t)(VAR)),    \
+            float:              gpc_strfyf((BUF), (VAR)),               \
+            double:             gpc_strfyf((BUF), (VAR)),               \
+            char:               gpc_strfyc((BUF), (VAR)),               \
+            unsigned char:      gpc_strfyc((BUF), (VAR)),               \
+            char*:              gpc_strfyp((BUF), (VAR)),               \
+            const char*:        gpc_strfyp((BUF), (VAR)),               \
             default:            gpc_strfyp((BUF), (VAR))) // pointer
 
 // var is variadic to get around type system when using STRFYT() macro.
-bool                gpc_strfyb(char* buf,/*bool var*/...);
-long long            gpc_strfyi(char* buf,/*long long var*/...);
-unsigned long long    gpc_strfyu(char* buf,/*unsigned long long var*/...);
-double                gpc_strfyf(char* buf,/*double var*/...);
-char                gpc_strfyc(char* buf,/*char var*/...);
-void*                gpc_strfyp(char* buf,/*void* var*/...);
+bool               gpc_strfyb(char* buf,/*bool var*/...);
+long long          gpc_strfyi(char* buf,/*long long var*/...);
+unsigned long long gpc_strfyu(char* buf,/*unsigned long long var*/...);
+double             gpc_strfyf(char* buf,/*double var*/...);
+char               gpc_strfyc(char* buf,/*char var*/...);
+void*              gpc_strfyp(char* buf,/*void* var*/...);
 
 #endif // GPC_ASSERT_H

@@ -182,14 +182,14 @@ inline void* gpc_ptrPass(void* p)
 // dereferenced to a pointer. 
 #define GPC_PTR_REF(PTR) (0 ? gpc_ptrPass(*(PTR)) : (PTR))
 
-#define gpc_resize(pObject, newSize)    \
+#define gpc_resize(pObject, newSize) \
     gpc_resizeObj(GPC_PTR_REF(pObject), (newSize))
 
 void* gpc_resizeObj(void* pObject, size_t newSize);
 
 size_t gpc_capacity(const void *const object);
 
-#define gpc_reserve(pObject, newCapacity)    \
+#define gpc_reserve(pObject, newCapacity) \
     gpc_reserveObj(GPC_PTR_REF(pObject), (newCapacity))
 
 void* gpc_reserveObj(void* pObject, size_t newCapacity);
@@ -220,7 +220,7 @@ struct gpc_ObjectList
     struct gpc_ObjectList* next;
     
     // Owner is required even for stack allocated objects so they can be 
-    // assigned properly if capacity needs to be exceeded.
+    // assigned for correct owner capacity needs to be exceeded.
     gpc_Owner* owner;
     
     size_t size;
