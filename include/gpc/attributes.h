@@ -32,15 +32,24 @@
 #endif
 
 #if defined(__GNUC__)
+
 // Use for pointer validation in function arguments with GCC and Clang. Example:
 // void foo(int pointer[GPC_STATIC 1]);
+#ifndef __cplusplus
 #define GPC_STATIC static
+#else // make clangd happy with header files
+#define GPC_STATIC
+#endif
+
 #define GPC_TYPEOF(X) typeof(X)
 #define GPC_CAST_TO_TYPEOF(X) (typeof(X))
+
 #else
+
 #define GPC_STATIC
 #define GPC_TYPEOF(X)
 #define GPC_CAST_TO_TYPEOF(X)
-#endif
+
+#endif // defined(__GNUC__)
 
 #endif // GPC_ATTRIBUTES_H
