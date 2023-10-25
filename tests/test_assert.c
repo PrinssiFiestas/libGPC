@@ -49,23 +49,17 @@ int main(void)
         int arr1[] = { 1, 2, 3 };
         int arr2[] = { 1, 2, 3 };
 
-        // Testing pointers. Use gpc_assert_mem() for arrays or other memory
+        // Testing pointers. Use the method below for arrays.
         gpc_assert(arr1, !=, arr2);
 
-        #define ARR_MIN_SIZE(ARR1, ARR2) \
-        ((sizeof(ARR1) < sizeof(ARR2) ? sizeof(ARR1) : sizeof(ARR2))/sizeof(*(ARR1)))
-
-        // Custom logic for failing assertion
-        if (gpc_expect_mem(arr1, arr2, ARR_MIN_SIZE(arr1, arr2))
-        {
-            fprintf(stderr, "Here's arr1: { %i, %i, %i }\n",
-                    arr1[0], arr1[1], arr1[2]);
-            fprintf(stderr, "Here's arr2: { %i, %i, %i }\n",
-                    arr2[0], arr2[1], arr2[2]);
-            exit(EXIT_FAILURE);
-        }
+        // Array comparison
+        for (size_t i = 0; i < ARR_MIN_SIZE(arr1, arr2); i++)
+            gpc_assert(arr1[i], ==, arr2[i])
 
         // Custom comparison and pretty printing
+        // TODO write a struct example instead of array example
+        #define ARR_MIN_SIZE(ARR1, ARR2) \
+            ((sizeof(ARR1) < sizeof(ARR2) ? sizeof(ARR1) : sizeof(ARR2))/sizeof(*(ARR1)))
         bool array_comparator(int* array1, int* array2, size_t array_size);
         gpc_assert_custom(
             "Additional details go here. ", // NULL is also ok
