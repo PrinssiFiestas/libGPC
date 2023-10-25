@@ -13,42 +13,6 @@
 #define GPC_DUMP(...) 
 #define GPC_EVAL(...) __VA_ARGS__
 
-// Define one of these macros before including this header to enable short names
-// without the gpc_ prefix. 
-#if defined(GPC_OVERLOAD_NAMESPACE) || defined(GPC_NAMESPACE)
-
-// Overload function by the number of arguments up to N. Usage example:
-/*
-    int f1Arg(int arg) { return arg; }
-    #define f2Args(a, b) a + b
-    void f3Args(int i1, int i2, int i3) { printf("%i%i%i\n", i1, i2, i3); }
-    #define func(...) OVERLOAD3(__VA_ARGS__, f3Args, f2Args, f1Arg)(__VA_ARGS__)
-*/
-// Replace N with max arguments like in the example above.
-#define OVERLOADN(...) GPC_OVERLOADN(__VA_ARGS__)
-
-// Returns EXPR_IF_TRUE if VAR is a number
-// char, unsigned char, and bool types are not considered as numbers. If int8_t 
-// (aka char), uint8_t (aka unsigned char), or bool needs to be considered as 
-// numbers, use IF_IS_NUMERIC() instead.
-// enum types are not numbers on MSVC. 
-#define IF_IS_NUMBER(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE) \
-    GPC_IF_IS_NUMBER(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE)
-
-// Returns EXPR_IF_TRUE if VAR is a number, char, or bool
-// enum types are not numberic on MSVC. 
-#define IF_IS_NUMERIC(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE) \
-    GPC_IF_IS_NUMERIC(VARIABLE, EXPR_IF_TRUE, EXPR_IF_FALSE)
-
-// Returns number of arguments
-#define COUNT_ARGS(...) GPC_COUNT_ARGS(__VA_ARGS__)
-
-// List all variadic arguments separated with OP and processed with FUNC
-// OP needs to be a macro function that takes a dummy argument e.g. GPC_COMMA().
-#define LIST_ALL(FUNC, OP, ...) GPC_LIST_ALL(FUNC, OP, __VA_ARGS__)
-
-#endif // GPC_NAMESPACING ----------------------------------------------------
-
 // Use in variadic function arguments with GPC_TYPE() macro
 enum gpc_Type
 {
@@ -69,10 +33,10 @@ enum gpc_Type
     GPC_PTR,
 };
 
-inline bool gpc_isUnsigned(const enum gpc_Type T) { return T <= GPC_UNSIGNED_LONG_LONG; }
-inline bool gpc_isInteger(const enum gpc_Type T) { return T <= GPC_LONG_LONG; }
-inline bool gpc_isFloating(const enum gpc_Type T) { return GPC_FLOAT <= T && T <= GPC_DOUBLE; }
-inline bool gpc_isPointer(const enum gpc_Type T) { return GPC_CHAR_PTR <= T && T <= GPC_PTR; }
+inline bool gpc_is_unsigned(const enum gpc_Type T) { return T <= GPC_UNSIGNED_LONG_LONG; }
+inline bool gpc_is_integer(const enum gpc_Type T) { return T <= GPC_LONG_LONG; }
+inline bool gpc_is_floating(const enum gpc_Type T) { return GPC_FLOAT <= T && T <= GPC_DOUBLE; }
+inline bool gpc_is_pointer(const enum gpc_Type T) { return GPC_CHAR_PTR <= T && T <= GPC_PTR; }
 
 size_t gpc_sizeof(const enum gpc_Type T);
 
@@ -95,8 +59,6 @@ size_t gpc_sizeof(const enum gpc_Type T);
             const char*:        GPC_CHAR_PTR,           \
             default:            GPC_PTR)
 
-#define GPC_OVERLOAD(NARGS, ...) GPC_LIST##NARGS (GPC_DUMP, GPC_DUMP, GPC_1ST_ARG, __VA_ARGS__)
-
 #define GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR,       \
 short: EXPR_IF_TRUE, unsigned short: EXPR_IF_TRUE, int: EXPR_IF_TRUE,          \
 unsigned: EXPR_IF_TRUE, long: EXPR_IF_TRUE, unsigned long: EXPR_IF_TRUE,       \
@@ -106,15 +68,9 @@ double: EXPR_IF_TRUE, long double: EXPR_IF_TRUE, default: EXPR_IF_FALSE)
 #define GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR, \
 char: EXPR_IF_TRUE, unsigned char: EXPR_IF_TRUE, default: EXPR_IF_FALSE)
 
-// TODO check for C23 once it comes out
-#if __STDC_VERSION__ >= 199901L
 #define GPC_IF_IS_NUMERIC(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR, \
 _Bool: EXPR_IF_TRUE, default: GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE,         \
 GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE)))
-#else
-#define GPC_IF_IS_NUMERIC(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) \
-GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE))
-#endif
 
 // Returns number of arguments
 #define GPC_COUNT_ARGS(...) GPC_OVERLOAD(64, __VA_ARGS__, 64, 63, 62, 61, 60, 59, 58, 57, 56,\
@@ -430,74 +386,5 @@ _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, THIS, ...) THIS
 _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, _31, _32,     \
 _33, _34, _35, _36, _37, _38, _39, _40, _41, _42, _43, _44, _45, _46, _47, _48, _49, _50,     \
 _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, THIS, ...) THIS
-
-#if defined(GPC_OVERLOAD_NAMESPACE) || defined(GPC_NAMESPACE)
-#define OVERLOAD1(...) GPC_OVERLOAD1(__VA_ARGS__)
-#define OVERLOAD2(...) GPC_OVERLOAD2(__VA_ARGS__)
-#define OVERLOAD3(...) GPC_OVERLOAD3(__VA_ARGS__)
-#define OVERLOAD4(...) GPC_OVERLOAD4(__VA_ARGS__)
-#define OVERLOAD5(...) GPC_OVERLOAD5(__VA_ARGS__)
-#define OVERLOAD6(...) GPC_OVERLOAD6(__VA_ARGS__)
-#define OVERLOAD7(...) GPC_OVERLOAD7(__VA_ARGS__)
-#define OVERLOAD8(...) GPC_OVERLOAD8(__VA_ARGS__)
-#define OVERLOAD9(...) GPC_OVERLOAD9(__VA_ARGS__)
-#define OVERLOAD10(...) GPC_OVERLOAD10(__VA_ARGS__)
-#define OVERLOAD11(...) GPC_OVERLOAD11(__VA_ARGS__)
-#define OVERLOAD12(...) GPC_OVERLOAD12(__VA_ARGS__)
-#define OVERLOAD13(...) GPC_OVERLOAD13(__VA_ARGS__)
-#define OVERLOAD14(...) GPC_OVERLOAD14(__VA_ARGS__)
-#define OVERLOAD15(...) GPC_OVERLOAD15(__VA_ARGS__)
-#define OVERLOAD16(...) GPC_OVERLOAD16(__VA_ARGS__)
-#define OVERLOAD17(...) GPC_OVERLOAD17(__VA_ARGS__)
-#define OVERLOAD18(...) GPC_OVERLOAD18(__VA_ARGS__)
-#define OVERLOAD19(...) GPC_OVERLOAD19(__VA_ARGS__)
-#define OVERLOAD20(...) GPC_OVERLOAD20(__VA_ARGS__)
-#define OVERLOAD21(...) GPC_OVERLOAD21(__VA_ARGS__)
-#define OVERLOAD22(...) GPC_OVERLOAD22(__VA_ARGS__)
-#define OVERLOAD23(...) GPC_OVERLOAD23(__VA_ARGS__)
-#define OVERLOAD24(...) GPC_OVERLOAD24(__VA_ARGS__)
-#define OVERLOAD25(...) GPC_OVERLOAD25(__VA_ARGS__)
-#define OVERLOAD26(...) GPC_OVERLOAD26(__VA_ARGS__)
-#define OVERLOAD27(...) GPC_OVERLOAD27(__VA_ARGS__)
-#define OVERLOAD28(...) GPC_OVERLOAD28(__VA_ARGS__)
-#define OVERLOAD29(...) GPC_OVERLOAD29(__VA_ARGS__)
-#define OVERLOAD30(...) GPC_OVERLOAD30(__VA_ARGS__)
-#define OVERLOAD31(...) GPC_OVERLOAD31(__VA_ARGS__)
-#define OVERLOAD32(...) GPC_OVERLOAD32(__VA_ARGS__)
-#define OVERLOAD33(...) GPC_OVERLOAD33(__VA_ARGS__)
-#define OVERLOAD34(...) GPC_OVERLOAD34(__VA_ARGS__)
-#define OVERLOAD35(...) GPC_OVERLOAD35(__VA_ARGS__)
-#define OVERLOAD36(...) GPC_OVERLOAD36(__VA_ARGS__)
-#define OVERLOAD37(...) GPC_OVERLOAD37(__VA_ARGS__)
-#define OVERLOAD38(...) GPC_OVERLOAD38(__VA_ARGS__)
-#define OVERLOAD39(...) GPC_OVERLOAD39(__VA_ARGS__)
-#define OVERLOAD40(...) GPC_OVERLOAD40(__VA_ARGS__)
-#define OVERLOAD41(...) GPC_OVERLOAD41(__VA_ARGS__)
-#define OVERLOAD42(...) GPC_OVERLOAD42(__VA_ARGS__)
-#define OVERLOAD43(...) GPC_OVERLOAD43(__VA_ARGS__)
-#define OVERLOAD44(...) GPC_OVERLOAD44(__VA_ARGS__)
-#define OVERLOAD45(...) GPC_OVERLOAD45(__VA_ARGS__)
-#define OVERLOAD46(...) GPC_OVERLOAD46(__VA_ARGS__)
-#define OVERLOAD47(...) GPC_OVERLOAD47(__VA_ARGS__)
-#define OVERLOAD48(...) GPC_OVERLOAD48(__VA_ARGS__)
-#define OVERLOAD49(...) GPC_OVERLOAD49(__VA_ARGS__)
-#define OVERLOAD50(...) GPC_OVERLOAD50(__VA_ARGS__)
-#define OVERLOAD51(...) GPC_OVERLOAD51(__VA_ARGS__)
-#define OVERLOAD52(...) GPC_OVERLOAD52(__VA_ARGS__)
-#define OVERLOAD53(...) GPC_OVERLOAD53(__VA_ARGS__)
-#define OVERLOAD54(...) GPC_OVERLOAD54(__VA_ARGS__)
-#define OVERLOAD55(...) GPC_OVERLOAD55(__VA_ARGS__)
-#define OVERLOAD56(...) GPC_OVERLOAD56(__VA_ARGS__)
-#define OVERLOAD57(...) GPC_OVERLOAD57(__VA_ARGS__)
-#define OVERLOAD58(...) GPC_OVERLOAD58(__VA_ARGS__)
-#define OVERLOAD59(...) GPC_OVERLOAD59(__VA_ARGS__)
-#define OVERLOAD60(...) GPC_OVERLOAD60(__VA_ARGS__)
-#define OVERLOAD61(...) GPC_OVERLOAD61(__VA_ARGS__)
-#define OVERLOAD62(...) GPC_OVERLOAD62(__VA_ARGS__)
-#define OVERLOAD63(...) GPC_OVERLOAD63(__VA_ARGS__)
-#define OVERLOAD64(...) GPC_OVERLOAD64(__VA_ARGS__)
-#endif // GPC_NAMESPACING ---------------------------------------------------
-
-#undef OVERLOADN // dummy macro for documentation purposes only
 
 #endif // GPC_OVERLOAD_H

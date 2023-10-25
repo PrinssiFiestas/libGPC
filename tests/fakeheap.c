@@ -2,8 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
  
- // Include this file to replace malloc(), calloc(), realloc(), and free() with 
- // fake ones. See the macros at the bottom of this file. 
+// Include this file to replace malloc(), calloc(), realloc(), and free() with
+// fake ones. See the macros at the bottom of this file.
 
 #include <stdint.h>
 #include <string.h>
@@ -357,10 +357,10 @@ void* fakeHeapRealloc(void* p, size_t size, struct FakeHeapCallData data)
 #define malloc(size)        fakeHeapMalloc(size, (struct FakeHeapCallData)        \
     {__FILE__, __LINE__, __func__, #size })
 
-#define free(p)                fakeHeapFree(p, (struct FakeHeapCallData)            \
+#define free(p)              fakeHeapFree(p, (struct FakeHeapCallData)            \
     {__FILE__, __LINE__, __func__, #p })
 
-#define calloc(nmemb, size)    fakeHeapCalloc(nmemb, size, (struct FakeHeapCallData)\
+#define calloc(nmemb, size)  fakeHeapCalloc(nmemb, size, (struct FakeHeapCallData)\
     {__FILE__, __LINE__, __func__, #nmemb ", " #size })
 
 #define realloc(p, size)    fakeHeapRealloc(p, size, (struct FakeHeapCallData)    \
