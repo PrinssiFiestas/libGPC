@@ -92,12 +92,15 @@ void gpc_end_testing(void);
 #define _COMPILER_COMPARISON_DIAGNOSTICS(T_a, operator, T_b) \
     (false ? T_a operator T_b : (void)0)
 
+// Longest number is (unsigned long long)-1 == 18446744073709551615
+#define _GPC_ASSERT_MAX_DIGITS 20
+
 #define _gpc_bool_assert_cmp_with_msg(T_a, operator, T_b, message) \
 ({ \
     _COMPILER_COMPARISON_DIAGNOSTICS(T_a, operator, T_b); \
     typeof(T_a) _a = (T_a); \
     typeof(T_b) _b = (T_b); \
-    char bufs[24][2]; \
+    char bufs[_GPC_ASSERT_MAX_DIGITS + sizeof('\0')][2]; \
     _a operator _b ? true : _gpc_assert_fail( \
         true, \
         #T_a, \

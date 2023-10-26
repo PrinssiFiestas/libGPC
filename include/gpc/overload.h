@@ -2,8 +2,28 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#ifndef GPC_OVERLOAD_H
-#define GPC_OVERLOAD_H
+#ifndef GPC_OVERLOAD_INCLUDED
+#define GPC_OVERLOAD_INCLUDED 1
+
+// Overloading functions and macro functions by the number of arguments can be
+// done with OVERLOADN() macros. First arg to OVERLOADN() is always __VA_ARGS__.
+// The actual arguments also has to be given after using OVERLOADN().
+// Example for max 3 args below:
+/*
+    void func1(int arg1);
+    #define MACRO2(arg1, arg2) somefunc(arg1, arg2)
+    int func3(char arg1, void* arg2, const char* arg3);
+
+    #define func(...) OVERLOAD3(__VA_ARGS__, func3, func2, func1)(__VA_ARGS__)
+
+    int main(void)
+    {
+        // now func() can be called with 1-3 args.
+        func(1);
+        func(1, 2);
+        func('1', (void*)2, "3");
+    }
+*/
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -40,6 +60,8 @@ inline bool gpc_is_pointer(const enum gpc_Type T) { return GPC_CHAR_PTR <= T && 
 
 size_t gpc_sizeof(const enum gpc_Type T);
 
+#if __STDC_VERSION__ >= 201112L
+
 #define GPC_TYPE(VAR)                                   \
     _Generic(VAR,                                       \
             bool:               GPC_BOOL,               \
@@ -71,6 +93,8 @@ char: EXPR_IF_TRUE, unsigned char: EXPR_IF_TRUE, default: EXPR_IF_FALSE)
 #define GPC_IF_IS_NUMERIC(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR, \
 _Bool: EXPR_IF_TRUE, default: GPC_IF_IS_NUMBER(VAR, EXPR_IF_TRUE,         \
 GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE)))
+
+#endif // __STDC_VERSION__ >= 201112L
 
 // Returns number of arguments
 #define GPC_COUNT_ARGS(...) GPC_OVERLOAD(64, __VA_ARGS__, 64, 63, 62, 61, 60, 59, 58, 57, 56,\
@@ -387,4 +411,4 @@ _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, 
 _33, _34, _35, _36, _37, _38, _39, _40, _41, _42, _43, _44, _45, _46, _47, _48, _49, _50,     \
 _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, THIS, ...) THIS
 
-#endif // GPC_OVERLOAD_H
+#endif // GPC_OVERLOAD_INCLUDED
