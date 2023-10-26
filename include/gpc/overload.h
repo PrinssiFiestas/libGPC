@@ -5,6 +5,9 @@
 #ifndef GPC_OVERLOAD_INCLUDED
 #define GPC_OVERLOAD_INCLUDED 1
 
+#include <stdbool.h>
+#include <stddef.h>
+
 // Overloading functions and macro functions by the number of arguments can be
 // done with OVERLOADN() macros. First arg to OVERLOADN() is always __VA_ARGS__.
 // The actual arguments also has to be given after using OVERLOADN().
@@ -25,13 +28,36 @@
     }
 */
 
-#include <stdbool.h>
-#include <stddef.h>
+// Helper macros
 
 #define GPC_1ST_ARG(A, ...) A
 #define GPC_COMMA(...) ,
-#define GPC_DUMP(...) 
+#define GPC_DUMP(...)
 #define GPC_EVAL(...) __VA_ARGS__
+
+// Arguments list can be processed with GPC_LIST_ALL() macro. The first argument
+// is a function or a macro that takes a single argument. This function
+// processes the variadic argument list. The second argument determines a
+// separator for the variadic argument list. It has to be a macro function that
+// takes a variadic argument but just expands to the separator without doing
+// anything to __VA_ARGS__ like GPC_COMMA() above. Example uses below:
+/*
+    int add_one(int x) { return x + 1; }
+    int array[] = { GPC_LIST_ALL(add_one, GPC_COMMA, 3, 4, 5) };
+    // The line above expands to
+    int array[] = { add_one(3), add_one(4), add_one(5) };
+
+    #define PLUS(...) +
+    int sum = GPC_LIST_ALL(GPC_EVAL, PLUS, 2, 3, 4, 5);
+    // The line above expands to
+    int sum = 2 + 3 + 4 + 5
+
+    // Combining the above we can get sum of squares
+    double square(double x) { return x*x; }
+    double sum_of_squares = GPC_LIST_ALL(square, PLUS, 3.14, .707);
+    // expands to
+    double sum_of_squares = square(3.14) + square(.707);
+*/
 
 // Use in variadic function arguments with GPC_TYPE() macro
 enum gpc_Type
@@ -102,7 +128,8 @@ GPC_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE)))
 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12,     \
 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
 
-// ---------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// Gory script generated internals below. You have been warned.
 
 #define GPC_LIST_ALL(FUNC, OP, ...) GPC_CHOOSE_64TH(__VA_ARGS__, GPC_LIST64, GPC_LIST63,       \
 GPC_LIST62, GPC_LIST61, GPC_LIST60, GPC_LIST59, GPC_LIST58, GPC_LIST57, GPC_LIST56, GPC_LIST55,\
