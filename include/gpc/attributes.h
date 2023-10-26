@@ -7,6 +7,7 @@
 
 // TODO check for C23 once it comes out for [[nodiscard]] and typeof()
 
+// Are these checks needed now that I removed -pedantic?
 #if defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Wattributes"
 #if defined(__clang__)
@@ -17,11 +18,15 @@
 #define GPC_NODISCARD
 #endif
 
+// ----------------------------------------------------------------------------
+
 #ifdef _MSC_VER
 #define GPC_THREAD_LOCAL __declspec(thread)
 #else
 #define GPC_THREAD_LOCAL _Thread_local
 #endif
+
+// ----------------------------------------------------------------------------
 
 #if defined(__MINGW32__) && !defined(__clang__)
 #define GPC_LONG_DOUBLE double
@@ -31,15 +36,13 @@
 #define GPC_LG_FORMAT "%Lg"
 #endif
 
+// ----------------------------------------------------------------------------
+
 #if defined(__GNUC__)
 
 // Use for pointer validation in function arguments with GCC and Clang. Example:
 // void foo(int pointer[GPC_STATIC 1]);
-#ifndef __cplusplus
 #define GPC_STATIC static
-#else // make clangd happy with header files
-#define GPC_STATIC
-#endif
 
 #define GPC_TYPEOF(X) typeof(X)
 #define GPC_CAST_TO_TYPEOF(X) (typeof(X))

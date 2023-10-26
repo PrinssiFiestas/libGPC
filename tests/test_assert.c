@@ -6,6 +6,10 @@
 
 int main(void)
 {
+    gpc_assert(1, <, 2, "blah");
+    gpc_assert(1, >=, 1 + 1, "blah");
+
+#if 0
     gpc_suite("First suite");
     { // Scoping not required but adds readability and structure.
         gpc_test("First test");
@@ -62,4 +66,5 @@ int main(void)
     gpc_end_testing();
     // However,
     puts("now we can print custom reports here or do whatever we like.");
+#endif
 }
