@@ -54,17 +54,7 @@ int main(void)
 
         // Array comparison
         for (size_t i = 0; i < ARR_MIN_SIZE(arr1, arr2); i++)
-            gpc_assert(arr1[i], ==, arr2[i])
-
-        // Custom comparison and pretty printing
-        // TODO write a struct example instead of array example
-        #define ARR_MIN_SIZE(ARR1, ARR2) \
-            ((sizeof(ARR1) < sizeof(ARR2) ? sizeof(ARR1) : sizeof(ARR2))/sizeof(*(ARR1)))
-        bool array_comparator(int* array1, int* array2, size_t array_size);
-        gpc_assert_custom(
-            "Additional details go here. ", // NULL is also ok
-            array_comparator,
-            arr1, arr2, ARRAY_MIN_SIZE(arr1, arr2)); // array_comparator args
+            gpc_assert(arr1[i], ==, arr2[i]);
     }
 
     // Optional explicit end of all testing and report results. If this
@@ -72,20 +62,4 @@ int main(void)
     gpc_end_testing();
     // However,
     puts("now we can print custom reports here or do whatever we like.");
-}
-
-bool array_comparator(int* array1, int* array2, size_t array_size)
-{
-    for (size_t i = 0; i < array_size; i++)
-        if (array1[i] != array2[i])
-        {
-            // TODO better example implementation preferably using gpc_String
-            size_t bufsizes = 256;
-            char** bufs = gpc_get_assert_fail_bufs(256);
-            snprintf(bufs[1], bufsizes, "{ %i, %i, %i }", array1[0], array1[1], array1[2]);
-            snprintf(bufs[2], bufsizes, "{ %i, %i, %i }", array2[0], array2[1], array2[2]);
-
-            return false;
-        }
-    return true;
 }
