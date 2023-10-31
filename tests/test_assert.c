@@ -6,8 +6,9 @@
 
 int main(void)
 {
-    gpc_assert(1, <, 2, "blah");
-    gpc_assert(1llu, >=, (unsigned long long)-1, "blah");
+    gpc_assert(1 < 2, "blah");
+    gpc_expect(1llu >= (unsigned long long)-1, "blah");
+    printf("Done...\n");
 
 #if 0
     gpc_suite("First suite");
