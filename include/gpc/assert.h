@@ -62,7 +62,7 @@ _gpc_failure(1, __FILE__, __LINE__, __func__, const_char_ptr_condition, GPC_PROC
 #define _gpc_fail(const_char_ptr_condition, ...) \
 _gpc_failure(0, __FILE__, __LINE__, __func__, const_char_ptr_condition, GPC_PROCESS_ALL_BUT_1ST(_GPC_STRFY_AND_PASS, GPC_COMMA, __VA_ARGS__))
 
-#define _GPC_STRFY_AND_PASS(X) (_gpc_assert_push_var_name(#X) GPC_COMMA(X) X)
+#define _GPC_STRFY_AND_PASS(X) (_gpc_assert_push_var_name(#X), X)
 void _gpc_assert_push_var_name(const char* var_name);
 bool _gpc_failure(bool aborting, const char* file, int line, const char* func, const char* condition, const char* formats, ...);
 

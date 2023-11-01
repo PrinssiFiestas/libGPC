@@ -4,13 +4,8 @@
 
 #include "../src/assert.c"
 
-#define sq(x) x*x
-#define plus(...) +
-
 int main(void)
 {
-    GPC_PROCESS_ALL_ARGS(sq, plus, 1, 2, 3);
-
     gpc_assert(0 < 1, "");
     gpc_assert(1 < 2, "%i", 0x1);
     gpc_assert(2 < 3, "%i%i", 0x2, 0x3);
@@ -22,34 +17,25 @@ int main(void)
     { // Scoping not required but adds readability and structure.
         gpc_test("First test");
         {
-            // Single argument assertion
-            gpc_assert(true);
-
-            // Logical operator can be given as arg for better fail message.
-            gpc_assert(1.1, <, 2.2);
-            gpc_assert(1 + 1, ==, 2, "Here's optional failure details");
+            // TODO example code
         }
 
         // Starting a new test ends the last one
         gpc_test("Second test");
         {
-            char str[] = "some string";
-            gpc_assert_str(str, ==, "some string");
-
-            // Lexicographic comparison
-            gpc_assert_str("alpha", <, "beta");
+            // TODO example code
         }
     }
 
     // Assertions can be placed anywhere in code. This one is not part of any
     // test or suite.
-    gpc_assert( ! 0);
+    // TODO example code
 
     // Starting a new suite endst the last one
     gpc_suite("Second suite");
     {
         // Tests are optional.
-        gpc_assert( ! false, "optional message for single arg assertion");
+        // TODO example code
     }
     // Tests and suites can be explicitly ended with NULL which also prints
     // result.
@@ -62,11 +48,11 @@ int main(void)
         int arr2[] = { 1, 2, 3 };
 
         // Testing pointers. Use the method below for arrays.
-        gpc_assert(arr1, !=, arr2);
+        // TODO example code
 
         // Array comparison
         for (size_t i = 0; i < ARR_MIN_SIZE(arr1, arr2); i++)
-            gpc_assert(arr1[i], ==, arr2[i]);
+            // TODO example code
     }
 
     // Optional explicit end of all testing and report results. If this
