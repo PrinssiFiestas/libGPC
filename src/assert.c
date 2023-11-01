@@ -6,78 +6,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-bool _gpc_assert_fail(
-    bool aborting,
-    const char* a_var_name,
-    const char* operator,
-    const char* b_var_name,
-    const char* a_evaluated,
-    const char* b_evaluated,
-    const char* additional_message)
+static size_t _gpc_arg_count = 0;
+static const char* _gpc_assert_var_names[GPC_MAX_ARGUMENTS] = {};
+
+void _gpc_assert_push_var_name(const char* var_name)
 {
-    fprintf(stderr, "%s %s %s evaluated to %s %s %s\n%s\n",
-        a_var_name, operator, b_var_name,
-        a_evaluated, operator, b_evaluated,
-        additional_message);
+    _gpc_assert_var_names[_gpc_arg_count++] = var_name;
+}
+
+bool _gpc_failure(
+    bool aborting,
+    const char* file,
+    int line,
+    const char* func,
+    const char* condition,
+    const char* formats,
+    ...)
+{
+    fprintf(stderr, "Condition %s in %s %i %s [FAILED]\n",
+            condition, file, line, func);
+
+    (void)formats;
+
     if (aborting)
         exit(EXIT_FAILURE);
     return false;
 }
-
-// ----------------------------------------------------------------------------
-
-#if defined(__GNUC__) && (__STDC_VERSION__ >= 201112L)
-
-#include <stdarg.h>
-
-// Not very DRY but macrofying any more than this kills debuggability
-#define GET_VAL(T) \
-    va_list arg; \
-    va_start(arg, buf); \
-    T val = va_arg(arg, T); \
-    va_end(arg);
-const char* gpc_strfyb(char* buf, ...)
-{
-    GET_VAL(int);
-    sprintf(buf, "%s", val ? "true" : "false");
-    return (const char*)(buf);
-}
-const char* gpc_strfyi(char* buf, ...)
-{
-    GET_VAL(long long);
-    sprintf(buf, "%lli", val);
-    return (const char*)(buf);
-}
-const char* gpc_strfyu(char* buf, ...)
-{
-    GET_VAL(unsigned long long);
-    sprintf(buf, "%llu", val);
-    return (const char*)(buf);
-}
-const char* gpc_strfyf(char* buf, ...)
-{
-    GET_VAL(double);
-    sprintf(buf, "%g", val);
-    return (const char*)(buf);
-}
-const char* gpc_strfyc(char* buf, ...)
-{
-    GET_VAL(int);
-    sprintf(buf, "\'%c\'", val);
-    return (const char*)(buf);
-}
-const char* gpc_strfyC(char* buf, ...)
-{
-    GET_VAL(int);
-    sprintf(buf, "0x%x", val);
-    return (const char*)(buf);
-}
-const char* gpc_strfyp(char* buf, ...)
-{
-    GET_VAL(void*);
-    sprintf(buf, "%p", val);
-    return (const char*)(buf);
-}
-#undef GET_VAL
-
-#endif // defined(__GNUC__) && (__STDC_VERSION__ >= 201112L)

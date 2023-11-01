@@ -4,10 +4,17 @@
 
 #include "../src/assert.c"
 
+#define sq(x) x*x
+#define plus(...) +
+
 int main(void)
 {
-    gpc_assert(1 < 2, "blah");
-    gpc_expect(1llu >= (unsigned long long)-1, "blah");
+    GPC_PROCESS_ALL_ARGS(sq, plus, 1, 2, 3);
+
+    gpc_assert(0 < 1, "");
+    gpc_assert(1 < 2, "%i", 0x1);
+    gpc_assert(2 < 3, "%i%i", 0x2, 0x3);
+    gpc_expect(1llu >= (unsigned long long)-1, "blah", 0x0);
     printf("Done...\n");
 
 #if 0
