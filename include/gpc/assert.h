@@ -8,6 +8,7 @@
 #include "overload.h"
 #include "attributes.h"
 #include <stdbool.h>
+#include <stdint.h>
 
 // ----------------------------------------------------------------------------
 //
@@ -15,23 +16,17 @@
 //
 // ----------------------------------------------------------------------------
 
-// Aborts execution and prints failure message to stderr if condition == false,
-// returns true otherwise.
-#define /* bool */ gpc_assert(condition,...) \
-((condition) ? true : gpc_fatal(#condition, __VA_ARGS__))
+#define /* bool */ gpc_assert(...) \
+((bool){0} = (GPC_1ST_ARG(__VA_ARGS__)) ? true : (gpc_fatal(__VA_ARGS__), false))
 
-// Prints failure message to stderr and returns false if condition == false,
-// returns true otherwise.
-#define /* bool */ gpc_expect(condition,...) \
-((condition) ? true : gpc_fail(#condition, __VA_ARGS__))
+#define /* bool */ gpc_expect(...) \
+((bool){0} = (GPC_1ST_ARG(__VA_ARGS__)) ? true : (gpc_fail(__VA_ARGS__), false))
 
-// Aborts execution and prints failure message to stderr.
-#define gpc_fatal(const_char_ptr_condition,...) \
-_gpc_fatal(const_char_ptr_condition, __VA_ARGS__)
+#define gpc_fatal(...) \
+gpc_failure(1, __FILE__, __LINE__, __func__, GPC_COUNT_ARGS(__VA_ARGS__), GPC_STRFY_1ST_ARG(__VA_ARGS__), GPC_PROCESS_ALL_BUT_1ST(GPC_GENERATE_VAR_INFO_INDIRECT, GPC_COMMA, __VA_ARGS__))
 
-// Marks current test and suite as failed and prints failure message to stderr
-#define gpc_fail(const_char_ptr_condition,...) \
-_gpc_fail(const_char_ptr_condition, __VA_ARGS__)
+#define gpc_fail(...) \
+gpc_failure(0, __FILE__, __LINE__, __func__, GPC_COUNT_ARGS(__VA_ARGS__), GPC_STRFY_1ST_ARG(__VA_ARGS__), GPC_PROCESS_ALL_BUT_1ST(GPC_GENERATE_VAR_INFO_INDIRECT, GPC_COMMA, __VA_ARGS__))
 
 // Starts test. Subsequent calls starts a new test ending the last one. If name
 // is NULL last test will be ended without starting a new test. Calling with
@@ -47,23 +42,21 @@ void gpc_suite(const char* name);
 // function is not called explicitly, it will be called when main() returns.
 void gpc_end_testing(void);
 
-// Call this with false if your terminal or output doesn't support colours.
-void gpc_enable_color(bool);
-
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
 //
 // ----------------------------------------------------------------------------
 
-#define _gpc_fatal(const_char_ptr_condition, ...) \
-_gpc_failure(1, __FILE__, __LINE__, __func__, const_char_ptr_condition, GPC_PROCESS_ALL_BUT_1ST(_GPC_STRFY_AND_PASS, GPC_COMMA, __VA_ARGS__))
+#define GPC_GEN_VAR_INFO_AUTO_FMT(VAR) gpc_generate_var_info(#VAR, GPC_GET_FORMAT(VAR), VAR)
+#define GPC_GEN_VAR_INFO(FORMAT, VAR) gpc_generate_var_info(#VAR, FORMAT, VAR)
+#define GPC_GENERATE_VAR_INFO(...) \
+GPC_OVERLOAD2(__VA_ARGS__, GPC_GEN_VAR_INFO, GPC_GEN_VAR_INFO_AUTO_FMT)(__VA_ARGS__)
 
-#define _gpc_fail(const_char_ptr_condition, ...) \
-_gpc_failure(0, __FILE__, __LINE__, __func__, const_char_ptr_condition, GPC_PROCESS_ALL_BUT_1ST(_GPC_STRFY_AND_PASS, GPC_COMMA, __VA_ARGS__))
+// To be used in GPC_PROCESS_ALL(). Is the indirection required though?
+#define GPC_GENERATE_VAR_INFO_INDIRECT(VAR) GPC_GENERATE_VAR_INFO VAR
 
-#define _GPC_STRFY_AND_PASS(X) (_gpc_assert_push_var_name(#X), X)
-void _gpc_assert_push_var_name(const char* var_name);
-bool _gpc_failure(bool aborting, const char* file, int line, const char* func, const char* condition, const char* formats, ...);
+char* gpc_generate_var_info(const char* var_name, const char* format, ...) GPC_PRINTF(2, 3);
+void gpc_failure(bool aborting, const char* file, int line, const char* func, size_t arg_count, const char* condition, ...);
 
 #endif // GPC_ASSERT_INCLUDED

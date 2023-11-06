@@ -8,7 +8,7 @@
 // TODO check for C23 once it comes out for [[nodiscard]] and typeof()
 
 // Are these checks needed now that I removed -pedantic?
-#if defined(__GNUC__)
+/*#if defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Wattributes"
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wlanguage-extension-token"
@@ -17,6 +17,7 @@
 #else
 #define GPC_NODISCARD
 #endif
+*/
 
 // ----------------------------------------------------------------------------
 
@@ -46,6 +47,9 @@
 
 #define GPC_TYPEOF(X) typeof(X)
 #define GPC_CAST_TO_TYPEOF(X) (typeof(X))
+
+#define GPC_PRINTF(STRING_INDEX, FIRST_TO_CHECK) \
+__attribute__((format(printf, STRING_INDEX, FIRST_TO_CHECK)))
 
 #else
 

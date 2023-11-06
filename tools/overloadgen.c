@@ -67,38 +67,42 @@ int main(void)
     MAX_ARGS);
     for (int i = MAX_ARGS; i >= 1; i--)
     {
-        fpf("_GPC_PROC%i%s", i, i > 1 ? ", " : ")");
+        fpf("GPC_PROC%i%s", i, i > 1 ? ", " : ")");
     }
     fpf("(FUNC, SEPARATOR, __VA_ARGS__)\n");
     endl();
 
-    fprintf(f, "#define _GPC_PROC1(F, SEP, A) F(A)\n");
+    fprintf(f, "#define GPC_PROC1(F, SEP, A) F(A)\n");
     for (int i = 2; i <= MAX_ARGS; i++)
     {
         fprintf(f,
-        "#define _GPC_PROC%i(F, SEP, A, ...) F(A) SEP(A) _GPC_PROC%i(F, SEP, __VA_ARGS__)\n",
+        "#define GPC_PROC%i(F, SEP, A, ...) F(A) SEP(A) GPC_PROC%i(F, SEP, __VA_ARGS__)\n",
         i, i - 1);
     }
     endl();
+
+    // -----------------
 
     fpf(
     "#define GPC_PROCESS_ALL_BUT_1ST(FUNC, SEPARATOR, ...) GPC_OVERLOAD%i(__VA_ARGS__, ",
     MAX_ARGS);
     for (int i = MAX_ARGS; i >= 1; i--)
     {
-        fpf("_GPC_PROC%i_1%s", i, i > 1 ? ", " : ")");
+        fpf("GPC_PROC%i_1%s", i, i > 1 ? ", " : ")");
     }
     fpf("(FUNC, SEPARATOR, __VA_ARGS__)\n");
     endl();
 
-    fprintf(f, "#define _GPC_PROC1_1(F, SEP, A) A\n");
+    fprintf(f, "#define GPC_PROC1_1(F, SEP, A) A\n");
     for (int i = 2; i <= MAX_ARGS; i++)
     {
         fprintf(f,
-                "#define _GPC_PROC%i_1(F, SEP, A, ...) A, _GPC_PROC%i(F, SEP, __VA_ARGS__)\n",
+                "#define GPC_PROC%i_1(F, SEP, A, ...) A, GPC_PROC%i(F, SEP, __VA_ARGS__)\n",
                 i, i - 1);
     }
     endl();
+
+    // -----------------
 
     aligment_offset = 1;
 

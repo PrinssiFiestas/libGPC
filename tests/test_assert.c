@@ -6,10 +6,18 @@
 
 int main(void)
 {
-    gpc_assert(0 < 1, "");
-    gpc_assert(1 < 2, "%i", 0x1);
-    gpc_assert(2 < 3, "%i%i", 0x2, 0x3);
-    gpc_expect(1llu >= (unsigned long long)-1, "blah", 0x0);
+    gpc_assert(0 == 0);
+    gpc_assert(0 < 1, (0 + 1));
+    gpc_assert(1 < 2, ("%i", 0x1));
+    gpc_assert(1 < 2 && 2 < 3, (0 + 1), ("%i", 0x2), (1 * 3));
+
+    gpc_expect(0 != 0);
+    gpc_expect(0 > 1, (1));
+    gpc_expect(1 > 0x2, ("%i", 0x2));
+    gpc_expect(1 > 1 + 1 && 0x2 > 1 * 3, (1 + 1), ("%i", 0x2), (1 * 3));
+    const char blah[] = "blah";
+    gpc_assert(strcmp(blah, "blah"), (blah));
+
     printf("Done...\n");
 
 #if 0
