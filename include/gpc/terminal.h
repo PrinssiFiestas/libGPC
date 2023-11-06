@@ -17,6 +17,7 @@
 
 #define GPC_RESET_TERMINAL      "\033[0m"
 
+// ----------------------------------------------------------------------------
 // Foreground color
 
 #define GPC_BLACK               "\033[30m"
@@ -39,6 +40,7 @@
 
 #define GPC_RGB(R, G, B)        "\033[38;2;" #R ";" #G ";" #B "m"
 
+// ----------------------------------------------------------------------------
 // Background color
 
 #define GPC_BLACK_BG            "\033[40m"
@@ -59,6 +61,51 @@
 #define GPC_BRIGHT_CYAN_BG      "\033[106m"
 #define GPC_BRIGHT_WHITE_BG     "\033[107m"
 
-#define GPC_RGB_BG(R, G, B)     "\033[38;2;" #R ";" #G ";" #B "m"
+#define GPC_RGB_BG(R, G, B)     "\033[38;2;"#R";"#G";"#B"m"
+
+// Swap foreground and background colors.
+#define GPC_INVERT_COLORS       "\033[7m"
+#define GPC_NO_INVERTED_COLORS  "\033[27m"
+
+// ----------------------------------------------------------------------------
+// Font
+
+#define GPC_RESET_FONT          "\033[10m"
+
+#define GPC_BOLD                "\033[1m"
+#define GPC_FAINT               "\033[2m"
+#define GPC_NORMAL_INTENSITY    "\033[22m" // Neither bold nor faint
+#define GPC_ITALIC              "\033[3m"  // Rarely supported
+#define GPC_GOTHIC              "\033[20m" // Rarely supported
+#define GPC_NO_ITALIC           "\033[23m" // Also disables gothic
+#define GPC_UNDERLINE           "\033[4m"
+#define GPC_DOUBLE_UNDERLINE    "\033[21m" // May disable bold instead
+#define GPC_NO_UNDERLINE        "\033[24m"
+#define GPC_SLOW_BLINK          "\033[5m"
+#define GPC_FAST_BLINK          "\033[6m"  // Rarely supported
+#define GPC_HIDE                "\033[8m"  // Rarely supported
+#define GPC_REVEAL              "\033[28m" // Unhide
+#define GPC_CROSSED_OUT         "\033[9m"
+
+// Select alternative font from 0 to 9 where 0 is default font
+#define GPC_FONT(N)             "\033[1"#N"m"
+
+// ----------------------------------------------------------------------------
+// Cursor movement
+
+// N = steps to move
+
+#define GPC_CURSOR_UP(N)            "\033["#N"A"
+#define GPC_CURSOR_DOWN(N)          "\033["#N"B"
+#define GPC_CURSOR_FORWARD(N)       "\033["#N"C"
+#define GPC_CURSOR_BACK(N)          "\033["#N"D"
+#define GPC_CURSOR_NEXT_LINE(N)     "\033["#N"E"
+#define GPC_CURSOR_PREVIOUS_LINE(N) "\033["#N"F"
+
+// Moves cursor to row N
+#define GPC_CURSOR_ROW(N)           "\033["#N"G"
+
+// Moves cursor to row N column M
+#define GPC_CURSOR_POSITION(N, M)   "\033["#N";"#M"H"
 
 #endif // GPC_TERMINAL_INCLUDED
