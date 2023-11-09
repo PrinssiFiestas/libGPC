@@ -6,9 +6,7 @@
 #define GPC_ASSERT_INCLUDED 1
 
 #include "overload.h"
-#include "attributes.h"
-#include <stdbool.h>
-#include <stdint.h>
+#include "utils.h"
 
 // ----------------------------------------------------------------------------
 //
@@ -45,6 +43,8 @@ void gpc_end_testing(void);
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
+//          
+//          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ GPC_OVERLOAD2(__VA_ARGS__, GPC_GEN_VAR_INFO, GPC_GEN_VAR_INFO_AUTO_FMT)(__VA_ARG
 // To be used in GPC_PROCESS_ALL(). Is the indirection required though?
 #define GPC_GENERATE_VAR_INFO_INDIRECT(VAR) GPC_GENERATE_VAR_INFO VAR
 
-char* gpc_generate_var_info(const char* var_name, const char* format, ...) GPC_PRINTF(2, 3);
+char* gpc_generate_var_info(const char* var_name, const char* format, /* T var */...) GPC_PRINTF(2, 3);
 void gpc_failure(bool aborting, const char* file, int line, const char* func, size_t arg_count, const char* condition, ...);
 
 #endif // GPC_ASSERT_INCLUDED

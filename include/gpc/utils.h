@@ -58,9 +58,19 @@ bool gpc_fapproxf(float x, float y, float tolerance);
 bool gpc_fapprox(double x, double y, double tolerance);
 bool gpc_fapproxl(long double x, long double y, long double tolerance);
 
+// Returning char* may require allocations but sometimes it's also convinient to
+// just return a literal. This makes it easier to work with those situations.
+typedef struct gpc_MaybeAllocatedCStr
+{
+    bool is_allocated;
+    char* cstr;
+} gpc_MaybeAllocatedCStr;
+
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
+//          
+//          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
 
