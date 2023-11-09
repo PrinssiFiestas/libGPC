@@ -6,28 +6,6 @@
 
 int main(void)
 {
-    // char dest[100];
-    // char* p = dest;
-    // p = gpc_str_push(p, "this", -1);
-    // p = gpc_str_push(p, "_is_a_sentence", -1);
-    // printf("%s\n", dest);
-
-    gpc_assert(0 <= 0);
-    gpc_assert(0 < 1, (0 + 1));
-    gpc_assert(1 < 2, ("%i", 0x1));
-    gpc_assert(1 < 2 && 2 < 3, (0 + 1), ("%i", 0x2), (1 * 3));
-
-    gpc_expect(0 != 0);
-    gpc_expect(0 > 1, (1));
-    gpc_expect(1 > 0x2, ("%i", 0x2));
-    gpc_expect(1 > 1 + 1 && 0x2 > 1 * 3, (1 + 1), ("%i", 0x2), (1 * 3));
-    const char blah[] = "blah";
-    gpc_expect(strcmp(blah, "blah"), (blah));
-    gpc_expect(strcmp(blah, "blah"), ("b%%l%%a%%h %.99s IS \"blah\"", blah));
-
-    printf("Done...\n");
-
-#if 0
     gpc_suite("First suite");
     { // Scoping not required but adds readability and structure.
         gpc_test("First test");
@@ -59,14 +37,14 @@ int main(void)
     // Suites are optional.
     gpc_test("Array test without suite");
     {
-        int arr1[] = { 1, 2, 3 };
-        int arr2[] = { 1, 2, 3 };
+        // int arr1[] = { 1, 2, 3 };
+        // int arr2[] = { 1, 2, 3 };
 
         // Testing pointers. Use the method below for arrays.
         // TODO example code
 
         // Array comparison
-        for (size_t i = 0; i < ARR_MIN_SIZE(arr1, arr2); i++)
+        // for (size_t i = 0; i < ARR_MIN_SIZE(arr1, arr2); i++)
             // TODO example code
     }
 
@@ -75,5 +53,29 @@ int main(void)
     gpc_end_testing();
     // However,
     puts("now we can print custom reports here or do whatever we like.");
-#endif
+
+    // Define this to see failing messages
+    //#define GPC_NON_PASSING_TESTS
+    #ifdef GPC_NON_PASSING_TESTS
+
+    // char dest[100];
+    // char* p = dest;
+    // p = gpc_str_push(p, "this", -1);
+    // p = gpc_str_push(p, "_is_a_sentence", -1);
+    // printf("%s\n", dest);
+
+    // gpc_assert(0 <= 0);
+    // gpc_assert(0 < 1, (0 + 1));
+    // gpc_assert(1 < 2, ("%i", 0x1));
+    // gpc_assert(1 < 2 && 2 < 3, (0 + 1), ("%i", 0x2), (1 * 3));
+
+    // gpc_expect(0 != 0);
+    // gpc_expect(0 > 1, (1));
+    // gpc_expect(1 > 0x2, ("%i", 0x2));
+    // gpc_expect(1 > 1 + 1 && 0x2 > 1 * 3, (1 + 1), ("%i", 0x2), (1 * 3));
+    // const char blah[] = "blah";
+    // gpc_expect(strcmp(blah, "blah"), (blah));
+    // gpc_expect(strcmp(blah, "blah"), ("b%%l%%a%%h %.99s IS \"blah\"", blah), ("My additional notes."));
+
+    #endif
 }

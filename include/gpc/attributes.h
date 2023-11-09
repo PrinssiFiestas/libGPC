@@ -19,6 +19,12 @@
 #endif
 */
 
+#if __STDC_VERSION__ >= 201112L
+#define GPC_ATOMIC _Atomic
+#else
+#define GPC_ATOMIC
+#endif
+
 // ----------------------------------------------------------------------------
 
 #ifdef _MSC_VER

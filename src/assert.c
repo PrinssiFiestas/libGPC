@@ -10,6 +10,116 @@
 #include <string.h>
 #include <stdarg.h>
 
+#define GPC_NOT_RUNNING NULL
+static GPC_THREAD_LOCAL const char* gpc_current_test  = GPC_NOT_RUNNING;
+static GPC_THREAD_LOCAL const char* gpc_current_suite = GPC_NOT_RUNNING;
+static GPC_THREAD_LOCAL bool gpc_test_failed  = false;
+static GPC_THREAD_LOCAL bool gpc_suite_failed = false;
+static GPC_ATOMIC unsigned gpc_test_count    = 0;
+static GPC_ATOMIC unsigned gpc_suite_count   = 0;
+static GPC_ATOMIC unsigned gpc_tests_failed  = 0;
+static GPC_ATOMIC unsigned gpc_suites_failed = 0;
+#define GPC_FAILED_STR GPC_RED          "[FAILED]" GPC_RESET_TERMINAL
+#define GPC_PASSED_STR GPC_BRIGHT_GREEN "[PASSED]" GPC_RESET_TERMINAL
+
+// ----------------------------------------------------------------------------
+// Implementations for gpc_suite(), gpc_test(), and relevant
+
+void gpc_end_testing(void)
+{
+    if (gpc_test_count + gpc_suite_count == 0)
+        return;
+
+    gpc_test(NULL);
+    gpc_suite(NULL);
+
+    printf("A total of %u tests ran in %u suites\n", gpc_test_count, gpc_suite_count);
+    
+    if (gpc_tests_failed || gpc_suites_failed)
+        fprintf(stderr, GPC_RED "%u tests failed and %u suites failed!\n", gpc_tests_failed, gpc_suites_failed);
+    else
+        printf(GPC_BRIGHT_GREEN "Passed all tests!" GPC_RESET_TERMINAL "\n");
+
+    // Prevent redundant reporting at exit. Also user may want to restart tests.    
+    gpc_test_count    = 0;
+    gpc_suite_count   = 0;
+    gpc_tests_failed  = 0;
+    gpc_suites_failed = 0;
+}
+
+static void gpc_init_testing(void)
+{
+    static bool initialized = false;
+    if ( ! initialized)
+    {
+        printf("\tStarting tests...\n\n");
+        atexit(gpc_end_testing);
+        initialized = true;
+    }
+}
+
+void gpc_test(const char* name)
+{
+    gpc_init_testing();
+
+    // End current test
+    if (gpc_current_test != GPC_NOT_RUNNING)
+    {
+        const char* indent = gpc_current_suite == GPC_NOT_RUNNING ? "" : "\t";
+        if (gpc_test_failed)
+        {
+            gpc_tests_failed++;
+            fprintf(stderr, "%s" GPC_FAILED_STR " test " GPC_CYAN "%s" GPC_RESET_TERMINAL "\n", indent, gpc_current_test);
+        }
+        else
+            printf("%s" GPC_PASSED_STR " test " GPC_CYAN "%s" GPC_RESET_TERMINAL "\n", indent, gpc_current_test);
+        
+        gpc_current_test = GPC_NOT_RUNNING;
+    }
+
+    // Start new test
+    if (name != NULL)
+    {
+        // No starting message cluttering output
+
+        gpc_current_test = name;
+        gpc_test_failed = false;
+        gpc_test_count++;
+    }
+}
+
+void gpc_suite(const char* name)
+{
+    gpc_init_testing();
+
+    // End current suite
+    if (gpc_current_suite != GPC_NOT_RUNNING)
+    {
+        if (gpc_suite_failed)
+        {
+            gpc_suites_failed++;
+            fprintf(stderr, GPC_FAILED_STR " suite " GPC_CYAN "%s" GPC_RESET_TERMINAL "\n\n", gpc_current_suite);
+        }
+        else
+            printf(GPC_PASSED_STR " suite " GPC_CYAN "%s" GPC_RESET_TERMINAL "\n\n", gpc_current_suite);
+        
+        gpc_current_suite = GPC_NOT_RUNNING;
+    }
+
+    // Start new suite
+    if (name != NULL)
+    {
+        printf("Starting suite " GPC_CYAN "%s" GPC_RESET_TERMINAL "\n", name);
+
+        gpc_current_suite = name;
+        gpc_suite_failed = false;
+        gpc_suite_count++;
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Implementations for gpc_assert(), gpc_expect(), and relevant
+
 // Copy n characters from src to dest and return a pointer to the end of the
 // copied string in dest. src is assumed to be null terminated if n < 0.
 void gpc_str_push(char *restrict *dest, const char* restrict src, ptrdiff_t n)
@@ -39,6 +149,22 @@ char* gpc_generate_var_info(const char* var_name, const char* format, ...)
     if (modified_format == NULL)
     {
         perror("malloc() failed on gpc_generate_var_info().");
+        goto cleanup;
+    }
+
+    // Only a string literal passed, requires C11 at the moment
+    if (var_name[0] == '\"')
+    {
+        // Allocation required only because gpc_failure() will free. Optimize
+        // later if anyone cares.
+        size_t var_name_len = strlen(var_name);
+        size_t var_info_len = var_name_len - strlen("\"\"");
+        var_info = malloc(var_info_len + sizeof('\0'));
+        if (var_info != NULL)
+        {
+            strncpy(var_info, var_name + 1, var_info_len);
+            var_info[var_info_len] = '\0';
+        }
         goto cleanup;
     }
 
@@ -117,6 +243,18 @@ void gpc_failure(
     const char* condition,
     ...)
 {
+    if (gpc_current_test != GPC_NOT_RUNNING)
+    {
+        gpc_test_failed = true;
+        func = gpc_current_test;
+    }
+    if (gpc_current_suite != GPC_NOT_RUNNING)
+    {
+        gpc_suite_failed = true;
+        if (gpc_current_test == GPC_NOT_RUNNING)
+            func = gpc_current_suite;
+    }
+
     fprintf(stderr,
             "Condition " GPC_RED"%s"GPC_RESET_TERMINAL
             " in %s " GPC_WHITE_BG GPC_BLACK "line %i" GPC_RESET_TERMINAL" %s "
@@ -129,7 +267,8 @@ void gpc_failure(
     while (arg_count--)
     {
         char* arg_info = va_arg(va_args, char*);
-        fputs(arg_info, stderr);
+        if (arg_info != NULL)
+            fputs(arg_info, stderr);
         free(arg_info);
     }
     fputs("\n", stderr);
