@@ -6,7 +6,13 @@
 
 int main(void)
 {
-    gpc_assert(0 == 0);
+    // char dest[100];
+    // char* p = dest;
+    // p = gpc_str_push(p, "this", -1);
+    // p = gpc_str_push(p, "_is_a_sentence", -1);
+    // printf("%s\n", dest);
+
+    gpc_assert(0 <= 0);
     gpc_assert(0 < 1, (0 + 1));
     gpc_assert(1 < 2, ("%i", 0x1));
     gpc_assert(1 < 2 && 2 < 3, (0 + 1), ("%i", 0x2), (1 * 3));
@@ -16,7 +22,8 @@ int main(void)
     gpc_expect(1 > 0x2, ("%i", 0x2));
     gpc_expect(1 > 1 + 1 && 0x2 > 1 * 3, (1 + 1), ("%i", 0x2), (1 * 3));
     const char blah[] = "blah";
-    gpc_assert(strcmp(blah, "blah"), (blah));
+    gpc_expect(strcmp(blah, "blah"), (blah));
+    gpc_expect(strcmp(blah, "blah"), ("b%%l%%a%%h %.99s IS \"blah\"", blah));
 
     printf("Done...\n");
 

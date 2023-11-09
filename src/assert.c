@@ -4,16 +4,26 @@
 
 #include "../include/gpc/assert.h"
 #include "../include/gpc/terminal.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 
-// Copy src to dest and return a pointer to the end of the copied string in dest
-static char* gpc_str_push(char* dest, const char* src)
+// Copy n characters from src to dest and return a pointer to the end of the
+// copied string in dest. src is assumed to be null terminated if n < 0.
+void gpc_str_push(char *restrict *dest, const char* restrict src, ptrdiff_t n)
 {
-    while ((*dest++ = *src++));
-    return dest - 1;
+    if (n < 0)
+    {
+        strcpy(*dest, src);
+        *dest += strlen(src);
+    }
+    else
+    {
+        strncpy(*dest, src, (size_t)n);
+        *dest += n;
+    }
 }
 
 char* gpc_generate_var_info(const char* var_name, const char* format, ...)
@@ -22,7 +32,9 @@ char* gpc_generate_var_info(const char* var_name, const char* format, ...)
     va_start(arg, format);
     va_copy(arg_, arg);
 
-    size_t modified_format_length = strlen(var_name) + strlen(" = \'\'") + strlen(GPC_BRIGHT_WHITE_BG GPC_RESET_TERMINAL) + strlen(format) + sizeof("\n");
+    char* var_info = NULL;
+
+    size_t modified_format_length = strlen(GPC_BRIGHT_GREEN GPC_RESET_TERMINAL) + strlen(var_name) + strlen(" = \'\'") + strlen(GPC_BRIGHT_WHITE_BG GPC_RESET_TERMINAL) + strlen(format) + sizeof("\n");
     char* modified_format = malloc(modified_format_length);
     if (modified_format == NULL)
     {
@@ -31,34 +43,53 @@ char* gpc_generate_var_info(const char* var_name, const char* format, ...)
     }
 
     char* p = modified_format;
-    p = gpc_str_push(p, var_name);
-    p = gpc_str_push(p, " = ");
+    gpc_str_push(&p, GPC_BRIGHT_GREEN, -1);
+    gpc_str_push(&p, var_name, -1);
+    gpc_str_push(&p, GPC_RESET_TERMINAL, -1);
+    gpc_str_push(&p, " = ", -1);
 
     const char all_supported_formats[] = "dibBouxXfFeEgGaAcCsSZp";
-    char type = *strpbrk(format, all_supported_formats);
+
+    // Find format specifier ignoring %%
+    const char* format_specifier = format;
+    while ((format_specifier = strchr(format_specifier, '%'))[1] == '%')
+        format_specifier += strlen("%%");
+    if (format_specifier == NULL)
+    {
+        fprintf(stderr, "\"%s\" has no format specifier!\n", format);
+        goto cleanup;
+    }
+
+    const char* format_specifier_end = strpbrk(format_specifier, all_supported_formats) + 1;
+    const char type = *(format_specifier_end - 1);
+
+    // Additional notes before format specifier
+    gpc_str_push(&p, format, format_specifier - format);
 
     if (type == 'c' || type == 'C') // character
-        p = gpc_str_push(p, GPC_YELLOW "\'");
+        gpc_str_push(&p, GPC_YELLOW "\'", -1);
     else if (type == 's' || type == 'S' || type == 'Z') // string
-        p = gpc_str_push(p, GPC_BRIGHT_RED "\"");
+        gpc_str_push(&p, GPC_BRIGHT_RED "\"", -1);
     else if (strchr("dibBouxX", type)) // integer
-        p = gpc_str_push(p, GPC_BRIGHT_BLUE);
+        gpc_str_push(&p, GPC_BRIGHT_BLUE, -1);
     else if (strchr("fFeEgG", type)) // floating point
-        p = gpc_str_push(p, GPC_BRIGHT_MAGENTA);
+        gpc_str_push(&p, GPC_BRIGHT_MAGENTA, -1);
     else if (type == 'p') // pointer
-        p = gpc_str_push(p, GPC_BLUE);
+        gpc_str_push(&p, GPC_BLUE, -1);
 
-    p = gpc_str_push(p, format);
+    gpc_str_push(&p, format_specifier, format_specifier_end - format_specifier);
 
     if (type == 'c' || type == 'C')
-        p = gpc_str_push(p,  "\'");
+        gpc_str_push(&p,  "\'", -1);
     else if (type == 's' || type == 'S' || type == 'Z')
-        p = gpc_str_push(p, "\"");
+        gpc_str_push(&p, "\"", -1);
 
-    p = gpc_str_push(p, GPC_RESET_TERMINAL "\n");
+    gpc_str_push(&p, GPC_RESET_TERMINAL, -1);
+    gpc_str_push(&p, format_specifier_end, -1);
+    gpc_str_push(&p, "\n", -1);
 
     size_t var_info_length = (size_t)vsnprintf(NULL, 0, modified_format, arg_);
-    char* var_info = malloc(var_info_length + sizeof('\0'));
+    var_info = malloc(var_info_length + sizeof('\0'));
     if (var_info == NULL)
     {
         perror("malloc() failed in gpc_generate_var_info().");

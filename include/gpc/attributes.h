@@ -56,6 +56,7 @@ __attribute__((format(printf, STRING_INDEX, FIRST_TO_CHECK)))
 #define GPC_STATIC
 #define GPC_TYPEOF(X)
 #define GPC_CAST_TO_TYPEOF(X)
+#define GPC_PRINTF(STRING_INDEX, FIRST_TO_CHECK)
 
 #endif // defined(__GNUC__)
 
