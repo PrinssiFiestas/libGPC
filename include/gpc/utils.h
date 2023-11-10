@@ -38,8 +38,8 @@ void gpc_rand_seed(uint64_t seed);
 
 #if defined(__GNUC__) || __STDC_VERSION__ >= 201112L
 
-#define gpc_min(x, y) _gpc_generic_min(x, y)
-#define gpc_max(x, y) _gpc_generic_max(x, y)
+#define gpc_min(x, y) gpc_generic_min(x, y)
+#define gpc_max(x, y) gpc_generic_max(x, y)
 
 #endif
 
@@ -64,14 +64,6 @@ bool gpc_fapproxf(float x, float y, float tolerance);
 bool gpc_fapprox(double x, double y, double tolerance);
 bool gpc_fapproxl(long double x, long double y, long double tolerance);
 
-// Returning char* may require allocations but sometimes it's also convinient to
-// just return a literal. This makes it easier to work with those situations.
-typedef struct gpc_MaybeAllocatedCStr
-{
-    bool is_allocated;
-    char* cstr;
-} gpc_MaybeAllocatedCStr;
-
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
@@ -82,18 +74,15 @@ typedef struct gpc_MaybeAllocatedCStr
 
 #if defined(__GNUC__) // gpc_min() and gpc_max() implementations
 
-#define _gpc_generic_min(x, y) \
-\
+#define gpc_generic_min(x, y) \
 ({ typeof(x) _##x = (x); typeof(y) _##y = (y); _##x < _##y ? _##x : _##y; })
 
-#define _gpc_generic_max(x, y) \
-\
+#define gpc_generic_max(x, y) \
 ({ typeof(x) _##x = (x); typeof(y) _##y = (y); _##x > _##y ? _##x : _##y; })
 
 #elif __STDC_VERSION__ >= 201112L
 
-#define _gpc_generic_min(x, y) \
-\
+#define gpc_generic_min(x, y) \
 _Generic(x, \
 int:                gpc_imin(x, y),   \
 long:               gpc_lmin(x, y),   \
@@ -105,8 +94,7 @@ float:              gpc_fminf(x, y),  \
 double:             gpc_fmin(x, y),   \
 long double:        gpc_fminl(x, y))
 
-#define _gpc_generic_max(x, y) \
-\
+#define gpc_generic_max(x, y) \
 _Generic(x, \
 int:                gpc_imax(x, y),   \
 long:               gpc_lmax(x, y),   \
