@@ -16,6 +16,12 @@
 //
 // ----------------------------------------------------------------------------
 
+// Signed size_t
+typedef ptrdiff_t gpc_SSize;
+
+// Raw byte
+typedef unsigned char gpc_Byte;
+
 // Used to compute array sizes on reallocations, thus size_t.
 size_t gpc_next_power_of_2(size_t x);
 
