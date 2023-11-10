@@ -40,7 +40,7 @@ void gpc_end_testing(void)
     else
         printf(GPC_BRIGHT_GREEN "Passed all tests!" GPC_RESET_TERMINAL "\n");
 
-    // Prevent redundant reporting at exit. Also user may want to restart tests.    
+    // Prevent redundant reporting at exit. Also user may want to restart tests.
     gpc_test_count    = 0;
     gpc_suite_count   = 0;
     gpc_tests_failed  = 0;
@@ -73,7 +73,7 @@ void gpc_test(const char* name)
         }
         else
             printf("%s" GPC_PASSED_STR " test " GPC_CYAN "%s" GPC_RESET_TERMINAL "\n", indent, gpc_current_test);
-        
+
         gpc_current_test = GPC_NOT_RUNNING;
     }
 
@@ -102,7 +102,7 @@ void gpc_suite(const char* name)
         }
         else
             printf(GPC_PASSED_STR " suite " GPC_CYAN "%s" GPC_RESET_TERMINAL "\n\n", gpc_current_suite);
-        
+
         gpc_current_suite = GPC_NOT_RUNNING;
     }
 
@@ -122,7 +122,7 @@ void gpc_suite(const char* name)
 
 // Copy n characters from src to dest and return a pointer to the end of the
 // copied string in dest. src is assumed to be null terminated if n < 0.
-void gpc_str_push(char *restrict *dest, const char* restrict src, ptrdiff_t n)
+static void gpc_str_push(char *restrict *dest, const char* restrict src, ptrdiff_t n)
 {
     if (n < 0)
     {
@@ -149,7 +149,7 @@ char* gpc_generate_var_info(const char* var_name, const char* format, /* T var *
         + strlen(" = \'\'") // added quotes if arg is char or char*
         + strlen(GPC_BRIGHT_WHITE_BG GPC_RESET_TERMINAL) // color for arg value
         + strlen(format) + sizeof("\n");
-    
+
     char* modified_format = malloc(modified_format_buf_len);
     if (modified_format == NULL)
     {
@@ -162,7 +162,7 @@ char* gpc_generate_var_info(const char* var_name, const char* format, /* T var *
     {
         // Allocation and copying is only required because we need to remove
         // quotes and the returned pointer will be freed by gpc_failure().
-        // Returning a struct with info if allocated and a str_view would be 
+        // Returning a struct with info if allocated and a str_view would be
         // better but we'll settle with this now and optimize later.
         size_t var_name_len = strlen(var_name);
         size_t var_info_len = var_name_len - strlen("\"\"");

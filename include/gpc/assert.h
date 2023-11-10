@@ -6,7 +6,8 @@
 #define GPC_ASSERT_INCLUDED 1
 
 #include "overload.h"
-#include "utils.h"
+#include "attributes.h"
+#include <stdbool.h>
 
 // ----------------------------------------------------------------------------
 //
@@ -14,15 +15,23 @@
 //
 // ----------------------------------------------------------------------------
 
-#define /* bool */ gpc_assert(...) \
+// Returns true if condition is true. If condition is false prints fail message,
+// marks current test and suite (if running tests) as failed, and exits program.
+#define /* bool */ gpc_assert(/* bool condition, */...) \
 ((bool){0} = (GPC_1ST_ARG(__VA_ARGS__)) ? true : (gpc_fatal(__VA_ARGS__), false))
 
-#define /* bool */ gpc_expect(...) \
+// Returns true if condition is true. If condition is false prints fail message,
+// marks current test and suite (if running tests) as failed, and returns false.
+#define /* bool */ gpc_expect(/* bool condition, */...) \
 ((bool){0} = (GPC_1ST_ARG(__VA_ARGS__)) ? true : (gpc_fail(__VA_ARGS__), false))
 
+// Prints fail message, marks current test and suite (if running tests) as
+// failed, and exits program.
 #define gpc_fatal(...) \
 gpc_failure(1, __FILE__, __LINE__, __func__, GPC_COUNT_ARGS(__VA_ARGS__), GPC_STRFY_1ST_ARG(__VA_ARGS__), GPC_PROCESS_ALL_BUT_1ST(GPC_GENERATE_VAR_INFO_INDIRECT, GPC_COMMA, __VA_ARGS__))
 
+// Prints fail message and marks current test and suite (if running tests) as
+// failed.
 #define gpc_fail(...) \
 gpc_failure(0, __FILE__, __LINE__, __func__, GPC_COUNT_ARGS(__VA_ARGS__), GPC_STRFY_1ST_ARG(__VA_ARGS__), GPC_PROCESS_ALL_BUT_1ST(GPC_GENERATE_VAR_INFO_INDIRECT, GPC_COMMA, __VA_ARGS__))
 
@@ -48,10 +57,17 @@ void gpc_end_testing(void);
 //
 // ----------------------------------------------------------------------------
 
-#define GPC_GEN_VAR_INFO_AUTO_FMT(VAR) gpc_generate_var_info(#VAR, GPC_GET_FORMAT(VAR), VAR)
 #define GPC_GEN_VAR_INFO(FORMAT, VAR) gpc_generate_var_info(#VAR, FORMAT, VAR)
+
+#if __STDC_VERSION__ >= 201112L
+#define GPC_GEN_VAR_INFO_AUTO_FMT(VAR) gpc_generate_var_info(#VAR, GPC_GET_FORMAT(VAR), VAR)
 #define GPC_GENERATE_VAR_INFO(...) \
 GPC_OVERLOAD2(__VA_ARGS__, GPC_GEN_VAR_INFO, GPC_GEN_VAR_INFO_AUTO_FMT)(__VA_ARGS__)
+#else
+#define GPC_GEN_VAR_INFO_NO_FMT(LITERAL) gpc_generate_var_info(#LITERAL, " ")
+#define GPC_GENERATE_VAR_INFO(...) \
+GPC_OVERLOAD2(__VA_ARGS__, GPC_GEN_VAR_INFO, GPC_GEN_VAR_INFO_NO_FMT)(__VA_ARGS__)
+#endif
 
 // To be used in GPC_PROCESS_ALL(). Is the indirection required though?
 #define GPC_GENERATE_VAR_INFO_INDIRECT(VAR) GPC_GENERATE_VAR_INFO VAR
