@@ -45,25 +45,55 @@
 
 // ----------------------------------------------------------------------------
 
-#if defined(__GNUC__)
+// Static array index in parameter declarations is a C99 feature, however, many
+// compilers do not support it.
+#if !defined(_MSC_VER) && !defined(__TINYC__) && !defined(__COMPCERT__) && !defined(__MSP430__)
 
-// Use for pointer validation in function arguments with GCC and Clang. Example:
-// void foo(int pointer[GPC_STATIC 1]);
+// Use to specify an array argument with at least some number of valid elements,
+// e.g. "void foo(int arr[GPC_STATIC 10];". This can be used for optimizations
+// and some compilers may also emit warnings if they can detect that the array
+// passed is too small or NULL.
 #define GPC_STATIC static
+#define GPC_NONNULL static 1
 
-#define GPC_TYPEOF(X) typeof(X)
-#define GPC_CAST_TO_TYPEOF(X) (typeof(X))
+#elif defined(_MSC_VER)
 
-#define GPC_PRINTF(STRING_INDEX, FIRST_TO_CHECK) \
-__attribute__((format(printf, STRING_INDEX, FIRST_TO_CHECK)))
+#define GPC_STATIC
+#define GPC_NONNULL _Notnull_
 
 #else
 
+// Static array index not supported by your compiler
 #define GPC_STATIC
-#define GPC_TYPEOF(X)
-#define GPC_CAST_TO_TYPEOF(X)
+#define GPC_NONNULL
+#endif
+
+// ----------------------------------------------------------------------------
+
+#if defined(__GNUC__)
+
+// Type checking for format strings
+#define GPC_PRINTF(FORMAT_STRING_INDEX, FIRST_TO_CHECK) \
+__attribute__((format(printf, FORMAT_STRING_INDEX, FIRST_TO_CHECK)))
+
+#define GPC_NODISCARD __attribute__((warn_unused_result))
+
+#elif defined(_MSC_VER)
+
+// Not supported by your compiler
 #define GPC_PRINTF(STRING_INDEX, FIRST_TO_CHECK)
 
-#endif // defined(__GNUC__)
+// Emit warning if return value is unused
+#define GPC_NODISCARD _Check_return_
+
+#else
+
+// Not supported by your compiler
+#define GPC_PRINTF(STRING_INDEX, FIRST_TO_CHECK)
+
+// Not supported by your compiler
+#define GPC_NODISCARD
+
+#endif
 
 #endif // GPC_ATTRIBUTES_H

@@ -17,10 +17,10 @@
 // ----------------------------------------------------------------------------
 
 // Signed size_t
-typedef ptrdiff_t gpc_SSize;
+typedef ptrdiff_t gpc_ssize;
 
 // Raw byte
-typedef unsigned char gpc_Byte;
+typedef unsigned char gpc_byte;
 
 // Used to compute array sizes on reallocations, thus size_t.
 size_t gpc_next_power_of_2(size_t x);
@@ -67,7 +67,7 @@ bool gpc_fapproxl(long double x, long double y, long double tolerance);
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
-//          
+//
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------

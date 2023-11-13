@@ -32,7 +32,7 @@ int main(void)
     gpc_suite("Second suite");
     {
         // Tests are optional.
-        
+
         long l1 = 0;
         long l2 = 0;
         double f1 = 0.707;
