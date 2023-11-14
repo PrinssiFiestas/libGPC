@@ -7,7 +7,6 @@
 
 int main(void)
 {
-    #if 0
     gpc_suite("Creation, copying, and memory");
     {
         gpc_String small_buf = gpc_str_on_stack("", 5);
@@ -33,7 +32,8 @@ int main(void)
             gpc_expect(
                 on_heap.capacity == gpc_next_power_of_2(strlen("on heap!")),
                 ("Buffer size should be rounded up."));
-            gpc_expect(on_heap_long.capacity == gpc_next_power_of_2(50));
+            gpc_expect(on_heap_long.capacity == gpc_next_power_of_2(50),
+            (on_heap_long.capacity));
         }
 
         gpc_test("Copying");
@@ -65,5 +65,4 @@ int main(void)
             ("gpc_str_free() should empty all string contents."));
         }
     }
-    #endif
 }

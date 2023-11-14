@@ -18,7 +18,7 @@
 
 // All functions mutating strings will also null terminate them so strings can
 // be safely used when null termination is expected. Mutating functions also may
-// allocate so it's generally recommended to
+// allocate so it's generally recommended to free() all strings.
 typedef struct gpc_String
 {
     // String data. Should be null terminated.
@@ -36,15 +36,50 @@ typedef struct gpc_String
     size_t capacity;
 } gpc_String;
 
-// Creates a string on stack initialized with s. s must be a string literal for
-// correct valuer for .length and .capacity. This string has automatic lifetime
-// so it should not be returned or used after scope.
-#define /* gpc_String */ gpc_str_on_stack(/* char[] s, cap = sizeof(s)-1 */...)\
+// Creates a string on stack initialized with s. s must be a string literal.
+// This string has automatic lifetime so it should not be returned or used after
+// scope.
+#define/* gpc_String */gpc_str_on_stack(/* char[] s, cap = sizeof(s)-1 */...) \
 GPC_OVERLOAD2(__VA_ARGS__, gpc_str_on_stack_with_cap, gpc_str_on_stack_wout_cap)(__VA_ARGS__)
 
 // Creates a string on heap initialized with init with capacity being the next
-// power of 2 of the larger one of init and capacity.
+// power of 2 of the larger one of strlen(init) and capacity. init must be null
+// terminated.
 GPC_NODISCARD gpc_String gpc_str_new(const char* init, size_t capacity);
+
+// Constructs string based on values in s. Constructed string will be stored to
+// s and returned.
+// s.cstr
+// - C string that constructed string will be initialized with.
+// - NULL means that string possibly passed to s.allocation will be moved as is.
+//   If s.allocation is NULL the newly allocated string will be initialized with
+//   an empty string -> "".
+// s.allocation
+// - Any non NULL pointer tells the constructor that memory is allocated by the
+//   user on e.g. stack or arena and no memory needs to be allocated.
+// - Buffer size should be required capacity + 1 byte for null terminator!
+// - Will be turned to NULL in constructed string and moved to s.cstr.
+// - If s.cstr is NULL this will be moved to s.cstr along with it's contents.
+// - If left NULL the constructor allocates memory in it which should be freed.
+// s.length
+// - Determines the length of the initializer string in s.cstr.
+// - Does not make any difference if s.cstr is NULL.
+// - If left 0 s.cstr is assumed to be null terminated and it's value will be
+// - calculated to be strlen(s.cstr).
+// s.capacity
+// - If s.allocation is not NULL should be size of buffer. The final constructed
+//   value will be decremented by 1 to reserve space for null terminator.
+// - If s.allocation is NULL determines the amount of memory to be allocated.
+// - If smaller than strlen(s.cstr) the final value and the amount of memory to
+//   be allocated is determined by the length of s.cstr. This means that can be
+//   left 0 too if s.cstr is not NULL.
+// Checking examples in ../../tests/test_string.c is highly recommended.
+gpc_String gpc_str_constructor(gpc_String* s);
+
+// String constructor that only requires values to be passed. Check docs for
+// gpc_str_constructor() for details.
+#define/* gpc_String */gpc_str_ctor(...) \
+gpc_constructor((gpc_String){__VA_ARGS__})
 
 // Frees str.allocation and sets all fields in str to 0.
 void gpc_str_free(gpc_String* str);
@@ -147,20 +182,20 @@ size_t gpc_strlen(const char s[GPC_NONNULL]);
 // Requires C11 or a compiler that supports _Generic()
 
 // Read-only string for generic string macros.
-#define /* const gpc_String */ gpc_any_str(s) \
+#define/* const gpc_String */gpc_any_str(s) \
 _Generic(s, char*: gpc_temp_str(s, sizeof(s)), \
             const char*: gpc_temp_str(s, sizeof(s)), \
             gpc_String: (s))
 
 // Mutable string for generic string macros.
-#define /* gpc_String* */ gpc_any_mutable_str(s) \
+#define/* gpc_String* */gpc_any_mutable_str(s) \
 _Generic(s, char*: &gpc_temp_mutable_str(s, sizeof(s)), \
             gpc_String*: (s), \
             void*: (s)) // NULL
 
 // Generic string constructor. Returned string should be free()'d if dest is
 // NULL.
-#define /* gpc_String */ gpc_str(/* gpc_String* */dest, str) \
+#define/* gpc_String */gpc_str(/* gpc_String* */dest, str) \
 gpc_str_copy(dest, gpc_any_str(str))
 
 #ifndef gpc_length
@@ -183,76 +218,76 @@ _Generic(x, \
 #endif
 
 // Cuts length characters from the end of the string.
-#define /* void */ gpc_cut_end(s, /* size_t */ length) \
+#define/* void */gpc_cut_end(s, /* size_t */ length) \
 _Generic(s, \
     gpc_String*: gpc_str_cut_end(s, length), \
     char*: (void)((s)[gpc_strlen(s) - length] = '\0'))
 
 // Cuts length characters from start.
-#define /* void */ gpc_cut_start(s, /* size_t */ length) \
+#define/* void */gpc_cut_start(s, /* size_t */ length) \
 _Generic(s, \
     gpc_String*: gpc_str_cut_start(s, length), \
     char*: (void)((s) += length))
 
 // Appends string in src to string in dest.
-#define /* void */ gpc_append(dest, src) \
+#define/* void */gpc_append(dest, src) \
 _Generic(dest, \
     gpc_String*: gpc_str_append(dest, gpc_any_str(src)), \
     char*: strcat(dest, (char*)(src)))
 
 // Prepends string in src to string in dest.
-#define /* void */ gpc_prepend(dest, src) \
+#define/* void */gpc_prepend(dest, src) \
 gpc_str_prepend(gpc_any_mutable_str(dest), gpc_any_str(src), NULL)
 
 // Counts all occurrences of needle in haystack.
-#define /* size_t */ gpc_count(haystack, needle) \
+#define/* size_t */gpc_count(haystack, needle) \
 gpc_str_count((char*)(haystack), (char*)(needle))
 
 // Turns str into substring starting from &str.cstr[start] ending to
 // &str.cstr[start + length].
-#define /* void */ gpc_slice(str, /* size_t */ start, /* size_t */ length) \
+#define/* void */gpc_slice(str, /* size_t */ start, /* size_t */ length) \
 gpc_str_slice(gpc_any_mutable_str(str), start, length)
 
 // Creates a substring from src starting from &src.cstr[s] ending to
 // &src.cstr[s + l] and copies it to dest allocating if dest.capacity
 // is not large enough or dest is NULL. Returns dest or newly allocated string
 // if dest is NULL.
-#define /* gpc_String */ gpc_substr(dest, src, /* size_t */ s, /* size_t */ l) \
+#define/* gpc_String */gpc_substr(dest, src, /* size_t */ s, /* size_t */ l) \
 gpc_str_substr(gpc_any_mutable_str(dest), gpc_any_str(src), s, l)
 
 // Returns index of first occurrence of needle in haystack, GPC_NOT_FOUND if not
 // found.
-#define /* size_t */ gpc_find(haystack, needle) \
+#define/* size_t */gpc_find(haystack, needle) \
 gpc_str_find((char*)(haystack), (char*)(needle))
 
 // Returns index of last occurrence of needle in haystack, GPC_NOT_FOUND if not
 // found.
-#define /* size_t */ gpc_find_last(haystack, needle) \
+#define/* size_t */gpc_find_last(haystack, needle) \
 gpc_str_find_last((char*)(haystack), (char*)(needle))
 
 // Replaces first occurrence of needle in haystack with replacement.
-#define /* void */ gpc_replace(haystack, needle, replacement) \
+#define/* void */gpc_replace(haystack, needle, replacement) \
 gpc_str_replace( \
     gpc_any_mutable_str(haystack), \
     (char*)(needle), \
     gpc_any_str(replacement))
 
 // Replaces last occurrence of needle in haystack with replacement.
-#define /* void */ gpc_replace_last(haystack, needle, replacement) \
+#define/* void */gpc_replace_last(haystack, needle, replacement) \
 gpc_str_replace_last( \
     gpc_any_mutable_str(haystack), \
     (char*)(needle), \
     gpc_any_str(replacement))
 
 // Replaces all occurrences of needle in haystack with replacement.
-#define /* void */ gpc_replace_all(haystack, needle, replacement) \
+#define/* void */gpc_replace_all(haystack, needle, replacement) \
 gpc_str_replace_all( \
     gpc_any_mutable_str(haystack), \
     (char*)(needle), \
     gpc_any_str(replacement))
 
 // Returns true if contents in s1 and s2 are equal.
-#define /* bool */ gpc_str_eq(s1, s2) \
+#define/* bool */gpc_str_eq(s1, s2) \
 gpc_str_equal(gpc_any_str(s1), gpc_any_str(s2))
 
 // ----------------------------------------------------------------------------
@@ -295,7 +330,7 @@ inline gpc_String gpc_temp_mutable_str(
 
 #define gpc_str_on_stack_with_cap(literal, cap) (gpc_String) \
 { \
-    .cstr = (char[cap]){literal}, \
+    .cstr = (char[cap + sizeof('\0')]){literal}, \
     .allocation = NULL, \
     .length = sizeof(literal) - 1, \
     .capacity = cap \
