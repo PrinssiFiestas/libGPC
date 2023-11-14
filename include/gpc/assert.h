@@ -77,6 +77,7 @@ gpc_failure(1, __FILE__, __LINE__, __func__, GPC_COUNT_ARGS(__VA_ARGS__), GPC_ST
 gpc_failure(0, __FILE__, __LINE__, __func__, GPC_COUNT_ARGS(__VA_ARGS__), GPC_STRFY_1ST_ARG(__VA_ARGS__), GPC_PROCESS_ALL_BUT_1ST(GPC_GENERATE_VAR_INFO_INDIRECT, GPC_COMMA, __VA_ARGS__))
 
 char* gpc_generate_var_info(const char* var_name, const char* format, /* T var */...) GPC_PRINTF(2, 3);
+
 void gpc_failure(bool aborting, const char* file, int line, const char* func, size_t arg_count, const char* condition, ...);
 
 #endif // GPC_ASSERT_INCLUDED

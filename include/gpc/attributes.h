@@ -38,9 +38,11 @@
 #if defined(__MINGW32__) && !defined(__clang__)
 #define GPC_LONG_DOUBLE double
 #define GPC_LG_FORMAT "%g"
+#define GPC_SIZE_T_FORMAT "%llu"
 #else
 #define GPC_LONG_DOUBLE long double
 #define GPC_LG_FORMAT "%Lg"
+#define GPC_SIZE_T_FORMAT "%zu"
 #endif
 
 // ----------------------------------------------------------------------------

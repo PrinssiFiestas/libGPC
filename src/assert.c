@@ -4,6 +4,7 @@
 
 #include "../include/gpc/assert.h"
 #include "../include/gpc/terminal.h"
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -230,16 +231,26 @@ char* gpc_generate_var_info(const char* var_name, const char* format, /* T var *
         gpc_str_push(&p, "\n", -1);
     }
 
-    size_t var_info_length = (size_t)vsnprintf(NULL, 0, modified_format, arg_);
-    var_info = malloc(var_info_length + sizeof('\0'));
-    if (var_info == NULL)
+    int var_info_length = (size_t)vsnprintf(NULL, 0, modified_format, arg_);
+    if (var_info_length < 0)
+    {
+        perror("vsprintf() failed in gpc_generate_var_info()!");
+        goto cleanup;
+    }
+
+    if ((var_info = malloc((size_t)var_info_length + sizeof('\0'))) == NULL)
     {
         perror("malloc() failed in gpc_generate_var_info().");
         goto cleanup;
     }
 
-    vsprintf(var_info, modified_format, arg);
-    var_info[var_info_length] = '\0';
+    if (vsprintf(var_info, modified_format, arg) < 0)
+    {
+        perror("vsprintf() failed in gpc_generate_var_info()!");
+        var_info = NULL;
+    }
+    else
+        var_info[var_info_length] = '\0';
 
     cleanup:
 
@@ -279,6 +290,10 @@ void gpc_failure(
 
     va_list va_args;
     va_start(va_args, condition);
+
+    // Ignore dummy parameter required by GPC_PROCESS_ALL_BUT_1ST()
+    (void)va_arg(va_args, void*);
+    arg_count--;
 
     while (arg_count--)
     {

@@ -7,7 +7,6 @@
 
 #include "attributes.h"
 #include "overload.h"
-#include <string.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -46,6 +45,9 @@ GPC_OVERLOAD2(__VA_ARGS__, gpc_str_on_stack_with_cap, gpc_str_on_stack_wout_cap)
 // Creates a string on heap initialized with init with capacity being the next
 // power of 2 of the larger one of init and capacity.
 GPC_NODISCARD gpc_String gpc_str_new(const char* init, size_t capacity);
+
+// Frees str.allocation and sets all fields in str to 0.
+void gpc_str_free(gpc_String* str);
 
 // Copies src to dest allocating if dest->capacity is not large enough or dest
 // is NULL. Creates new string that should be free()'d if dest is NULL.
@@ -137,6 +139,9 @@ void gpc_str_replace_all(
 // Returns true if contents in s1 and s2 are equal.
 bool gpc_str_equal(const gpc_String s1, const gpc_String s2);
 
+// Calculate length of C string.
+size_t gpc_strlen(const char s[GPC_NONNULL]);
+
 // ----------------------------------------------------------------------------
 // Generic string macros
 // Requires C11 or a compiler that supports _Generic()
@@ -161,8 +166,8 @@ gpc_str_copy(dest, gpc_any_str(str))
 #ifndef gpc_length
 #define gpc_length(x) \
 _Generic(x, \
-    char*: strlen(x), \
-    const char*: strlen(x), \
+    char*: gpc_strlen(x), \
+    const char*: gpc_strlen(x), \
     gpc_String: (x).length, \
     gpc_StringView: (x).length, \
     gpc_Array: (x).length, \
@@ -181,7 +186,7 @@ _Generic(x, \
 #define /* void */ gpc_cut_end(s, /* size_t */ length) \
 _Generic(s, \
     gpc_String*: gpc_str_cut_end(s, length), \
-    char*: (void)((s)[strlen(s) - length] = '\0'))
+    char*: (void)((s)[gpc_strlen(s) - length] = '\0'))
 
 // Cuts length characters from start.
 #define /* void */ gpc_cut_start(s, /* size_t */ length) \
@@ -259,17 +264,17 @@ gpc_str_equal(gpc_any_str(s1), gpc_any_str(s2))
 // ----------------------------------------------------------------------------
 
 // To be used in function argument by generic string macros. size_in_bytes is
-// sizeof(cstr) which is strlen(cstr) + 1 assuming cstr is null terminated
+// sizeof(cstr) which is gpc_strlen(cstr) + 1 assuming cstr is null terminated
 // char[].
-inline const gpc_String gpc_temp_str(const char cstr[GPC_NONNULL], size_t size_in_bytes)
+inline gpc_String gpc_temp_str(const char cstr[GPC_NONNULL], size_t size_in_bytes)
 {
-    return (const gpc_String){
+    return (gpc_String){
         .cstr = (char*)cstr, // Should not get mutated!
-        .length = size_in_bytes == sizeof(char*) ? strlen(cstr) : size_in_bytes - 1 };
+        .length = size_in_bytes == sizeof(char*) ? gpc_strlen(cstr) : size_in_bytes - 1 };
 }
 
 // To be used in function argument by generic string macros. size_in_bytes is
-// sizeof(cstr) which is strlen(cstr) + 1 assuming cstr is null terminated
+// sizeof(cstr) which is gpc_strlen(cstr) + 1 assuming cstr is null terminated
 // char[].
 inline gpc_String gpc_temp_mutable_str(
     char cstr[GPC_NONNULL],
@@ -277,23 +282,23 @@ inline gpc_String gpc_temp_mutable_str(
 {
     return (gpc_String){
         .cstr = cstr,
-        .length = size_in_bytes == sizeof(char*) ? strlen(cstr) : size_in_bytes - 1 };
+        .length = size_in_bytes == sizeof(char*) ? gpc_strlen(cstr) : size_in_bytes - 1 };
 }
 
 #define gpc_str_on_stack_wout_cap(literal) (gpc_String) \
 { \
-    .cstr = (char[])literal, \
+    .cstr = (char[]){literal}, \
     .allocation = NULL, \
     .length = sizeof(literal) - 1, \
     .capacity = sizeof(literal) - 1 \
 }
 
-#define gpc_str_on_stack_with_cap(literal, capacity) (gpc_String) \
+#define gpc_str_on_stack_with_cap(literal, cap) (gpc_String) \
 { \
-    .cstr = (char[capacity]){literal}, \
+    .cstr = (char[cap]){literal}, \
     .allocation = NULL, \
     .length = sizeof(literal) - 1, \
-    .capacity = capacity \
+    .capacity = cap \
 }
 
 #endif // GPC_STRING_INCLUDED
