@@ -37,7 +37,9 @@ void gpc_end_testing(void)
     printf("A total of %u tests ran in %u suites\n", gpc_test_count, gpc_suite_count);
 
     if (gpc_tests_failed || gpc_suites_failed)
-        fprintf(stderr, GPC_RED "%u tests failed and %u suites failed!\n", gpc_tests_failed, gpc_suites_failed);
+        fprintf(stderr,
+            GPC_RED "%u tests failed and %u suites failed!" GPC_RESET_TERMINAL "\n",
+            gpc_tests_failed, gpc_suites_failed);
     else
         printf(GPC_BRIGHT_GREEN "Passed all tests!" GPC_RESET_TERMINAL "\n");
 
