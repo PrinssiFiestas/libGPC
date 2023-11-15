@@ -28,33 +28,22 @@ void gpc_str_free(gpc_String* s)
     *s = (gpc_String){0};
 }
 
-gpc_String gpc_str_copy(gpc_String* dest, const gpc_String src)
+gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src)
 {
-    if (dest == NULL)
-    {
-        gpc_String new_str = { .length = src.length };
-        if (src.cstr == NULL)
-            new_str.length = 0;
-        new_str.capacity = gpc_next_power_of_2(new_str.length);
-        new_str.allocation = malloc(new_str.capacity + sizeof('\0'));
-        new_str.cstr = strncpy(new_str.allocation, src.cstr, new_str.length);
-        new_str.cstr[new_str.length] = '\0';
-        return new_str;
-    }
-
     size_t offset = dest->allocation ?
         (size_t)(dest->cstr - (char*)dest->allocation) : 0;
     size_t full_capacity = dest->capacity + offset;
     if (src.length > full_capacity) // allocation needed
     {
         dest->capacity = gpc_next_power_of_2(src.length);
-        free(dest->allocation);
-        dest->allocation = malloc(dest->capacity + sizeof('\0'));
-        if (dest->allocation == NULL)
+        char* buf = malloc(dest->capacity + sizeof('\0'));
+        if (buf == NULL)
         {
             perror("malloc() failed in gpc_str_copy()!");
-            return *dest = (gpc_String){0};
+            return NULL;
         }
+        free(dest->allocation);
+        dest->allocation = buf;
         dest->cstr = dest->allocation;
     }
     else if (src.length > dest->capacity) // no alloc needed but need more space
@@ -64,7 +53,7 @@ gpc_String gpc_str_copy(gpc_String* dest, const gpc_String src)
     }
     memcpy(dest->cstr, src.cstr, src.length + sizeof('\0'));
     dest->length = src.length;
-    return *dest;
+    return dest;
 }
 
 bool gpc_str_equal(const gpc_String s1, const gpc_String s2)
