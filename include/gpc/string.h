@@ -48,9 +48,16 @@ typedef struct gpc_String
 
 /// Stack constructor MACRO @memberof gpc_String
 /**
- * Creates a string on stack initialized with @p s. @p s must be a string literal.
- * This string has automatic lifetime so it should not be returned or used
- * after scope.
+ * Creates a string on stack initialized with @p init_literal.
+ *
+ * @param init_literal must be a string literal to compile.
+ * @param capacity Determines size of allocated buffer. Should be a literal
+ * constant larger than the length of @p init_literal. Optional variable.
+ *
+ * @return stack allocated string.
+ *
+ * @warning The returned string has automatic (block scoped) lifetime so it
+ * should not be returned or referenced after block!
  */
 gpc_String gpc_str_on_stack(
     const char init_literal[GPC_NONNULL],
@@ -228,10 +235,13 @@ gpc_String gpc_str_substr(
     size_t start,
     size_t length);
 
-// Return value for gpc_str_find_first() and gpc_str_find_last() when not found.
+/**
+ * @brief Return value for gpc_str_find_first() and gpc_str_find_last() when not
+ * found. @memberof gpc_String
+ */
 #define GPC_NOT_FOUND ((size_t)-1)
 
-/// Find first occurrence of @p needle in @p haystack
+/// Find substring @memberof gpc_String
 /**
  * @return index of first occurrence of @p needle in @p haystack, GPC_NOT_FOUND
  * if not found.
@@ -240,7 +250,7 @@ size_t gpc_str_find(
     const char haystack[GPC_NONNULL],
     const char needle[GPC_NONNULL]);
 
-/// Find last occurrence of @p needle in @p haystack
+/// Find last substring @memberof gpc_String
 /**
  * @return index of last occurrence of @p needle in @p haystack, GPC_NOT_FOUND
  * if not found.
@@ -249,7 +259,7 @@ size_t gpc_str_find_last(
     const char haystack[GPC_NONNULL],
     const char needle[GPC_NONNULL]);
 
-/// Replace first occurrence of @p needle in @p haystack with @p replacement
+/// Find and replace substring @memberof gpc_String
 /**
  * Allocates if necessary.
  *
@@ -260,7 +270,7 @@ gpc_String* gpc_str_replace(
     const char needle[GPC_NONNULL],
     const gpc_String replacement);
 
-/// Replace last occurrence of @p needle in @p haystack with @p replacement
+/// Find and replace last occurrence of substring @memberof gpc_String
 /**
  * Allocates if necessary.
  *
@@ -271,7 +281,7 @@ gpc_String* gpc_str_replace(
     const char needle[GPC_NONNULL],
     const gpc_String replacement);
 
-/// Replace all occurrences of @p needle in @p haystack with @p replacement
+/// Find and replace all occurrences of substring @memberof gpc_String
 /**
  * Allocates if necessary.
  *
@@ -282,6 +292,7 @@ gpc_String* gpc_str_replace_all(
     const char needle[GPC_NONNULL],
     const gpc_String replacement);
 
+/// Compare strings @memberof gpc_String
 /** @return true if strings in @p s1 and @p s2 are equal, false otherwise */
 bool gpc_str_equal(const gpc_String s1, const gpc_String s2);
 
