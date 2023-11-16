@@ -39,7 +39,7 @@ int main(void)
         gpc_test("Copying");
         {
             gpc_str_copy(&small_buf, source);
-            gpc_expect(gpc_str_equal(small_buf, source),
+            gpc_expect(gpc_str_eq(small_buf, source),
             ("Copying should've succeeded dispite buffer being too small"));
 
             gpc_expect(small_buf.capacity >= source.length,
@@ -65,6 +65,39 @@ int main(void)
             ("gpc_str_clear() should empty all string contents."));
             gpc_expect(memcmp(&on_heap_long,&empty_str,sizeof(on_heap_long))!=0,
             ("gpc_str_free() should not empty all string contents."));
+        }
+    }
+
+    gpc_suite("Insert character, str_at and string view");
+    {
+        gpc_String on_stack = gpc_str_on_stack("on stack");
+        gpc_String view = gpc_str("string view");
+
+        gpc_test("str_is_view");
+        {
+            gpc_expect(gpc_str_is_view(view));
+            gpc_expect( ! gpc_str_is_view(on_stack));
+        }
+
+        gpc_test("insert_char");
+        {
+            gpc_str_insert_char(&on_stack, 2, 'X');
+            gpc_str_insert_char(&view, 2, 'X');
+
+            gpc_expect(gpc_str_eq(on_stack, gpc_str("onXstack")));
+            gpc_expect(gpc_str_eq(view, gpc_str("stXing view")));
+        }
+
+        gpc_test("str at");
+        {
+            gpc_expect(gpc_str_at(view, 2) == 'X');
+            gpc_expect(gpc_str_at(view, 397) == '\0');
+        }
+
+        gpc_test("still string view?");
+        {
+            gpc_expect( ! gpc_str_is_view(view));
+            gpc_expect(view.allocation != NULL);
         }
     }
 }

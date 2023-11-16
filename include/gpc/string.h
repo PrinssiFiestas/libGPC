@@ -330,7 +330,7 @@ gpc_String* gpc_str_replace_all(
 
 /// Compare strings @memberof gpc_String
 /** @return true if strings in @p s1 and @p s2 are equal, false otherwise */
-bool gpc_str_equal(const gpc_String s1, const gpc_String s2);
+bool gpc_str_eq(const gpc_String s1, const gpc_String s2);
 
 /// Calculate length of C string
 /**

@@ -8,6 +8,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+extern inline char gpc_str_at(const gpc_String s, size_t i);
+extern inline bool gpc_str_is_view(const gpc_String s);
+
 gpc_String gpc_str_ctor(gpc_String* s)
 {
     if (s == NULL || gpc_mem_eq(s, &(gpc_String){0}, sizeof(*s)))
@@ -21,6 +24,12 @@ gpc_String gpc_str_ctor(gpc_String* s)
         s->capacity = gpc_next_power_of_2(s->capacity);
 
         char* buf = malloc(s->capacity + sizeof('\0')); // TODO use gpc_malloc()
+        if (buf == NULL)
+        {
+            perror("malloc() failed in gpc_str_ctor()!");
+            return *s = (gpc_String){""};
+        }
+
         if (s->cstr != NULL)
             strcpy(buf, s->cstr);
         else
@@ -71,14 +80,45 @@ gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src)
         dest->cstr -= offset;
         dest->capacity += offset;
     }
+
     memcpy(dest->cstr, src.cstr, src.length + sizeof('\0'));
     dest->length = src.length;
     return dest;
 }
 
-bool gpc_str_equal(const gpc_String s1, const gpc_String s2)
+bool gpc_str_eq(const gpc_String s1, const gpc_String s2)
 {
     if (s1.length != s2.length)
         return false;
     return gpc_mem_eq(s1.cstr, s2.cstr, s1.length);
+}
+
+// Make string mutable
+static gpc_String* gpc_reallocate_str_view(gpc_String s[GPC_NONNULL])
+{
+    s->capacity = gpc_next_power_of_2(s->length);
+    char* buf = malloc(s->capacity + sizeof('\0')); // TODO use gpc_malloc()
+    if (buf == NULL)
+    {
+        s->capacity = 0;
+        return NULL;
+    }
+    s->cstr = memcpy(buf, s->cstr, s->length + sizeof('\0'));
+    s->allocation = s->cstr;
+    return s;
+}
+
+gpc_String* gpc_str_insert_char(gpc_String s[GPC_NONNULL], size_t i, char c)
+{
+    if (i >= s->length)
+        return NULL;
+
+    if (gpc_str_is_view(*s) && gpc_reallocate_str_view(s) == NULL)
+    {
+        perror("malloc() in gpc_reallocate_str_view() called by gpc_str_insert_char()");
+        return NULL;
+    }
+
+    s->cstr[i] = c;
+    return s;
 }
