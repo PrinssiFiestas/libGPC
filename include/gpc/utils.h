@@ -3,7 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 /**
- * @file gpc/string.h
+ * @file string.h
  * @brief General purpose utilities
  */
 
