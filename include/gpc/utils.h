@@ -2,6 +2,11 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+/**
+ * @file gpc/string.h
+ * @brief General purpose utilities
+ */
+
 #ifndef GPC_UTILS_INCLUDED
 #define GPC_UTILS_INCLUDED 1
 
@@ -22,8 +27,15 @@ typedef ptrdiff_t gpc_ssize;
 // Raw byte
 typedef unsigned char gpc_byte;
 
-// Used to compute array sizes on reallocations, thus size_t.
+/// Round number up to the next power of 2
+/** Used to compute array sizes on reallocations, thus size_t. */
 size_t gpc_next_power_of_2(size_t x);
+
+/// Compare raw memory
+/**
+ * @return true if the first @p count bytes of @p lhs and @p rhs are equal.
+ */
+bool gpc_mem_eq(const void* lhs, const void* rhs, size_t count);
 
 // Generates a random integer from a seed using efficient and secure PCG
 // generator. It's state is thread local.

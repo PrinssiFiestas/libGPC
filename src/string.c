@@ -8,23 +8,42 @@
 #include <string.h>
 #include <stdlib.h>
 
-gpc_String gpc_str_new(const char* init, size_t capacity)
+gpc_String gpc_str_ctor(gpc_String* s)
 {
-    gpc_String new_str = {0};
-    if (init != NULL)
-        new_str.length = strlen(init);
-    if (capacity < new_str.length)
-        capacity = new_str.length;
-    new_str.capacity = gpc_next_power_of_2(capacity);
-    new_str.allocation = malloc(new_str.capacity + sizeof('\0'));
-    new_str.cstr = strncpy(new_str.allocation, init, new_str.length);
-    new_str.cstr[new_str.length] = '\0';
-    return new_str;
+    if (s == NULL || gpc_mem_eq(s, &(gpc_String){0}, sizeof(*s)))
+        return (gpc_String){""};
+
+    if (s->capacity > 0)
+    {
+        size_t cstrlen;
+        if (s->cstr != NULL && s->capacity < (cstrlen = strlen(s->cstr)))
+            s->capacity = cstrlen;
+        s->capacity = gpc_next_power_of_2(s->capacity);
+
+        char* buf = malloc(s->capacity + sizeof('\0')); // TODO use gpc_malloc()
+        if (s->cstr != NULL)
+            strcpy(buf, s->cstr);
+        else
+            buf[0] = '\0';
+
+        s->cstr = buf;
+        s->allocation = buf;
+        return *s;
+    }
+
+    if (s->length == 0)
+        s->length = strlen(s->cstr);
+    return *s;
 }
 
-void gpc_str_free(gpc_String* s)
+void gpc_str_free(gpc_String str)
 {
-    free(s->allocation);
+    free(str.allocation); // TODO use gpc_free()
+}
+
+void gpc_str_clear(gpc_String* s)
+{
+    free(s->allocation); // TODO use gpc_free()
     *s = (gpc_String){0};
 }
 
@@ -33,6 +52,7 @@ gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src)
     size_t offset = dest->allocation ?
         (size_t)(dest->cstr - (char*)dest->allocation) : 0;
     size_t full_capacity = dest->capacity + offset;
+
     if (src.length > full_capacity) // allocation needed
     {
         dest->capacity = gpc_next_power_of_2(src.length);
@@ -60,5 +80,5 @@ bool gpc_str_equal(const gpc_String s1, const gpc_String s2)
 {
     if (s1.length != s2.length)
         return false;
-    return memcmp(s1.cstr, s2.cstr, s1.length) == 0;
+    return gpc_mem_eq(s1.cstr, s2.cstr, s1.length);
 }

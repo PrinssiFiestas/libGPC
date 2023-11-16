@@ -12,8 +12,8 @@ int main(void)
         gpc_String small_buf = gpc_str_on_stack("", 5);
         gpc_String source    = gpc_str_on_stack("String longer than 5 chars");
 
-        gpc_String on_heap      = gpc_str_new("on heap!", 0);
-        gpc_String on_heap_long = gpc_str_new(source.cstr, 50);
+        gpc_String on_heap      = gpc_str("on heap!", 1); // auto capacity
+        gpc_String on_heap_long = gpc_str(source.cstr, 50);
 
         // gpc_str_on_stack() only accepts literals as initializers.
         #if non_compliant
@@ -57,12 +57,14 @@ int main(void)
             // allocated, because any mutating function may allocate.
             free(small_buf.allocation);
             free(source.allocation); // Stack allocated but OK!
-            gpc_str_free(&on_heap);
-            gpc_str_free(&on_heap_long);
+            gpc_str_clear(&on_heap);
+            gpc_str_free(on_heap_long);
             gpc_String empty_str = {0};
 
-            gpc_expect(memcmp(&on_heap, &empty_str, sizeof(gpc_String)) == 0,
-            ("gpc_str_free() should empty all string contents."));
+            gpc_expect(memcmp(&on_heap, &empty_str, sizeof(on_heap)) == 0,
+            ("gpc_str_clear() should empty all string contents."));
+            gpc_expect(memcmp(&on_heap_long,&empty_str,sizeof(on_heap_long))!=0,
+            ("gpc_str_free() should not empty all string contents."));
         }
     }
 }

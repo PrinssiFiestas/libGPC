@@ -4,7 +4,6 @@
 
 #include "../include/gpc/assert.h"
 #include "../src/utils.c"
-#include <stdint.h>
 
 int main(void)
 {
@@ -25,7 +24,7 @@ int main(void)
         gpc_test("Power of 2");
         {
             size_t npo2_6 = gpc_next_power_of_2(1 << 6);
-            gpc_expect(npo2_6 == 1 << 7);
+            gpc_expect(npo2_6 == 1 << 7, ("Should be the NEXT power of 2."));
         }
 
         gpc_test("Overflow protection");
@@ -35,5 +34,11 @@ int main(void)
             gpc_expect(npo_max == SIZE_MAX,
             ("Will lead to infinite loop without protection."));
         }
+    }
+
+    gpc_suite("mem_eq sanity check");
+    {
+        gpc_test("if memories are equal");
+            gpc_expect(gpc_mem_eq("blah", "blah", sizeof("blah")));
     }
 }

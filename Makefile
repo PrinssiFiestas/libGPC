@@ -3,7 +3,7 @@
 # https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 CC = gcc
-CFLAGS = -Wall -Wextra -Wconversion -Werror
+CFLAGS = -Wall -Wextra -Wconversion -Werror -Wno-missing-field-initializers
 
 SRCS = $(wildcard src/*.c)
 OBJS = $(patsubst src/%.c,build/%.o,$(wildcard src/*.c))
