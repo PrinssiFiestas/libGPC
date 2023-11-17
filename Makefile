@@ -11,6 +11,7 @@ OBJS = $(patsubst src/%.c,build/%.o,$(wildcard src/*.c))
 TESTS = $(patsubst tests/test_%.c,build/test_%.exe,$(wildcard tests/test_*.c))
 
 .PHONY: tests all release debug testallc
+
 .PRECIOUS: $(TESTS)
 
 all: release

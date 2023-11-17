@@ -29,8 +29,10 @@
 
 #ifdef _MSC_VER
 #define GPC_THREAD_LOCAL __declspec(thread)
-#else
+#elif __STDC_VERSION__ >= 201112L
 #define GPC_THREAD_LOCAL _Thread_local
+#else
+#define GPC_THREAD_LOCAL
 #endif
 
 // ----------------------------------------------------------------------------
