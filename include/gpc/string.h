@@ -14,6 +14,8 @@
 #include "overload.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <limits.h>
+size_t strlen(const char*);
 
 // ----------------------------------------------------------------------------
 //
@@ -21,62 +23,42 @@
 //
 // ----------------------------------------------------------------------------
 
+/// Generic string data structure
 /**
- * All functions mutating strings will also null terminate them so strings can
- * be safely used when null-termination is expected. Mutating functions also
- * may allocate so all strings should be freed even if originally allocated on
- * stack.
- *
- * String functions have requirements for all strings passed to them. Easiest
- * way of fulfilling these requirements is creating string using the provided
- * constructors #gpc_str(), #gpc_str_ctor(), #gpc_str_on_stack(), and only
- * modifying strings with the provided functions.
- *
- * However, it might be useful to manually initialize strings for better control
- * on memory usage. Maybe the string data could live in an arena instead of a
- * pointer returned by malloc() or gpc_malloc(). Also accessing members directly
- * might be useful when writing optimized string functions.
- *
- * Here is a checklist of all requirements for all strings:
- * - cstr should never be NULL. The only exceptions are when constructing string
- *   using #gpc_str() or #gpc_str_ctor(). Check their docs for details.
- * - cstr should be null-terminated unless length is provided and capacity is 0.
- * - capacity may be 0 but this means that any mutating string function will
- *   always allocate.
- * - Maximum value for capacity should be 1 byte smaller than the actual
- *   allocated buffer size. This extra byte is reserved for null-terminator.
- * - length should match the calculated length of strlen() e.g. the length of
- *   "trun\0cated string" should be 4.
- * - allocation is reserved for allocations made by string operations. The only
- *   valid values are NULL or pointers returned by gpc_malloc() family of
- *   functions.
- * - allocation should be NULL if cstr lives in stack, an arena, or other user
- *   managed memory block.
+ * Members can be initialized with struct altough it is recommended to use the
+ * provided constructor macros #gpc_str() and #gpc_str_on_stack(). After
+ * initialization the members should not be written to but the non-private ones
+ * can be read.
  */
 typedef struct gpc_String
 {
-    /// String data
-    /** Should be null-terminated if not used as string view and never NULL. */
-    char* cstr;
+    /// @private String data
+    /** May not be null-terminated. Use #gpc_cstr() to get null-terminated data.
+     */
+    char* data;
+
+    /// Bytes in string
+    /** 0 indicates an empty string regardless of contents in @ref data */
+    size_t length : CHAR_BIT * sizeof(size_t) - 2;
+
+    /// @private
+    /** Leave this as 0 when using struct initializer. */
+    size_t has_offset : 2;
 
     /// Allocation size
-    /**
-     * Bytes allocated to string data excluding null-terminator. 0 means that
-     * the string is used as string view and any attempt to modify will
-     * allocate.
-     */
-    size_t capacity;
+    /** Bytes allocated to string data. 0 indicates that the string is used as
+     * string view and any attempt to modify will allocate. */
+    size_t capacity : CHAR_BIT * sizeof(size_t) - 1;
 
-    /** Bytes in string excluding null-terminator. */
-    size_t length;
+    /// Determines if has to be freed
+    /** Should be false if string is static and true otherwise. Any mutating
+     * function will set this to true if they allocate using malloc() or the
+     * provided optional allocator. */
+    bool is_allocated : 1;
 
-    /// To be passed to gpc_free()
-    /**
-     * Contains possible heap allocation where cstr lives. NULL if cstr lives
-     * on stack or on an arena. Can be passed to gpc_free() but not free().
-     * Should always be NULL when initialized.
-     */
-    void* allocation;
+    /// Optional allocator
+    /** Uses malloc() and free() if NULL. */
+    struct Allocator* allocator;
 } gpc_String;
 
 /// Stack constructor MACRO @memberof gpc_String
@@ -88,76 +70,28 @@ typedef struct gpc_String
  * constant larger than the length of @p init_literal. Optional variable.
  *
  * @return stack allocated string.
- *
- * @warning The returned string has automatic (block scoped) lifetime so it
- * should not be returned or referenced after block!
  */
 gpc_String gpc_str_on_stack(
     const char init_literal[GPC_NONNULL],
-    size_t capacity/* = sizeof(init_literal) - sizeof('\0') */);
+    size_t capacity/* = sizeof(init_literal) */);
 
-/// Generic constructor
+/// Static constructor MACRO @memberof gpc_String
 /**
- * Constructs string based on values in @p s. Constructed string will be stored
- * to @p s and will be returned. Passing NULL creates an empty string.
+ * Creates a string initialized statically with @p init. Any modification will
+ * allocate.
  *
- * This constructor does not try to obfuscate the code by trying to guess what
- * the user wants. Therefore @p s only has a limited set of valid values for any
- * combination of members with defined output listed here:
- * - All members are 0: Creates an empty string without allocating. Allocates
- *   immediately on any modification.
- * - All members are 0 except @p s.cstr: Creates a string view from
- *   null-terminated @p s.cstr with calculated length without allocating.
- *   Allocates immediately on any modification.
- * - All members are 0 except @p s.capacity: Allocates @p s.capacity + 1 bytes
- *   which will be initialized with an empty string. The extra byte will be
- *   reserved for null-terminator but the resulting @p s.capacity will not
- *   include it.
- * - All members are 0 except @p s.cstr and @p s.capacity: Like above but will
- *   be initialized with @p s.cstr.
- * - All members are 0 except @p s.cstr and @p s.length: Creates a string view
- *   with length @p s.length. In this case @p s.cstr does not need to be
- *   null-terminated. Allocates immediately on any modification.
- *
- * For every other combination of values in @p s the output of the constructor
- * is undefined. Use struct initializer if more complex initialization is
- * required.
- *
- * @return newly constructed string. Should be ignored or treated as a read only
- * temporary variable if constructed string is stored in @p s.
- *
- * @warning If @p s is not NULL or a temporary and return value is stored in
- * another variable the 2 variables are INDEPENDENT copies of each other than
- * they point to the same string data. This WILL lead to bugs! Either use @p s
- * and ignore the return value or use NULL or a temporary as the initializer
- * string.
+ * @return stack allocated instance of @ref gpc_String with static data.
  */
-gpc_String gpc_str_ctor(gpc_String* s);
-
-/**
- * @brief Generic string constructor @memberof gpc_String
- *
- * Creates an string by passing a temporary gpc_String object to
- * #gpc_str_ctor(). Check docs for #gpc_str_ctor() for details!
- *
- * @return newly constructed string which should not be ignored!
- */
-#define gpc_str(...) \
-gpc_str_ctor(&(gpc_String){__VA_ARGS__})
-
-/// @brief Frees recources allocated by @p str @memberof gpc_String
-void gpc_str_free(gpc_String str);
+gpc_String gpc_str(const char init[GPC_NONNULL]);
 
 /// Frees @p str.allocation and sets all fields to 0. @memberof gpc_String
-/**
- * @note This only frees @p str.allocation but does not free the pointer to
+/** @note This only frees @p str.allocation but does not free the pointer to
  * @p str!
  */
-void gpc_str_clear(gpc_String* str);
+void gpc_str_clear(gpc_String str[GPC_NONNULL]);
 
 /// String copying @memberof gpc_String
-/**
- * Copies @p src to @p dest allocating if @p dest->capacity is not large enough.
+/** Copies @p src to @p dest allocating if @p dest->capacity is not large enough.
  * If allocation fails only @p dest->capacity characters will be copied.
  *
  * @return pointer to @p dest if copying was successful, NULL otherwise.
@@ -167,7 +101,7 @@ gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src);
 /// @brief Access character with bounds checking @memberof gpc_String
 inline char gpc_str_at(const gpc_String s, size_t i)
 {
-    return i <= s.length ? s.cstr[i] : '\0';
+    return i <= s.length ? s.data[i] : '\0';
 }
 
 /// @brief Check if string is used as string view @memberof gpc_String
@@ -196,7 +130,7 @@ gpc_String* gpc_str_cut_end(gpc_String str[GPC_NONNULL], size_t length);
 /// Truncate beginning of string @memberof gpc_String
 /**
  * Cuts @p length characters from start. Does not move the remaining string but
- * instead just moves the @p str.cstr pointer by @p length greatly increasing
+ * instead just moves the @p str.data pointer by @p length greatly increasing
  * perfromance. This also allows optimizing gpc_str_prepend().
  *
  * @return pointer to @p str.
@@ -241,7 +175,7 @@ inline gpc_String* gpc_str_slice(
     size_t start,
     size_t length)
 {
-    str->cstr += start;
+    str->data += start;
     str->length = length;
     str->capacity -= start;
     return str;
@@ -249,8 +183,8 @@ inline gpc_String* gpc_str_slice(
 
 /// Copy substring @memberof gpc_String
 /**
- * Creates a substring from @p src starting from @p &src.cstr[start] ending to
- * @p &src.cstr[start + @p length] and copies it to @p dest allocating if
+ * Creates a substring from @p src starting from @p &src.data[start] ending to
+ * @p &src.data[start + @p length] and copies it to @p dest allocating if
  * necessary.
  *
  * @param dest Resulting substring will be copied here. Can be left NULL to
@@ -332,16 +266,6 @@ gpc_String* gpc_str_replace_all(
 /** @return true if strings in @p s1 and @p s2 are equal, false otherwise */
 bool gpc_str_eq(const gpc_String s1, const gpc_String s2);
 
-/// Calculate length of C string
-/**
- * Same as strlen().
- *
- * @param s should be null-terminated.
- *
- * @return lengt of string in bytes not counting null-terminator.
- */
-size_t gpc_strlen(const char s[GPC_NONNULL]);
-
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
@@ -353,20 +277,20 @@ size_t gpc_strlen(const char s[GPC_NONNULL]);
 ///@cond
 #define gpc_str_on_stack(...) \
 GPC_OVERLOAD2(__VA_ARGS__, gpc_str_on_stack_with_cap, gpc_str_on_stack_wout_cap)(__VA_ARGS__)
+
+#define gpc_str(init) (gpc_String){ .data = (init), .length = strlen(init) }
 ///@endcond
 
 #define gpc_str_on_stack_wout_cap(literal) (gpc_String) \
 { \
-    .cstr = (char[]){literal}, \
-    .allocation = NULL, \
+    .data = (char[]){literal}, \
     .length = sizeof(literal) - 1, \
-    .capacity = sizeof(literal) - 1 \
+    .capacity = sizeof(literal) \
 }
 
 #define gpc_str_on_stack_with_cap(literal, cap) (gpc_String) \
 { \
-    .cstr = (char[cap + sizeof('\0')]){literal}, \
-    .allocation = NULL, \
+    .data = (char[cap + 1]){literal}, \
     .length = sizeof(literal) - 1, \
     .capacity = cap \
 }

@@ -12,9 +12,6 @@ int main(void)
         gpc_String small_buf = gpc_str_on_stack("", 5);
         gpc_String source    = gpc_str_on_stack("String longer than 5 chars");
 
-        gpc_String on_heap      = gpc_str("on heap!", 1); // auto capacity
-        gpc_String on_heap_long = gpc_str(source.cstr, 50);
-
         // gpc_str_on_stack() only accepts literals as initializers.
         #if non_compliant
         char* init = "Whatever";
@@ -26,14 +23,8 @@ int main(void)
             gpc_expect(small_buf.capacity == 5,
             ("This buffer should be exactly 5 chars long without rounding."));
 
-            gpc_expect( ! small_buf.allocation,
+            gpc_expect( ! small_buf.is_allocated,
             ("Shouldn't be on heap at this point."));
-
-            gpc_expect(
-                on_heap.capacity == gpc_next_power_of_2(strlen("on heap!")),
-                ("Buffer size should be rounded up."));
-            gpc_expect(on_heap_long.capacity == gpc_next_power_of_2(50),
-            (on_heap_long.capacity));
         }
 
         gpc_test("Copying");
@@ -48,23 +39,13 @@ int main(void)
 
         gpc_test("Memory");
         {
-            gpc_expect(small_buf.allocation,
+            gpc_expect(small_buf.is_allocated,
             ("After copying buffer should've been allocated."));
 
-            // Freeing memory with free() or gpc_str_free() is safe even with
-            // stack allocated strings given that they have been initialized.
             // It's recommended to always free all strings, even stack
             // allocated, because any mutating function may allocate.
-            free(small_buf.allocation);
-            free(source.allocation); // Stack allocated but OK!
-            gpc_str_clear(&on_heap);
-            gpc_str_free(on_heap_long);
-            gpc_String empty_str = {0};
-
-            gpc_expect(memcmp(&on_heap, &empty_str, sizeof(on_heap)) == 0,
-            ("gpc_str_clear() should empty all string contents."));
-            gpc_expect(memcmp(&on_heap_long,&empty_str,sizeof(on_heap_long))!=0,
-            ("gpc_str_free() should not empty all string contents."));
+            gpc_str_clear(&small_buf);
+            gpc_str_clear(&source); // Stack allocated but OK!
         }
     }
 
@@ -97,7 +78,7 @@ int main(void)
         gpc_test("still string view?");
         {
             gpc_expect( ! gpc_str_is_view(view));
-            gpc_expect(view.allocation != NULL);
+            gpc_expect(view.is_allocated);
         }
     }
 }

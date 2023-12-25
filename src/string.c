@@ -11,101 +11,96 @@
 extern inline char gpc_str_at(const gpc_String s, size_t i);
 extern inline bool gpc_str_is_view(const gpc_String s);
 
-gpc_String gpc_str_ctor(gpc_String* s)
+// Offset from allocation address to the beginning of string data
+static size_t gpc_l_capacity(const gpc_String s[GPC_NONNULL])
 {
-    if (s == NULL || gpc_mem_eq(s, &(gpc_String){0}, sizeof(*s)))
-        return (gpc_String){""};
-
-    if (s->capacity > 0)
+    switch (s->has_offset)
     {
-        size_t cstrlen;
-        if (s->cstr != NULL && s->capacity < (cstrlen = strlen(s->cstr)))
-            s->capacity = cstrlen;
-        s->capacity = gpc_next_power_of_2(s->capacity);
-
-        char* buf = malloc(s->capacity + sizeof('\0')); // TODO use gpc_malloc()
-        if (buf == NULL)
-        {
-            perror("malloc() failed in gpc_str_ctor()!");
-            return *s = (gpc_String){""};
-        }
-
-        if (s->cstr != NULL)
-            strcpy(buf, s->cstr);
-        else
-            buf[0] = '\0';
-
-        s->cstr = buf;
-        s->allocation = buf;
-        return *s;
+        case 1: return *((unsigned char*)s->data - 1);
+        case 2: return *((size_t*)s->data - 1);
     }
-
-    if (s->length == 0)
-        s->length = strlen(s->cstr);
-    return *s;
+    return 0;
 }
 
-void gpc_str_free(gpc_String str)
+static size_t gpc_r_capacity(const gpc_String s[GPC_NONNULL])
 {
-    free(str.allocation); // TODO use gpc_free()
+    return s->capacity - gpc_l_capacity(s);
 }
 
-void gpc_str_clear(gpc_String* s)
+static char* gpc_allocation_address(const gpc_String s[GPC_NONNULL])
 {
-    free(s->allocation); // TODO use gpc_free()
+    return s->data - gpc_l_capacity(s);
+}
+
+static void gpc_str_free(gpc_String s[GPC_NONNULL])
+{
+    if (s->is_allocated)
+    {
+        if (s->allocator == NULL)
+            free(gpc_allocation_address(s));
+        // TODO else use allocator when it's implemented
+    }
+}
+
+void gpc_str_clear(gpc_String s[GPC_NONNULL])
+{
+    gpc_str_free(s);
     *s = (gpc_String){0};
 }
 
 gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src)
 {
-    size_t offset = dest->allocation ?
-        (size_t)(dest->cstr - (char*)dest->allocation) : 0;
-    size_t full_capacity = dest->capacity + offset;
-
-    if (src.length > full_capacity) // allocation needed
+    if (src.length > dest->capacity) // allocation needed
     {
         dest->capacity = gpc_next_power_of_2(src.length);
-        char* buf = malloc(dest->capacity + sizeof('\0'));
+        char* buf = malloc(dest->capacity); // TODO use allocator
         if (buf == NULL)
         {
             perror("malloc() failed in gpc_str_copy()!");
             return NULL;
         }
-        free(dest->allocation);
-        dest->allocation = buf;
-        dest->cstr = dest->allocation;
+        gpc_str_free(dest);
+        dest->data = buf;
+        dest->is_allocated = true;
     }
-    else if (src.length > dest->capacity) // no alloc needed but need more space
+    else if (src.length > gpc_r_capacity(dest)) // no alloc needed but need more space
     {
-        dest->cstr -= offset;
-        dest->capacity += offset;
+        dest->data -= gpc_l_capacity(dest);
     }
 
-    memcpy(dest->cstr, src.cstr, src.length + sizeof('\0'));
+    memcpy(dest->data, src.data, src.length);
     dest->length = src.length;
+    dest->has_offset = false;
     return dest;
+}
+
+gpc_String* gpc_str_reserve(
+    gpc_String s[GPC_NONNULL],
+    const size_t requested_capacity)
+{
+    if (requested_capacity > s->capacity)
+    {
+        s->capacity = gpc_next_power_of_2(requested_capacity);
+        char* buf = malloc(s->capacity); // TODO use allocator
+        if (buf == NULL)
+        {
+            perror("malloc() failed in gpc_str_reserve()!");
+            return NULL;
+        }
+        memcpy(buf, s->data, s->length);
+        gpc_str_free(s);
+        s->data = buf;
+        s->is_allocated = true;
+        s->has_offset   = false;
+    }
+    return s;
 }
 
 bool gpc_str_eq(const gpc_String s1, const gpc_String s2)
 {
     if (s1.length != s2.length)
         return false;
-    return gpc_mem_eq(s1.cstr, s2.cstr, s1.length);
-}
-
-// Make string mutable
-static gpc_String* gpc_reallocate_str_view(gpc_String s[GPC_NONNULL])
-{
-    s->capacity = gpc_next_power_of_2(s->length);
-    char* buf = malloc(s->capacity + sizeof('\0')); // TODO use gpc_malloc()
-    if (buf == NULL)
-    {
-        s->capacity = 0;
-        return NULL;
-    }
-    s->cstr = memcpy(buf, s->cstr, s->length + sizeof('\0'));
-    s->allocation = s->cstr;
-    return s;
+    return gpc_mem_eq(s1.data, s2.data, s1.length);
 }
 
 gpc_String* gpc_str_insert_char(gpc_String s[GPC_NONNULL], size_t i, char c)
@@ -113,12 +108,12 @@ gpc_String* gpc_str_insert_char(gpc_String s[GPC_NONNULL], size_t i, char c)
     if (i >= s->length)
         return NULL;
 
-    if (gpc_str_is_view(*s) && gpc_reallocate_str_view(s) == NULL)
+    if (gpc_str_reserve(s, s->length) == NULL)
     {
-        perror("malloc() in gpc_reallocate_str_view() called by gpc_str_insert_char()");
+        perror("gpc_str_is_view()"); // TODO better error handling
         return NULL;
     }
 
-    s->cstr[i] = c;
+    s->data[i] = c;
     return s;
 }
