@@ -52,15 +52,20 @@ gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src)
 {
     if (src.length > dest->capacity) // allocation needed
     {
-        dest->capacity = gpc_next_power_of_2(src.length);
-        char* buf = malloc(dest->capacity); // TODO use allocator
+        size_t new_capacity = gpc_next_power_of_2(src.length);
+        char* buf = malloc(new_capacity); // TODO use allocator
         if (buf == NULL)
         {
             perror("malloc() failed in gpc_str_copy()!");
+            dest->data -= gpc_l_capacity(dest);
+            memcpy(dest->data, src.data, dest->capacity);
+            dest->length = dest->capacity;
+            dest->has_offset = false;
             return NULL;
         }
         gpc_str_free(dest);
         dest->data = buf;
+        dest->capacity = new_capacity;
         dest->is_allocated = true;
     }
     else if (src.length > gpc_r_capacity(dest)) // no alloc needed but need more space
@@ -103,14 +108,14 @@ bool gpc_str_eq(const gpc_String s1, const gpc_String s2)
     return gpc_mem_eq(s1.data, s2.data, s1.length);
 }
 
-gpc_String* gpc_str_insert_char(gpc_String s[GPC_NONNULL], size_t i, char c)
+gpc_String* gpc_str_replace_char(gpc_String s[GPC_NONNULL], size_t i, char c)
 {
     if (i >= s->length)
         return NULL;
 
     if (gpc_str_reserve(s, s->length) == NULL)
     {
-        perror("gpc_str_is_view()"); // TODO better error handling
+        perror("gpc_str_is_view() calling gpc_str_reserve()"); // TODO better error handling
         return NULL;
     }
 
