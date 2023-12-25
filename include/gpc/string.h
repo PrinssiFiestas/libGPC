@@ -94,7 +94,7 @@ void gpc_str_clear(gpc_String str[GPC_NONNULL]);
 /** Copies @p src to @p dest allocating if @p dest->capacity is not large enough.
  * If allocation fails only @p dest->capacity characters will be copied.
  *
- * @return pointer to @p dest if copying was successful, NULL otherwise.
+ * @return @p dest if copying was successful, NULL otherwise.
  */
 gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src);
 
@@ -134,7 +134,7 @@ gpc_String* gpc_str_reserve(
  * Appends string in @p src to string in @p dest allocating if necessary.
  * If allocation fails only characters that fit in will be appended.
  *
- * @return pointer to @p dest if appending was successful, NULL otherwise.
+ * @return @p dest if appending was successful, NULL otherwise.
  */
 gpc_String* gpc_str_append(gpc_String dest[GPC_NONNULL], const gpc_String src);
 
@@ -143,7 +143,7 @@ gpc_String* gpc_str_append(gpc_String dest[GPC_NONNULL], const gpc_String src);
  * Prepends string in @p src to string in @p dest allocating if necessary.
  * If allocation fails only characters that fit in will be prepended.
  *
- * @return pointer to @p dest if prepending was successful, NULL otherwise.
+ * @return @p dest if prepending was successful, NULL otherwise.
  */
 gpc_String* gpc_str_prepend(
     gpc_String dest[GPC_NONNULL],
@@ -154,7 +154,7 @@ gpc_String* gpc_str_prepend(
 size_t gpc_str_count(const gpc_String haystack, const gpc_String needle);
 
 /// Turn to substring @memberof gpc_String
-/** @return pointer to to modified @p str. */
+/** @return @p str. */
 inline gpc_String* gpc_str_slice(
     gpc_String str[GPC_NONNULL],
     size_t start,
@@ -175,7 +175,7 @@ inline gpc_String* gpc_str_slice(
  * @param dest Resulting substring will be copied here. Can be left NULL to
  * create a new string.
  *
- * @return pointer to @p dest or to a newly created string if @p string is NULL
+ * @return @p dest or to a newly created string if @p string is NULL
  * or NULL if allocation fails.
  */
 gpc_String* gpc_str_substr(
@@ -208,7 +208,7 @@ size_t gpc_str_find_last(const gpc_String haystack, const gpc_String needle);
 /**
  * Allocates if necessary.
  *
- * @return pointer to @p haystack and NULL if allocation failed.
+ * @return @p haystack and NULL if allocation failed.
  */
 gpc_String* gpc_str_replace(
     gpc_String haystack[GPC_NONNULL],
@@ -219,7 +219,7 @@ gpc_String* gpc_str_replace(
 /**
  * Allocates if necessary.
  *
- * @return pointer to @p haystack and NULL if allocation failed.
+ * @return @p haystack and NULL if allocation failed.
  */
  gpc_String* str_replace_last(
     gpc_String haystack[GPC_NONNULL],
@@ -230,7 +230,7 @@ gpc_String* gpc_str_replace(
 /**
  * Allocates if necessary.
  *
- * @return pointer to @p haystack and NULL if allocation failed.
+ * @return @p haystack and NULL if allocation failed.
  */
 gpc_String* gpc_str_replace_all(
     gpc_String haystack[GPC_NONNULL],
