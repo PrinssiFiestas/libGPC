@@ -3,7 +3,9 @@
 # https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 CC = gcc
-CFLAGS = -Wall -Wextra -Wconversion -Werror -Wno-missing-field-initializers
+CFLAGS  = -Wall -Wextra -Werror
+CFLAGS += -Wdouble-promotion
+CFLAGS += -Wno-missing-field-initializers
 
 SRCS = $(wildcard src/*.c)
 OBJS = $(patsubst src/%.c,build/%.o,$(wildcard src/*.c))
@@ -20,7 +22,7 @@ release: CFLAGS += -O2 -DNDEBUG
 release: build/libgpc.a
 
 debug: CFLAGS += -ggdb3
-debug: build/libgpc.a
+debug: build/libgpc.ar
 
 build/libgpc.a: $(OBJS)
 	ar -rcs $@ $^
