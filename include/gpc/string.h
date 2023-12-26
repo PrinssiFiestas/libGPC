@@ -4,7 +4,7 @@
  */
 
 /**@file string.h
- *  String data type.
+ * String data type.
  */
 
 #ifndef GPC_STRING_INCLUDED
@@ -16,6 +16,7 @@
 #include <stddef.h>
 #include <limits.h>
 size_t strlen(const char*);
+typedef struct Allocator Allocator;
 
 // ----------------------------------------------------------------------------
 //
@@ -62,7 +63,7 @@ typedef struct gpc_String
     /** Optional allocator.
      * Uses malloc() and free() if NULL.
      */
-    struct Allocator* allocator;
+    Allocator* allocator;
 } gpc_String;
 
 /** Stack constructor MACRO @memberof gpc_String.
@@ -76,20 +77,22 @@ typedef struct gpc_String
  */
 gpc_String gpc_str_on_stack(
     const char init_literal[GPC_NONNULL],
-    size_t capacity/* = sizeof(init_literal) */);
+    size_t capacity/* = sizeof(init_literal) */,
+    Allocator* allocator/* = NULL */);
 
-/** Static constructor MACRO @memberof gpc_String.
- * Creates a string initialized statically with @p init. Any modification will
- * allocate.
+/** String view constructor MACRO @memberof gpc_String.
+ * Creates a string view initialized statically with @p cstr. Any modification
+ * will allocate.
  *
  * @param cstr C string to be used as gpc_String. Assumed to be
- * null-terminated if length is not provided.
+ * null-terminated if @p length is not provided.
  *
  * @return stack allocated string view.
  */
 gpc_String gpc_str(
     const char cstr[GPC_NONNULL],
-    size_t length/* = strlen(cstr) */);
+    size_t length/* = strlen(cstr) */,
+    Allocator* allocator/* = NULL */);
 
 /** Frees @p str->allocation and sets all fields to 0 @memberof gpc_String.
  * @note This only frees @p str->allocation. If @p str itself is allocated it
@@ -251,37 +254,44 @@ bool gpc_str_eq(const gpc_String s1, const gpc_String s2);
 // ----------------------------------------------------------------------------
 
 /**@cond */
-#define gpc_str_on_stack(...) \
-GPC_OVERLOAD2(__VA_ARGS__, gpc_str_on_stack_with_cap, gpc_str_on_stack_wout_cap)(__VA_ARGS__)
+#define gpc_str(...) GPC_OVERLOAD3(__VA_ARGS__, \
+    gpc_str_with_allocator, \
+    gpc_str_with_len, \
+    gpc_str_wout_len)(__VA_ARGS__)
 
-#define gpc_str(...) \
-GPC_OVERLOAD2(__VA_ARGS__, gpc_str_with_len, gpc_str_wout_len)(__VA_ARGS__)
+#define gpc_str_on_stack(...) GPC_OVERLOAD3(__VA_ARGS__, \
+    gpc_str_on_stack_with_allocator, \
+    gpc_str_on_stack_with_cap, \
+    gpc_str_on_stack_wout_cap)(__VA_ARGS__)
 /**@endcond */
 
-#define gpc_str_on_stack_wout_cap(literal) (gpc_String) \
-{ \
+#define gpc_str_with_allocator(cstr, len, allocator) (gpc_String) { \
+    .data = (cstr), \
+    .length = (len), \
+    .allocator = (allocator) }
+
+#define gpc_str_with_len(cstr, len) (gpc_String) { \
+    .data = (cstr), \
+    .length = (len) }
+
+#define gpc_str_wout_len(cstr) (gpc_String) { \
+    .data = (cstr), \
+    .length = strlen(cstr) }
+
+#define gpc_str_on_stack_with_allocator(literal, cap, allocator) (gpc_String) {\
+    .data = (char[(cap) + 1]){literal}, \
+    .length = sizeof(literal) - 1, \
+    .capacity = (cap), \
+    .allocator = (allocator) }
+
+#define gpc_str_on_stack_with_cap(literal, cap) (gpc_String) { \
+    .data = (char[(cap) + 1]){literal}, \
+    .length = sizeof(literal) - 1, \
+    .capacity = (cap) }
+
+#define gpc_str_on_stack_wout_cap(literal) (gpc_String) { \
     .data = (char[]){literal}, \
     .length = sizeof(literal) - 1, \
-    .capacity = sizeof(literal) - 1 \
-}
-
-#define gpc_str_on_stack_with_cap(literal, cap) (gpc_String) \
-{ \
-    .data = (char[cap + 1]){literal}, \
-    .length = sizeof(literal) - 1, \
-    .capacity = cap \
-}
-
-#define gpc_str_with_len(cstr, len) (gpc_String) \
-{ \
-    .data = (cstr), \
-    .length = (len) \
-}
-
-#define gpc_str_wout_len(cstr) (gpc_String) \
-{ \
-    .data = (cstr), \
-    .length = strlen(cstr) \
-}
+    .capacity = sizeof(literal) - 1 }
 
 #endif // GPC_STRING_INCLUDED
