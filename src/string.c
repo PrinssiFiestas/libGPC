@@ -13,6 +13,10 @@
 
 const gpc_String gpc_str_error[] =
 {
+    [GPC_STR_ALLOCATION_FAILURE] = {
+        "Allocating string failed.",
+        .allocator = gpc_null_allocator
+    }
 };
 
 extern inline char gpc_str_at(const gpc_String s, size_t i);

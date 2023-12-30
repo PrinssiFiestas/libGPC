@@ -68,10 +68,10 @@ typedef struct gpc_String
 
 enum
 {
-    GPC_STR_NO_ERROR,
-    GPC_STR_ERROR
+    GPC_STR_ALLOCATION_FAILURE,
+    GPC_STR_ERROR_LENGTH
 };
-extern const gpc_String gpc_str_error[GPC_STR_ERROR];
+extern const gpc_String GPC_STR_ERROR[GPC_STR_ERROR_LENGTH];
 
 /** Stack constructor MACRO @memberof gpc_String.
  * Creates a string on stack initialized with @p init_literal.
