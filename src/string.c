@@ -11,19 +11,19 @@
 // TODO delete this macro when allocators are implemented
 #define gpc_null_allocator NULL
 
-const gpc_String gpc_str_error[] =
+const GPString gpstr_error[] =
 {
-    [GPC_STR_ALLOCATION_FAILURE] = {
+    [GPSTR_ALLOCATION_FAILURE] = {
         "Allocating string failed.",
         .allocator = gpc_null_allocator
     }
 };
 
-extern inline char gpc_str_at(const gpc_String s, size_t i);
-extern inline bool gpc_str_is_view(const gpc_String s);
+extern inline char gpstr_at(const GPString s, size_t i);
+extern inline bool gpstr_is_view(const GPString s);
 
 // Offset from allocation address to the beginning of string data
-static size_t gpc_l_capacity(const gpc_String s)
+static size_t gpc_l_capacity(const GPString s)
 {
     if (s.has_offset)
     {
@@ -33,17 +33,17 @@ static size_t gpc_l_capacity(const gpc_String s)
     else return 0;
 }
 
-static size_t gpc_r_capacity(const gpc_String s[GPC_NONNULL])
+static size_t gpc_r_capacity(const GPString s[GPC_NONNULL])
 {
     return s->capacity - gpc_l_capacity(*s);
 }
 
-static char* gpc_allocation_address(const gpc_String s[GPC_NONNULL])
+static char* gpc_allocation_address(const GPString s[GPC_NONNULL])
 {
     return s->data - gpc_l_capacity(*s);
 }
 
-static void gpc_str_free(gpc_String s[GPC_NONNULL])
+static void gpstr_free(GPString s[GPC_NONNULL])
 {
     if (s->is_allocated)
     {
@@ -53,13 +53,13 @@ static void gpc_str_free(gpc_String s[GPC_NONNULL])
     }
 }
 
-void gpc_str_clear(gpc_String s[GPC_NONNULL])
+void gpstr_clear(GPString s[GPC_NONNULL])
 {
-    gpc_str_free(s);
-    *s = (gpc_String){0};
+    gpstr_free(s);
+    *s = (GPString){0};
 }
 
-gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src)
+GPString* gpstr_copy(GPString dest[GPC_NONNULL], const GPString src)
 {
     if (src.length > dest->capacity) // allocation needed
     {
@@ -67,10 +67,10 @@ gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src)
         char* buf = malloc(new_capacity); // TODO use allocator
         if (buf == NULL)
         {
-            perror("malloc() failed in gpc_str_copy()!");
+            perror("malloc() failed in gpstr_copy()!");
             return NULL;
         }
-        gpc_str_free(dest);
+        gpstr_free(dest);
         dest->data = buf;
         dest->capacity = new_capacity;
         dest->is_allocated = true;
@@ -86,8 +86,8 @@ gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src)
     return dest;
 }
 
-gpc_String* gpc_str_reserve(
-    gpc_String s[GPC_NONNULL],
+GPString* gpstr_reserve(
+    GPString s[GPC_NONNULL],
     const size_t requested_capacity)
 {
     if (requested_capacity > s->capacity)
@@ -96,11 +96,11 @@ gpc_String* gpc_str_reserve(
         char* buf = malloc(s->capacity); // TODO use allocator
         if (buf == NULL)
         {
-            perror("malloc() failed in gpc_str_reserve()!");
+            perror("malloc() failed in gpstr_reserve()!");
             return NULL;
         }
         memcpy(buf, s->data, s->length);
-        gpc_str_free(s);
+        gpstr_free(s);
         s->data = buf;
         s->is_allocated = true;
         s->has_offset   = false;
@@ -108,21 +108,21 @@ gpc_String* gpc_str_reserve(
     return s;
 }
 
-bool gpc_str_eq(const gpc_String s1, const gpc_String s2)
+bool gpstr_eq(const GPString s1, const GPString s2)
 {
     if (s1.length != s2.length)
         return false;
     return gpc_mem_eq(s1.data, s2.data, s1.length);
 }
 
-gpc_String* gpc_str_replace_char(gpc_String s[GPC_NONNULL], size_t i, char c)
+GPString* gpstr_replace_char(GPString s[GPC_NONNULL], size_t i, char c)
 {
     if (i >= s->length)
         return NULL;
 
-    if (gpc_str_reserve(s, s->length) == NULL)
+    if (gpstr_reserve(s, s->length) == NULL)
     {
-        perror("gpc_str_is_view() calling gpc_str_reserve()"); // TODO better error handling
+        perror("gpstr_is_view() calling gpstr_reserve()"); // TODO better error handling
         return NULL;
     }
 
@@ -130,11 +130,11 @@ gpc_String* gpc_str_replace_char(gpc_String s[GPC_NONNULL], size_t i, char c)
     return s;
 }
 
-/** Turn to substring @memberof gpc_String.
+/** Turn to substring @memberof GPString.
  * @return @p str.
  */
-gpc_String* gpc_str_slice(
-    gpc_String str[GPC_NONNULL],
+GPString* gpstr_slice(
+    GPString str[GPC_NONNULL],
     const size_t start,
     const size_t new_length)
 {
@@ -147,7 +147,7 @@ gpc_String* gpc_str_slice(
 
     const size_t old_allocation_offset = gpc_l_capacity(*str);
 
-    if ( ! gpc_str_is_view(*str))
+    if ( ! gpstr_is_view(*str))
     {
         const size_t new_offset = start + old_allocation_offset;
         unsigned char* data = (unsigned char*)str->data + start;
