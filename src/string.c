@@ -8,28 +8,38 @@
 #include <string.h>
 #include <stdlib.h>
 
+// TODO delete this macro when allocators are implemented
+#define gpc_null_allocator NULL
+
+const gpc_String gpc_str_error[] =
+{
+};
+
 extern inline char gpc_str_at(const gpc_String s, size_t i);
 extern inline bool gpc_str_is_view(const gpc_String s);
 
 // Offset from allocation address to the beginning of string data
-static size_t gpc_l_capacity(const gpc_String s[GPC_NONNULL])
+// If offset is less than UCHAR_MAX then it's stored in previous byte. Otherwise
+// the previous byte is 0 and offset is stored in sizeof(size_t) bytes before
+// that.
+static size_t gpc_l_capacity(const gpc_String s)
 {
-    switch (s->has_offset)
+    if (s.has_offset)
     {
-        case 1: return *((unsigned char*)s->data - 1);
-        case 2: return *((size_t*)s->data - 1);
+        unsigned char* offset = (unsigned char*)s.data - 1;
+        return *offset ? (size_t)*offset : *((size_t*)offset - 1);
     }
-    return 0;
+    else return 0;
 }
 
 static size_t gpc_r_capacity(const gpc_String s[GPC_NONNULL])
 {
-    return s->capacity - gpc_l_capacity(s);
+    return s->capacity - gpc_l_capacity(*s);
 }
 
 static char* gpc_allocation_address(const gpc_String s[GPC_NONNULL])
 {
-    return s->data - gpc_l_capacity(s);
+    return s->data - gpc_l_capacity(*s);
 }
 
 static void gpc_str_free(gpc_String s[GPC_NONNULL])
@@ -57,10 +67,6 @@ gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src)
         if (buf == NULL)
         {
             perror("malloc() failed in gpc_str_copy()!");
-            dest->data -= gpc_l_capacity(dest);
-            memcpy(dest->data, src.data, dest->capacity);
-            dest->length = dest->capacity;
-            dest->has_offset = false;
             return NULL;
         }
         gpc_str_free(dest);
@@ -70,7 +76,7 @@ gpc_String* gpc_str_copy(gpc_String dest[GPC_NONNULL], const gpc_String src)
     }
     else if (src.length > gpc_r_capacity(dest)) // no alloc needed but need more space
     {
-        dest->data -= gpc_l_capacity(dest);
+        dest->data -= gpc_l_capacity(*dest);
     }
 
     memcpy(dest->data, src.data, src.length);
@@ -122,3 +128,39 @@ gpc_String* gpc_str_replace_char(gpc_String s[GPC_NONNULL], size_t i, char c)
     s->data[i] = c;
     return s;
 }
+
+/** Turn to substring @memberof gpc_String.
+ * @return @p str.
+ */
+gpc_String* gpc_str_slice(
+    gpc_String str[GPC_NONNULL],
+    const size_t start,
+    const size_t new_length)
+{
+    if (start > str->length) {
+        str->length = 0;
+    } else {
+        const size_t max_length = str->length - start;
+        str->length = new_length < max_length ? new_length : max_length;
+    }
+
+    const size_t old_allocation_offset = gpc_l_capacity(*str);
+
+    if ( ! gpc_str_is_view(*str))
+    {
+        const size_t new_offset = start + old_allocation_offset;
+        unsigned char* data = (unsigned char*)str->data + start;
+        if (new_offset <= UCHAR_MAX) {
+            *(data - 1) = (unsigned char)new_offset;
+        } else {
+            *(data - 1) = 0;
+            size_t* poffset = (size_t*)(data - 1);
+            *(poffset - 1) = new_offset;
+        }
+        str->has_offset = true;
+    }
+
+    str->data += start;
+    return str;
+}
+

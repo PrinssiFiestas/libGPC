@@ -1,4 +1,4 @@
-// MIT License
+// MIT Litense
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
@@ -60,10 +60,10 @@ int main(void)
             gpc_expect( ! gpc_str_is_view(on_stack));
         }
 
-        gpc_test("insert_char");
+        gpc_test("replace_char");
         {
-            gpc_str_insert_char(&on_stack, 2, 'X');
-            gpc_str_insert_char(&view, 2, 'X');
+            gpc_str_replace_char(&on_stack, 2, 'X');
+            gpc_str_replace_char(&view, 2, 'X');
 
             gpc_expect(gpc_str_eq(on_stack, gpc_str("onXstack")));
             gpc_expect(gpc_str_eq(view, gpc_str("stXing view")));
@@ -79,6 +79,32 @@ int main(void)
         {
             gpc_expect( ! gpc_str_is_view(view));
             gpc_expect(view.is_allocated);
+        }
+    }
+
+    // ------------------------ TEST INTERNALS
+
+    gpc_suite("Reading and writing allocation offset amount");
+    {
+        const size_t whatever = 4;
+        gpc_test("Small offset");
+        {
+            gpc_String s = gpc_str_on_stack("1345message");
+            const size_t new_offset = 5;
+            gpc_str_slice(&s, new_offset, whatever);
+            gpc_expect(gpc_l_capacity(s) == new_offset, ("%llu", gpc_l_capacity(s)));
+        }
+        gpc_test("Large offset");
+        {
+            const size_t more_than_char_max = (unsigned short)(-1) * 2;
+            char* buf = malloc(more_than_char_max);
+            gpc_String s = { buf,
+                .length   = more_than_char_max - 1,
+                .capacity = more_than_char_max - 1
+            };
+            gpc_str_slice(&s, UCHAR_MAX + 1, whatever);
+            gpc_expect(gpc_l_capacity(s) == UCHAR_MAX + 1, ("%llu", gpc_l_capacity(s)));
+            free(buf); // to be pedantic
         }
     }
 }

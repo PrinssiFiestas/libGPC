@@ -41,11 +41,11 @@ typedef struct gpc_String
     /** Bytes in string.
      * 0 indicates an empty string regardless of contents in @ref data
      */
-    size_t length : CHAR_BIT * sizeof(size_t) - 2;
+    size_t length : CHAR_BIT * sizeof(size_t) - 1;
 
     /** Determines if data has offset from allocation. @private
      */
-    size_t has_offset : 2;
+    bool has_offset : 1;
 
     /** Allocation size.
      * Bytes allocated to string data. 0 indicates that the string is used as
@@ -65,6 +65,13 @@ typedef struct gpc_String
      */
     Allocator* allocator;
 } gpc_String;
+
+enum
+{
+    GPC_STR_NO_ERROR,
+    GPC_STR_ERROR
+};
+extern const gpc_String gpc_str_error[GPC_STR_ERROR];
 
 /** Stack constructor MACRO @memberof gpc_String.
  * Creates a string on stack initialized with @p init_literal.
@@ -102,7 +109,6 @@ void gpc_str_clear(gpc_String str[GPC_NONNULL]);
 
 /** String copying @memberof gpc_String.
  * Copies @p src to @p dest allocating if @p dest->capacity is not large enough.
- * If allocation fails only @p dest->capacity characters will be copied.
  *
  * @return @p dest if copying was successful, NULL otherwise.
  */
@@ -140,6 +146,14 @@ gpc_String* gpc_str_reserve(
     gpc_String s[GPC_NONNULL],
     const size_t requested_capacity);
 
+/** Turn to substring @memberof gpc_String.
+ * @return @p str.
+ */
+gpc_String* gpc_str_slice(
+    gpc_String str[GPC_NONNULL],
+    size_t start,
+    size_t length);
+
 /** Append string @memberof gpc_String.
  * Appends string in @p src to string in @p dest allocating if necessary.
  * If allocation fails only characters that fit in will be appended.
@@ -162,33 +176,17 @@ gpc_String* gpc_str_prepend(
  * Counts all occurrences of needle in haystack. */
 size_t gpc_str_count(const gpc_String haystack, const gpc_String needle);
 
-/** Turn to substring @memberof gpc_String.
- * @return @p str.
- */
-inline gpc_String* gpc_str_slice(
-    gpc_String str[GPC_NONNULL],
-    size_t start,
-    size_t length)
-{
-    str->data += start;
-    str->length = length;
-    str->capacity -= start;
-    return str;
-}
-
 /** Copy substring @memberof gpc_String.
  * Creates a substring from @p src starting from @p &src.data[start] ending to
  * @p (&src.data[start + length]) and copies it to @p dest allocating if
  * necessary.
  *
- * @param dest Resulting substring will be copied here. Can be left NULL to
- * create a new string.
+ * @param dest Resulting substring will be copied here.
  *
- * @return @p dest or to a newly created string if @p string is NULL
- * or NULL if allocation fails.
+ * @return @p dest or NULL if copying fails.
  */
 gpc_String* gpc_str_substr(
-    gpc_String* dest,
+    gpc_String dest[GPC_NONNULL],
     const gpc_String src,
     size_t start,
     size_t length);
