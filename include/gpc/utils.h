@@ -2,6 +2,10 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+// License for random functions
+// (c) 2014 M.E. O'Neill / pcg-random.org
+// Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
+
 /**
  * @file string.h
  * @brief General purpose utilities
@@ -37,16 +41,25 @@ size_t gpc_next_power_of_2(size_t x);
  */
 bool gpc_mem_eq(const void* lhs, const void* rhs, size_t count);
 
-// Generates a random integer from a seed using efficient and secure PCG
-// generator. It's state is thread local.
-uint32_t gpc_rand(void);
+// Random functions. Note that these only work for 64 bit platforms for now.
 
-// Generates a random number in range [0., 1.) with 32 bit resolution.
-double gpc_frand(void);
+// Random functions with global state
 
-// Adds thread local seed to gpc_rand(). Call this in every thread if gpc_rand()
-// is required to give a unique random pattern for every thread.
-void gpc_rand_seed(uint64_t seed);
+// ALWAYS seed!
+void gpc_g_random_seed(uint64_t seed);
+uint32_t gpc_g_random(void);
+double gpc_g_frandom(void);
+int32_t gpc_g_random_range(int32_t min, int32_t max);
+
+// Random functions with local state
+
+typedef struct gpc_RandomState gpc_RandomState;
+
+// ALWAYS seed!
+void gpc_random_seed(gpc_RandomState*, uint64_t seed);
+uint32_t gpc_random(gpc_RandomState*);
+double gpc_frandom(gpc_RandomState*);
+int32_t gpc_random_range(gpc_RandomState*, int32_t min, int32_t max);
 
 #if defined(__GNUC__) || __STDC_VERSION__ >= 201112L
 
@@ -83,6 +96,12 @@ bool gpc_fapproxl(long double x, long double y, long double tolerance);
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+
+struct gpc_RandomState
+{
+    uint64_t state;
+    uint64_t inc;
+};
 
 #if defined(__GNUC__) // gpc_min() and gpc_max() implementations
 

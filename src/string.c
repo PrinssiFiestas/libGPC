@@ -19,15 +19,12 @@ extern inline char gpc_str_at(const gpc_String s, size_t i);
 extern inline bool gpc_str_is_view(const gpc_String s);
 
 // Offset from allocation address to the beginning of string data
-// If offset is less than UCHAR_MAX then it's stored in previous byte. Otherwise
-// the previous byte is 0 and offset is stored in sizeof(size_t) bytes before
-// that.
 static size_t gpc_l_capacity(const gpc_String s)
 {
     if (s.has_offset)
     {
         unsigned char* offset = (unsigned char*)s.data - 1;
-        return *offset ? (size_t)*offset : *((size_t*)offset - 1);
+        return *offset > 0 ? (size_t)*offset : *((size_t*)offset - 1);
     }
     else return 0;
 }

@@ -4,6 +4,7 @@
 
 #include "../include/gpc/assert.h"
 #include "../src/utils.c"
+#include <time.h>
 
 int main(void)
 {
@@ -40,5 +41,22 @@ int main(void)
     {
         gpc_test("if memories are equal");
             gpc_expect(gpc_mem_eq("blah", "blah", sizeof("blah")));
+    }
+
+    gpc_suite("random nummber generation");
+    {
+        gpc_g_random_seed((uint64_t)time(NULL));
+        gpc_test("range");
+        {
+            for (int i = 0; i < 32; i++)
+            {
+                int32_t n = gpc_g_random_range(4, 7);
+                gpc_assert(4 <= n && n <= 7);
+                n = gpc_g_random_range(-12, -3);
+                gpc_assert(-12 <= n && n <= -3);
+                n = gpc_g_random_range(-3, 3);
+                gpc_assert(-3 <= n && n <= 3);
+            }
+        }
     }
 }

@@ -4,7 +4,7 @@
 
 /**
  * @file assert.h
- * @brief String data type
+ * @brief Unit testing
  */
 
 #ifndef GPC_ASSERT_INCLUDED

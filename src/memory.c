@@ -2,7 +2,10 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#include "../include/gpc/assert.h"
+
 #include "../include/gpc/memory.h"
+#include "../include/gpc/utils.h"
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -11,6 +14,7 @@
 // Here are some measurements for a single dimensional array. Of course the
 // amount of pointers without collisions changed each run so the value is
 // roundabout. I only tried 3 runs for each table size.
+//
 // -----------------------------------------------------------------
 // Table size (bits) | Table size (MB) | Pointers without collisions
 // -----------------------------------------------------------------
@@ -20,7 +24,13 @@
 //     1 << 20       |      8.4        |           26'000
 //     1 << 24       |      134        |          260'000
 //     1 << 28       |     2147        |        4'000'000
-#define GPC_PTR_TABLE_SIZE (1 << 8)
+//     1 << 32       |    34000        |       48'000'000
+//
+// So if I use an array with dynamic dimension that starts with 1 << 20 elements
+// and grows by 1 << 8 elements for each added dimension I can easily cover the
+// whole address space without collisions.
+
+#define GPC_PTR_TABLE_SIZE (1 << 20)
 #define GPC_PTR_INDEX_BITS (GPC_PTR_TABLE_SIZE - 1)
 
 typedef struct gpc_AllocData
@@ -48,12 +58,34 @@ static void gpc_init_ptr_table(void)
     gpc_ptr_table = calloc(GPC_PTR_TABLE_SIZE, sizeof(gpc_AllocDataArray*));
 }
 
+uint32_t gpc_hash(uint64_t x)
+{
+    uint64_t oldstate = x;
+    uint32_t xorshifted = (uint32_t)(((oldstate >> 18u) ^ oldstate) >> 27u);
+    uint32_t rot = (uint32_t)(oldstate >> 59u);
+    return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+}
+
+uint64_t gpc_hash_seed = 0xe9c22514b81b5e45ULL;
+uint32_t gpc_hash_range(uint64_t x, uint32_t bound)
+{
+    uint32_t threshold = -bound % bound;
+    gpc_RandomState rng = { x, gpc_hash_seed };
+    for (;;) {
+        uint32_t r = (uint32_t)gpc_random_range(&rng, 0, GPC_PTR_TABLE_SIZE - 1);
+        if (r >= threshold)
+            return r % bound;
+    }
+}
+
 // Simply use the the address given by malloc() as the index for the hash map.
-// Not very random but ridiculously fast! (If no collisions... shush...)
 static size_t gpc_ptr_table_index(void* ptr)
 {
-    uintmax_t p = (uintmax_t)ptr;
-    p >>= 4; // malloc() on test machine does not use these bits
+    // TODO check if a proper way is indeed better
+    //return (size_t)gpc_hash_range(((uintptr_t)ptr >> 4), GPC_PTR_TABLE_SIZE - 1);
+
+    uintptr_t p = (uintptr_t)ptr;
+    p >>= 4; // malloc() on tested platforms don't use these bits
     return p & GPC_PTR_INDEX_BITS;
 }
 

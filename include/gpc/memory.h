@@ -7,8 +7,8 @@
  * @brief Automatic memory handling and arenas
  */
 
-#ifndef GPC_MEMORY_H
-#define GPC_MEMORY_H
+#ifndef GPC_MEMORY_INCLUDED
+#define GPC_MEMORY_INCLUDED
 
 #include "attributes.h"
 #include <stddef.h>
@@ -113,4 +113,4 @@ gpc_Arena* gpc_db_arena_new(
     const char* file, int line, const char* func, const char* var_name,
     size_t pool_size);
 
-#endif // GPC_MEMORY_H
+#endif // GPC_MEMORY_INCLUDED
