@@ -45,7 +45,7 @@ typedef struct GPStringAllocation
 typedef struct GPString
 {
     /** String data. @private
-     * May not be null-terminated. Use #gpc_cstr() to get null-terminated data.
+     * May not be null-terminated. Use #gpstr_cstr() to get null-terminated data.
      */
     char* data;
 
@@ -305,21 +305,21 @@ bool gpstr_eq(const GPString s1, const GPString s2);
 #define gpstr_on_stack_with_allocator(literal, cap, allocator)  gpstr_ctor( \
     sizeof(GPStringAllocation) + (cap), \
     (char[sizeof(GPStringAllocation) + (cap)]){""}, \
-    sizeof(literal) - 1, \
+    sizeof((char[cap]){literal}) - 1, \
     literal, \
     allocator)
 
 #define gpstr_on_stack_with_cap(literal, cap)  gpstr_ctor( \
     sizeof(GPStringAllocation) + (cap), \
     (char[sizeof(GPStringAllocation) + (cap)]){""}, \
-    sizeof(literal) - 1, \
+    sizeof((char[cap]){literal}) - 1, \
     literal, \
     NULL)
 
 #define gpstr_on_stack_wout_cap(literal) gpstr_ctor( \
     sizeof(GPStringAllocation) + sizeof(literal), \
     (char[sizeof(GPStringAllocation) + sizeof(literal)]){""}, \
-    sizeof(literal) - 1, \
+    sizeof((char[]){literal}) - 1, \
     literal, \
     NULL)
 
