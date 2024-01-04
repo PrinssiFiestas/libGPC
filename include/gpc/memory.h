@@ -22,56 +22,47 @@
 /** Memory allocator. */
 typedef struct GPAllocator
 {
-    void* (*alloc)  (struct GPAllocator*, size_t block_size);
-    void  (*dealloc)(struct GPAllocator*, void* block, size_t block_size);
+    void* (*alloc)  (const struct GPAllocator*, size_t block_size);
+    void  (*dealloc)(const struct GPAllocator*, void* block);
 } GPAllocator;
 
-inline void* gpmem_alloc(GPAllocator allocator[GPC_NONNULL], size_t size)
+GP_NODISCARD inline void* gpmem_alloc(const GPAllocator a[GP_NONNULL], size_t size)
 {
-    return allocator->alloc(allocator, size);
+    return a->alloc(a, size);
 }
 
 inline void
-gpmem_dealloc(GPAllocator allocator[GPC_NONNULL], void* block, size_t size)
+gpmem_dealloc(const GPAllocator allocator[GP_NONNULL], void* block)
 {
-    allocator->dealloc(allocator, block, size);
+    allocator->dealloc(allocator, block);
 }
 
-// Any-other-than-std-allocator encouragers
-#define gp_alloc(allocator, size) gpmem_alloc((GPAllocator*)allocator, size)
-#define gp_dealloc(allocator, block, block_size) \
-    gpmem_dealloc((GPAllocator*)allocator, block, block_size)
+#define gp_alloc(allocator, type) \
+    gpmem_alloc((GPAllocator*)(allocator), sizeof(type))
+#define gp_dealloc(allocator, block) \
+    gpmem_dealloc((GPAllocator*)(allocator), block)
 
-/** Calls malloc(@p block_size). */
-void* gpmem_std_alloc(GPAllocator* unused, size_t block_size);
-/** Calls free(@p block). */
-void  gpmem_std_dealloc(GPAllocator* unused, void* block, size_t unused1);
+// ----------------------------------------------------------------------------
 
 /** malloc() based allocator. */
-const GPAllocator gpmem_std_allocator =
-{
-    gpmem_std_alloc,
-    gpmem_std_dealloc
-};
+extern const GPAllocator gpmem_std_allocator;
 
-inline void* gpmem_null_alloc(GPAllocator* unused, size_t unused1)
+// ----------------------------------------------------------------------------
+
+inline void* gpmem_null_alloc(const GPAllocator* unused, size_t unused1)
 {
     (void)unused, (void)unused1;
     return NULL;
 }
 
 inline void
-gpmem_null_dealloc(GPAllocator* unused, void* unused1, size_t unused2)
+gpmem_null_dealloc(const GPAllocator* unused, void* unused1)
 {
-    (void)unused; (void)unused1; (void)unused2;
+    (void)unused; (void)unused1;
 }
 
-/** Used for error handling. */
-const GPAllocator gpmem_null_allocator =
-{
-    gpmem_null_alloc,
-    gpmem_null_dealloc
-};
+/** Always returns NULL on allocations. */
+extern const GPAllocator gpmem_null_allocator;
 
 // ----------------------------------------------------------------------------
 

@@ -2,49 +2,54 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#ifndef GPC_ATTRIBUTES_H
-#define GPC_ATTRIBUTES_H
+#ifndef GPATTRIBUTES_INCLUDED
+#define GPATTRIBUTES_INCLUDED
 
 // TODO check for C23 once it comes out for [[nodiscard]] and typeof()
 
-// Are these checks needed now that I removed -pedantic?
-/*#if defined(__GNUC__)
-#pragma GCC diagnostic ignored "-Wattributes"
-#if defined(__clang__)
-#pragma clang diagnostic ignored "-Wlanguage-extension-token"
-#endif
-#define GPC_NODISCARD __attribute__((__warn_unused_result__))
-#else
-#define GPC_NODISCARD
-#endif
-*/
+// ----------------------------------------------------------------------------
 
 #if __STDC_VERSION__ >= 201112L
-#define GPC_ATOMIC _Atomic
+#define GP_ATOMIC _Atomic
 #else
-#define GPC_ATOMIC
+#define GP_ATOMIC
+#endif
+
+// ----------------------------------------------------------------------------
+
+#ifdef __GNUC__
+// Emit warning if return value is discarded.
+#define GP_NODISCARD __attribute__((__warn_unused_result__))
+#elif defined(_MSC_VER)
+// Emit warning if return value is discarded.
+#define GP_NODISCARD _Check_return_
+#else
+// Not supported by your compiler
+#define GP_NODISCARD
 #endif
 
 // ----------------------------------------------------------------------------
 
 #ifdef _MSC_VER
-#define GPC_THREAD_LOCAL __declspec(thread)
+#define GP_THREAD_LOCAL __declspec(thread)
 #elif __STDC_VERSION__ >= 201112L
-#define GPC_THREAD_LOCAL _Thread_local
+#define GP_THREAD_LOCAL _Thread_local
+#elif defined(__GNUC__)
+#define GP_THREAD_LOCAL __thread
 #else
-#define GPC_THREAD_LOCAL
+#define GP_THREAD_LOCAL
 #endif
 
 // ----------------------------------------------------------------------------
 
 #if defined(__MINGW32__) && !defined(__clang__)
-#define GPC_LONG_DOUBLE double
-#define GPC_LG_FORMAT "%g"
-#define GPC_SIZE_T_FORMAT "%llu"
+#define GP_LONG_DOUBLE double
+#define GP_LG_FORMAT "%g"
+#define GP_SIZE_T_FORMAT "%llu"
 #else
-#define GPC_LONG_DOUBLE long double
-#define GPC_LG_FORMAT "%Lg"
-#define GPC_SIZE_T_FORMAT "%zu"
+#define GP_LONG_DOUBLE long double
+#define GP_LG_FORMAT "%Lg"
+#define GP_SIZE_T_FORMAT "%zu"
 #endif
 
 // ----------------------------------------------------------------------------
@@ -57,13 +62,13 @@
 // e.g. "void foo(int arr[GPC_STATIC 10];". This can be used for optimizations
 // and some compilers may also emit warnings if they can detect that the array
 // passed is too small or NULL.
-#define GPC_STATIC static
-#define GPC_NONNULL static 1
+#define GP_STATIC static
+#define GP_NONNULL static 1
 
 #elif defined(_MSC_VER)
 
-#define GPC_STATIC
-#define GPC_NONNULL _Notnull_
+#define GP_STATIC
+#define GP_NONNULL _Notnull_
 
 #else
 
@@ -77,27 +82,19 @@
 #if defined(__GNUC__)
 
 // Type checking for format strings
-#define GPC_PRINTF(FORMAT_STRING_INDEX, FIRST_TO_CHECK) \
+#define GP_PRINTF(FORMAT_STRING_INDEX, FIRST_TO_CHECK) \
 __attribute__((format(printf, FORMAT_STRING_INDEX, FIRST_TO_CHECK)))
-
-#define GPC_NODISCARD __attribute__((warn_unused_result))
 
 #elif defined(_MSC_VER)
 
 // Not supported by your compiler
-#define GPC_PRINTF(STRING_INDEX, FIRST_TO_CHECK)
-
-// Emit warning if return value is unused
-#define GPC_NODISCARD _Check_return_
+#define GP_PRINTF(STRING_INDEX, FIRST_TO_CHECK)
 
 #else
 
 // Not supported by your compiler
-#define GPC_PRINTF(STRING_INDEX, FIRST_TO_CHECK)
-
-// Not supported by your compiler
-#define GPC_NODISCARD
+#define GP_PRINTF(STRING_INDEX, FIRST_TO_CHECK)
 
 #endif
 
-#endif // GPC_ATTRIBUTES_H
+#endif // GPATTRIBUTES_INCLUDED

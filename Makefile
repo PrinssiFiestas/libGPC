@@ -4,7 +4,7 @@
 
 CC = gcc
 CFLAGS  = -Wall -Wextra -Werror
-CFLAGS += -Wdouble-promotion
+CFLAGS += -Wdouble-promotion -Wconversion
 CFLAGS += -Wno-missing-field-initializers
 
 SRCS = $(wildcard src/*.c)

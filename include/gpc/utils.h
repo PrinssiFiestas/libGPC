@@ -25,69 +25,66 @@
 //
 // ----------------------------------------------------------------------------
 
-// Signed size_t
-typedef ptrdiff_t gpc_ssize;
-
 // Raw byte
-typedef unsigned char gpc_byte;
+typedef unsigned char gp_byte;
 
-/// Round number up to the next power of 2
-/** Used to compute array sizes on reallocations, thus size_t. */
-size_t gpc_next_power_of_2(size_t x);
+/** Round number up to the next power of 2.
+ * Used to compute array sizes on reallocations, thus size_t.
+ */
+size_t gp_next_power_of_2(size_t x);
 
-/// Compare raw memory
-/**
+/** Compare raw memory.
  * @return true if the first @p count bytes of @p lhs and @p rhs are equal.
  */
-bool gpc_mem_eq(const void* lhs, const void* rhs, size_t count);
+bool gp_mem_eq(const void* lhs, const void* rhs, size_t count);
 
 // Random functions. Note that these only work for 64 bit platforms for now.
 
 // Random functions with global state
 
 // ALWAYS seed!
-void gpc_g_random_seed(uint64_t seed);
-uint32_t gpc_g_random(void);
-double gpc_g_frandom(void);
-int32_t gpc_g_random_range(int32_t min, int32_t max);
+void gp_g_random_seed(uint64_t seed);
+uint32_t gp_g_random(void);
+double gp_g_frandom(void);
+int32_t gp_g_random_range(int32_t min, int32_t max);
 
 // Random functions with local state
 
-typedef struct gpc_RandomState gpc_RandomState;
+typedef struct gp_RandomState gp_RandomState;
 
 // ALWAYS seed!
-void gpc_random_seed(gpc_RandomState*, uint64_t seed);
-uint32_t gpc_random(gpc_RandomState*);
-double gpc_frandom(gpc_RandomState*);
-int32_t gpc_random_range(gpc_RandomState*, int32_t min, int32_t max);
+void gp_random_seed(gp_RandomState*, uint64_t seed);
+uint32_t gp_random(gp_RandomState*);
+double gp_frandom(gp_RandomState*);
+int32_t gp_random_range(gp_RandomState*, int32_t min, int32_t max);
 
 #if defined(__GNUC__) || __STDC_VERSION__ >= 201112L
 
-#define gpc_min(x, y) gpc_generic_min(x, y)
-#define gpc_max(x, y) gpc_generic_max(x, y)
+#define gp_min(x, y) gp_generic_min(x, y)
+#define gp_max(x, y) gp_generic_max(x, y)
 
 #endif
 
-int                gpc_imin(int x, int y);
-long               gpc_lmin(long x, long y);
-long long          gpc_llmin(long long x, long long y);
-unsigned           gpc_umin(unsigned x, unsigned y);
-unsigned long      gpc_lumin(unsigned long x, unsigned long y);
-unsigned long long gpc_llumin(unsigned long long x, unsigned long long y);
+int                gp_imin(int x, int y);
+long               gp_lmin(long x, long y);
+long long          gp_llmin(long long x, long long y);
+unsigned           gp_umin(unsigned x, unsigned y);
+unsigned long      gp_lumin(unsigned long x, unsigned long y);
+unsigned long long gp_llumin(unsigned long long x, unsigned long long y);
 
-int                gpc_imax(int x, int y);
-long               gpc_lmax(long x, long y);
-long long          gpc_llmax(long long x, long long y);
-unsigned           gpc_umax(unsigned x, unsigned y);
-unsigned long      gpc_lumax(unsigned long x, unsigned long y);
-unsigned long long gpc_llumax(unsigned long long x, unsigned long long y);
+int                gp_imax(int x, int y);
+long               gp_lmax(long x, long y);
+long long          gp_llmax(long long x, long long y);
+unsigned           gp_umax(unsigned x, unsigned y);
+unsigned long      gp_lumax(unsigned long x, unsigned long y);
+unsigned long long gp_llumax(unsigned long long x, unsigned long long y);
 
 // Generic approx for floats, doubles and long doubles.
-#define gpc_approx(x, y, tolerance) (fabs((x) - (y)) <= (tolerance))
+#define gp_approx(x, y, tolerance) (fabs((x) - (y)) <= (tolerance))
 
-bool gpc_fapproxf(float x, float y, float tolerance);
-bool gpc_fapprox(double x, double y, double tolerance);
-bool gpc_fapproxl(long double x, long double y, long double tolerance);
+bool gp_fapproxf(float x, float y, float tolerance);
+bool gp_fapprox(double x, double y, double tolerance);
+bool gp_fapproxl(long double x, long double y, long double tolerance);
 
 // ----------------------------------------------------------------------------
 //
@@ -97,46 +94,46 @@ bool gpc_fapproxl(long double x, long double y, long double tolerance);
 //
 // ----------------------------------------------------------------------------
 
-struct gpc_RandomState
+struct gp_RandomState
 {
     uint64_t state;
     uint64_t inc;
 };
 
-#if defined(__GNUC__) // gpc_min() and gpc_max() implementations
+#if defined(__GNUC__) // gp_min() and gp_max() implementations
 
-#define gpc_generic_min(x, y) \
+#define gp_generic_min(x, y) \
 ({ typeof(x) _##x = (x); typeof(y) _##y = (y); _##x < _##y ? _##x : _##y; })
 
-#define gpc_generic_max(x, y) \
+#define gp_generic_max(x, y) \
 ({ typeof(x) _##x = (x); typeof(y) _##y = (y); _##x > _##y ? _##x : _##y; })
 
 #elif __STDC_VERSION__ >= 201112L
 
-#define gpc_generic_min(x, y) \
+#define gp_generic_min(x, y) \
 _Generic(x, \
-int:                gpc_imin(x, y),   \
-long:               gpc_lmin(x, y),   \
-long long:          gpc_llmin(x, y),  \
-unsigned:           gpc_umin(x, y),   \
-unsigned long:      gpc_lumin(x, y),  \
-unsigned long long: gpc_llumin(x, y), \
-float:              gpc_fminf(x, y),  \
-double:             gpc_fmin(x, y),   \
-long double:        gpc_fminl(x, y))
+int:                gp_imin(x, y),   \
+long:               gp_lmin(x, y),   \
+long long:          gp_llmin(x, y),  \
+unsigned:           gp_umin(x, y),   \
+unsigned long:      gp_lumin(x, y),  \
+unsigned long long: gp_llumin(x, y), \
+float:              gp_fminf(x, y),  \
+double:             gp_fmin(x, y),   \
+long double:        gp_fminl(x, y))
 
-#define gpc_generic_max(x, y) \
+#define gp_generic_max(x, y) \
 _Generic(x, \
-int:                gpc_imax(x, y),   \
-long:               gpc_lmax(x, y),   \
-long long:          gpc_llmax(x, y),  \
-unsigned:           gpc_umax(x, y),   \
-unsigned long:      gpc_lumax(x, y),  \
-unsigned long long: gpc_llumax(x, y), \
-float:              gpc_fmaxf(x, y),  \
-double:             gpc_fmax(x, y),   \
-long double:        gpc_fmaxl(x, y))
+int:                gp_imax(x, y),   \
+long:               gp_lmax(x, y),   \
+long long:          gp_llmax(x, y),  \
+unsigned:           gp_umax(x, y),   \
+unsigned long:      gp_lumax(x, y),  \
+unsigned long long: gp_llumax(x, y), \
+float:              gp_fmaxf(x, y),  \
+double:             gp_fmax(x, y),   \
+long double:        gp_fmaxl(x, y))
 
-#endif // gpc_min() and gpc_max() implementations
+#endif // gp_min() and gp_max() implementations
 
 #endif // GPC_UTILS_INCLUDED

@@ -3,107 +3,153 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include "../include/gpc/string.h"
+#include "../include/gpc/memory.h"
 #include "../include/gpc/utils.h"
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>
 
-// TODO delete this macro when allocators are implemented
-#define gpc_null_allocator NULL
+#define PROPAGATE_ERROR(strptr) \
+    if (gpstr_error <= strptr && strptr <= gpstr_error + GPSTR_ERROR_LENGTH) \
+        return strptr;
 
 const GPString gpstr_error[] =
 {
+    [GPSTR_OUT_OF_BOUNDS] = {
+        "Index out of bounds.",
+        .allocator = &gpmem_null_allocator
+    },
     [GPSTR_ALLOCATION_FAILURE] = {
         "Allocating string failed.",
-        .allocator = gpc_null_allocator
+        .allocator = &gpmem_null_allocator
     }
 };
 
 extern inline char gpstr_at(const GPString s, size_t i);
 extern inline bool gpstr_is_view(const GPString s);
+extern inline size_t gpstr_capacity(const GPString s);
+extern inline bool gpstr_is_allocated(const GPString s);
 
 // Offset from allocation address to the beginning of string data
-static size_t gpc_l_capacity(const GPString s)
+static size_t l_capacity(const GPString s)
 {
-    if (s.has_offset)
-    {
-        unsigned char* offset = (unsigned char*)s.data - 1;
-        return *offset > 0 ? (size_t)*offset : *((size_t*)offset - 1);
-    }
+    if (s.allocation)
+        return (size_t)(s.data - s.allocation->data);
     else return 0;
 }
 
-static size_t gpc_r_capacity(const GPString s[GPC_NONNULL])
+static size_t r_capacity(const GPString s)
 {
-    return s->capacity - gpc_l_capacity(*s);
+    if (s.allocation)
+        return s.allocation->capacity - l_capacity(s);
+    else return 0;
 }
 
-static char* gpc_allocation_address(const GPString s[GPC_NONNULL])
+static GPStringAllocation* allocate_string(GPString s[GP_NONNULL], size_t cap)
 {
-    return s->data - gpc_l_capacity(*s);
+    cap = gp_next_power_of_2(cap);
+    GPStringAllocation* buf;
+
+    if (s->allocator == NULL)
+        buf = malloc(cap + sizeof(GPStringAllocation));
+    else
+        buf = gpmem_alloc(s->allocator, cap + sizeof(GPStringAllocation));
+
+    if (buf == NULL)
+        return NULL;
+
+    buf->capacity = cap;
+    buf->should_free = true;
+    return buf;
 }
 
-static void gpstr_free(GPString s[GPC_NONNULL])
+static void free_string(GPString s[GP_NONNULL])
 {
-    if (s->is_allocated)
+    if (s->allocation != NULL && s->allocation->should_free)
     {
         if (s->allocator == NULL)
-            free(gpc_allocation_address(s));
-        // TODO else use allocator when it's implemented
+            free(s->allocation);
+        else
+            gpmem_dealloc(s->allocator, s->allocation);
     }
 }
 
-void gpstr_clear(GPString s[GPC_NONNULL])
+GPString gpstr_ctor(
+    size_t mem_size,
+    char mem[GP_STATIC sizeof(GPStringAllocation)],
+    size_t init_len,
+    const char init[GP_NONNULL],
+    GPAllocator* allocator)
 {
-    gpstr_free(s);
+    GPStringAllocation* alloc = (GPStringAllocation*)mem;
+    alloc->capacity = mem_size - sizeof(GPStringAllocation);
+    memcpy(alloc->data, init, init_len);
+    return (GPString)
+    {
+        alloc->data,
+        init_len,
+        allocator,
+        alloc
+    };
+}
+
+const char* gpstr_cstr(GPString str[GP_NONNULL])
+{
+    if (gpstr_error <= str && str <= gpstr_error + GPSTR_ERROR_LENGTH)
+        return str->data;
+
+    GPString* result = gpstr_reserve(str, str->length + 1);
+    // gpstr_reserve() returns modifyable string or error string so code below
+    // is safe.
+    if (result == str)
+        result->data[result->length] = '\0';
+    return result->data;
+}
+
+void gpstr_clear(GPString s[GP_NONNULL])
+{
+    free_string(s);
     *s = (GPString){0};
 }
 
-GPString* gpstr_copy(GPString dest[GPC_NONNULL], const GPString src)
+GPString* gpstr_copy(GPString dest[GP_NONNULL], const GPString src)
 {
-    if (src.length > dest->capacity) // allocation needed
+    PROPAGATE_ERROR(dest);
+
+    if (src.length > gpstr_capacity(*dest)) // allocation needed
     {
-        size_t new_capacity = gpc_next_power_of_2(src.length);
-        char* buf = malloc(new_capacity); // TODO use allocator
+        GPStringAllocation* buf = allocate_string(dest, src.length);
         if (buf == NULL)
-        {
-            perror("malloc() failed in gpstr_copy()!");
-            return NULL;
-        }
-        gpstr_free(dest);
-        dest->data = buf;
-        dest->capacity = new_capacity;
-        dest->is_allocated = true;
+            return (GPString*)gpstr_error + GPSTR_ALLOCATION_FAILURE;
+        free_string(dest);
+        dest->data = buf->data;
+        dest->allocation = buf;
     }
-    else if (src.length > gpc_r_capacity(dest)) // no alloc needed but need more space
+    else if (src.length > r_capacity(*dest)) // no alloc needed but need more space
     {
-        dest->data -= gpc_l_capacity(*dest);
+        dest->data -= l_capacity(*dest);
     }
 
     memcpy(dest->data, src.data, src.length);
     dest->length = src.length;
-    dest->has_offset = false;
     return dest;
 }
 
 GPString* gpstr_reserve(
-    GPString s[GPC_NONNULL],
+    GPString s[GP_NONNULL],
     const size_t requested_capacity)
 {
-    if (requested_capacity > s->capacity)
+    PROPAGATE_ERROR(s);
+
+    if (requested_capacity > gpstr_capacity(*s))
     {
-        s->capacity = gpc_next_power_of_2(requested_capacity);
-        char* buf = malloc(s->capacity); // TODO use allocator
+        GPStringAllocation* buf = allocate_string(s, requested_capacity);
         if (buf == NULL)
-        {
-            perror("malloc() failed in gpstr_reserve()!");
-            return NULL;
-        }
-        memcpy(buf, s->data, s->length);
-        gpstr_free(s);
-        s->data = buf;
-        s->is_allocated = true;
-        s->has_offset   = false;
+            return (GPString*)gpstr_error + GPSTR_ALLOCATION_FAILURE;
+        memcpy(buf->data, s->data, s->length);
+        free_string(s);
+        s->data = buf->data;
+        s->allocation = buf;
     }
     return s;
 }
@@ -112,56 +158,35 @@ bool gpstr_eq(const GPString s1, const GPString s2)
 {
     if (s1.length != s2.length)
         return false;
-    return gpc_mem_eq(s1.data, s2.data, s1.length);
+    return gp_mem_eq(s1.data, s2.data, s1.length);
 }
 
-GPString* gpstr_replace_char(GPString s[GPC_NONNULL], size_t i, char c)
+GPString* gpstr_replace_char(GPString s[GP_NONNULL], size_t i, char c)
 {
-    if (i >= s->length)
-        return NULL;
+    PROPAGATE_ERROR(s);
 
-    if (gpstr_reserve(s, s->length) == NULL)
-    {
-        perror("gpstr_is_view() calling gpstr_reserve()"); // TODO better error handling
-        return NULL;
-    }
+    if (i >= s->length)
+        return (GPString*)gpstr_error + GPSTR_OUT_OF_BOUNDS;
+
+    if (gpstr_reserve(s, s->length) != s)
+        return (GPString*)gpstr_error + GPSTR_ALLOCATION_FAILURE;
 
     s->data[i] = c;
     return s;
 }
 
-/** Turn to substring @memberof GPString.
- * @return @p str.
- */
 GPString* gpstr_slice(
-    GPString str[GPC_NONNULL],
+    GPString str[GP_NONNULL],
     const size_t start,
-    const size_t new_length)
+    const size_t end)
 {
-    if (start > str->length) {
-        str->length = 0;
-    } else {
-        const size_t max_length = str->length - start;
-        str->length = new_length < max_length ? new_length : max_length;
-    }
+    PROPAGATE_ERROR(str);
 
-    const size_t old_allocation_offset = gpc_l_capacity(*str);
+    if (start > str->length || end > str->length || end < start)
+        return (GPString*)gpstr_error + GPSTR_OUT_OF_BOUNDS;
 
-    if ( ! gpstr_is_view(*str))
-    {
-        const size_t new_offset = start + old_allocation_offset;
-        unsigned char* data = (unsigned char*)str->data + start;
-        if (new_offset <= UCHAR_MAX) {
-            *(data - 1) = (unsigned char)new_offset;
-        } else {
-            *(data - 1) = 0;
-            size_t* poffset = (size_t*)(data - 1);
-            *(poffset - 1) = new_offset;
-        }
-        str->has_offset = true;
-    }
+    str->data  += start;
+    str->length = end - start;
 
-    str->data += start;
     return str;
 }
-
