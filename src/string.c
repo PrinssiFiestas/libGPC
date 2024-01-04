@@ -190,3 +190,25 @@ GPString* gpstr_slice(
 
     return str;
 }
+
+GPString* gpstr_substr(
+    GPString dest[GP_NONNULL],
+    const GPString src,
+    const size_t start,
+    const size_t end)
+{
+    PROPAGATE_ERROR(dest);
+
+    if (start > dest->length || end > dest->length || end < start)
+    {
+        dest->length = 0;
+    }
+    else
+    {
+        if (gpstr_reserve(dest, end - start) != dest)
+            return (GPString*)gpstr_error + GPSTR_ALLOCATION_FAILURE;
+        memcpy(dest->data, src.data + start, end - start);
+        dest->length = end - start;
+    }
+    return dest;
+}

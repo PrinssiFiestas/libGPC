@@ -92,13 +92,15 @@ int main(void)
         gp_test("slice");
         {
             GPString str = gpstr_on_stack("Some_string_to slice");
-            gpstr_slice(&str, 5, 11);
-            gp_expect(gpstr_eq(str, gpstr("string")), (str.data));
-            gpstr_slice(&str, 3, 3);
-            gp_expect(gpstr_eq(str, gpstr("")), (str.data));
+            gpstr_slice(&str, 5, 11); // not including 11!
+            gp_expect(gpstr_eq(str, gpstr("string")));
+
+            GPString* error = gpstr_slice(&str, 3, 3);
+            gp_expect(str.length == 0 && error == &str,
+            ("Same indices should yield an empty non-error string."));
 
             str = gpstr_on_stack("Whatever");
-            GPString* error = gpstr_slice(&str, 600, 601);
+            error = gpstr_slice(&str, 600, 601);
             gp_expect(error == gpstr_error + GPSTR_OUT_OF_BOUNDS);
 
             gp_expect(gpstr_eq(str, gpstr("Whatever")),
@@ -107,10 +109,18 @@ int main(void)
             error = gpstr_slice(&str, 5, 2);
             gp_expect(error == gpstr_error + GPSTR_OUT_OF_BOUNDS,
             ("End cant be larger than start index."));
+        }
 
-            error = gpstr_slice(&str, 3, 3);
-            gp_expect(str.length == 0 && error == &str,
-            ("Same indices should yield an empty non-error string."));
+        gp_test("substr");
+        {
+            GPString src  = gpstr_on_stack("Some_string_to slice");
+            GPString dest = gpstr_on_stack("", 129);
+            gpstr_substr(&dest, src, 5, 11); // not including 11!
+            gp_expect(gpstr_eq(dest, gpstr("string")));
+
+            GPString* error = gpstr_substr(&dest, src, 502, 250);
+            gp_expect(dest.length == 0 && error == &dest,
+            ("Invalid indices should yield an empty string without errors."));
         }
     }
 

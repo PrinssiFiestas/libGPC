@@ -173,10 +173,28 @@ GPString* gpstr_reserve(
     const size_t requested_capacity);
 
 /** Turn to substring @memberof GPString.
- * @return @p str or error string if @p start or @p end are out of bounds.
+ * Creates a substring from @p str starting from @p (str.data[start]) ending to
+ * @p (str.data[end]).
+ *
+ * @return @p str on success. If indices are out of bounds the original string
+ * will be unmutated and an error string is returned.
  */
 GPString* gpstr_slice(
     GPString str[GP_NONNULL],
+    size_t start,
+    size_t end);
+
+/** Copy substring @memberof GPString.
+ * Creates a substring from @p src starting from @p (src.data[start]) ending to
+ * @p (src.data[end]) and copies it to @p dest allocating if necessary.
+ *
+ * @return @p dest or an error string if possible allocation fails.
+ * @note Unlike #gpstr_slice() out of bounds indices will not result in to an
+ * error but an empty string in dest instead.
+ */
+GPString* gpstr_substr(
+    GPString dest[GP_NONNULL],
+    const GPString src,
     size_t start,
     size_t end);
 
@@ -201,21 +219,6 @@ GPString* gpstr_prepend(
 /** Count substrings @memberof GPString.
  * Counts all occurrences of needle in haystack. */
 size_t gpstr_count(const GPString haystack, const GPString needle);
-
-/** Copy substring @memberof GPString.
- * Creates a substring from @p src starting from @p &src.data[start] ending to
- * @p (&src.data[start + length]) and copies it to @p dest allocating if
- * necessary.
- *
- * @param dest Resulting substring will be copied here.
- *
- * @return @p dest or an error string if possible allocation fails.
- */
-GPString* gpstr_substr(
-    GPString dest[GP_NONNULL],
-    const GPString src,
-    size_t start,
-    size_t length);
 
 /** Return value for gpstr_find_first() and gpstr_find_last() when not.
  * found. @memberof GPString
