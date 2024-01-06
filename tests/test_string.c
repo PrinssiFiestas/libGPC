@@ -85,6 +85,9 @@ int main(void)
             gp_expect( ! gpstr_is_view(view));
             gp_expect(gpstr_is_allocated(view));
         }
+
+        gpstr_clear(&on_stack);
+        gpstr_clear(&view);
     }
 
     gp_suite("Substrings");
@@ -130,31 +133,22 @@ int main(void)
         gp_test("Appending");
         {
             gpstr_insert(&str, str.length, gpstr(" tail"));
-            gp_expect(gpstr_eq(str, gpstr("test tail")), (gpstr_cstr(&str)));
+            gp_expect(gpstr_eq(str, gpstr("test tail")));
         }
         gp_test("Prepending");
         {
             gpstr_insert(&str, 0, gpstr("head "));
-            gp_expect(gpstr_eq(str, gpstr("head test tail")), (gpstr_cstr(&str)));
+            gp_expect(gpstr_eq(str, gpstr("head test tail")));
         }
         gp_test("Insertion");
         {
             gpstr_insert(&str, 5, gpstr("insertion "));
-            gp_expect(gpstr_eq(str, gpstr("head insertion test tail")), (gpstr_cstr(&str)));
+            gp_expect(gpstr_eq(str, gpstr("head insertion test tail")));
         }
-        gp_test("Errors");
+        gp_test("Error");
         {
             GPString* error = gpstr_insert(&str, str.length + 1, gpstr("whatever"));
             gp_expect(error == gpstr_error + GPSTR_OUT_OF_BOUNDS);
-
-            // It's OK to take a string view from the destination string and use
-            // it as a source for processing. However, if that would lead to the
-            // source string being mutated an error is returned instead.
-            GPString view = gpstr(str.data + 5, strlen("insertion"));
-            // Prepending would move the whoe str.data which would mutate view.
-            error = gpstr_insert(&str, 0, view);
-            gp_expect(error == gpstr_error + GPSTR_UNINTENDED_VIEW_MUTATION,
-            (gpstr_cstr(&view)));
         }
     }
 

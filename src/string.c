@@ -25,10 +25,6 @@ const GPString gpstr_error[] =
         "Allocating string failed.",
         .allocator = &gpmem_null_allocator
     },
-    [GPSTR_UNINTENDED_VIEW_MUTATION] = {
-        "Processing string mutates read-only source string view.",
-        .allocator = &gpmem_null_allocator
-    },
 };
 
 extern inline char gpstr_at(const GPString s, size_t i);
@@ -226,42 +222,12 @@ GPString* gpstr_insert(
     if (pos >= dest->length + 1) // +1 because +0 is allowed for appending
         return (GPString*)gpstr_error + GPSTR_OUT_OF_BOUNDS;
 
-    // Check if src is a view of dest and gets mutated
-    {
-        const char *const src_start = src.data;
-        const char *const src_end   = src.data + src.length;
-        char* to_be_mutated_start;
-        char* to_be_mutated_end;
-        if (pos >= dest->length / 2) {
-            to_be_mutated_start = dest->data + pos;
-            to_be_mutated_end   = dest->data + dest->length - pos + src.length;
-        } else {
-            to_be_mutated_start = dest->data - src.length;
-            to_be_mutated_end   = dest->data + pos;
-        }
-
-        if ((to_be_mutated_start <= src_start && src_start <= to_be_mutated_end)
-         || (to_be_mutated_start <= src_end && src_end <= to_be_mutated_end)) {
-            return (GPString*)gpstr_error + GPSTR_UNINTENDED_VIEW_MUTATION;
-        }
-    }
-    bool allocation_needed = dest->length + src.length >= dest->allocation->capacity;
-    bool src_lives_in_dest =
-    dest->allocation->data <= src.data && src.data <= dest->allocation->data + dest->allocation->capacity;
-    if (allocation_needed && src_lives_in_dest)
-        return (GPString*)gpstr_error + GPSTR_UNINTENDED_VIEW_MUTATION;
-    // and we're not even half way there. What if there's no capacity left or
-    // right? The error handling logic trying to determine if users src gets
-    // mutated is getting ridiculous. Also, if it's this hard for me, it's
-    // surely double as hard for the user to get using overlapping views right.
-    // I'll commit this anyway now so if I ever feel like supporting
-    // overlapping string views, I know what kind of mess it will be.
-
     if (gpstr_reserve(dest, dest->length + src.length) != dest)
         return (GPString*)gpstr_error + GPSTR_ALLOCATION_FAILURE;
 
     // Make room and do the insertion
-    if (pos >= dest->length / 2) { // move data to the right
+    if (pos >= dest->length / 2 && dest->length + src.length <= r_capacity(*dest)) {
+        // move data to the right
         memmove(dest->data + pos + src.length, dest->data + pos, dest->length - pos);
     } else { // move data to the left
         memmove(dest->data - src.length, dest->data, pos);
