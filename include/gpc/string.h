@@ -197,24 +197,6 @@ GPString* gpstr_substr(
     size_t start,
     size_t end);
 
-/** Append string @memberof GPString.
- * Appends string in @p src to string in @p dest allocating if necessary.
- * If allocation fails only characters that fit in will be appended.
- *
- * @return @p dest if appending was successful, an error string otherwise.
- */
-GPString* gpstr_append(GPString dest[GP_NONNULL], const GPString src);
-
-/** Prepend string @memberof GPString.
- * Prepends string in @p src to string in @p dest allocating if necessary.
- * If allocation fails only characters that fit in will be prepended.
- *
- * @return @p dest if prepending was successful, an error string otherwise.
- */
-GPString* gpstr_prepend(
-    GPString dest[GP_NONNULL],
-    const GPString src);
-
 GPString* gpstr_insert(
     GPString dest[GP_NONNULL],
     size_t pos,

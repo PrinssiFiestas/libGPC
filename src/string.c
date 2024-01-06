@@ -225,41 +225,21 @@ GPString* gpstr_insert(
     if (gpstr_reserve(dest, dest->length + src.length) != dest)
         return (GPString*)gpstr_error + GPSTR_ALLOCATION_FAILURE;
 
-    // Make room and do the insertion
-    if (pos >= dest->length / 2 && dest->length + src.length <= r_capacity(*dest)) {
-        // move data to the right
-        memmove(dest->data + pos + src.length, dest->data + pos, dest->length - pos);
-    } else { // move data to the left
+    bool can_move_left = src.length <= l_capacity(*dest);
+    bool pos_is_left   = pos <= dest->length / 2;
+    bool no_room_right = dest->length + src.length <= r_capacity(*dest);
+
+    if ((pos_is_left && can_move_left) || no_room_right)
+    { // move data to the left
         memmove(dest->data - src.length, dest->data, pos);
         dest->data -= src.length;
+    }
+    else
+    { // move data to the right
+        memmove(dest->data + pos + src.length, dest->data + pos, dest->length - pos);
     }
     memcpy(dest->data + pos, src.data, src.length);
     dest->length += src.length;
     return dest;
 }
-
-
-// GPString* gpstr_append(GPString dest[GP_NONNULL], const GPString src)
-// {
-//     PROPAGATE_ERROR(dest);
-//     bool src_is_view_of_dest = dest->data <= src.data && src.data < dest->data + dest->length;
-//     if (src_is_view_of_dest)
-//     {
-//         // TODO debug these. Those comparisons look suspicially off-by-oneys.
-//         bool src_tail_gets_overwritten = src.data + src.length > dest->data + dest->length;
-//         bool memory_operation_required = dest->length + src.length > r_capacity(*dest);
-//
-//         if (src_tail_gets_overwritten || memory_operation_required)
-//             return (GPString*)gpstr_error + GPSTR_UNINTENDED_VIEW_MUTATION;
-//     }
-//
-//     if (gpstr_reserve(dest, dest->length + src.length) != dest)
-//         return (GPString*)gpstr_error + GPSTR_ALLOCATION_FAILURE;
-//
-//     if (src.length > r_capacity(*dest) - dest->length) // Need more space right
-//         memmove(dest->data, dest->allocation->data, dest->length);
-//
-//     memcpy(dest->data + dest->length, src.data, src.length);
-//     return dest;
-// }
 
