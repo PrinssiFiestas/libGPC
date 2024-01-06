@@ -37,8 +37,8 @@ gpmem_dealloc(const GPAllocator allocator[GP_NONNULL], void* block)
     allocator->dealloc(allocator, block);
 }
 
-#define gp_alloc(allocator, type) \
-    gpmem_alloc((GPAllocator*)(allocator), sizeof(type))
+#define gp_alloc(allocator, type, count) \
+    (type)gpmem_alloc((GPAllocator*)(allocator), (count) * sizeof(type))
 #define gp_dealloc(allocator, block) \
     gpmem_dealloc((GPAllocator*)(allocator), block)
 

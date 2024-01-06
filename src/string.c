@@ -2,6 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#include <signal.h>
+
 #include "../include/gpc/string.h"
 #include "../include/gpc/memory.h"
 #include "../include/gpc/utils.h"
@@ -22,7 +24,11 @@ const GPString gpstr_error[] =
     [GPSTR_ALLOCATION_FAILURE] = {
         "Allocating string failed.",
         .allocator = &gpmem_null_allocator
-    }
+    },
+    [GPSTR_UNINTENDED_VIEW_MUTATION] = {
+        "Processing string mutates read-only source string view.",
+        .allocator = &gpmem_null_allocator
+    },
 };
 
 extern inline char gpstr_at(const GPString s, size_t i);
@@ -99,8 +105,6 @@ const char* gpstr_cstr(GPString str[GP_NONNULL])
         return str->data;
 
     GPString* result = gpstr_reserve(str, str->length + 1);
-    // gpstr_reserve() returns modifyable string or error string so code below
-    // is safe.
     if (result == str)
         result->data[result->length] = '\0';
     return result->data;
@@ -127,7 +131,7 @@ GPString* gpstr_copy(GPString dest[GP_NONNULL], const GPString src)
     }
     else if (src.length > r_capacity(*dest)) // no alloc needed but need more space
     {
-        dest->data -= l_capacity(*dest);
+        dest->data = dest->allocation->data;
     }
 
     memcpy(dest->data, src.data, src.length);
@@ -212,3 +216,84 @@ GPString* gpstr_substr(
     }
     return dest;
 }
+
+GPString* gpstr_insert(
+    GPString dest[GP_NONNULL],
+    const size_t pos,
+    const GPString src)
+{
+    PROPAGATE_ERROR(dest);
+    if (pos >= dest->length + 1) // +1 because +0 is allowed for appending
+        return (GPString*)gpstr_error + GPSTR_OUT_OF_BOUNDS;
+
+    // Check if src is a view of dest and gets mutated
+    {
+        const char *const src_start = src.data;
+        const char *const src_end   = src.data + src.length;
+        char* to_be_mutated_start;
+        char* to_be_mutated_end;
+        if (pos >= dest->length / 2) {
+            to_be_mutated_start = dest->data + pos;
+            to_be_mutated_end   = dest->data + dest->length - pos + src.length;
+        } else {
+            to_be_mutated_start = dest->data - src.length;
+            to_be_mutated_end   = dest->data + pos;
+        }
+
+        if ((to_be_mutated_start <= src_start && src_start <= to_be_mutated_end)
+         || (to_be_mutated_start <= src_end && src_end <= to_be_mutated_end)) {
+            return (GPString*)gpstr_error + GPSTR_UNINTENDED_VIEW_MUTATION;
+        }
+    }
+    bool allocation_needed = dest->length + src.length >= dest->allocation->capacity;
+    bool src_lives_in_dest =
+    dest->allocation->data <= src.data && src.data <= dest->allocation->data + dest->allocation->capacity;
+    if (allocation_needed && src_lives_in_dest)
+        return (GPString*)gpstr_error + GPSTR_UNINTENDED_VIEW_MUTATION;
+    // and we're not even half way there. What if there's no capacity left or
+    // right? The error handling logic trying to determine if users src gets
+    // mutated is getting ridiculous. Also, if it's this hard for me, it's
+    // surely double as hard for the user to get using overlapping views right.
+    // I'll commit this anyway now so if I ever feel like supporting
+    // overlapping string views, I know what kind of mess it will be.
+
+    if (gpstr_reserve(dest, dest->length + src.length) != dest)
+        return (GPString*)gpstr_error + GPSTR_ALLOCATION_FAILURE;
+
+    // Make room and do the insertion
+    if (pos >= dest->length / 2) { // move data to the right
+        memmove(dest->data + pos + src.length, dest->data + pos, dest->length - pos);
+    } else { // move data to the left
+        memmove(dest->data - src.length, dest->data, pos);
+        dest->data -= src.length;
+    }
+    memcpy(dest->data + pos, src.data, src.length);
+    dest->length += src.length;
+    return dest;
+}
+
+
+// GPString* gpstr_append(GPString dest[GP_NONNULL], const GPString src)
+// {
+//     PROPAGATE_ERROR(dest);
+//     bool src_is_view_of_dest = dest->data <= src.data && src.data < dest->data + dest->length;
+//     if (src_is_view_of_dest)
+//     {
+//         // TODO debug these. Those comparisons look suspicially off-by-oneys.
+//         bool src_tail_gets_overwritten = src.data + src.length > dest->data + dest->length;
+//         bool memory_operation_required = dest->length + src.length > r_capacity(*dest);
+//
+//         if (src_tail_gets_overwritten || memory_operation_required)
+//             return (GPString*)gpstr_error + GPSTR_UNINTENDED_VIEW_MUTATION;
+//     }
+//
+//     if (gpstr_reserve(dest, dest->length + src.length) != dest)
+//         return (GPString*)gpstr_error + GPSTR_ALLOCATION_FAILURE;
+//
+//     if (src.length > r_capacity(*dest) - dest->length) // Need more space right
+//         memmove(dest->data, dest->allocation->data, dest->length);
+//
+//     memcpy(dest->data + dest->length, src.data, src.length);
+//     return dest;
+// }
+

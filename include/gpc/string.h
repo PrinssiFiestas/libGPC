@@ -67,6 +67,7 @@ enum
 {
     GPSTR_OUT_OF_BOUNDS,
     GPSTR_ALLOCATION_FAILURE,
+    GPSTR_UNINTENDED_VIEW_MUTATION,
     GPSTR_ERROR_LENGTH
 };
 extern const GPString gpstr_error[GPSTR_ERROR_LENGTH];
@@ -163,8 +164,7 @@ GPString* gpstr_replace_char(GPString s[GP_NONNULL], size_t i, char c);
 /** Preallocate data @memberof GPString.
  * Allocates at least @p requested_capacity if @p requested_capacity is
  * larger than @p s->capacity does nothing otherwise. Used to control when
- * allocation happens or to preallocate string views on performance critical
- * applications.
+ * allocation happens or to preallocate string views.
  *
  * @return @p s or error string if allocation fails.
  */
@@ -214,6 +214,11 @@ GPString* gpstr_append(GPString dest[GP_NONNULL], const GPString src);
  */
 GPString* gpstr_prepend(
     GPString dest[GP_NONNULL],
+    const GPString src);
+
+GPString* gpstr_insert(
+    GPString dest[GP_NONNULL],
+    size_t pos,
     const GPString src);
 
 /** Count substrings @memberof GPString.
