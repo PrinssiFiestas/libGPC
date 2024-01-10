@@ -96,6 +96,16 @@ typedef struct GPString
         enum GPStringError code);
 } GPString;
 
+/** Call error_handler callback @memberof GPString.
+ */
+inline enum GPStringErrorHandling
+gpstr_handle_error(GPString me[GP_NONNULL], enum GPStringError code)
+{
+    if (me->error_handler != NULL)
+        return me->error_handler(me, code);
+    else return GPSTR_DEFAULT;
+}
+
 #if GP_DOXYGEN
 /** Stack constructor MACRO @memberof GPString.
  *
