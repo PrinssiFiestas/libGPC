@@ -5,7 +5,7 @@
 CC = gcc
 CFLAGS  = -Wall -Wextra -Werror
 CFLAGS += -Wdouble-promotion -Wconversion
-CFLAGS += -Wno-missing-field-initializers
+CFLAGS += -Wno-missing-field-initializers -Wno-comment
 
 SRCS = $(wildcard src/*.c)
 OBJS = $(patsubst src/%.c,build/%.o,$(wildcard src/*.c))

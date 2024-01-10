@@ -22,8 +22,8 @@
 /** Memory allocator. */
 typedef struct GPAllocator
 {
-    void* (*alloc)  (const struct GPAllocator*, size_t block_size);
-    void  (*dealloc)(const struct GPAllocator*, void* block);
+    void* (*const alloc)  (const struct GPAllocator*, size_t block_size);
+    void  (*const dealloc)(const struct GPAllocator*, void* block);
 } GPAllocator;
 
 GP_NODISCARD inline void* gpmem_alloc(const GPAllocator a[GP_NONNULL], size_t size)
