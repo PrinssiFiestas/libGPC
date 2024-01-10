@@ -40,7 +40,7 @@ void gp_test(const char* name);
 
 // Starts suite. Subsequent calls starts a new suite ending the last one. If
 // name is NULL last suite will be ended without starting a new suite. Calling
-// with NULL when suite is not running does nothing.
+// with NULL when suite is not running does nothing. Also ends last test.
 void gp_suite(const char* name);
 
 // Optional explicit end of all testing and report results. If this

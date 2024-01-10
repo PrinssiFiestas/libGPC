@@ -69,13 +69,14 @@ void gp_test(const char* name)
     if (gp_current_test != GP_NOT_RUNNING)
     {
         const char* indent = gp_current_suite == GP_NOT_RUNNING ? "" : "\t";
-        if (gp_test_failed)
-        {
+        if (gp_test_failed) {
             gp_tests_failed++;
-            fprintf(stderr, "%s" GP_FAILED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_current_test);
+            fprintf(stderr,
+            "%s" GP_FAILED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_current_test);
+        } else {
+            printf(
+            "%s" GP_PASSED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_current_test);
         }
-        else
-            printf("%s" GP_PASSED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_current_test);
 
         gp_current_test = GP_NOT_RUNNING;
     }
@@ -94,18 +95,17 @@ void gp_test(const char* name)
 void gp_suite(const char* name)
 {
     gp_init_testing();
+    gp_test(NULL); // End current test
 
     // End current suite
     if (gp_current_suite != GP_NOT_RUNNING)
     {
-        if (gp_suite_failed)
-        {
+        if (gp_suite_failed) {
             gp_suites_failed++;
             fprintf(stderr, GP_FAILED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_current_suite);
-        }
-        else
+        } else {
             printf(GP_PASSED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_current_suite);
-
+        }
         gp_current_suite = GP_NOT_RUNNING;
     }
 
