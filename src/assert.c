@@ -181,7 +181,7 @@ char* gp_generate_var_info(const char* var_name, const char* format, /* T var */
     // Build the modified format
     {
         char* p = modified_format;
-        gp_str_push(&p, GP_BRIGHT_GREEN, -1);
+        gp_str_push(&p, GP_BRIGHT_WHITE, -1);
         gp_str_push(&p, var_name, -1);
         gp_str_push(&p, GP_RESET_TERMINAL, -1);
         gp_str_push(&p, " = ", -1);
