@@ -78,7 +78,11 @@ typedef struct GPString
 
 /** Call error_handler callback @memberof GPString.
  */
+<<<<<<< HEAD
 inline enum GPStringError gpstr_handle_error(
+=======
+inline enum GPStringErrorHandling gpstr_handle_error(
+>>>>>>> complete-rewrite
     GPString me[GP_NONNULL],
     enum GPStringError code,
     const char func[GP_NONNULL],
@@ -86,7 +90,11 @@ inline enum GPStringError gpstr_handle_error(
 {
     if (me->error_handler != NULL)
         return me->error_handler(me, code, func, message);
+<<<<<<< HEAD
     else return code;
+=======
+    else return GPSTR_DEFAULT;
+>>>>>>> complete-rewrite
 }
 
 #if GP_DOXYGEN
