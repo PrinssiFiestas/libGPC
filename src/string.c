@@ -13,11 +13,22 @@
 
 extern inline char gpstr_at(GPString s, size_t i);
 extern inline bool gpstr_is_view(GPString s);
-extern inline enum GPStringErrorHandling
-gpstr_handle_error(GPString me[GP_NONNULL], enum GPStringError code);
-
+extern inline enum GPStringErrorHandling gpstr_handle_error(
+    GPString me[GP_NONNULL],
+    enum GPStringError code,
+    const char func[GP_NONNULL],
+    const char message[GP_NONNULL]);
 
 // ----------------------------------------------------------------------------
+
+static const char* s_err_msg[GPSTR_ERROR_LENGTH] = {
+    [GPSTR_NO_ERROR]           = "No error.",
+    [GPSTR_OUT_OF_BOUNDS]      = "Index out of bounds.",
+    [GPSTR_ALLOCATION_FAILURE] = "Allocation failed.",
+};
+#define HANDLE_ERROR(str, ...) GP_OVERLOAD2(__VA_ARGS__, HE2, HE1)(str, __VA_ARGS__)
+#define HE2(str, err, msg) gpstr_handle_error(str, err, __func__, msg)
+#define HE1(str, err) gpstr_handle_error(str, err, __func__, s_err_msg[err])
 
 // Offset from allocation address to the beginning of string data
 static size_t s_l_capacity(GPString s)
@@ -55,7 +66,11 @@ static enum GPStringError s_reserve(GPString s[GP_NONNULL], const size_t request
         char* buf = s_allocate_string_buffer(s, final_cap);
         if (buf == NULL)
             return GPSTR_ALLOCATION_FAILURE;
-        memcpy(buf, s->data, s->length);
+
+        if (s->data != NULL)
+            memcpy(buf, s->data, s->length);
+        else
+            s->length = 0;
         s_free_string(s);
         s->data = s->allocation = buf;
         s->capacity = final_cap;
@@ -68,8 +83,8 @@ static enum GPStringError s_reserve(GPString s[GP_NONNULL], const size_t request
 enum GPStringError gpstr_reserve(GPString s[GP_NONNULL], const size_t requested_capacity)
 {
     int error = s_reserve(s, requested_capacity);
-    if (error && s->error_handler != NULL)
-        s->error_handler(s, error);
+    if (error)
+        HANDLE_ERROR(s, GPSTR_ALLOCATION_FAILURE);
     return error;
 }
 
@@ -82,7 +97,7 @@ const char* gpcstr(GPString str[GP_NONNULL])
         return str->data;
     }
     #ifdef GP_THREAD_LOCAL // C11 -> We have hope
-    else if (gpstr_handle_error(str, error) == GPSTR_CONTINUE)
+    else if (HANDLE_ERROR(str, GPSTR_ALLOCATION_FAILURE) == GPSTR_CONTINUE)
     {
         // Emergency buffers. Shouldn't be too bad to resort to global state
         // because the return value is supposed to be used as a temporary.
@@ -101,7 +116,7 @@ const char* gpcstr(GPString str[GP_NONNULL])
             heap_buf[str->length] = '\0';
             return heap_buf;
         } else {
-            gpstr_handle_error(str, GPSTR_ALLOCATION_FAILURE);
+            HANDLE_ERROR(str, GPSTR_ALLOCATION_FAILURE);
         }
     }
     #endif
@@ -123,7 +138,7 @@ enum GPStringError gpstr_copy(GPString dest[GP_NONNULL], const char src[GP_NONNU
         char* buf = s_allocate_string_buffer(dest, requested_capacity);
         if (buf == NULL)
         {
-            if (gpstr_handle_error(dest, GPSTR_ALLOCATION_FAILURE) != GPSTR_CONTINUE)
+            if (HANDLE_ERROR(dest, GPSTR_ALLOCATION_FAILURE) != GPSTR_CONTINUE)
                 return GPSTR_ALLOCATION_FAILURE;
 
             if (dest->allocation != NULL) // use full capacity
@@ -156,11 +171,11 @@ bool gpstr_eq(const GPString s1, const char s2[GP_NONNULL])
 enum GPStringError gpstr_replace_char(GPString s[GP_NONNULL], size_t i, char c)
 {
     if (i >= s->length) {
-        gpstr_handle_error(s, GPSTR_OUT_OF_BOUNDS);
+        HANDLE_ERROR(s, GPSTR_OUT_OF_BOUNDS);
         return GPSTR_OUT_OF_BOUNDS;
     }
     if (s_reserve(s, s->length) != GPSTR_NO_ERROR) {
-        gpstr_handle_error(s, GPSTR_ALLOCATION_FAILURE);
+        HANDLE_ERROR(s, GPSTR_ALLOCATION_FAILURE);
         return GPSTR_ALLOCATION_FAILURE;
     }
     s->data[i] = c;
@@ -172,15 +187,25 @@ enum GPStringError gpstr_slice(
     const size_t start,
     const size_t end)
 {
-    if (start > str->length || end > str->length || end < start) {
-        gpstr_handle_error(str, GPSTR_OUT_OF_BOUNDS); // TODO truncate
+    const bool out_of_bounds = start >= str->length || end > str->length;
+    if (out_of_bounds && HANDLE_ERROR(str, GPSTR_OUT_OF_BOUNDS) != GPSTR_CONTINUE)
         return GPSTR_OUT_OF_BOUNDS;
+    if (end < start &&
+        HANDLE_ERROR(str, GPSTR_OUT_OF_BOUNDS, "End index smaller that start.") != GPSTR_CONTINUE)
+        return GPSTR_OUT_OF_BOUNDS;
+
+    if (start >= str->length || end <= start) {
+        str->length = 0;
+        return GPSTR_NO_ERROR;
     }
+    const size_t clipped_end = end >= str->length ? str->length : end;
+    const size_t length = clipped_end - start;
+
     if (str->allocation != NULL || gpstr_is_view(*str))
         str->data += start;
     else // Move stack allocated data to retain capacity
-        memmove(str->data, str->data + start, end - start);
-    str->length = end - start;
+        memmove(str->data, str->data + start, length);
+    str->length = length;
 
     return GPSTR_NO_ERROR;
 }
@@ -191,22 +216,32 @@ enum GPStringError gpstr_substr(
     const size_t start,
     const size_t end)
 {
-    const size_t src_length = strlen(src);
-    if (start > src_length || end > src_length || end < start)
-    {
-        if (gpstr_handle_error(dest, GPSTR_OUT_OF_BOUNDS) == GPSTR_RETURN) // TODO truncate
-            return GPSTR_OUT_OF_BOUNDS;
+    if (end < start &&
+        HANDLE_ERROR(dest, GPSTR_OUT_OF_BOUNDS, "End index smaller than start.") == GPSTR_RETURN) {
+        return GPSTR_OUT_OF_BOUNDS;
+    } else if (end < start) {
         dest->length = 0;
+        return GPSTR_NO_ERROR;
     }
-    else
+    const size_t src_length = strlen(src);
+    if (start >= src_length &&
+        HANDLE_ERROR(dest, GPSTR_OUT_OF_BOUNDS) == GPSTR_RETURN) {
+        return GPSTR_OUT_OF_BOUNDS;
+    } else if (start >= src_length) {
+        dest->length = 0;
+        return GPSTR_NO_ERROR;
+    }
+
+    size_t length = end - start;
+    if (gpstr_reserve(dest, length) != GPSTR_NO_ERROR)
     {
-        if (gpstr_reserve(dest, end - start) != GPSTR_NO_ERROR) {
-            gpstr_handle_error(dest, GPSTR_ALLOCATION_FAILURE); // TODO truncate
+        if (HANDLE_ERROR(dest, GPSTR_ALLOCATION_FAILURE) == GPSTR_RETURN)
             return GPSTR_ALLOCATION_FAILURE;
-        }
-        memcpy(dest->data, src + start, end - start);
-        dest->length = end - start;
+
+        length = dest->capacity;
     }
+    memcpy(dest->data, src + start, length);
+    dest->length = length;
     return GPSTR_NO_ERROR;
 }
 
@@ -216,14 +251,15 @@ enum GPStringError gpstr_insert(
     const char src[GP_NONNULL])
 {
     if (pos >= dest->length + 1) {// +1 because +0 is allowed for appending
-        gpstr_handle_error(dest, GPSTR_OUT_OF_BOUNDS);
+        HANDLE_ERROR(dest, GPSTR_OUT_OF_BOUNDS);
         return GPSTR_OUT_OF_BOUNDS;
     }
     size_t src_length = strlen(src);
 
     if (s_reserve(dest, dest->length + src_length) != GPSTR_NO_ERROR) {
-        gpstr_handle_error(dest, GPSTR_ALLOCATION_FAILURE); // TODO truncate
-        return GPSTR_ALLOCATION_FAILURE;
+        if (HANDLE_ERROR(dest, GPSTR_ALLOCATION_FAILURE) != GPSTR_CONTINUE)
+            return GPSTR_ALLOCATION_FAILURE;
+
     }
     bool can_move_left = src_length <= s_l_capacity(*dest);
     bool pos_is_left   = pos <= dest->length / 2;

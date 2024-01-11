@@ -93,16 +93,21 @@ typedef struct GPString
      */
     enum GPStringErrorHandling (*error_handler)(
         struct GPString* me,
-        enum GPStringError code);
+        enum GPStringError code,
+        const char* func,
+        const char* message);
 } GPString;
 
 /** Call error_handler callback @memberof GPString.
  */
-inline enum GPStringErrorHandling
-gpstr_handle_error(GPString me[GP_NONNULL], enum GPStringError code)
+inline enum GPStringErrorHandling gpstr_handle_error(
+    GPString me[GP_NONNULL],
+    enum GPStringError code,
+    const char func[GP_NONNULL],
+    const char message[GP_NONNULL])
 {
     if (me->error_handler != NULL)
-        return me->error_handler(me, code);
+        return me->error_handler(me, code, func, message);
     else return GPSTR_DEFAULT;
 }
 
