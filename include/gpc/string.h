@@ -29,28 +29,9 @@ size_t strlen(const char*);
 enum GPStringError
 {
     GPSTR_NO_ERROR,
-    GPSTR_OUT_OF_BOUNDS,
-    GPSTR_ALLOCATION_FAILURE,
+    GPSTR_INDEX_ERROR,
+    GPSTR_ALLOCATION_ERROR,
     GPSTR_ERROR_LENGTH
-};
-
-/** Return value for #GPString.error_handler @memberof GPString.
- */
-enum GPStringErrorHandling
-{
-    /** Abort processing and return.
-     */
-    GPSTR_RETURN   = -1,
-
-    /** Let the function decide.
-     */
-    GPSTR_DEFAULT  =  0,
-
-    /** Try to continue processing dispite error.
-     * E.g. if allocation fails during string copying, just copy as much as the
-     * original string can hold.
-     */
-    GPSTR_CONTINUE =  1,
 };
 
 /** Mutable string data structure.
@@ -87,23 +68,25 @@ typedef struct GPString
     const GPAllocator* allocator;
 
     /** Optional error handling callback.
-     * The return value is used by processing functions to determine if they
-     * should try to continue processing dispite errors. Also any other debug
-     * code can be executed e.g. writing debug logs, aborting execution etc.
      */
-    enum GPStringErrorHandling (*error_handler)(
+    enum GPStringError (*error_handler)(
         struct GPString* me,
-        enum GPStringError code);
+        enum GPStringError code,
+        const char* func,
+        const char* message);
 } GPString;
 
 /** Call error_handler callback @memberof GPString.
  */
-inline enum GPStringErrorHandling
-gpstr_handle_error(GPString me[GP_NONNULL], enum GPStringError code)
+inline enum GPStringError gpstr_handle_error(
+    GPString me[GP_NONNULL],
+    enum GPStringError code,
+    const char func[GP_NONNULL],
+    const char message[GP_NONNULL])
 {
     if (me->error_handler != NULL)
-        return me->error_handler(me, code);
-    else return GPSTR_DEFAULT;
+        return me->error_handler(me, code, func, message);
+    else return code;
 }
 
 #if GP_DOXYGEN

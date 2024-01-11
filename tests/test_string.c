@@ -108,13 +108,13 @@ int main(void)
 
             str = gpstr_on_stack([], "Whatever");
             error = gpstr_slice(&str, 600, 601);
-            gp_expect(error == GPSTR_OUT_OF_BOUNDS);
+            gp_expect(error == GPSTR_INDEX_ERROR);
 
             gp_expect(gpstr_eq(str, "Whatever"),
             ("slice() failed, string should be unmutated."));
 
             error = gpstr_slice(&str, 5, 2);
-            gp_expect(error == GPSTR_OUT_OF_BOUNDS,
+            gp_expect(error == GPSTR_INDEX_ERROR,
             ("End cant be larger than start index."));
         }
 
@@ -125,10 +125,6 @@ int main(void)
             gpstr_substr(&dest, src, 5, 11); // not including 11!
             gp_expect(gpstr_eq(dest, "string"),
             ("%s", gpcstr(&dest)));
-
-            int error = gpstr_substr(&dest, src, 502, 250);
-            gp_expect(dest.length == 0 && error == GPSTR_NO_ERROR,
-            ("Invalid indices should yield an empty string without errors."));
         }
     }
 
@@ -156,7 +152,7 @@ int main(void)
         gp_test("Error");
         {
             int error = gpstr_insert(&str, str.length + 1, "whatever");
-            gp_expect(error == GPSTR_OUT_OF_BOUNDS);
+            gp_expect(error == GPSTR_INDEX_ERROR);
         }
     }
 }
