@@ -7,22 +7,28 @@ CFLAGS  = -Wall -Wextra -Werror
 CFLAGS += -Wdouble-promotion -Wconversion
 CFLAGS += -Wno-missing-field-initializers -Wno-comment
 
+ifeq ($(OS), Windows_NT)
+	EXE_EXT = .exe
+else
+	EXE_EXT =
+endif
+
 SRCS = $(wildcard src/*.c)
 OBJS = $(patsubst src/%.c,build/%.o,$(wildcard src/*.c))
 
-TESTS = $(patsubst tests/test_%.c,build/test_%.exe,$(wildcard tests/test_*.c))
+TESTS = $(patsubst tests/test_%.c,build/test_%$(EXE_EXT),$(wildcard tests/test_*.c))
 
-.PHONY: tests all release debug testallc
+.PHONY: tests all release debug
 
 .PRECIOUS: $(TESTS)
 
 all: release
 
-release: CFLAGS += -O2 -DNDEBUG
+release: CFLAGS += -O3
 release: build/libgpc.a
 
-debug: CFLAGS += -ggdb3
-debug: build/libgpc.a
+debug: CFLAGS += -ggdb3 -DGP_DEBUG
+debug: build/libgpcd.a
 
 build/libgpc.a: $(OBJS)
 	ar -rcs $@ $^
@@ -33,33 +39,11 @@ $(OBJS): build/%.o : src/%.c
 
 -include $(OBJS:.o=.d)
 
-ifneq ($(patsubst msbuild%,msbuild,$(CC)),msbuild)
 tests: CFLAGS += -DTESTS -ggdb3
 tests: $(TESTS)
 $(TESTS): build/test_%.exe : tests/test_%.c $(OBJS)
 	$(CC) $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@
 	./$@
-else
-define NEWLINE
-
-
-endef
-tests:
-	msbuild.exe libGPC.sln
-	$(foreach test,$(TESTS),./$(test)$(NEWLINE))
-endif
-
-testallc:
-	make clean
-	make tests CC=gcc.exe
-	make clean
-	make tests CC=clang.exe
-	make clean
-	wsl make tests CC=gcc
-	make clean
-	wsl make tests CC=clang
-	make tests CC=msbuild.exe
-	make clean
 
 clean:
 	rm -rf build
