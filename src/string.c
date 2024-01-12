@@ -49,9 +49,8 @@ static enum GPStringError map_error_code(const enum InternalError code)
     }
     return 0;
 }
-#define HANDLE_ERROR(me, ...) GP_OVERLOAD2(__VA_ARGS__, HE2, HE1)(me, __VA_ARGS__)
-#define HE2(me, code, message) gpstr_handle_error(me, code, __func__, message)
-#define HE1(me, code) gpstr_handle_error(me, map_error_code(code), __func__, s_emsg[code])
+#define HANDLE_ERROR(me, code) \
+gpstr_handle_error(me, map_error_code(code), __func__, s_emsg[code])
 
 // Offset from allocation address to the beginning of string data
 static size_t s_l_capacity(GPString s)
@@ -210,9 +209,9 @@ enum GPStringError gpstr_substr(
 
     const size_t length = end - start;
     enum InternalError error = s_reserve(dest, length);
-    if (error) {
+    if (error)
         return HANDLE_ERROR(dest, error);
-    }
+
     memcpy(dest->data, src + start, length);
     dest->length = end - start;
 

@@ -22,7 +22,7 @@ release: CFLAGS += -O2 -DNDEBUG
 release: build/libgpc.a
 
 debug: CFLAGS += -ggdb3
-debug: build/libgpc.ar
+debug: build/libgpc.a
 
 build/libgpc.a: $(OBJS)
 	ar -rcs $@ $^
