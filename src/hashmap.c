@@ -2,7 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#include "../include/gpc/hashmap.h"
+#include <gpc/hashmap.h>
 
 static void gpc_mult64to128(uint64_t u, uint64_t v, uint64_t* h, uint64_t* l)
 {
@@ -35,11 +35,12 @@ uint32_t gpc_hash32(const char* str)
 {
     const uint32_t FNV_prime = 0x01000193;
     const uint32_t FNV_offset_basis = 0x811c9dc5;
+    const unsigned char* ustr = (const unsigned char*)str;
 
     uint32_t hash = FNV_offset_basis;
-    for (; *str; str++)
+    for (; *ustr; ustr++)
     {
-        hash ^= *str;
+        hash ^= *ustr;
         hash *= FNV_prime;
     }
     return hash;
@@ -49,11 +50,12 @@ uint64_t gpc_hash64(const char* str)
 {
     const uint64_t FNV_prime = 0x00000100000001B3;
     const uint64_t FNV_offset_basis = 0xcbf29ce484222325;
+    const unsigned char* ustr = (const unsigned char*)str;
 
     uint64_t hash = FNV_offset_basis;
-    for (; *str; str++)
+    for (; *ustr; ustr++)
     {
-        hash ^= *str;
+        hash ^= *ustr;
         hash *= FNV_prime;
     }
     return hash;
@@ -63,11 +65,12 @@ gpc_Uint128 gpc_hash128(const char* str)
 {
     const gpc_Uint128 FNV_prime = {	0x000000000000013B, 0x0000000001000000};
     const gpc_Uint128 FNV_offset_basis = { 0x62b821756295c58d, 0x6c62272e07bb0142 };
+    const unsigned char* ustr = (const unsigned char*)str;
 
     gpc_Uint128 hash = FNV_offset_basis;
-    for (; *str; str++)
+    for (; *ustr; ustr++)
     {
-        hash.lo ^= *str;
+        hash.lo ^= *ustr;
         gpc_mult128(hash, FNV_prime, &hash);
     }
 

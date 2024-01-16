@@ -6,6 +6,7 @@ CC = gcc
 CFLAGS  = -Wall -Wextra -Werror
 CFLAGS += -Wdouble-promotion -Wconversion
 CFLAGS += -Wno-missing-field-initializers -Wno-comment
+CFLAGS += -Iinclude
 
 ifeq ($(OS), Windows_NT)
 	EXE_EXT = .exe

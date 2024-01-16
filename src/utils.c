@@ -6,7 +6,8 @@
 // (c) 2014 M.E. O'Neill / pcg-random.org
 // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
 
-#include "../include/gpc/utils.h"
+#include <gpc/utils.h>
+#include <gpc/memory.h>
 #include "pcg_basic.h"
 #include <string.h>
 #include <math.h>
@@ -55,7 +56,6 @@ int32_t gp_g_random_range(int32_t min, int32_t max)
         return -(int32_t)pcg32_boundedrand((uint32_t)(-max + min - 1)) + min;
 }
 
-#include "../include/gpc/memory.h"
 void gp_random_seed(gp_RandomState* state, uint64_t seed)
 {
     pcg32_srandom_r((pcg32_random_t*)state, seed, 0xf35d3918378e53c4ULL);

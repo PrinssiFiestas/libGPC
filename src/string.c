@@ -4,9 +4,9 @@
 
 #include <signal.h>
 
-#include "../include/gpc/string.h"
-#include "../include/gpc/memory.h"
-#include "../include/gpc/utils.h"
+#include <gpc/string.h>
+#include <gpc/memory.h>
+#include <gpc/utils.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdlib.h>

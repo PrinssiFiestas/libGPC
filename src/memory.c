@@ -2,7 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#include "../include/gpc/memory.h"
+#include <gpc/memory.h>
 #include <stdlib.h>
 
 extern inline void* gpmem_alloc(const GPAllocator[GP_NONNULL], size_t);
