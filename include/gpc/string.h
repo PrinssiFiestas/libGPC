@@ -15,8 +15,31 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <limits.h>
-typedef struct GPAllocator GPAllocator;
+#include <gpc/memory.h> // TODO just get def for GPAllocator
 size_t strlen(const char*);
+
+// TODO move this to appropriate header
+static inline bool gp_clip_range(size_t* start, size_t* end, size_t limit)
+{
+    bool clipped = false;
+
+    // TODO confirm that this works with any start and end when limit == 0.
+
+    if (end != NULL && *end > limit) {
+        *end = limit;
+        clipped = true;
+    }
+
+    if (limit == 0) // prevent underflow for start
+        limit = 1;
+
+    if (start != NULL && *start >= limit) {
+        *start = limit - 1;
+        clipped = true;
+    }
+
+    return clipped;
+}
 
 // ----------------------------------------------------------------------------
 //
@@ -24,20 +47,9 @@ size_t strlen(const char*);
 //
 // ----------------------------------------------------------------------------
 
-/** Return values for most functions @memberof GPString.
- */
-enum GPStringError
-{
-    GPSTR_NO_ERROR,
-    GPSTR_INDEX_ERROR,
-    GPSTR_ALLOCATION_ERROR,
-    GPSTR_ERROR_LENGTH
-};
+// TODO fix all docs
 
-/** Mutable string data structure.
- *
- * Members can be initialized with struct altough it is recommended to use the
- * provided constructor macros #gpstr() and #gpstr_on_stack().
+/** String data structure.
  */
 typedef struct GPString
 {
@@ -54,40 +66,7 @@ typedef struct GPString
     /** Bytes that can be stored without reallocation.
      */
     size_t capacity;
-
-    /** Memory allocated by @ref allocator.
-     * NULL for stack allocated strings.
-     */
-    char* allocation;
-
-    /** Optional explicit allocator required for dynamic strings.
-     * NULL is not a valid allocator so allocation attempts will lead to
-     * GPSTR_ALLOCATION_FAILURE. Use a allocator from memory.h to make strings
-     * dynamic.
-     */
-    const GPAllocator* allocator;
-
-    /** Optional error handling callback.
-     */
-    enum GPStringError (*error_handler)(
-        struct GPString* me,
-        enum GPStringError code,
-        const char* func,
-        const char* message);
 } GPString;
-
-/** Call error_handler callback @memberof GPString.
- */
-inline enum GPStringError gpstr_handle_error(
-    GPString me[GP_NONNULL],
-    enum GPStringError code,
-    const char func[GP_NONNULL],
-    const char message[GP_NONNULL])
-{
-    if (me->error_handler != NULL)
-        return me->error_handler(me, code, func, message);
-    else return code;
-}
 
 #if GP_DOXYGEN
 /** Stack constructor MACRO @memberof GPString.
@@ -106,32 +85,35 @@ GPString gpstr_on_stack(
     GPAllocator* allocator/* = NULL */);
 #endif // GP_DOXYGEN
 
-/** GPString to null-terminated C-string conversion @memberof GPString.
- *
- * Alloates if capacity is not large enough for null-termination.
+// TODO remove static
+/** Create string view @memberof GPString.
  */
-const char* gpcstr(GPString str[GP_NONNULL]);
+static inline GPString gpstr(const char cstr[GP_NONNULL])
+{
+    return (GPString){ (char*)cstr, strlen(cstr) };
+}
+
+/** GPString to null-terminated C-string conversion @memberof GPString.
+ */
+inline const char* gpcstr(GPString str)
+{
+    str.data[str.length] = '\0';
+    return str.data;
+}
 
 /** Frees @p str->allocation and sets all fields to 0 @memberof GPString.
  *
  * @note This only frees @p str->allocation. If @p str itself is allocated, it
  * will not be freed.
  */
-void gpstr_clear(GPString str[GP_NONNULL]);
+void gpstr_clear(GPString s[GP_NONNULL], GPAllocator* allocator);
 
 /** String copying @memberof GPString.
  *
  * Copies @p src to @p dest allocating if @p dest->capacity is not large enough.
  */
-enum GPStringError
-gpstr_copy(GPString dest[GP_NONNULL], const char src[GP_NONNULL]);
-
-/** Access character with bounds checking @memberof GPString.
- */
-inline char gpstr_at(GPString s, size_t i)
-{
-    return i <= s.length ? s.data[i] : '\0';
-}
+GPString*
+gpstr_copy(GPString dest[GP_NONNULL], const GPString src);
 
 /** Check if string is used as string view @memberof GPString.
  */
@@ -139,18 +121,6 @@ inline bool gpstr_is_view(GPString s)
 {
     return s.capacity == 0;
 }
-
-/** Replace character with bounds checking @memberof GPString.
- *
- * @param s Pointer to string for the character to be inserted.
- * @param i Index where character is to be inserted.
- * @param c The character to be inserted.
- *
- * @return @p s or error string if i is out of bounds.
- *
- * @note Allocates if @p s is used as string view.
- */
-enum GPStringError gpstr_replace_char(GPString s[GP_NONNULL], size_t i, char c);
 
 /** Preallocate data @memberof GPString.
  *
@@ -160,9 +130,10 @@ enum GPStringError gpstr_replace_char(GPString s[GP_NONNULL], size_t i, char c);
  *
  * @return @p s or error string if allocation fails.
  */
-enum GPStringError gpstr_reserve(
+GPString* gpstr_reserve(
     GPString s[GP_NONNULL],
-    const size_t requested_capacity);
+    size_t requested_capacity,
+    GPAllocator allocator[GP_NONNULL]);
 
 /** Turn to substring @memberof GPString.
  *
@@ -172,7 +143,7 @@ enum GPStringError gpstr_reserve(
  * @return @p str on success. If indices are out of bounds the original string
  * will be unmutated and an error string is returned.
  */
-enum GPStringError gpstr_slice(
+GPString* gpstr_slice(
     GPString str[GP_NONNULL],
     size_t start,
     size_t end);
@@ -186,21 +157,21 @@ enum GPStringError gpstr_slice(
  * @note Unlike #gpstr_slice() out of bounds indices will not result in to an
  * error but an empty string in dest instead.
  */
-enum GPStringError gpstr_substr(
+GPString* gpstr_substr(
     GPString dest[GP_NONNULL],
-    const char src[GP_NONNULL],
+    const GPString src,
     size_t start,
     size_t end);
 
-enum GPStringError gpstr_insert(
+GPString* gpstr_insert(
     GPString dest[GP_NONNULL],
     size_t pos,
-    const char src[GP_NONNULL]);
+    const GPString src);
 
 /** Count substrings @memberof GPString.
  *
  * Counts all occurrences of needle in haystack. */
-size_t gpstr_count(GPString haystack, const char needle[GP_NONNULL]);
+size_t gpstr_count(GPString haystack, const GPString needle);
 
 /** Return value for gpstr_find_first() and gpstr_find_last() when not found.
  * @memberof GPString
@@ -212,14 +183,14 @@ size_t gpstr_count(GPString haystack, const char needle[GP_NONNULL]);
  * @return index of first occurrence of @p needle in @p haystack, GPC_NOT_FOUND
  * if not found.
  */
-size_t gpstr_find(GPString haystack, const char needle[GP_NONNULL]);
+size_t gpstr_find(GPString haystack, const GPString needle);
 
 /** Find last substring @memberof GPString.
  *
  * @return index of last occurrence of @p needle in @p haystack, GPC_NOT_FOUND
  * if not found.
  */
-size_t gpstr_find_last(GPString haystack, const char needle[GP_NONNULL]);
+size_t gpstr_find_last(GPString haystack, const GPString needle);
 
 /** Find and replace substring @memberof GPString.
  *
@@ -227,10 +198,10 @@ size_t gpstr_find_last(GPString haystack, const char needle[GP_NONNULL]);
  *
  * @return @p haystack and NULL if allocation failed.
  */
-enum GPStringError gpstr_replace(
+GPString* gpstr_replace(
     GPString haystack[GP_NONNULL],
-    const char needle[GP_NONNULL],
-    const char replacement[GP_NONNULL]);
+    const GPString needle,
+    const GPString replacement);
 
 /** Find and replace last occurrence of substring @memberof GPString.
  *
@@ -238,10 +209,10 @@ enum GPStringError gpstr_replace(
  *
  * @return @p haystack or an error string if allocation failed.
  */
- enum GPStringError str_replace_last(
+ GPString* str_replace_last(
     GPString haystack[GP_NONNULL],
-    const char needle[GP_NONNULL],
-    const char replacement[GP_NONNULL]);
+    const GPString needle,
+    const GPString replacement);
 
 /** Find and replace all occurrences of substring @memberof GPString.
  *
@@ -249,16 +220,16 @@ enum GPStringError gpstr_replace(
  *
  * @return @p haystack or an error string if allocation failed.
  */
-enum GPStringError gpstr_replace_all(
+GPString* gpstr_replace_all(
     GPString haystack[GP_NONNULL],
-    const char needle[GP_NONNULL],
-    const char replacement[GP_NONNULL]);
+    const GPString needle,
+    const GPString replacement);
 
 /** Compare strings @memberof GPString.
  *
  * @return true if strings in @p s1 and @p s2 are equal, false otherwise
  */
-bool gpstr_eq(GPString s1, const char s2[GP_NONNULL]);
+bool gpstr_eq(GPString s1, const GPString s2);
 
 // ----------------------------------------------------------------------------
 //
@@ -269,22 +240,11 @@ bool gpstr_eq(GPString s1, const char s2[GP_NONNULL]);
 // ----------------------------------------------------------------------------
 
 /**@cond */
-#define gpstr_on_stack(cap_in_sqr_brackets, ...) GP_OVERLOAD2(__VA_ARGS__, \
-    gpstr_on_stack_with_allocator, \
-    gpstr_on_stack_wout_allocator)(cap_in_sqr_brackets, __VA_ARGS__)
-/**@endcond */
-
-#define gpstr_on_stack_wout_allocator(cap_in_sqr_brackets, literal) \
+#define gpstr_on_stack(cap_in_sqr_brackets, literal) \
 (GPString) { \
     .data      = (char cap_in_sqr_brackets){literal}, \
     .length    = sizeof(literal) - 1, \
     .capacity  = sizeof((char cap_in_sqr_brackets){literal}) }
-
-#define gpstr_on_stack_with_allocator(cap_in_sqr_brackets, literal, mallocator) \
-(GPString) { \
-    .data      = (char cap_in_sqr_brackets){literal}, \
-    .length    = sizeof(literal) - 1, \
-    .capacity  = sizeof((char cap_in_sqr_brackets){literal}), \
-    .allocator = (mallocator) }
+/**@endcond */
 
 #endif // GPSTRING_INCLUDED
