@@ -175,3 +175,14 @@ size_t gpstr_find_last(const GPString haystack, const GPString needle)
     }
     return position;
 }
+
+size_t gpstr_count(const GPString haystack, const GPString needle)
+{
+    size_t count = 0;
+    size_t i = 0;
+    while ((i = gpstr_find(haystack, needle, i)) != GP_NOT_FOUND) {
+        count++;
+        i++;
+    }
+    return count;
+}

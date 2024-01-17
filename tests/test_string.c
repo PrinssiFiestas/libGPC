@@ -71,6 +71,11 @@ int main(void)
             pos = gpstr_find_last(haystack, gpstr("not in haystack string"));
             gp_expect(pos == GP_NOT_FOUND);
         }
+        gp_test("count");
+        {
+            size_t count = gpstr_count(haystack, needle);
+            gp_expect(count == 4);
+        }
     }
 
     // ------------------------------------------------------------------------
