@@ -168,29 +168,29 @@ GPString* gpstr_insert(
     size_t pos,
     const GPString src);
 
+/** Return value for gpstr_find_first() and gpstr_find_last() when not found.
+ * @memberof GPString
+ */
+#define GP_NOT_FOUND ((size_t)-1)
+
+/** Find substring @memberof GPString.
+ *
+ * @return index of first occurrence of @p needle in @p haystack, GP_NOT_FOUND
+ * if not found.
+ */
+size_t gpstr_find(GPString haystack, const GPString needle, size_t start);
+
+/** Find last substring @memberof GPString.
+ *
+ * @return index of last occurrence of @p needle in @p haystack, GP_NOT_FOUND
+ * if not found.
+ */
+size_t gpstr_find_last(GPString haystack, const GPString needle);
+
 /** Count substrings @memberof GPString.
  *
  * Counts all occurrences of needle in haystack. */
 size_t gpstr_count(GPString haystack, const GPString needle);
-
-/** Return value for gpstr_find_first() and gpstr_find_last() when not found.
- * @memberof GPString
- */
-#define GPC_NOT_FOUND ((size_t)-1)
-
-/** Find substring @memberof GPString.
- *
- * @return index of first occurrence of @p needle in @p haystack, GPC_NOT_FOUND
- * if not found.
- */
-size_t gpstr_find(GPString haystack, const GPString needle);
-
-/** Find last substring @memberof GPString.
- *
- * @return index of last occurrence of @p needle in @p haystack, GPC_NOT_FOUND
- * if not found.
- */
-size_t gpstr_find_last(GPString haystack, const GPString needle);
 
 /** Find and replace substring @memberof GPString.
  *

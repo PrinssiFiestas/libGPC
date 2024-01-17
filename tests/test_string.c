@@ -48,4 +48,47 @@ int main(void)
             (gpcstr(str)));
         }
     }
+
+    gp_suite("finding");
+    {
+        GPString haystack = gpstr("bbbaabaaabaa");
+        GPString needle = gpstr("aa");
+        size_t pos = 0;
+
+        gp_test("find");
+        {
+            pos = gpstr_find(haystack, needle, 0);
+            gp_expect(pos == 3);
+            pos = gpstr_find(haystack, needle, 4);
+            gp_expect(pos == 6);
+            pos = gpstr_find(haystack, gpstr("not in haystack string"), 0);
+            gp_expect(pos == GP_NOT_FOUND);
+        }
+        gp_test("find_last");
+        {
+            pos = gpstr_find_last(haystack, needle);
+            gp_expect(pos == 10, (pos));
+            pos = gpstr_find_last(haystack, gpstr("not in haystack string"));
+            gp_expect(pos == GP_NOT_FOUND);
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // Test internals
+
+    gp_test("memchr_r");
+    {
+        const char* haystack = "dcba";
+        const char* haystack_end = haystack + strlen(haystack);
+        size_t pos = GP_NOT_FOUND;
+
+        pos = (size_t)(memchr_r(haystack_end, 'a', strlen(haystack)) - haystack);
+        gp_expect(pos == 3, (pos));
+
+        pos = (size_t)(memchr_r(haystack_end, 'd', strlen(haystack)) - haystack);
+        gp_expect(pos == 0, (pos));
+
+        const char* _pos = memchr_r(haystack_end, 'x', strlen(haystack));
+        gp_expect(_pos == NULL);
+    }
 }
