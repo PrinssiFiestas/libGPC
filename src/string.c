@@ -76,10 +76,7 @@ GPString* gpstr_slice(
         gp_debug_segfault();
 
     const size_t length = end - start;
-    if (gpstr_is_view(*str))
-        str->data += start;
-    else
-        memmove(str->data, str->data + start, length);
+    memmove(str->data, str->data + start, length);
     str->length = length;
 
     return str;
@@ -185,4 +182,49 @@ size_t gpstr_count(const GPString haystack, const GPString needle)
         i++;
     }
     return count;
+}
+
+static GPString* replace_range(
+    GPString me[GP_NONNULL],
+    const size_t start,
+    const size_t end,
+    const GPString replacement)
+{
+    memmove(
+        me->data + start + replacement.length,
+        me->data + end,
+        me->length - end);
+
+    memcpy(me->data + start, replacement.data, replacement.length);
+    me->length += replacement.length - (end - start);
+    return me;
+}
+
+size_t gpstr_replace(
+    GPString me[GP_NONNULL],
+    const GPString needle,
+    const GPString replacement,
+    size_t start)
+{
+    if ((start = gpstr_find(*me, needle, start)) == GP_NOT_FOUND)
+        return GP_NOT_FOUND;
+    const size_t end = start + needle.length;
+    replace_range(me, start, end, replacement);
+    return start;
+}
+
+unsigned gpstr_replace_all(
+    GPString me[GP_NONNULL],
+    const GPString needle,
+    const GPString replacement)
+{
+    size_t start = 0;
+    unsigned replacement_count = 0;
+    while ((start = gpstr_find(*me, needle, start)) != GP_NOT_FOUND)
+    {
+        replace_range(me, start, start + needle.length, replacement);
+        start += replacement.length;
+        replacement_count++;
+    }
+    return replacement_count;
 }

@@ -78,6 +78,30 @@ int main(void)
         }
     }
 
+    gp_suite("replacing substrings");
+    {
+        gp_test("replace");
+        {
+            GPString str = gpstr_on_stack([128], "aaabbbcccaaa");
+            size_t needlepos = gpstr_replace(&str, gpstr("bbb"), gpstr("X"), 0);
+            gp_expect(gpstr_eq(str, gpstr("aaaXcccaaa")));
+            gp_expect(needlepos == 3);
+
+            gpstr_replace(&str, gpstr("aaa"), gpstr("XXXXX"), 3);
+            gp_expect(gpstr_eq(str, gpstr("aaaXcccXXXXX")));
+
+        }
+
+        gp_test("replace_all");
+        {
+            GPString str = gpstr_on_stack([128], "aaxxbbxxxccxx");
+            unsigned replacement_count =
+                gpstr_replace_all(&str, gpstr("xx"), gpstr("XXX"));
+            gp_expect(gpstr_eq(str, gpstr("aaXXXbbXXXxccXXX")));
+            gp_expect(replacement_count == 3);
+        }
+    }
+
     // ------------------------------------------------------------------------
     // Test internals
 

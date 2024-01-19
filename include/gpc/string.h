@@ -178,50 +178,37 @@ GPString* gpstr_insert(
  * @return index of first occurrence of @p needle in @p haystack, GP_NOT_FOUND
  * if not found.
  */
-size_t gpstr_find(GPString haystack, const GPString needle, size_t start);
+size_t gpstr_find(const GPString haystack, const GPString needle, size_t start);
 
 /** Find last substring @memberof GPString.
  *
  * @return index of last occurrence of @p needle in @p haystack, GP_NOT_FOUND
  * if not found.
  */
-size_t gpstr_find_last(GPString haystack, const GPString needle);
+size_t gpstr_find_last(const GPString haystack, const GPString needle);
 
 /** Count substrings @memberof GPString.
  *
  * Counts all occurrences of needle in haystack. */
-size_t gpstr_count(GPString haystack, const GPString needle);
+size_t gpstr_count(const GPString haystack, const GPString needle);
 
 /** Find and replace substring @memberof GPString.
  *
- * Allocates if necessary.
- *
- * @return @p haystack and NULL if allocation failed.
+ * @return index of first occurrence of @p needle in @p me, GP_NOT_FOUND if not
+ * found.
  */
-GPString* gpstr_replace(
-    GPString haystack[GP_NONNULL],
+size_t gpstr_replace(
+    GPString me[GP_NONNULL],
     const GPString needle,
-    const GPString replacement);
-
-/** Find and replace last occurrence of substring @memberof GPString.
- *
- * Allocates if necessary.
- *
- * @return @p haystack or an error string if allocation failed.
- */
- GPString* str_replace_last(
-    GPString haystack[GP_NONNULL],
-    const GPString needle,
-    const GPString replacement);
+    const GPString replacement,
+    size_t start);
 
 /** Find and replace all occurrences of substring @memberof GPString.
  *
- * Allocates if necessary.
- *
- * @return @p haystack or an error string if allocation failed.
+ * @return the amount of replacements.
  */
-GPString* gpstr_replace_all(
-    GPString haystack[GP_NONNULL],
+unsigned gpstr_replace_all(
+    GPString me[GP_NONNULL],
     const GPString needle,
     const GPString replacement);
 
