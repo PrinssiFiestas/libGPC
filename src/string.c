@@ -229,11 +229,9 @@ unsigned gpstr_replace_all(
     return replacement_count;
 }
 
-GPString* gpstr_trim(GPString me[GP_NONNULL], const char* char_set, int mode)
+GPString*
+gpstr_trim(GPString me[GP_NONNULL], const char char_set[GP_NONNULL], int mode)
 {
-    if (char_set == NULL)
-        char_set = " \t\r\n\v\f";
-
     size_t i_l = 0;
     size_t i_r = me->length;
 

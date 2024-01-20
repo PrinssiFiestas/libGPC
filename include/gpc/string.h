@@ -215,8 +215,11 @@ unsigned gpstr_replace_all(
 #define GPSTR_WHITESPACE " \t\n\v\f\r"
 
 /** Trim chars from the start, end, or both sides of string @memberof GPString.
+ *
+ * @param mode 'l' to trim from left, 'r' to trim from right, 'l' + 'r' for both
  */
-GPString* gpstr_trim(GPString me[GP_NONNULL], const char* char_set, int mode);
+GPString*
+gpstr_trim(GPString me[GP_NONNULL], const char char_set[GP_NONNULL], int mode);
 
 /** Compare strings @memberof GPString.
  *
