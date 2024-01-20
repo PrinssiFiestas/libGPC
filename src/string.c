@@ -228,3 +228,28 @@ unsigned gpstr_replace_all(
     }
     return replacement_count;
 }
+
+GPString* gpstr_trim(GPString me[GP_NONNULL], const char* char_set, int mode)
+{
+    if (char_set == NULL)
+        char_set = " \t\r\n\v\f";
+
+    size_t i_l = 0;
+    size_t i_r = me->length;
+
+    if (mode == 'l' || mode == 'l' + 'r')
+        while (strchr(char_set, me->data[i_l]))
+            i_l++;
+
+    if (mode == 'r' || mode == 'l' + 'r') {
+        i_r--;
+        while (strchr(char_set, me->data[i_r]))
+            i_r--;
+    }
+
+    memmove(me->data, me->data + i_l, me->length - i_l);
+    me->length -= i_l + (me->length - i_r);
+    if (mode == 'r' || mode == 'l' + 'r')
+        me->length++;
+    return me;
+}

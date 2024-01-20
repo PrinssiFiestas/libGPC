@@ -212,6 +212,12 @@ unsigned gpstr_replace_all(
     const GPString needle,
     const GPString replacement);
 
+#define GPSTR_WHITESPACE " \t\n\v\f\r"
+
+/** Trim chars from the start, end, or both sides of string @memberof GPString.
+ */
+GPString* gpstr_trim(GPString me[GP_NONNULL], const char* char_set, int mode);
+
 /** Compare strings @memberof GPString.
  *
  * @return true if strings in @p s1 and @p s2 are equal, false otherwise

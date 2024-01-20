@@ -102,6 +102,30 @@ int main(void)
         }
     }
 
+    gp_suite("trim");
+    {
+        gp_test("left");
+        {
+            GPString str = gpstr_on_stack([128], "  \t\f \nLeft");
+            gpstr_trim(&str, NULL, 'l');
+            gp_expect(gpstr_eq(str, gpstr("Left")), (gpcstr(str)));
+        }
+
+        gp_test("right");
+        {
+            GPString str = gpstr_on_stack([128], "Right   \t\v\n\r");
+            gpstr_trim(&str, NULL, 'r');
+            gp_expect(gpstr_eq(str, gpstr("Right")), (gpcstr(str)));
+        }
+
+        gp_test("left and right");
+        {
+            GPString str = gpstr_on_stack([128], "   __Left and Right__   ");
+            gpstr_trim(&str, GPSTR_WHITESPACE "_", 'l' + 'r');
+            gp_expect(gpstr_eq(str, gpstr("Left and Right")), (gpcstr(str)));
+        }
+    }
+
     // ------------------------------------------------------------------------
     // Test internals
 
