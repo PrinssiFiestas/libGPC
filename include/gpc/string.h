@@ -62,10 +62,6 @@ typedef struct GPString
      * 0 indicates an empty string regardless of contents in @ref data
      */
     size_t length;
-
-    /** Bytes that can be stored without reallocation.
-     */
-    size_t capacity;
 } GPString;
 
 #if GP_DOXYGEN
@@ -101,39 +97,12 @@ inline const char* gpcstr(GPString str)
     return str.data;
 }
 
-/** Frees @p str->allocation and sets all fields to 0 @memberof GPString.
- *
- * @note This only frees @p str->allocation. If @p str itself is allocated, it
- * will not be freed.
- */
-void gpstr_clear(GPString s[GP_NONNULL], GPAllocator* allocator);
-
 /** String copying @memberof GPString.
  *
  * Copies @p src to @p dest allocating if @p dest->capacity is not large enough.
  */
 GPString*
 gpstr_copy(GPString dest[GP_NONNULL], const GPString src);
-
-/** Check if string is used as string view @memberof GPString.
- */
-inline bool gpstr_is_view(GPString s)
-{
-    return s.capacity == 0;
-}
-
-/** Preallocate data @memberof GPString.
- *
- * Allocates at least @p requested_capacity if @p requested_capacity is
- * larger than @p s->capacity does nothing otherwise. Used to control when
- * allocation happens or to preallocate string views.
- *
- * @return @p s or error string if allocation fails.
- */
-GPString* gpstr_reserve(
-    GPString s[GP_NONNULL],
-    size_t requested_capacity,
-    GPAllocator allocator[GP_NONNULL]);
 
 /** Turn to substring @memberof GPString.
  *
@@ -230,8 +199,11 @@ bool gpstr_eq(GPString s1, const GPString s2);
 #if GP_DOXYGEN
 
 /** Format string MACRO @memberof GPString.
+ *
+ * @return number of bytes written to @p me. If @p me is NULL, returns number of
+ * bytes that would be written.
  */
-size_t gpstr_interpolate(GPString me[GP_NONNULL], ...);
+size_t gpstr_interpolate(GPString* me, ...);
 
 #endif // GP_DOXYGEN
 
@@ -247,8 +219,7 @@ size_t gpstr_interpolate(GPString me[GP_NONNULL], ...);
 #define gpstr_on_stack(cap_in_sqr_brackets, literal) \
 (GPString) { \
     .data      = (char cap_in_sqr_brackets){literal}, \
-    .length    = sizeof(literal) - 1, \
-    .capacity  = sizeof((char cap_in_sqr_brackets){literal}) }
+    .length    = sizeof(literal) - 1, }
 
 // TODO is that GP_COMMA(0) required?
 #define GPSTR_FORMAT_WITH_ARG(ARG) GP_GET_FORMAT(ARG) GP_COMMA(0) ARG

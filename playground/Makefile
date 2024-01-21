@@ -1,5 +1,5 @@
 all: ../build/libgpc.a
-	gcc -o haversine.exe ../build/libgpc.a haversine.c -Wall
+	gcc haversine.c ../build/libgpc.a -Wall -I../include/ -o haversine.exe
 
 ../build/libgpc.a:
 	make -C ..

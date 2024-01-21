@@ -29,32 +29,6 @@ extern inline const char* gpcstr(GPString str);
 
 // ----------------------------------------------------------------------------
 
-GPString* gpstr_reserve(
-    GPString s[GP_NONNULL],
-    const size_t requested_capacity,
-    GPAllocator allocator[GP_NONNULL])
-{
-    if (requested_capacity > s->capacity)
-    {
-        const size_t final_cap = gp_next_power_of_2(requested_capacity);
-        char* buf = gpmem_alloc(allocator, final_cap);
-        if (buf == NULL)
-            return NULL;
-        memcpy(buf, s->data, s->length);
-        gpmem_dealloc(allocator, s->data);
-        s->data = buf;
-        s->capacity = final_cap;
-    }
-    return s;
-}
-
-void gpstr_clear(GPString s[GP_NONNULL], GPAllocator* allocator)
-{
-    if (allocator != NULL)
-        gpmem_dealloc(allocator, s);
-    *s = (GPString){0};
-}
-
 GPString* gpstr_copy(GPString dest[GP_NONNULL], const GPString src)
 {
     memcpy(dest->data, src.data, src.length);
@@ -258,25 +232,24 @@ size_t
 gpstr_interpolate_internal(GPString* me, unsigned arg_count, ...)
 {
     size_t chars_written = 0;
-    size_t cap_left = 0;
     char* data = NULL;
+    size_t mode = 0; // 0 to calculate length, SIZE_MAX for sprinting to me
     if (me != NULL)
     {
-        cap_left = me->capacity;
         data = me->data;
+        mode = SIZE_MAX;
     }
 
     va_list args;
     va_start(args, arg_count);
-    while (arg_count && cap_left)
+    while (arg_count)
     {
         const char* fmt = va_arg(args, const char*);
-        size_t copied = (size_t)vsnprintf(data, cap_left, fmt, args);
+        size_t copied = (size_t)vsnprintf(data, mode, fmt, args);
         // vsnprintf() didn't consume arg from args so here's a dummy consumption
         (void)va_arg(args, void*);
 
         data += copied;
-        cap_left -= copied;
         chars_written += copied;
         arg_count--;
     }
