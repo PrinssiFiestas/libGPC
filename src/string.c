@@ -8,7 +8,7 @@
 #else
     #define GP_ALWAYS_INLINE inline
 #endif
-GP_ALWAYS_INLINE void gp_debug_segfault(void)
+GP_ALWAYS_INLINE void gp_debug_segfault(void) // TODO just put this in a macro
 {
     #if GP_DEBUG
         raise(SIGSEGV);
@@ -18,9 +18,11 @@ GP_ALWAYS_INLINE void gp_debug_segfault(void)
 #include <gpc/string.h>
 #include <gpc/memory.h>
 #include <gpc/utils.h>
-#include <stddef.h>
+#include <stdio.h>
+#include <stddef.h> // TODO needed?
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 extern inline bool gpstr_is_view(GPString s);
 extern inline const char* gpcstr(GPString str);
@@ -250,4 +252,37 @@ gpstr_trim(GPString me[GP_NONNULL], const char char_set[GP_NONNULL], int mode)
     if (mode == 'r' || mode == 'l' + 'r')
         me->length++;
     return me;
+}
+
+size_t
+gpstr_interpolate_internal(GPString* me, unsigned arg_count, ...)
+{
+    size_t chars_written = 0;
+    size_t cap_left = 0;
+    char* data = NULL;
+    if (me != NULL)
+    {
+        cap_left = me->capacity;
+        data = me->data;
+    }
+
+    va_list args;
+    va_start(args, arg_count);
+    while (arg_count && cap_left)
+    {
+        const char* fmt = va_arg(args, const char*);
+        size_t copied = (size_t)vsnprintf(data, cap_left, fmt, args);
+        // vsnprintf() didn't consume arg from args so here's a dummy consumption
+        (void)va_arg(args, void*);
+
+        data += copied;
+        cap_left -= copied;
+        chars_written += copied;
+        arg_count--;
+    }
+    va_end(args);
+
+    if (me != NULL)
+        me->length = chars_written;
+    return chars_written;
 }

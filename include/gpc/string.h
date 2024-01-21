@@ -227,6 +227,14 @@ gpstr_trim(GPString me[GP_NONNULL], const char char_set[GP_NONNULL], int mode);
  */
 bool gpstr_eq(GPString s1, const GPString s2);
 
+#if GP_DOXYGEN
+
+/** Format string MACRO @memberof GPString.
+ */
+size_t gpstr_interpolate(GPString me[GP_NONNULL], ...);
+
+#endif // GP_DOXYGEN
+
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
@@ -241,6 +249,15 @@ bool gpstr_eq(GPString s1, const GPString s2);
     .data      = (char cap_in_sqr_brackets){literal}, \
     .length    = sizeof(literal) - 1, \
     .capacity  = sizeof((char cap_in_sqr_brackets){literal}) }
+
+// TODO is that GP_COMMA(0) required?
+#define GPSTR_FORMAT_WITH_ARG(ARG) GP_GET_FORMAT(ARG) GP_COMMA(0) ARG
+#define gpstr_interpolate(me, ...) gpstr_interpolate_internal(me, \
+    GP_COUNT_ARGS(__VA_ARGS__), \
+    GP_PROCESS_ALL_ARGS(GPSTR_FORMAT_WITH_ARG, GP_COMMA, __VA_ARGS__))
+
+size_t
+gpstr_interpolate_internal(GPString* me, unsigned arg_count, ...);
 /**@endcond */
 
 #endif // GPSTRING_INCLUDED

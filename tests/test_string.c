@@ -126,6 +126,20 @@ int main(void)
         }
     }
 
+    gp_suite("interpolate");
+    {
+        #if __STDC_VERSION__ >= 201112L
+        gp_test("automatic types");
+        {
+            GPString str = gpstr_on_stack([128], "");
+            gpstr_interpolate(&str, 1, " divided by ", 3, " is ", 1./3.);
+            char buf[128];
+            sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
+            gp_expect(gpstr_eq(str, gpstr(buf)), (gpcstr(str)));
+        }
+        #endif
+    }
+
     // ------------------------------------------------------------------------
     // Test internals
 
