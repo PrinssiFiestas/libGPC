@@ -42,7 +42,7 @@ $(OBJS): build/%.o : src/%.c
 
 tests: CFLAGS += -DTESTS -ggdb3
 tests: $(TESTS)
-$(TESTS): build/test_%.exe : tests/test_%.c $(OBJS)
+$(TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(OBJS)
 	$(CC) $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@
 	./$@
 

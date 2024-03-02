@@ -15,7 +15,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <limits.h>
-#include <gpc/memory.h> // TODO just get def for GPAllocator
 size_t strlen(const char*);
 
 // TODO move this to appropriate header
@@ -51,7 +50,7 @@ static inline bool gp_clip_range(size_t* start, size_t* end, size_t limit)
 
 /** String data structure.
  */
-typedef struct GPString
+struct GPString
 {
     /** String data.
      * May not be null-terminated. Use #gpstr_cstr() to get null-terminated data.
@@ -62,10 +61,10 @@ typedef struct GPString
      * 0 indicates an empty string regardless of contents in @ref data
      */
     size_t length;
-} GPString;
+};
 
 #if GP_DOXYGEN
-/** Stack constructor MACRO @memberof GPString.
+/** Stack constructor MACRO @memberof strGPString.
  *
  * Creates a string on stack initialized with @p init_literal.
  *
@@ -75,23 +74,22 @@ typedef struct GPString
  *
  * @return stack allocated string.
  */
-GPString gpstr_on_stack(
+struct GPString gpstr_on_stack(
     square_bracket_enclosed_capacity,
     const char init_literal[GP_NONNULL],
     GPAllocator* allocator/* = NULL */);
 #endif // GP_DOXYGEN
 
-// TODO remove static
 /** Create string view @memberof GPString.
  */
-static inline GPString gpstr(const char cstr[GP_NONNULL])
+inline struct GPString gpstr(const char cstr[GP_NONNULL])
 {
-    return (GPString){ (char*)cstr, strlen(cstr) };
+    return (struct GPString){ (char*)cstr, strlen(cstr) };
 }
 
 /** GPString to null-terminated C-string conversion @memberof GPString.
  */
-inline const char* gpcstr(GPString str)
+inline const char* gpcstr(struct GPString str)
 {
     str.data[str.length] = '\0';
     return str.data;
@@ -101,19 +99,16 @@ inline const char* gpcstr(GPString str)
  *
  * Copies @p src to @p dest allocating if @p dest->capacity is not large enough.
  */
-GPString*
-gpstr_copy(GPString dest[GP_NONNULL], const GPString src);
+struct GPString*
+gpstr_copy(struct GPString dest[GP_NONNULL], const struct GPString src);
 
 /** Turn to substring @memberof GPString.
  *
  * Creates a substring from @p str starting from @p (str.data[start]) ending to
  * @p (str.data[end]).
- *
- * @return @p str on success. If indices are out of bounds the original string
- * will be unmutated and an error string is returned.
  */
-GPString* gpstr_slice(
-    GPString str[GP_NONNULL],
+struct GPString* gpstr_slice(
+    struct GPString str[GP_NONNULL],
     size_t start,
     size_t end);
 
@@ -126,16 +121,16 @@ GPString* gpstr_slice(
  * @note Unlike #gpstr_slice() out of bounds indices will not result in to an
  * error but an empty string in dest instead.
  */
-GPString* gpstr_substr(
-    GPString dest[GP_NONNULL],
-    const GPString src,
+struct GPString* gpstr_substr(
+    struct GPString dest[GP_NONNULL],
+    const struct GPString src,
     size_t start,
     size_t end);
 
-GPString* gpstr_insert(
-    GPString dest[GP_NONNULL],
+struct GPString* gpstr_insert(
+    struct GPString dest[GP_NONNULL],
     size_t pos,
-    const GPString src);
+    const struct GPString src);
 
 /** Return value for gpstr_find_first() and gpstr_find_last() when not found.
  * @memberof GPString
@@ -147,19 +142,21 @@ GPString* gpstr_insert(
  * @return index of first occurrence of @p needle in @p haystack, GP_NOT_FOUND
  * if not found.
  */
-size_t gpstr_find(const GPString haystack, const GPString needle, size_t start);
+size_t gpstr_find(
+    const struct GPString haystack, const struct GPString needle, size_t start);
 
 /** Find last substring @memberof GPString.
  *
  * @return index of last occurrence of @p needle in @p haystack, GP_NOT_FOUND
  * if not found.
  */
-size_t gpstr_find_last(const GPString haystack, const GPString needle);
+size_t gpstr_find_last(
+    const struct GPString haystack, const struct GPString needle);
 
 /** Count substrings @memberof GPString.
  *
  * Counts all occurrences of needle in haystack. */
-size_t gpstr_count(const GPString haystack, const GPString needle);
+size_t gpstr_count(const struct GPString haystack, const struct GPString needle);
 
 /** Find and replace substring @memberof GPString.
  *
@@ -167,9 +164,9 @@ size_t gpstr_count(const GPString haystack, const GPString needle);
  * found.
  */
 size_t gpstr_replace(
-    GPString me[GP_NONNULL],
-    const GPString needle,
-    const GPString replacement,
+    struct GPString me[GP_NONNULL],
+    const struct GPString needle,
+    const struct GPString replacement,
     size_t start);
 
 /** Find and replace all occurrences of substring @memberof GPString.
@@ -177,9 +174,9 @@ size_t gpstr_replace(
  * @return the amount of replacements.
  */
 unsigned gpstr_replace_all(
-    GPString me[GP_NONNULL],
-    const GPString needle,
-    const GPString replacement);
+    struct GPString me[GP_NONNULL],
+    const struct GPString needle,
+    const struct GPString replacement);
 
 #define GPSTR_WHITESPACE " \t\n\v\f\r"
 
@@ -187,23 +184,20 @@ unsigned gpstr_replace_all(
  *
  * @param mode 'l' to trim from left, 'r' to trim from right, 'l' + 'r' for both
  */
-GPString*
-gpstr_trim(GPString me[GP_NONNULL], const char char_set[GP_NONNULL], int mode);
+struct GPString* gpstr_trim(
+    struct GPString me[GP_NONNULL], const char char_set[GP_NONNULL], int mode);
 
 /** Compare strings @memberof GPString.
  *
  * @return true if strings in @p s1 and @p s2 are equal, false otherwise
  */
-bool gpstr_eq(GPString s1, const GPString s2);
+bool gpstr_eq(struct GPString s1, const struct GPString s2);
 
 #if GP_DOXYGEN
 
 /** Format string MACRO @memberof GPString.
- *
- * @return number of bytes written to @p me. If @p me is NULL, returns number of
- * bytes that would be written.
  */
-size_t gpstr_interpolate(GPString* me, ...);
+struct GPString* gpstr_print(struct GPString me[GP_NONNULL], ...);
 
 #endif // GP_DOXYGEN
 
@@ -217,18 +211,17 @@ size_t gpstr_interpolate(GPString* me, ...);
 
 /**@cond */
 #define gpstr_on_stack(cap_in_sqr_brackets, literal) \
-(GPString) { \
+(struct GPString) { \
     .data      = (char cap_in_sqr_brackets){literal}, \
     .length    = sizeof(literal) - 1, }
 
-// TODO is that GP_COMMA(0) required?
-#define GPSTR_FORMAT_WITH_ARG(ARG) GP_GET_FORMAT(ARG) GP_COMMA(0) ARG
-#define gpstr_interpolate(me, ...) gpstr_interpolate_internal(me, \
+#define GPSTR_FORMAT_WITH_ARG(ARG) GP_GET_FORMAT(ARG) , ARG
+#define gpstr_print(me, ...) gpstr_print_internal(me, \
     GP_COUNT_ARGS(__VA_ARGS__), \
     GP_PROCESS_ALL_ARGS(GPSTR_FORMAT_WITH_ARG, GP_COMMA, __VA_ARGS__))
 
-size_t
-gpstr_interpolate_internal(GPString* me, unsigned arg_count, ...);
+struct GPString*
+gpstr_print_internal(struct GPString me[GP_NONNULL], unsigned arg_count, ...);
 /**@endcond */
 
 #endif // GPSTRING_INCLUDED

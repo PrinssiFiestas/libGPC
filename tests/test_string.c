@@ -11,15 +11,15 @@ int main(void)
     {
         gp_test("slice");
         {
-            GPString str = gpstr_on_stack([], "Some_string_to slice");
+            struct GPString str = gpstr_on_stack([], "Some_string_to slice");
             gpstr_slice(&str, 5, 11); // not including 11!
             gp_expect(gpstr_eq(str, gpstr("string")));
         }
 
         gp_test("substr");
         {
-            GPString src = gpstr("Some_string_to slice");
-            GPString dest = gpstr_on_stack([128], "");
+            struct GPString src = gpstr("Some_string_to slice");
+            struct GPString dest = gpstr_on_stack([128], "");
             gpstr_substr(&dest, src, 5, 11); // not including 11!
             gp_expect(gpstr_eq(dest, gpstr("string")),
             ("%s", gpcstr(dest)));
@@ -28,7 +28,7 @@ int main(void)
 
     gp_suite("insert");
     {
-        GPString str = gpstr_on_stack([128], "test");
+        struct GPString str = gpstr_on_stack([128], "test");
         gp_test("Appending");
         {
             gpstr_insert(&str, str.length, gpstr(" tail"));
@@ -51,8 +51,8 @@ int main(void)
 
     gp_suite("finding");
     {
-        GPString haystack = gpstr("bbbaabaaabaa");
-        GPString needle = gpstr("aa");
+        struct GPString haystack = gpstr("bbbaabaaabaa");
+        struct GPString needle = gpstr("aa");
         size_t pos = 0;
 
         gp_test("find");
@@ -82,7 +82,7 @@ int main(void)
     {
         gp_test("replace");
         {
-            GPString str = gpstr_on_stack([128], "aaabbbcccaaa");
+            struct GPString str = gpstr_on_stack([128], "aaabbbcccaaa");
             size_t needlepos = gpstr_replace(&str, gpstr("bbb"), gpstr("X"), 0);
             gp_expect(gpstr_eq(str, gpstr("aaaXcccaaa")));
             gp_expect(needlepos == 3);
@@ -94,7 +94,7 @@ int main(void)
 
         gp_test("replace_all");
         {
-            GPString str = gpstr_on_stack([128], "aaxxbbxxxccxx");
+            struct GPString str = gpstr_on_stack([128], "aaxxbbxxxccxx");
             unsigned replacement_count =
                 gpstr_replace_all(&str, gpstr("xx"), gpstr("XXX"));
             gp_expect(gpstr_eq(str, gpstr("aaXXXbbXXXxccXXX")));
@@ -106,33 +106,33 @@ int main(void)
     {
         gp_test("left");
         {
-            GPString str = gpstr_on_stack([128], "  \t\f \nLeft");
+            struct GPString str = gpstr_on_stack([128], "  \t\f \nLeft");
             gpstr_trim(&str, GPSTR_WHITESPACE, 'l');
             gp_expect(gpstr_eq(str, gpstr("Left")), (gpcstr(str)));
         }
 
         gp_test("right");
         {
-            GPString str = gpstr_on_stack([128], "Right   \t\v\n\r");
+            struct GPString str = gpstr_on_stack([128], "Right   \t\v\n\r");
             gpstr_trim(&str, GPSTR_WHITESPACE, 'r');
             gp_expect(gpstr_eq(str, gpstr("Right")), (gpcstr(str)));
         }
 
         gp_test("left and right");
         {
-            GPString str = gpstr_on_stack([128], "   __Left and Right__   ");
+            struct GPString str = gpstr_on_stack([128], "   __Left and Right__   ");
             gpstr_trim(&str, GPSTR_WHITESPACE "_", 'l' + 'r');
             gp_expect(gpstr_eq(str, gpstr("Left and Right")), (gpcstr(str)));
         }
     }
 
-    gp_suite("interpolate");
+    gp_suite("print");
     {
         #if __STDC_VERSION__ >= 201112L
         gp_test("automatic types");
         {
-            GPString str = gpstr_on_stack([128], "");
-            gpstr_interpolate(&str, 1, " divided by ", 3, " is ", 1./3.);
+            struct GPString str = gpstr_on_stack([128], "");
+            gpstr_print(&str, 1, " divided by ", 3, " is ", 1./3.);
             char buf[128];
             sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
             gp_expect(gpstr_eq(str, gpstr(buf)), (gpcstr(str)));

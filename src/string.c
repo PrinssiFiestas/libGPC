@@ -19,32 +19,31 @@ GP_ALWAYS_INLINE void gp_debug_segfault(void) // TODO just put this in a macro
 #include <gpc/memory.h>
 #include <gpc/utils.h>
 #include <stdio.h>
-#include <stddef.h> // TODO needed?
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
 
-extern inline bool gpstr_is_view(GPString s);
-extern inline const char* gpcstr(GPString str);
+extern inline const char* gpcstr(struct GPString str);
+extern inline struct GPString gpstr(const char cstr[GP_NONNULL]);
 
 // ----------------------------------------------------------------------------
 
-GPString* gpstr_copy(GPString dest[GP_NONNULL], const GPString src)
+struct GPString* gpstr_copy(struct GPString dest[GP_NONNULL], const struct GPString src)
 {
     memcpy(dest->data, src.data, src.length);
     dest->length = src.length;
     return dest;
 }
 
-bool gpstr_eq(const GPString s1, const GPString s2)
+bool gpstr_eq(const struct GPString s1, const struct GPString s2)
 {
     if (s1.length != s2.length)
         return false;
     return memcmp(s1.data, s2.data, s1.length) == 0;
 }
 
-GPString* gpstr_slice(
-    GPString str[GP_NONNULL],
+struct GPString* gpstr_slice(
+    struct GPString str[GP_NONNULL],
     const size_t start,
     const size_t end) // NOT inclusive!
 {
@@ -58,9 +57,9 @@ GPString* gpstr_slice(
     return str;
 }
 
-GPString* gpstr_substr(
-    GPString dest[GP_NONNULL],
-    const GPString src,
+struct GPString* gpstr_substr(
+    struct GPString dest[GP_NONNULL],
+    const struct GPString src,
     const size_t start,
     const size_t end)
 {
@@ -74,10 +73,10 @@ GPString* gpstr_substr(
     return dest;
 }
 
-GPString* gpstr_insert(
-    GPString dest[GP_NONNULL],
+struct GPString* gpstr_insert(
+    struct GPString dest[GP_NONNULL],
     const size_t pos,
-    const GPString src)
+    const struct GPString src)
 {
     if (pos >= dest->length + 1) // +1 because +0 is allowed for appending
         gp_debug_segfault();
@@ -89,7 +88,7 @@ GPString* gpstr_insert(
     return dest;
 }
 
-size_t gpstr_find(const GPString haystack, const GPString needle, const size_t start)
+size_t gpstr_find(const struct GPString haystack, const struct GPString needle, const size_t start)
 {
     if (needle.length > haystack.length)
         return GP_NOT_FOUND;
@@ -125,7 +124,7 @@ static const char* memchr_r(const char ptr_r[GP_NONNULL], const char ch, size_t 
     return position;
 }
 
-size_t gpstr_find_last(const GPString haystack, const GPString needle)
+size_t gpstr_find_last(const struct GPString haystack, const struct GPString needle)
 {
     if (needle.length > haystack.length)
         return GP_NOT_FOUND;
@@ -149,7 +148,7 @@ size_t gpstr_find_last(const GPString haystack, const GPString needle)
     return position;
 }
 
-size_t gpstr_count(const GPString haystack, const GPString needle)
+size_t gpstr_count(const struct GPString haystack, const struct GPString needle)
 {
     size_t count = 0;
     size_t i = 0;
@@ -160,11 +159,11 @@ size_t gpstr_count(const GPString haystack, const GPString needle)
     return count;
 }
 
-static GPString* replace_range(
-    GPString me[GP_NONNULL],
+static struct GPString* replace_range(
+    struct GPString me[GP_NONNULL],
     const size_t start,
     const size_t end,
-    const GPString replacement)
+    const struct GPString replacement)
 {
     memmove(
         me->data + start + replacement.length,
@@ -177,9 +176,9 @@ static GPString* replace_range(
 }
 
 size_t gpstr_replace(
-    GPString me[GP_NONNULL],
-    const GPString needle,
-    const GPString replacement,
+    struct GPString me[GP_NONNULL],
+    const struct GPString needle,
+    const struct GPString replacement,
     size_t start)
 {
     if ((start = gpstr_find(*me, needle, start)) == GP_NOT_FOUND)
@@ -190,9 +189,9 @@ size_t gpstr_replace(
 }
 
 unsigned gpstr_replace_all(
-    GPString me[GP_NONNULL],
-    const GPString needle,
-    const GPString replacement)
+    struct GPString me[GP_NONNULL],
+    const struct GPString needle,
+    const struct GPString replacement)
 {
     size_t start = 0;
     unsigned replacement_count = 0;
@@ -205,8 +204,8 @@ unsigned gpstr_replace_all(
     return replacement_count;
 }
 
-GPString*
-gpstr_trim(GPString me[GP_NONNULL], const char char_set[GP_NONNULL], int mode)
+struct GPString*
+gpstr_trim(struct GPString me[GP_NONNULL], const char char_set[GP_NONNULL], int mode)
 {
     size_t i_l = 0;
     size_t i_r = me->length;
@@ -228,34 +227,9 @@ gpstr_trim(GPString me[GP_NONNULL], const char char_set[GP_NONNULL], int mode)
     return me;
 }
 
-size_t
-gpstr_interpolate_internal(GPString* me, unsigned arg_count, ...)
+struct GPString*
+gpstr_print_internal(struct GPString me[GP_NONNULL], unsigned arg_count, ...)
 {
-    size_t chars_written = 0;
-    char* data = NULL;
-    size_t mode = 0; // 0 to calculate length, SIZE_MAX for sprinting to me
-    if (me != NULL)
-    {
-        data = me->data;
-        mode = SIZE_MAX;
-    }
-
-    va_list args;
-    va_start(args, arg_count);
-    while (arg_count)
-    {
-        const char* fmt = va_arg(args, const char*);
-        size_t copied = (size_t)vsnprintf(data, mode, fmt, args);
-        // vsnprintf() didn't consume arg from args so here's a dummy consumption
-        (void)va_arg(args, void*);
-
-        data += copied;
-        chars_written += copied;
-        arg_count--;
-    }
-    va_end(args);
-
-    if (me != NULL)
-        me->length = chars_written;
-    return chars_written;
+    (void)me; (void)arg_count;
+    return me;
 }
