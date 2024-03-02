@@ -227,9 +227,29 @@ gpstr_trim(struct GPString me[GP_NONNULL], const char char_set[GP_NONNULL], int 
     return me;
 }
 
+#include <assert.h> // TEMP
 struct GPString*
-gpstr_print_internal(struct GPString me[GP_NONNULL], unsigned arg_count, ...)
+gpstr_print_internal(
+    struct GPString me[GP_NONNULL], const size_t arg_count, char** args)
 {
-    (void)me; (void)arg_count;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        if (args[i][0] != 0 && args[i][0] != 1)
+        {
+            gpstr_insert(me, me->length, gpstr(args[i]));
+        }
+        else if (args[i][0] == 0) // cstr
+        {
+            const char* real_arg;
+            memcpy(&real_arg, args[i] + 1, sizeof(real_arg));
+            gpstr_insert(me, me->length, gpstr(real_arg));
+        }
+        else // gpstr
+        {
+            struct GPString real_arg;
+            memcpy(&real_arg, args[i] + 1, sizeof(real_arg));
+            gpstr_insert(me, me->length, real_arg);
+        }
+    }
     return me;
 }

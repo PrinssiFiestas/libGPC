@@ -129,13 +129,21 @@ int main(void)
     gp_suite("print");
     {
         #if __STDC_VERSION__ >= 201112L
-        gp_test("automatic types");
+        gp_test("Numbers");
         {
             struct GPString str = gpstr_on_stack([128], "");
             gpstr_print(&str, 1, " divided by ", 3, " is ", 1./3.);
             char buf[128];
             sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
             gp_expect(gpstr_eq(str, gpstr(buf)), (gpcstr(str)));
+        }
+
+        gp_test("Strings");
+        {
+            struct GPString str  = gpstr_on_stack([128], "");
+            struct GPString str1 = gpstr_on_stack([128], "strings");
+            gpstr_print(&str, "Copying ", str1, (char)'.');
+            gp_expect(gpstr_eq(str, gpstr("Copying strings.")), (gpcstr(str)));
         }
         #endif
     }
