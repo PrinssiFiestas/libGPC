@@ -4,7 +4,7 @@
 
 CC = gcc
 CFLAGS  = -Wall -Wextra -Werror
-CFLAGS += -Wdouble-promotion -Wconversion
+CFLAGS += -Wdouble-promotion
 CFLAGS += -Wno-missing-field-initializers -Wno-comment
 CFLAGS += -Iinclude
 

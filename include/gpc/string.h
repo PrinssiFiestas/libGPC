@@ -12,10 +12,11 @@
 
 #include "attributes.h"
 #include "overload.h"
+#include <printf/conversions.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <limits.h>
-size_t strlen(const char*);
+#include <stdint.h>
 
 // TODO move this to appropriate header
 static inline bool gp_clip_range(size_t* start, size_t* end, size_t limit)
@@ -84,6 +85,7 @@ struct GPString gpstr_on_stack(
  */
 inline struct GPString gpstr(const char cstr[GP_NONNULL])
 {
+    size_t strlen(const char*);
     return (struct GPString){ (char*)cstr, strlen(cstr) };
 }
 
@@ -215,10 +217,72 @@ struct GPString* gpstr_print(struct GPString me[GP_NONNULL], ...);
     .data      = (char cap_in_sqr_brackets){literal}, \
     .length    = sizeof(literal) - 1, }
 
-#define GPSTR_FORMAT_WITH_ARG(ARG) GP_GET_FORMAT(ARG) , ARG
+static inline size_t gp_btoa(size_t n, char* buf, bool x)
+{
+    char* strcpy(char* restrict, const char* restrict);
+    (void)n; // n is just here for the macro below and can be ignored
+    strcpy(buf, x ? "true" : "false");
+    return x ? 4 : 5;
+}
+
+static inline size_t gp_ptoa(size_t n, char* buf, void* x)
+{
+    return pf_xtoa(n, buf, (uintptr_t)x);
+}
+
+static inline size_t gp_ctoa(size_t n, char* buf, unsigned char x)
+{
+    if (n)
+        buf[0] = x + '0';
+    return 1;
+}
+
+// Since length of x is not known, it must not be copied to buf but directly to
+// destination string instead. We have to store the pointer value for lazy
+// reading though.
+static inline size_t gp_stoa(size_t n, char* buf, const char* x)
+{
+    (void)n;
+    buf[0] = 0; // This tells gpstr_print_internal() to read as char*
+    void* memcpy(void* restrict, const void* restrict, size_t);
+    memcpy(buf + 1, &x, sizeof(x));
+    return sizeof(uintptr_t) + 1;
+}
+
+static inline size_t gp_Stoa(size_t n, char* buf, const struct GPString x)
+{
+    (void)n;
+    buf[0] = 1; // This tells gpstr_print_internal() to read as GPString
+    void* memcpy(void* restrict, const void* restrict, size_t);
+    memcpy(buf + 1, &x, sizeof(x));
+    return sizeof(x) + 1;
+}
+
+#define GPSTR_TO_CSTR(VAR)       \
+_Generic(VAR,                    \
+    bool:               gp_btoa, \
+    short:              pf_itoa, \
+    int:                pf_itoa, \
+    long:               pf_itoa, \
+    long long:          pf_itoa, \
+    unsigned short:     pf_utoa, \
+    unsigned int:       pf_utoa, \
+    unsigned long:      pf_utoa, \
+    unsigned long long: pf_utoa, \
+    float:              pf_gtoa, \
+    double:             pf_gtoa, \
+    char:               gp_ctoa, \
+    unsigned char:      gp_ctoa, \
+    signed char:        gp_ctoa, \
+    char*:              gp_stoa, \
+    const char*:        gp_stoa, \
+    struct GPString:    gp_Stoa, \
+    default:            gp_ptoa) \
+        (12, (char[sizeof(struct GPString) + 4]){""}, (VAR))
+
 #define gpstr_print(me, ...) gpstr_print_internal(me, \
     GP_COUNT_ARGS(__VA_ARGS__), \
-    GP_PROCESS_ALL_ARGS(GPSTR_FORMAT_WITH_ARG, GP_COMMA, __VA_ARGS__))
+    GP_PROCESS_ALL_ARGS(GPSTR_TO_CSTR, GP_COMMA, __VA_ARGS__))
 
 struct GPString*
 gpstr_print_internal(struct GPString me[GP_NONNULL], unsigned arg_count, ...);

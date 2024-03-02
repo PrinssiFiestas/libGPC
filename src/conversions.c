@@ -3,6 +3,7 @@
 // https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
 
 #include <printf/conversions.h>
+#include <stdint.h>
 #include "d2s_full_table.h"
 #include "ryu.h"
 #include "common.h"
@@ -45,7 +46,7 @@ static void str_reverse_copy(
 static inline void
 append_n_digits(const uint32_t olength, uint32_t digits, char* const result);
 
-unsigned pf_utoa(const size_t n, char* out, uintmax_t x)
+size_t pf_utoa(const size_t n, char* out, unsigned long long x)
 {
     if (n >= 10 && x < 1000000000) // use optimized
     {
@@ -66,7 +67,7 @@ unsigned pf_utoa(const size_t n, char* out, uintmax_t x)
     return i;
 }
 
-unsigned pf_itoa(size_t n, char* out, const intmax_t ix)
+size_t pf_itoa(size_t n, char* out, const long long ix)
 {
     char buf[MAX_DIGITS];
 
@@ -80,7 +81,7 @@ unsigned pf_itoa(size_t n, char* out, const intmax_t ix)
         out++;
     }
 
-    uintmax_t x = imaxabs(ix);
+    unsigned long long x = imaxabs(ix);
     size_t i = 0;
     do // write all digits from low to high
     {
@@ -92,7 +93,7 @@ unsigned pf_itoa(size_t n, char* out, const intmax_t ix)
     return i + (ix < 0);
 }
 
-unsigned pf_otoa(const size_t n, char* out, uintmax_t x)
+size_t pf_otoa(const size_t n, char* out, unsigned long long x)
 {
     char buf[MAX_DIGITS];
     size_t i = 0;
@@ -106,13 +107,13 @@ unsigned pf_otoa(const size_t n, char* out, uintmax_t x)
     return i;
 }
 
-unsigned pf_xtoa(const size_t n, char* out, uintmax_t x)
+size_t pf_xtoa(const size_t n, char* out, unsigned long long x)
 {
     char buf[MAX_DIGITS];
     size_t i = 0;
     do // write all digits from low to high
     {
-        unsigned _x = x % 16;
+        size_t _x = x % 16;
         buf[i++] = _x < 10 ? _x + '0' : _x - 10 + 'a';
         x /= 16;
     } while(x);
@@ -121,13 +122,13 @@ unsigned pf_xtoa(const size_t n, char* out, uintmax_t x)
     return i;
 }
 
-unsigned pf_Xtoa(const size_t n, char* out, uintmax_t x)
+size_t pf_Xtoa(const size_t n, char* out, unsigned long long x)
 {
     char buf[MAX_DIGITS];
     size_t i = 0;
     do // write all digits from low to high
     {
-        unsigned _x = x % 16;
+        size_t _x = x % 16;
         buf[i++] = _x < 10 ? _x + '0' : _x - 10 + 'A';
         x /= 16;
     } while(x);
@@ -152,49 +153,49 @@ pf_d2exp_buffered_n(
     PFFormatSpecifier fmt,
     double d);
 
-unsigned
+size_t
 pf_ftoa(const size_t n, char* const buf, const double f)
 {
     const PFFormatSpecifier fmt = {.conversion_format = 'f'};
     return pf_d2fixed_buffered_n(buf, n, fmt, f);
 }
 
-unsigned
+size_t
 pf_Ftoa(const size_t n, char* const buf, const double f)
 {
     const PFFormatSpecifier fmt = {.conversion_format = 'F'};
     return pf_d2fixed_buffered_n(buf, n, fmt, f);
 }
 
-unsigned
+size_t
 pf_etoa(const size_t n, char* const buf, const double f)
 {
     const PFFormatSpecifier fmt = {.conversion_format = 'e'};
     return pf_d2exp_buffered_n(buf, n, fmt, f);
 }
 
-unsigned
+size_t
 pf_Etoa(const size_t n, char* const buf, const double f)
 {
     const PFFormatSpecifier fmt = {.conversion_format = 'E'};
     return pf_d2exp_buffered_n(buf, n, fmt, f);
 }
 
-unsigned
+size_t
 pf_gtoa(const size_t n, char* const buf, const double f)
 {
     const PFFormatSpecifier fmt = {.conversion_format = 'g'};
     return pf_d2exp_buffered_n(buf, n, fmt, f);
 }
 
-unsigned
+size_t
 pf_Gtoa(const size_t n, char* const buf, const double f)
 {
     const PFFormatSpecifier fmt = {.conversion_format = 'G'};
     return pf_d2exp_buffered_n(buf, n, fmt, f);
 }
 
-unsigned pf_strfromd(
+size_t pf_strfromd(
     char* const buf,
     const size_t n,
     const PFFormatSpecifier fmt,

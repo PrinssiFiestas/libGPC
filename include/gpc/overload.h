@@ -107,7 +107,7 @@ inline bool gpc_is_pointer(const enum gpc_Type T) { return GP_CHAR_PTR <= T && T
 size_t gpc_sizeof(const enum gpc_Type T);
 
 #define GP_TYPE(VAR)                           \
-_Generic(VAR,                                   \
+_Generic(VAR,                                  \
     bool:               GP_BOOL,               \
     short:              GP_SHORT,              \
     int:                GP_INT,                \
@@ -125,7 +125,7 @@ _Generic(VAR,                                   \
     const char*:        GP_CHAR_PTR,           \
     default:            GP_PTR)
 
-#define GP_GET_FORMAT(VAR)     \
+#define GP_GET_FORMAT(VAR)      \
 _Generic(VAR,                   \
     bool:               "%i",   \
     short:              "%hi",  \
@@ -144,7 +144,7 @@ _Generic(VAR,                   \
     const char*:        "%s",   \
     default:            "%p")
 
-#define GP_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR,       \
+#define GP_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR,        \
 short: EXPR_IF_TRUE, unsigned short: EXPR_IF_TRUE, int: EXPR_IF_TRUE,          \
 unsigned: EXPR_IF_TRUE, long: EXPR_IF_TRUE, unsigned long: EXPR_IF_TRUE,       \
 long long: EXPR_IF_TRUE, unsigned long long: EXPR_IF_TRUE, float: EXPR_IF_TRUE,\
