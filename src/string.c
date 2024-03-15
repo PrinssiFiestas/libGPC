@@ -227,7 +227,6 @@ gpstr_trim(struct GPString me[GP_NONNULL], const char char_set[GP_NONNULL], int 
     return me;
 }
 
-#include <assert.h> // TEMP
 struct GPString*
 gpstr_print_internal(
     struct GPString me[GP_NONNULL], const size_t arg_count, char** args)

@@ -28,7 +28,7 @@ all: release
 release: CFLAGS += -O3
 release: build/libgpc.a
 
-debug: CFLAGS += -ggdb3 -DGP_DEBUG
+debug: CFLAGS += -ggdb3 -DGP_DEBUG -Og
 debug: build/libgpcd.a
 
 build/libgpc.a: $(OBJS)
