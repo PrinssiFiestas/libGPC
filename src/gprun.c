@@ -2,7 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// TODO Windows support
+// TODO Windows and C++ support
 
 #ifdef __unix__
 #include <sys/types.h>
@@ -111,6 +111,7 @@ int main(int argc, char* argv[])
     }
 
     // Run the compiled executable with rest of argv[]
+    int exit_status = 0;
     {
         pid_t child_pid = fork();
         if (child_pid == -1) {
@@ -125,18 +126,19 @@ int main(int argc, char* argv[])
             }
         }
 
-        int wstatus;
         do {
-            pid_t w = wait(&wstatus);
+            pid_t w = wait(&exit_status);
             if (w == -1) {
                 perror("wait()");
                 exit(EXIT_FAILURE);
             }
-        } while ( ! WIFEXITED(wstatus) && ! WIFSIGNALED(wstatus));
+        } while ( ! WIFEXITED(exit_status) && ! WIFSIGNALED(exit_status));
     }
-
-    #endif // __unix__
 
     if (cleanup_required && remove("a.out") == -1)
         perror("remove()");
+
+    return WEXITSTATUS(exit_status);
+
+    #endif // __unix__
 }
