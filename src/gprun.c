@@ -2,7 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// TODO Windows support, C++ support, and -Wall
+// TODO Windows support, and -Wall
 
 #ifdef __unix__
 #include <sys/types.h>
@@ -47,6 +47,7 @@ int main(int argc, char* argv[])
     }
 
     // Parse argv[1] to get args for compiler
+    char compiler[8] = "cc";
     {
         const size_t init_size = 128;
         if ((cc_argv.argv = malloc(init_size * sizeof(char*))) == NULL) {
@@ -54,7 +55,7 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
         }
         cc_argv.capacity = init_size;
-        push((char[]){"cc"});
+        push(compiler);
 
         if (argv[1] != NULL) for (char* arg = argv[1];;)
         {
@@ -72,6 +73,11 @@ int main(int argc, char* argv[])
                     *end = '\0';
                 cleanup_required = false;
             }
+
+            char* file_extension = strchr(arg, '.');
+            bool longer_than_dot_c = ! memchr(" ", file_extension[2], 2);
+            if (longer_than_dot_c || file_extension[1] == 'C')
+                strcpy(compiler, "c++");
 
             if ((arg = strchr(arg, ' ')) == NULL)
                 break;
@@ -97,7 +103,7 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
         }
         else if (child_pid == 0) {
-            if (execvp("cc", cc_argv.argv) == -1) {
+            if (execvp(compiler, cc_argv.argv) == -1) {
                 perror("execlp()");
                 exit(EXIT_FAILURE);
             }
