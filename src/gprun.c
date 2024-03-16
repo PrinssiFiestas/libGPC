@@ -2,7 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// TODO Windows support, and -Wall
+// TODO Windows support
 
 #ifdef __unix__
 #include <sys/types.h>
@@ -56,6 +56,7 @@ int main(int argc, char* argv[])
         }
         cc_argv.capacity = init_size;
         push(compiler);
+        push((char[]){"-Wall"});
 
         if (argv[1] != NULL) for (char* arg = argv[1];;)
         {
