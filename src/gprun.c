@@ -2,7 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// TODO Windows and C++ support
+// TODO Windows support, C++ support, and -Wall
 
 #ifdef __unix__
 #include <sys/types.h>
@@ -62,6 +62,10 @@ int main(int argc, char* argv[])
 
             if (memcmp(arg, "-o", 2) == 0)
             {
+                if (strlen(arg) >= sizeof(out_executable) - 1) {
+                    fputs("Input file name too long!", stderr);
+                    exit(EXIT_FAILURE);
+                }
                 strcpy(&out_executable[strlen("./")], &arg[strlen("-o")]);
                 char* end = strchr(out_executable, ' ');
                 if (end != NULL)
@@ -79,6 +83,7 @@ int main(int argc, char* argv[])
             if (*arg == '\0')
                 break;
         }
+
         cc_argv.argv[cc_argv.argc] = NULL;
     }
 
@@ -126,19 +131,22 @@ int main(int argc, char* argv[])
             }
         }
 
+        int wstatus;
         do {
-            pid_t w = wait(&exit_status);
+            pid_t w = wait(&wstatus);
             if (w == -1) {
                 perror("wait()");
                 exit(EXIT_FAILURE);
             }
-        } while ( ! WIFEXITED(exit_status) && ! WIFSIGNALED(exit_status));
+        } while ( ! WIFEXITED(wstatus) && ! WIFSIGNALED(wstatus));
+
+        exit_status = WEXITSTATUS(wstatus);
     }
 
     if (cleanup_required && remove("a.out") == -1)
         perror("remove()");
 
-    return WEXITSTATUS(exit_status);
+    return exit_status;
 
     #endif // __unix__
 }
