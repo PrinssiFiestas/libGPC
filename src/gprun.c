@@ -3,7 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #ifdef _WIN32
-#include <processthreadsapi.h>
+#include <windows.h>
 #else // probably Unix variant
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -24,7 +24,7 @@ struct DynamicArgv {
     char** argv;
     size_t argc;
     size_t capacity;
-} cc_argv = {};
+} cc_argv = {0};
 
 void push(char* arg)
 {
@@ -39,8 +39,26 @@ void push(char* arg)
 
 int main(int argc, char* argv[])
 {
-    (void)argc;
-    char run_out_executable[PATH_MAX] = "./a.out";
+    // Trim whitespace
+    if (argv[1] != NULL)
+    {
+        while (argv[1][0] == ' ')
+            argv[1]++;
+        char* last = argv[1] + strlen(argv[1]) - 1;
+        while (*last == ' ')
+            *(last--) = '\0';
+    }
+
+    #if _WIN32
+        // cl.exe determines executable name from first source file
+        char* first_src = NULL;
+        char run_out_executable[PATH_MAX] = "./a.exe";
+        char* argv1 = argv[1] ? strcpy(malloc(strlen(argv[1]) + 1), argv[1]) : NULL;
+    #else
+        (void)argc;
+        char run_out_executable[PATH_MAX] = "./a.out";
+        char* argv1 = argv[1];
+    #endif
     char* out_executable = &run_out_executable[strlen("./")];
     bool cleanup_required = true; // remove compiled executable
 
@@ -56,13 +74,8 @@ int main(int argc, char* argv[])
         push(compiler);
         push((char[]){"-Wall"});
 
-        if (argv[1] != NULL) for (char* arg = argv[1];;)
+        if (argv1 != NULL) for (char* arg = argv1;;)
         {
-            while (*arg == ' ')
-                arg++;
-            if (*arg == '\0')
-                break;
-
             push(arg);
 
             if (memcmp(arg, "-o", 2) == 0)
@@ -82,6 +95,9 @@ int main(int argc, char* argv[])
                 arg++;
                 if (*arg == '.') // check for C++ file extension
                 {
+                    if (first_src == NULL)
+                        first_src = cc_argv.argv[cc_argv.argc - 1];
+
                     bool longer_than_dot_c = arg[2] != ' ' && arg[2] != '\0';
                     if (longer_than_dot_c || arg[1] == 'C')
                         strcpy(compiler, "c++");
@@ -92,6 +108,10 @@ int main(int argc, char* argv[])
                 break;
             *arg = '\0';
             arg++;
+            while (*arg == ' ')
+                arg++;
+            if (*arg == '\0')
+                break;
         }
 
         cc_argv.argv[cc_argv.argc] = NULL;
@@ -107,15 +127,58 @@ int main(int argc, char* argv[])
         errno = 0;
     }
 
+    // Compile whatever was in argv[1]
     #if _WIN32
-
-    // Compile whatever was in argv[1]
     {
+        STARTUPINFOA start_info = {.cb = sizeof(start_info) };
+        PROCESS_INFORMATION process_info = {0};
+
+        char* cc_cmd;
+        char* cl_cmd;
+        if (argc > 1) {
+            size_t len = sizeof(compiler) + sizeof(".exe ") + strlen(argv[1]);
+            cc_cmd = malloc(len);
+            cl_cmd = cc_cmd + len;
+            strcat(strcat(strcpy(cc_cmd, compiler), ".exe "), argv[1]);
+            strcat(strcpy(cl_cmd, "cl.exe "), argv[1]);
+        } else {
+            cc_cmd = (char[]){"cc.exe"};
+            cl_cmd = (char[]){"cl.exe"};
+        }
+
+        if ( ! CreateProcessA(NULL,
+            cc_cmd, NULL, NULL, false, 0, NULL, NULL,
+            &start_info,
+            &process_info))
+        {
+            if ( ! CreateProcessA(NULL,
+                cl_cmd, NULL, NULL, false, 0, NULL, NULL,
+                &start_info,
+                &process_info))
+            {
+                fprintf(stderr, "Invoking %s.exe or cl.exe failed!", compiler);
+                exit(EXIT_FAILURE);
+            }
+            if (first_src != NULL) {
+                strcpy(out_executable, first_src);
+                strcpy(strchr(out_executable, '.'), ".exe");
+            }
+        }
+
+        WaitForSingleObject(process_info.hProcess, INFINITE);
+
+        DWORD compiler_exit_code;
+        if (GetExitCodeProcess(process_info.hProcess, &compiler_exit_code) == 0) {
+            fputs("GetExitCodeProcess() failed!", stderr);
+            exit(EXIT_FAILURE);
+        } else if (compiler_exit_code != 0) {
+            exit(compiler_exit_code);
+        }
+
+        CloseHandle(process_info.hProcess);
+        CloseHandle(process_info.hThread);
     }
-
-    #else // Unix implementation
-
-    // Compile whatever was in argv[1]
+    #else // Unix probably
     {
         pid_t child_pid = fork();
         if (child_pid == -1) {
@@ -140,6 +203,7 @@ int main(int argc, char* argv[])
             }
         } while ( ! WIFEXITED(wstatus) && ! WIFSIGNALED(wstatus));
     }
+    #endif
 
     // We got here if compiler succeeded. However, an executable might've not
     // been produced due to user passing something like "--help" as argument.
@@ -151,6 +215,47 @@ int main(int argc, char* argv[])
 
     // Run the compiled executable with rest of argv[]
     int exit_status = 0;
+    #if _WIN32
+    {
+        STARTUPINFOA start_info = {.cb = sizeof(start_info) };
+        PROCESS_INFORMATION process_info = {0};
+
+        size_t cmd_length = sizeof(run_out_executable);
+        for (int i = 2; i < argc; i++)
+            cmd_length += strlen(argv[i]) + sizeof(" ");
+
+        char* cmd = malloc(cmd_length);
+        if (cmd == NULL) {
+            perror("malloc()");
+            exit(EXIT_FAILURE);
+        }
+        strcpy(cmd, out_executable);
+
+        for (int i = 2; i < argc; i++)
+            strcat(strcat(cmd, " "), argv[i]);
+
+        if ( ! CreateProcessA(NULL,
+            cmd, NULL, NULL, false, 0, NULL, NULL,
+            &start_info,
+            &process_info))
+        {
+            fputs("Failed running compiled executable!", stderr);
+            exit(EXIT_FAILURE);
+        }
+
+        WaitForSingleObject(process_info.hProcess, INFINITE);
+
+        DWORD exit_code;
+        if (GetExitCodeProcess(process_info.hProcess, &exit_code) == 0) {
+            fputs("GetExitCodeProcess() failed!", stderr);
+            exit(EXIT_FAILURE);
+        }
+        exit_status = exit_code;
+
+        CloseHandle(process_info.hProcess);
+        CloseHandle(process_info.hThread);
+    }
+    #else // Unix probably
     {
         pid_t child_pid = fork();
         if (child_pid == -1) {
@@ -176,10 +281,9 @@ int main(int argc, char* argv[])
 
         exit_status = WEXITSTATUS(wstatus);
     }
-
     #endif
 
-    if (cleanup_required && remove("a.out") == -1)
+    if (cleanup_required && remove(out_executable) == -1)
         perror("remove()");
 
     return exit_status;
