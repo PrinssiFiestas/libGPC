@@ -26,6 +26,16 @@ struct DynamicArgv {
     size_t capacity;
 } cc_argv = {0};
 
+void* xmalloc(size_t n)
+{
+    void* p = malloc(n);
+    if (p == NULL) {
+        perror("malloc()");
+        exit(EXIT_FAILURE);
+    } else
+        return p;
+}
+
 void push(char* arg)
 {
     if (cc_argv.argc == cc_argv.capacity - 1)
@@ -53,7 +63,7 @@ int main(int argc, char* argv[])
         // cl.exe determines executable name from first source file
         char* first_src = NULL;
         char run_out_executable[PATH_MAX] = "./a.exe";
-        char* argv1 = argv[1] ? strcpy(malloc(strlen(argv[1]) + 1), argv[1]) : NULL;
+        char* argv1 = argv[1] ? strcpy(xmalloc(strlen(argv[1]) + 1), argv[1]) : NULL;
     #else
         (void)argc;
         char run_out_executable[PATH_MAX] = "./a.out";
@@ -66,11 +76,9 @@ int main(int argc, char* argv[])
     char compiler[8] = "cc";
     {
         const size_t init_size = 128;
-        if ((cc_argv.argv = malloc(init_size * sizeof(char*))) == NULL) {
-            perror("malloc()");
-            exit(EXIT_FAILURE);
-        }
+        cc_argv.argv = xmalloc(init_size * sizeof(char*));
         cc_argv.capacity = init_size;
+
         push(compiler);
         push((char[]){"-Wall"});
 
@@ -136,10 +144,10 @@ int main(int argc, char* argv[])
         char* cc_cmd;
         char* cl_cmd;
         if (argc > 1) {
-            size_t len = sizeof(compiler) + sizeof(".exe ") + strlen(argv[1]);
-            cc_cmd = malloc(len * 2 + sizeof('\0'));
+            size_t len = sizeof(compiler) + sizeof(".exe -Wall ") + strlen(argv[1]);
+            cc_cmd = xmalloc(len * 2 + sizeof('\0'));
             cl_cmd = cc_cmd + len;
-            strcat(strcat(strcpy(cc_cmd, compiler), ".exe "), argv[1]);
+            strcat(strcat(strcpy(cc_cmd, compiler), ".exe -Wall "), argv[1]);
             strcat(strcpy(cl_cmd, "cl.exe "), argv[1]);
         } else {
             cc_cmd = (char[]){"cc.exe"};
@@ -224,11 +232,7 @@ int main(int argc, char* argv[])
         for (int i = 2; i < argc; i++)
             cmd_length += strlen(argv[i]) + sizeof(" ");
 
-        char* cmd = malloc(cmd_length);
-        if (cmd == NULL) {
-            perror("malloc()");
-            exit(EXIT_FAILURE);
-        }
+        char* cmd = xmalloc(cmd_length);
         strcpy(cmd, out_executable);
 
         for (int i = 2; i < argc; i++)
