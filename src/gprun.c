@@ -29,7 +29,7 @@ void push(char* arg)
     if (cc_argv.argc == cc_argv.capacity - 1)
         cc_argv.argv = realloc(cc_argv.argv, cc_argv.capacity *= 2);
     if (cc_argv.argv == NULL) {
-        perror("Too long arg list!\nrealloc()");
+        perror("realloc()");
         exit(EXIT_FAILURE);
     }
     cc_argv.argv[cc_argv.argc++] = arg;
@@ -37,14 +37,9 @@ void push(char* arg)
 
 int main(int argc, char* argv[])
 {
+    (void)argc;
     char out_executable[PATH_MAX] = "./a.out";
-    bool cleanup_required = true;
-    FILE* existing_a_out; // just checking, not actually used
-    if ((existing_a_out = fopen("a.out", "r")) != NULL) {
-        cleanup_required = false;
-        fclose(existing_a_out);
-        errno = 0;
-    }
+    bool cleanup_required = true; // remove compiled executable
 
     // Parse argv[1] to get args for compiler
     char compiler[8] = "cc";
@@ -60,12 +55,17 @@ int main(int argc, char* argv[])
 
         if (argv[1] != NULL) for (char* arg = argv[1];;)
         {
+            while (*arg == ' ')
+                arg++;
+            if (*arg == '\0')
+                break;
+
             push(arg);
 
             if (memcmp(arg, "-o", 2) == 0)
             {
                 if (strlen(arg) >= sizeof(out_executable) - 1) {
-                    fputs("Input file name too long!", stderr);
+                    fputs("Output file name too long!", stderr);
                     exit(EXIT_FAILURE);
                 }
                 strcpy(&out_executable[strlen("./")], &arg[strlen("-o")]);
@@ -75,23 +75,33 @@ int main(int argc, char* argv[])
                 cleanup_required = false;
             }
 
-            char* file_extension = strchr(arg, '.');
-            bool longer_than_dot_c = ! memchr(" ", file_extension[2], 2);
-            if (longer_than_dot_c || file_extension[1] == 'C')
-                strcpy(compiler, "c++");
-
-            if ((arg = strchr(arg, ' ')) == NULL)
-                break;
-            *arg = '\0';
             do {
                 arg++;
-            } while (*arg == ' ');
+                if (*arg == '.') // check for C++ file extension
+                {
+                    bool longer_than_dot_c = arg[2] != ' ' && arg[2] != '\0';
+                    if (longer_than_dot_c || arg[1] == 'C')
+                        strcpy(compiler, "c++");
+                }
+            } while (*arg != ' ' && *arg != '\0');
 
             if (*arg == '\0')
                 break;
+            *arg = '\0';
+            arg++;
         }
 
         cc_argv.argv[cc_argv.argc] = NULL;
+    }
+
+    // User probably gets confused if running a file removes existing executable
+    // so let's check for that.
+    FILE* existing_executable = fopen(&out_executable[strlen("./")], "r");
+    if (existing_executable != NULL) {
+        cleanup_required = false;
+        fclose(existing_executable);
+    } else {
+        errno = 0;
     }
 
     #ifdef __unix__
@@ -121,6 +131,14 @@ int main(int argc, char* argv[])
             }
         } while ( ! WIFEXITED(wstatus) && ! WIFSIGNALED(wstatus));
     }
+
+    // We got here if compiler succeeded. However, an executable might've not
+    // been produced due to user passing something like "--help" as argument.
+    FILE* compiled_executable = fopen(&out_executable[strlen("./")], "r");
+    if (compiled_executable == NULL)
+        exit(EXIT_SUCCESS);
+    else
+        fclose(compiled_executable);
 
     // Run the compiled executable with rest of argv[]
     int exit_status = 0;
