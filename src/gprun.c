@@ -29,7 +29,7 @@ struct DynamicArgv {
 void push(char* arg)
 {
     if (cc_argv.argc == cc_argv.capacity - 1)
-        cc_argv.argv = realloc(cc_argv.argv, cc_argv.capacity *= 2);
+        cc_argv.argv = realloc(cc_argv.argv, (cc_argv.capacity *= 2) * sizeof(char*));
     if (cc_argv.argv == NULL) {
         perror("realloc()");
         exit(EXIT_FAILURE);
@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
         char* cl_cmd;
         if (argc > 1) {
             size_t len = sizeof(compiler) + sizeof(".exe ") + strlen(argv[1]);
-            cc_cmd = malloc(len);
+            cc_cmd = malloc(len * 2 + sizeof('\0'));
             cl_cmd = cc_cmd + len;
             strcat(strcat(strcpy(cc_cmd, compiler), ".exe "), argv[1]);
             strcat(strcpy(cl_cmd, "cl.exe "), argv[1]);
@@ -254,6 +254,20 @@ int main(int argc, char* argv[])
 
         CloseHandle(process_info.hProcess);
         CloseHandle(process_info.hThread);
+
+        char obj_name_buf[PATH_MAX];
+        if (cleanup_required) for (size_t i = 2; i < cc_argv.argc; i++)
+        {
+            char*  src_name_end = strchr(cc_argv.argv[i], '.');
+            size_t src_name_len = src_name_end - cc_argv.argv[i];
+            if (src_name_end != NULL)
+            {
+                memcpy(obj_name_buf, cc_argv.argv[i], src_name_len);
+                strcpy(obj_name_buf + src_name_len, ".obj");
+                if (remove(obj_name_buf) == -1) // cc used, no obj files
+                    break;
+            }
+        }
     }
     #else // Unix probably
     {
