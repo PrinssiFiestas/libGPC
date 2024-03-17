@@ -2,9 +2,9 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// TODO Windows support
-
-#ifdef __unix__
+#ifdef _WIN32
+#include <processthreadsapi.h>
+#else // probably Unix variant
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -16,7 +16,9 @@
 #include <stdbool.h>
 #include <errno.h>
 
+#ifndef PATH_MAX
 #define PATH_MAX 4096
+#endif
 
 struct DynamicArgv {
     char** argv;
@@ -104,7 +106,13 @@ int main(int argc, char* argv[])
         errno = 0;
     }
 
-    #ifdef __unix__
+    #if _WIN32
+
+    // Compile whatever was in argv[1]
+    {
+    }
+
+    #else // Unix implementation
 
     // Compile whatever was in argv[1]
     {
@@ -168,10 +176,10 @@ int main(int argc, char* argv[])
         exit_status = WEXITSTATUS(wstatus);
     }
 
+    #endif
+
     if (cleanup_required && remove("a.out") == -1)
         perror("remove()");
 
     return exit_status;
-
-    #endif // __unix__
 }
