@@ -40,7 +40,8 @@ void push(char* arg)
 int main(int argc, char* argv[])
 {
     (void)argc;
-    char out_executable[PATH_MAX] = "./a.out";
+    char run_out_executable[PATH_MAX] = "./a.out";
+    char* out_executable = &run_out_executable[strlen("./")];
     bool cleanup_required = true; // remove compiled executable
 
     // Parse argv[1] to get args for compiler
@@ -66,11 +67,11 @@ int main(int argc, char* argv[])
 
             if (memcmp(arg, "-o", 2) == 0)
             {
-                if (strlen(arg) >= sizeof(out_executable) - 1) {
+                if (strlen(arg) >= PATH_MAX - 1) {
                     fputs("Output file name too long!", stderr);
                     exit(EXIT_FAILURE);
                 }
-                strcpy(&out_executable[strlen("./")], &arg[strlen("-o")]);
+                strcpy(out_executable, &arg[strlen("-o")]);
                 char* end = strchr(out_executable, ' ');
                 if (end != NULL)
                     *end = '\0';
@@ -98,7 +99,7 @@ int main(int argc, char* argv[])
 
     // User probably gets confused if running a file removes existing executable
     // so let's check for that.
-    FILE* existing_executable = fopen(&out_executable[strlen("./")], "r");
+    FILE* existing_executable = fopen(out_executable, "r");
     if (existing_executable != NULL) {
         cleanup_required = false;
         fclose(existing_executable);
@@ -142,7 +143,7 @@ int main(int argc, char* argv[])
 
     // We got here if compiler succeeded. However, an executable might've not
     // been produced due to user passing something like "--help" as argument.
-    FILE* compiled_executable = fopen(&out_executable[strlen("./")], "r");
+    FILE* compiled_executable = fopen(out_executable, "r");
     if (compiled_executable == NULL)
         exit(EXIT_SUCCESS);
     else
@@ -157,8 +158,8 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
         }
         else if (child_pid == 0) {
-            argv[1] = &out_executable[strlen("./")];
-            if (execv(out_executable, &argv[1]) == -1) {
+            argv[1] = out_executable;
+            if (execv(run_out_executable, &argv[1]) == -1) {
                 perror("execlp()");
                 exit(EXIT_FAILURE);
             }
