@@ -82,6 +82,10 @@ int main(int argc, char* argv[])
         push(compiler);
         push((char[]){"-Wall"});
 
+        // If compiled program crashes, it wont be deleted. In that case it's
+        // useful to have debug symbols.
+        push((char[]){"-g"});
+
         if (argv1 != NULL) for (char* arg = argv1;;)
         {
             push(arg);
@@ -103,8 +107,10 @@ int main(int argc, char* argv[])
                 arg++;
                 if (*arg == '.') // check for C++ file extension
                 {
-                    if (first_src == NULL)
-                        first_src = cc_argv.argv[cc_argv.argc - 1];
+                    #if _WIN32
+                        if (first_src == NULL)
+                            first_src = cc_argv.argv[cc_argv.argc - 1];
+                    #endif
 
                     bool longer_than_dot_c = arg[2] != ' ' && arg[2] != '\0';
                     if (longer_than_dot_c || arg[1] == 'C')
@@ -144,7 +150,7 @@ int main(int argc, char* argv[])
         char* cc_cmd;
         char* cl_cmd;
         if (argc > 1) {
-            size_t len = sizeof(compiler) + sizeof(".exe -Wall ") + strlen(argv[1]);
+            size_t len = sizeof(compiler) + sizeof(".exe -Wall -g") + strlen(argv[1]);
             cc_cmd = xmalloc(len * 2 + sizeof('\0'));
             cl_cmd = cc_cmd + len;
             strcat(strcat(strcpy(cc_cmd, compiler), ".exe -Wall "), argv[1]);
