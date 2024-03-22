@@ -96,7 +96,11 @@ int main(int argc, char* argv[])
                     fputs("Output file name too long!", stderr);
                     exit(EXIT_FAILURE);
                 }
-                strcpy(out_executable, &arg[strlen("-o")]);
+                char* out_exec_name = arg + strlen("-o");
+                while (*out_exec_name == ' ')
+                    out_exec_name++;
+
+                strcpy(out_executable, out_exec_name);
                 char* end = strchr(out_executable, ' ');
                 if (end != NULL)
                     *end = '\0';
@@ -105,15 +109,14 @@ int main(int argc, char* argv[])
 
             do {
                 arg++;
-                if (*arg == '.') // check for C++ file extension
+                if (arg[0] == '.' && (arg[1] == 'c' || arg[1] == 'C'))
                 {
                     #if _WIN32
                         if (first_src == NULL)
                             first_src = cc_argv.argv[cc_argv.argc - 1];
                     #endif
 
-                    bool longer_than_dot_c = arg[2] != ' ' && arg[2] != '\0';
-                    if (longer_than_dot_c || arg[1] == 'C')
+                    if (strchr("cpx", arg[2]) || arg[1] == 'C')
                         strcpy(compiler, "c++");
                 }
             } while (*arg != ' ' && *arg != '\0');
