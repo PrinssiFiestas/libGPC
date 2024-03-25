@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
                             first_src = cc_argv.argv[cc_argv.argc - 1];
                     #endif
 
-                    if (strchr("cpx", arg[2]) || arg[1] == 'C')
+                    if (memchr("cpx", arg[2], 3) || arg[1] == 'C')
                         strcpy(compiler, "c++");
                 }
             } while (*arg != ' ' && *arg != '\0');
