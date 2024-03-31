@@ -4,12 +4,15 @@
 
 #include "../src/assert.c"
 
+// Basic unit test demo can be found in main() after inline_test_demo().
+
 // Blocks inside functions can be tested with GP_TEST_OUT() and GP_TEST_INS().
 // Inline tests require GCC compatible compiler.
 // GCC Extensions used: compound statements and typeof operator.
 void inline_test_demo(void)
 {
     #if defined(__GNUC__) && defined(GP_TESTS)
+
     int output = 0;
     const char* str = "this does not get tested";
     int n = 1;
@@ -23,19 +26,18 @@ void inline_test_demo(void)
     // the first element is the input variable and the rest are testing values.
     // The number of test values must match the number of expected values in
     // GP_TEST_OUT().
-    GP_TEST_INS(output, (str, "aa", "bbb"), (n, 1, 2)) // NO SEMICOL HERE
+    GP_TEST_INS(output, (str, "aa", "bbb"), (n, 1, 2)) // DON'T ADD SEMICOL HERE
     { // Code block to be tested. Could be a single line without curlies too.
       // After test, this block gets executed with original values of str and n.
       // Note that if GP_TESTS is defined, this block gets executed multiple
       // times: one time with the original values after testing and in this case
       // two times during testing so be mindful about side effects. If GP_TESTS
-      // is not defined, the block gets executed once with the original values
-      // for input arguments.
+      // is not defined, the block gets executed once with the original values.
         size_t len = strlen(str);
         output = len * n;
     }
 
-    // User defined struct
+    // User defined struct test demo
     struct MyI { int i; } my_i = {0};
     int dummy = 0; // Inputs length have to match outputs length, thus dummy.
     // Expected outputs in brace enclosed initializer lists.
@@ -48,19 +50,22 @@ void inline_test_demo(void)
 
 int main(void)
 {
+    // Note the semicolon. These are not macro magic but just regular functions
+    // executed instead.
     gp_suite("First suite");
-    { // Scoping not required, but adds readability and structure.
+    { // Scoping not required, but adds readability and structure. It also gives
+      // familiarity to other frameworks, where tests are top level functions.
         gp_test("First test");
         {
-            inline_test_demo();
             gp_expect(0 == 0);
+            inline_test_demo();
         }
 
         // Starting a new test ends the last one.
         gp_test("Second test");
         {
             int var = 0;
-            // Parenthesized format string and variable for better fail message.
+            // Pass format string and variable for better fail message.
             gp_assert(var == 0, ("%i Additional note", var));
         }
     }
@@ -71,20 +76,21 @@ int main(void)
     gp_assert(p = malloc(1));
     free(p);
 
-    // Starting a new suite endst the last one.
+    // Starting a new suite ends the last one.
     gp_suite("Second suite");
     {
-        // Tests are optional.
+        // Tests are optional. This suite has only assertions without dedicated
+        // tests.
 
         long l1 = 0;
         long l2 = 0;
         double f1 = 0.707;
         double f2 = 3.141;
 
-        #if __STDC_VERSION__ >= 201112L
+        #if __STDC_VERSION__ >= 201112L // C11
         // Format string is optional.
         gp_assert(l1 == l2 && f1 < f2, (l1), (l2), (f1), (f2), ("My note"));
-        #else
+        #else // C99
         // Literals do not require a format string.
         gp_assert(l1 == l2 && f1 < f2,
             ("%l", l1), ("%l", l2), ("%g", f1), ("%g", f2), ("My note"));
@@ -94,7 +100,7 @@ int main(void)
     // result.
     gp_suite(NULL);
 
-    // Suites are optional.
+    // Suites are optional. This test is not part of any suite.
     gp_test("Array test without suite");
     {
         unsigned arr1[] = { 1, 2, 3, 4 };
@@ -111,7 +117,6 @@ int main(void)
     gp_end_testing();
 
     // Define this to see failing messages
-    //#define GPC_NON_PASSING_TESTS
     #ifdef GPC_NON_PASSING_TESTS
 
     // char dest[100];
