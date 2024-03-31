@@ -40,7 +40,7 @@ $(OBJS): build/%.o : src/%.c
 
 -include $(OBJS:.o=.d)
 
-tests: CFLAGS += -DTESTS -ggdb3
+tests: CFLAGS += -DGP_TESTS -ggdb3
 tests: $(TESTS)
 $(TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(OBJS)
 	$(CC) $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@

@@ -22,12 +22,12 @@
 
 // Returns true if condition is true. If condition is false prints fail message,
 // marks current test and suite (if running tests) as failed, and exits program.
-#define /* bool */ gp_assert(/* bool condition, */...) \
+#define /* bool */ gp_assert(/* bool condition, variables*/...) \
 ((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (gp_fatal(__VA_ARGS__), false))
 
 // Returns true if condition is true. If condition is false prints fail message,
 // marks current test and suite (if running tests) as failed, and returns false.
-#define /* bool */ gp_expect(/* bool condition, */...) \
+#define /* bool */ gp_expect(/* bool condition, variables*/...) \
 ((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (gp_fail(__VA_ARGS__), false))
 
 // Tests and suites are thread safe if running C11 or higher. Otherwise tests
@@ -43,9 +43,47 @@ void gp_test(const char* name);
 // with NULL when suite is not running does nothing. Also ends last test.
 void gp_suite(const char* name);
 
-// Optional explicit end of all testing and report results. If this
-// function is not called explicitly, it will be called when main() returns.
-void gp_end_testing(void);
+#ifdef GP_TESTS
+
+// EXPERIMENTAL
+// Requires GNUC. Use with GP_TEST_INS(). Check tests/test_assert.c for docs.
+#define GP_TEST_OUT(VAR, PROC, ...)                              \
+    typeof(VAR) _gp_##VAR[] = { VAR, __VA_ARGS__};               \
+    int _gp_##VAR##_i = 1;                                       \
+    bool _gp_##VAR##_run = false;                                \
+    _gp_##VAR##_test:                                            \
+    if (_gp_##VAR##_i == 0) {                                    \
+        _gp_##VAR##_i = -1;                                      \
+        goto _gp_##VAR##_test_end;                               \
+    }                                                            \
+    if (_gp_##VAR##_run) {                                       \
+        typeof(VAR) VAR##_EXPECTED = _gp_##VAR[_gp_##VAR##_i++]; \
+        if (GP_IS_PRIMITIVE(VAR))                                \
+            gp_assert(PROC, (VAR), (VAR##_EXPECTED));            \
+        else                                                     \
+            gp_assert(PROC);                                     \
+        if (_gp_##VAR##_i == GP_COUNT_ARGS(__VA_ARGS__) + 1)     \
+            _gp_##VAR##_i = 0;                                   \
+    }
+
+// EXPERIMENTAL
+// Requires GNUC. Use with GP_TEST_OUT(). Check tests/test_assert.c for docs
+#define GP_TEST_INS(VAR, ...)                                         \
+    GP_PROCESS_ALL_ARGS(GP_PASS_TO_DECL_ARR, GP_DUMP, __VA_ARGS__)    \
+    {                                                                 \
+        int _gp_index = _gp_##VAR##_i;                                \
+        GP_PROCESS_ALL_ARGS(GP_PASS_TO_SET_INS, GP_DUMP, __VA_ARGS__) \
+    }                                                                 \
+    VAR = _gp_##VAR[0];                                               \
+    _gp_##VAR##_test_end:                                             \
+    for (_gp_##VAR##_run = 1; _gp_##VAR##_i != -1; ({ goto _gp_##VAR##_test; }))
+
+#else // don't waste performance on production
+
+#define GP_TEST_OUT(...)
+#define GP_TEST_INS(...)
+
+#endif // GP_TESTS
 
 // ----------------------------------------------------------------------------
 //
@@ -54,6 +92,10 @@ void gp_end_testing(void);
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+
+// Optional explicit end of all testing and report results. If this
+// function is not called explicitly, it will be called when main() returns.
+void gp_end_testing(void);
 
 //
 #define GP_GEN_VAR_INFO(FORMAT, VAR) gp_generate_var_info(#VAR, FORMAT, VAR)
@@ -81,8 +123,33 @@ gp_failure(1, __FILE__, __LINE__, __func__, GP_COUNT_ARGS(__VA_ARGS__), GP_STRFY
 #define gp_fail(...) \
 gp_failure(0, __FILE__, __LINE__, __func__, GP_COUNT_ARGS(__VA_ARGS__), GP_STRFY_1ST_ARG(__VA_ARGS__), GP_PROCESS_ALL_BUT_1ST(GP_GENERATE_VAR_INFO_INDIRECT, GP_COMMA, __VA_ARGS__))
 
-char* gp_generate_var_info(const char* var_name, const char* format, /* T var */...) GP_PRINTF(2, 3);
+// TEMP
+char* gp_generate_var_info(const char* var_name, const char* format, /* T var */...);
 
 void gp_failure(bool aborting, const char* file, int line, const char* func, size_t arg_count, const char* condition, ...);
 
+#define GP_DECL_ARR(NAME, ...) typeof(NAME) _gp_##NAME[] = { NAME, __VA_ARGS__ };
+#define GP_PASS_TO_DECL_ARR(ARGS) GP_DECL_ARR ARGS
+#define GP_SET_INS(NAME, UNUSED...) NAME = _gp_##NAME[_gp_index];
+#define GP_PASS_TO_SET_INS(ARGS) GP_SET_INS ARGS
+
+#define GP_IS_PRIMITIVE(VAR)  \
+_Generic(VAR,                 \
+    bool:               true, \
+    short:              true, \
+    int:                true, \
+    long:               true, \
+    long long:          true, \
+    unsigned short:     true, \
+    unsigned int:       true, \
+    unsigned long:      true, \
+    unsigned long long: true, \
+    float:              true, \
+    double:             true, \
+    char:               true, \
+    unsigned char:      true, \
+    char*:              true, \
+    const char*:        true, \
+    void*:              true, \
+    default:            false)
 #endif // GPASSERT_INCLUDED
