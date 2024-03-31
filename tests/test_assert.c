@@ -26,6 +26,11 @@ void inline_test_demo(void)
     GP_TEST_INS(output, (str, "aa", "bbb"), (n, 1, 2)) // NO SEMICOL HERE
     { // Code block to be tested. Could be a single line without curlies too.
       // After test, this block gets executed with original values of str and n.
+      // Note that if GP_TESTS is defined, this block gets executed multiple
+      // times: one time with the original values after testing and in this case
+      // two times during testing so be mindful about side effects. If GP_TESTS
+      // is not defined, the block gets executed once with the original values
+      // for input arguments.
         size_t len = strlen(str);
         output = len * n;
     }
