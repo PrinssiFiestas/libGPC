@@ -5,17 +5,18 @@
 #ifndef GPATTRIBUTES_INCLUDED
 #define GPATTRIBUTES_INCLUDED
 
-// TODO check for C23 once it comes out for [[nodiscard]] and typeof()
-
 // ----------------------------------------------------------------------------
+// Atomic
 
 #if __STDC_VERSION__ >= 201112L
 #define GP_ATOMIC _Atomic
 #else
+// Warning: not necessarily atomic with your compiler!
 #define GP_ATOMIC
 #endif
 
 // ----------------------------------------------------------------------------
+// Nodiscard
 
 #ifdef __GNUC__
 // Emit warning if return value is discarded.
@@ -24,11 +25,12 @@
 // Emit warning if return value is discarded.
 #define GP_NODISCARD _Check_return_
 #else
-// Not supported by your compiler
+// Please, don't discard return value.
 #define GP_NODISCARD
 #endif
 
 // ----------------------------------------------------------------------------
+// Thread local
 
 #ifdef _MSC_VER
 #define GP_THREAD_LOCAL __declspec(thread)
@@ -41,6 +43,7 @@
 #endif
 
 // ----------------------------------------------------------------------------
+// Long double
 
 #if defined(__MINGW32__) && !defined(__clang__)
 #define GP_LONG_DOUBLE double
@@ -53,31 +56,44 @@
 #endif
 
 // ----------------------------------------------------------------------------
+// Nonnull args
+
+#if defined(__GNUC__)
+#define GP_NONNULL_AGRGS(...) __attribute__((nonnull __VA_OPT__((__VA_ARGS__))))
+#else
+#define GP_NONNULL_ARGS(...)
+#endif
+
+// ----------------------------------------------------------------------------
+// Array arg with static size
+
+// TODO get rid of GP_NONNULL. It's causing problems with MSVC (as usual).
 
 // Static array index in parameter declarations is a C99 feature, however, many
 // compilers do not support it.
-#if !defined(_MSC_VER) && !defined(__TINYC__) && !defined(__COMPCERT__) && !defined(__MSP430__)
+#if !defined(_MSC_VER) &&   \
+    !defined(__TINYC__) &&   \
+    !defined(__COMPCERT__) && \
+    !defined(__MSP430__)
 
 // Use to specify an array argument with at least some number of valid elements,
 // e.g. "void foo(int arr[GPC_STATIC 10];". This can be used for optimizations
 // and some compilers may also emit warnings if they can detect that the array
 // passed is too small or NULL.
+
+// You must provide a buffer with capacity at least the specified amount.
 #define GP_STATIC static
 #define GP_NONNULL static 1
 
-#elif defined(_MSC_VER)
-
-#define GP_STATIC
-#define GP_NONNULL _Notnull_
-
 #else
 
-// Static array index not supported by your compiler
+// Please, provide a buffer with capacity at least the specified amount.
 #define GPC_STATIC
 #define GPC_NONNULL
 #endif
 
 // ----------------------------------------------------------------------------
+// Printf format string type checking
 
 #if defined(__GNUC__)
 
@@ -87,12 +103,12 @@ __attribute__((format(printf, FORMAT_STRING_INDEX, FIRST_TO_CHECK)))
 
 #elif defined(_MSC_VER)
 
-// Not supported by your compiler
+//
 #define GP_PRINTF(STRING_INDEX, FIRST_TO_CHECK)
 
 #else
 
-// Not supported by your compiler
+//
 #define GP_PRINTF(STRING_INDEX, FIRST_TO_CHECK)
 
 #endif
