@@ -2,8 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#ifndef GPATTRIBUTES_INCLUDED
-#define GPATTRIBUTES_INCLUDED
+#ifndef GP_ATTRIBUTES_INCLUDED
+#define GP_ATTRIBUTES_INCLUDED
 
 // ----------------------------------------------------------------------------
 // Atomic
@@ -59,22 +59,22 @@
 // Nonnull args
 
 #if defined(__GNUC__)
-#define GP_NONNULL_AGRGS(...) __attribute__((nonnull __VA_OPT__((__VA_ARGS__))))
+#define GP_NONNULL_ARGS(...) __attribute__((nonnull __VA_OPT__((__VA_ARGS__))))
 #else
 #define GP_NONNULL_ARGS(...)
 #endif
 
 // ----------------------------------------------------------------------------
-// Array arg with static size
+// Static array index
 
 // TODO get rid of GP_NONNULL. It's causing problems with MSVC (as usual).
 
 // Static array index in parameter declarations is a C99 feature, however, many
 // compilers do not support it.
-#if !defined(_MSC_VER) &&   \
-    !defined(__TINYC__) &&   \
-    !defined(__COMPCERT__) && \
-    !defined(__MSP430__)
+#if !defined(_MSC_VER) && \
+    !defined(__TINYC__) && \
+    !defined(__MSP430__) && \
+    !defined(__COMPCERT__)
 
 // Use to specify an array argument with at least some number of valid elements,
 // e.g. "void foo(int arr[GPC_STATIC 10];". This can be used for optimizations
@@ -113,4 +113,4 @@ __attribute__((format(printf, FORMAT_STRING_INDEX, FIRST_TO_CHECK)))
 
 #endif
 
-#endif // GPATTRIBUTES_INCLUDED
+#endif // GP_ATTRIBUTES_INCLUDED

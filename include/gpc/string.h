@@ -7,8 +7,8 @@
  * String data type.
  */
 
-#ifndef GPSTRING_INCLUDED
-#define GPSTRING_INCLUDED
+#ifndef GP_STRING_INCLUDED
+#define GP_STRING_INCLUDED
 
 #include "attributes.h"
 #include "overload.h"
@@ -47,7 +47,165 @@ static inline bool gp_clip_range(size_t* start, size_t* end, size_t limit)
 //
 // ----------------------------------------------------------------------------
 
-// TODO fix all docs
+size_t gp_cstr_copy(
+    char*restrict dest,
+    const char*restrict src) GP_NONNULL_ARGS();
+
+size_t gp_cstr_copy_n(
+    char*restrict dest,
+    const char*restrict src,
+    size_t n) GP_NONNULL_ARGS();
+
+size_t gp_cstr_slice(
+    char* str,
+    size_t start,
+    size_t end) GP_NONNULL_ARGS();
+
+size_t gp_big_cstr_slice(
+    char** str,
+    size_t start,
+    size_t end) GP_NONNULL_ARGS();
+
+size_t gp_cstr_substr(
+    char*restrict dest,
+    const char*restrict src,
+    size_t start,
+    size_t end) GP_NONNULL_ARGS();
+
+size_t gp_cstr_append(
+    char*restrict dest,
+    const char*restrict src) GP_NONNULL_ARGS();
+
+size_t gp_cstr_append_n(
+    char*restrict dest,
+    const char*restrict src,
+    size_t n) GP_NONNULL_ARGS();
+
+size_t gp_cstr_insert(
+    char*restrict dest,
+    size_t pos,
+    const char*restrict src) GP_NONNULL_ARGS();
+
+size_t gp_cstr_insert_n(
+    char*restrict dest,
+    size_t pos,
+    const char*restrict src,
+    size_t n) GP_NONNULL_ARGS();
+
+size_t gp_cstr_replace(
+    char*restrict haystack,
+    const char*restrict needle,
+    const char*restrict replacement,
+    size_t* optional_in_start_out_pos) GP_NONNULL_ARGS(1, 2, 3);
+
+size_t gp_cstr_replace_all(
+    char*restrict haystack,
+    const char*restrict needle,
+    const char*restrict replacement,
+    size_t* optional_replacement_count) GP_NONNULL_ARGS(1, 2, 3);
+
+// MACRO
+size_t gp_cstr_print(
+    char*restrict out_str,
+    ...) GP_NONNULL_ARGS(1);
+
+// MACRO
+size_t gp_cstr_print_n(
+    size_t n,
+    char*restrict out_str, // optional if n == 0
+    ...);
+
+//MACRO
+size_t gp_cstr_println(
+    char*restrict out_str,
+    ...) GP_NONNULL_ARGS(1);
+
+//MACRO
+size_t gp_cstr_println_n(
+    size_t n,
+    char*restrict out_str, // optional if n == 0
+    ...);
+
+// Modes: 'l' left, 'r' right, 'u' UTF-8, 'w' whitespace. Bitwise or.
+// Whitespace is these: " \t\n\v\f\r". 'u' adds unicode whitespace.
+size_t gp_cstr_trim(
+    char*restrict str,
+    const char*restrict optional_char_set,
+    int mode) GP_NONNULL_ARGS(1);
+
+size_t gp_big_cstr_trim(
+    char*restrict* str,
+    const char*restrict optional_char_set,
+    int mode) GP_NONNULL_ARGS(1);
+
+size_t gp_cstr_to_upper(
+    char*restrict str,
+    wchar_t*restrict optional_buffer) GP_NONNULL_ARGS(1);
+
+size_t gp_cstr_to_lower(
+    char*restrict str,
+    wchar_t*restrict optional_buffer) GP_NONNULL_ARGS(1);
+
+size_t gp_cascii_to_upper(
+    char* str) GP_NONNULL_ARGS();
+
+size_t gp_cascii_to_lower(
+    char* str) GP_NONNULL_ARGS();
+
+bool gp_cutf8_validate(
+    const char* str,
+    size_t* optional_out_utf8_length) GP_NONNULL_ARGS(1);
+
+size_t gp_cutf8_to_wcstr(
+    wchar_t*restrict wcstr_buf, // with cap sizeof(wchar_t)*(strlen(utf8_src)+1)
+    const char*restrict utf8_src) GP_NONNULL_ARGS();
+
+size_t gp_cutf8_to_c16str(
+    uint_least16_t*restrict c16str_buf, // with cap sizeof(char16_t)*(strlen(utf8_src)+1)
+    const char*restrict utf8_src) GP_NONNULL_ARGS();
+
+size_t gp_cutf8_to_c32str(
+    uint_least32_t*restrict c32str_buf, // with cap sizeof(char32_t)*(strlen(utf8_src)+1)
+    const char*restrict utf8_src) GP_NONNULL_ARGS();
+
+size_t gp_wcstr_to_cutf8(
+    char*restrict utf8_buf, // with cap sizeof(wchar_t)*wcslen(wcstr_src)+1
+    const wchar_t*restrict wcstr_src) GP_NONNULL_ARGS();
+
+size_t gp_c16str_to_cutf8(
+    char*restrict utf8_buf, // with cap sizeof(char16_t)*2*strlen(c16str_src)+1
+    const uint_least16_t*restrict c16str_src) GP_NONNULL_ARGS();
+
+size_t gp_c32str_to_cutf8(
+    char*restrict utf8_buf, // with cap sizeof(char32_t)*4*strlen(c32str_src)+1
+    const uint_least32_t*restrict c32str_src) GP_NONNULL_ARGS();
+
+// String examination
+size_t gp_cstr_find(const char* haystack, const char* needle, size_t start);
+size_t gp_cstr_find_last(const char* haystack, const char* needle);
+size_t gp_cstr_count(const char* haystack, const char* needle);
+bool   gp_cstr_equal(const char* s1, const char* s2);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// TODO GET RID OF OLD STUFF
 
 /** String data structure.
  */
@@ -303,4 +461,4 @@ gpstr_print_internal(
     struct GPString me[GP_NONNULL], size_t arg_count, char** args);
 /**@endcond */
 
-#endif // GPSTRING_INCLUDED
+#endif // GP_STRING_INCLUDED

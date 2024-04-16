@@ -23,6 +23,346 @@ GP_ALWAYS_INLINE void gp_debug_segfault(void) // TODO just put this in a macro
 #include <stdlib.h>
 #include <stdarg.h>
 
+size_t gp_cstr_copy(
+    char*restrict dest,
+    const char*restrict src)
+{
+    size_t len = strlen(src);
+    memcpy(dest, src, len + sizeof(""));
+    return len;
+}
+
+size_t gp_cstr_copy_n(
+    char*restrict dest,
+    const char*restrict src,
+    size_t n)
+{
+    memcpy(dest, src, n);
+    dest[n] = '\0';
+    return n;
+}
+
+size_t gp_cstr_slice(
+    char* str,
+    size_t start,
+    size_t end)
+{
+    memmove(str, str + start, end - start);
+    str[end - start] = '\0';
+    return end - start;
+}
+
+size_t gp_big_cstr_slice(
+    char** str,
+    size_t start,
+    size_t end)
+{
+    *str += start;
+    (*str)[end - start] = '\0';
+    return end - start;
+}
+
+size_t gp_cstr_substr(
+    char*restrict dest,
+    const char*restrict src,
+    size_t start,
+    size_t end)
+{
+    memcpy(dest, src + start, end - start);
+    dest[end - start] = '\0';
+    return end - start;
+}
+
+size_t gp_cstr_append(
+    char*restrict dest,
+    const char*restrict src)
+{
+    size_t dest_length = strlen(dest);
+    size_t src_length  = strlen(src);
+    memcpy(dest + dest_length, src, src_length + sizeof(""));
+    dest[dest_length + src_length] = '\0';
+    return dest_length + src_length;
+}
+
+size_t gp_cstr_append_n(
+    char*restrict dest,
+    const char*restrict src,
+    size_t n)
+{
+    size_t dest_length = strlen(dest);
+    memcpy(dest + dest_length, src, n);
+    dest[dest_length + n] = '\0';
+    return dest_length + n;
+}
+
+size_t gp_cstr_insert(
+    char*restrict dest,
+    size_t pos,
+    const char*restrict src)
+{
+    size_t dest_length = strlen(dest);
+    size_t src_length  = strlen(src);
+    memmove(dest + pos + src_length, dest + pos, dest_length - pos);
+    memcpy(dest + pos, src, src_length);
+    dest[dest_length + src_length] = '\0';
+    return dest_length + src_length;
+}
+
+size_t gp_cstr_insert_n(
+    char*restrict dest,
+    size_t pos,
+    const char*restrict src,
+    size_t n)
+{
+    size_t dest_length = strlen(dest);
+    memmove(dest + pos + n, dest + pos, dest_length - pos);
+    memcpy(dest + pos, src, n);
+    dest[dest_length + n] = '\0';
+    return dest_length + n;
+}
+
+static size_t cstr_replace_range(
+    const size_t me_length,
+    char*restrict me,
+    const size_t start,
+    const size_t end,
+    const char* replacement,
+    const size_t replacement_length)
+{
+    memmove(
+        me + start + replacement_length,
+        me + end,
+        me_length - end);
+
+    memcpy(me + start, replacement, replacement_length);
+    return me_length + replacement_length - (end - start);
+}
+
+size_t gp_cstr_replace(
+    char*restrict haystack,
+    const char*restrict needle,
+    const char*restrict replacement,
+    size_t* optional_in_start_out_pos)
+{
+    size_t start = optional_in_start_out_pos != NULL ?
+        *optional_in_start_out_pos : 0;
+
+    if ((start = gp_cstr_find(haystack, needle, start)) == GP_NOT_FOUND)
+    {
+        if (optional_in_start_out_pos != NULL)
+            *optional_in_start_out_pos = GP_NOT_FOUND;
+        return strlen(haystack);
+    }
+    const size_t haystack_length    = strlen(haystack);
+    const size_t needle_length      = strlen(needle);
+    const size_t replacement_length = strlen(replacement);
+    const size_t end = start + needle_length;
+
+    const size_t out_length = cstr_replace_range(
+        haystack_length,
+        haystack,
+        start,
+        end,
+        replacement,
+        replacement_length);
+
+    haystack[out_length] = '\0';
+    if (optional_in_start_out_pos != NULL)
+        *optional_in_start_out_pos = start;
+
+    return out_length;
+}
+
+size_t gp_cstr_replace_all(
+    char*restrict haystack,
+    const char*restrict needle,
+    const char*restrict replacement,
+    size_t* optional_replacement_count)
+{
+          size_t haystack_length    = strlen(haystack);
+    const size_t needle_length      = strlen(needle);
+    const size_t replacement_length = strlen(replacement);
+
+    size_t start = 0;
+    size_t replacement_count = 0;
+    while ((start = gp_cstr_find(haystack, needle, start)) != GP_NOT_FOUND)
+    {
+        haystack_length = cstr_replace_range(
+            haystack_length,
+            haystack,
+            start,
+            start + needle_length,
+            replacement,
+            replacement_length);
+
+        start += replacement_length;
+        replacement_count++;
+    }
+    haystack[haystack_length] = '\0';
+    if (optional_replacement_count != NULL)
+        *optional_replacement_count = replacement_count;
+
+    return replacement_count;
+}
+
+// MACRO
+size_t gp_cstr_print(
+    char*restrict out_str,
+    ...) GP_NONNULL_ARGS(1);
+
+// MACRO
+size_t gp_cstr_print_n(
+    size_t n,
+    char*restrict out_str, // optional if n == 0
+    ...);
+
+//MACRO
+size_t gp_cstr_println(
+    char*restrict out_str,
+    ...) GP_NONNULL_ARGS(1);
+
+//MACRO
+size_t gp_cstr_println_n(
+    size_t n,
+    char*restrict out_str, // optional if n == 0
+    ...);
+
+// Modes: 'l' left, 'r' right, 'u' UTF-8, 'w' whitespace. Bitwise or.
+// Whitespace is these: " \t\n\v\f\r". 'u' adds unicode whitespace.
+size_t gp_cstr_trim(
+    char*restrict str,
+    const char*restrict optional_char_set,
+    int mode) GP_NONNULL_ARGS(1);
+/*{
+
+    // UTF-8 stuff
+    // some loop construct here
+        char utf8_char[5] = "";
+        size_t utf8_char_len = // decode length
+        memcpy(utf8_char, input, utf_8_char_len);
+        if (strstr(char_set, utf8_char))
+            input++;
+        else
+            break;
+}*/
+
+size_t gp_big_cstr_trim(
+    char*restrict* str,
+    const char*restrict optional_char_set,
+    int mode) GP_NONNULL_ARGS(1);
+
+size_t gp_cstr_to_upper(
+    char*restrict str,
+    wchar_t*restrict optional_buffer) GP_NONNULL_ARGS(1);
+
+size_t gp_cstr_to_lower(
+    char*restrict str,
+    wchar_t*restrict optional_buffer) GP_NONNULL_ARGS(1);
+
+size_t gp_cascii_to_upper(
+    char* str) GP_NONNULL_ARGS();
+
+size_t gp_cascii_to_lower(
+    char* str) GP_NONNULL_ARGS();
+
+bool gp_cutf8_validate(
+    const char* str,
+    size_t* optional_out_utf8_length) GP_NONNULL_ARGS(1);
+
+size_t gp_cutf8_to_wcstr(
+    wchar_t*restrict wcstr_buf, // with cap sizeof(wchar_t)*(strlen(utf8_src)+1)
+    const char*restrict utf8_src) GP_NONNULL_ARGS();
+
+size_t gp_cutf8_to_c16str(
+    uint_least16_t*restrict c16str_buf, // with cap sizeof(char16_t)*(strlen(utf8_src)+1)
+    const char*restrict utf8_src) GP_NONNULL_ARGS();
+
+size_t gp_cutf8_to_c32str(
+    uint_least32_t*restrict c32str_buf, // with cap sizeof(char32_t)*(strlen(utf8_src)+1)
+    const char*restrict utf8_src) GP_NONNULL_ARGS();
+
+size_t gp_wcstr_to_cutf8(
+    char*restrict utf8_buf, // with cap sizeof(wchar_t)*wcslen(wcstr_src)+1
+    const wchar_t*restrict wcstr_src) GP_NONNULL_ARGS();
+
+size_t gp_c16str_to_cutf8(
+    char*restrict utf8_buf, // with cap sizeof(char16_t)*2*strlen(c16str_src)+1
+    const uint_least16_t*restrict c16str_src) GP_NONNULL_ARGS();
+
+size_t gp_c32str_to_cutf8(
+    char*restrict utf8_buf, // with cap sizeof(char32_t)*4*strlen(c32str_src)+1
+    const uint_least32_t*restrict c32str_src) GP_NONNULL_ARGS();
+
+// String examination
+size_t gp_cstr_find(const char* haystack, const char* needle, size_t start)
+{
+    const char* result = strstr(haystack + start, needle);
+    return result ? (size_t)(result - haystack) : GP_NOT_FOUND;
+}
+
+// Find first occurrence of ch looking from right to left
+static const char* memchr_r(const char* ptr_r, const char ch, size_t count)
+{
+    const char* position = NULL;
+    while (--ptr_r, --count != (size_t)-1) // <=> count >= 0
+    {
+        if (*ptr_r == ch) {
+            position = ptr_r;
+            break;
+        }
+    }
+    return position;
+}
+
+size_t gp_cstr_find_last(const char* haystack, const char* needle)
+{
+    size_t haystack_length = strlen(haystack);
+    size_t needle_length = strlen(needle);
+
+    if (needle_length > haystack_length)
+        return GP_NOT_FOUND;
+
+    size_t position = GP_NOT_FOUND;
+    const size_t needle_last = needle_length - 1;
+    const char* data = haystack + haystack_length - needle_last;
+    size_t to_be_searched = haystack_length - needle_last;
+
+    while ((data = memchr_r(data, needle[0], to_be_searched)))
+    {
+        if (memcmp(data, needle, needle_length) == 0)
+        {
+            position = (size_t)(data - haystack);
+            break;
+        }
+        data--;
+        const char* haystack_end = haystack + haystack_length;
+        to_be_searched = haystack_length - (size_t)(haystack_end - data);
+    }
+    return position;
+}
+
+size_t gp_cstr_count(const char* haystack, const char* needle)
+{
+    size_t count = 0;
+    size_t i = 0;
+    while ((i = gp_cstr_find(haystack, needle, i)) != GP_NOT_FOUND) {
+        count++;
+        i++;
+    }
+    return count;
+}
+
+bool gp_cstr_equal(const char* s1, const char* s2)
+{
+    return strcmp(s1, s2) == 0;
+}
+
+
+
+
+
+// TODO GET RID OF OLD STUFF --------------------------------------------------
+
 extern inline const char* gpcstr(struct GPString str);
 extern inline struct GPString gpstr(const char cstr[GP_NONNULL]);
 
@@ -106,20 +446,6 @@ size_t gpstr_find(const struct GPString haystack, const struct GPString needle, 
         }
         data++;
         to_be_searched = haystack.length - (size_t)(data - haystack.data);
-    }
-    return position;
-}
-
-// Find first occurrence of ch looking from right to left
-static const char* memchr_r(const char ptr_r[GP_NONNULL], const char ch, size_t count)
-{
-    const char* position = NULL;
-    while (--ptr_r, --count != (size_t)-1) // <=> count >= 0
-    {
-        if (*ptr_r == ch) {
-            position = ptr_r;
-            break;
-        }
     }
     return position;
 }
