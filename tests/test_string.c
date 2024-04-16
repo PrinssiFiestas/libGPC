@@ -343,6 +343,18 @@ int main(void)
             sprintf(buf, "%%blah%%");
             gp_expect(gp_cstr_equal(str, buf));
         }
+
+        gp_test("C pointers");
+        {
+            char str[128];
+            char buf[128];
+            gp_cstr_print(str, (void*)buf);
+            sprintf(buf, "%p", buf);
+            gp_expect(gp_cstr_equal(str, buf), (str), (buf));
+
+            gp_cstr_print(str, NULL);
+            sprintf(buf, "(nil)");
+        }
         #endif
     }
 

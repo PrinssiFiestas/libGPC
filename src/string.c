@@ -320,6 +320,7 @@ size_t gp_cstr_print_internal(
             case GP_PTR:
                 p = va_arg(args.list, void*);
                 if (p != NULL) {
+                    concat(out, "0x", strlen("0x"));
                     out->length += pf_xtoa(
                         capacity_left(*out),
                         out->data + out->length,
