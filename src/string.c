@@ -2,6 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+// TODO GET RID OF THIS
 #include <signal.h>
 #ifdef __GNUC__
     #define GP_ALWAYS_INLINE __attribute__((always_inline)) inline
@@ -22,6 +23,7 @@ GP_ALWAYS_INLINE void gp_debug_segfault(void) // TODO just put this in a macro
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include "pfstring.h"
 
 size_t gp_cstr_copy(
     char*restrict dest,
@@ -205,33 +207,140 @@ size_t gp_cstr_replace_all(
     return replacement_count;
 }
 
-// MACRO
-size_t gp_cstr_print(
-    char*restrict out_str,
-    ...) GP_NONNULL_ARGS(1);
+size_t gp_cstr_print_internal(
+    char*restrict _out,
+    const size_t arg_count,
+    const struct GPPrintable* objs,
+    ...)
+{
+    va_list args;
+    va_start(args, objs);
 
-// MACRO
-size_t gp_cstr_print_n(
-    size_t n,
-    char*restrict out_str, // optional if n == 0
-    ...);
+    struct PFString out_ = { _out, 0, (size_t)-1 };
+    struct PFString* out = &out_;
 
-//MACRO
-size_t gp_cstr_println(
-    char*restrict out_str,
-    ...) GP_NONNULL_ARGS(1);
+    for (size_t i = 0; i < arg_count; ++i)
+    {
+        if (objs[i].identifier[0] == '\"')
+        {
+            // TODO
+            //continue;
+        }
 
-//MACRO
-size_t gp_cstr_println_n(
-    size_t n,
-    char*restrict out_str, // optional if n == 0
-    ...);
+        switch (objs[i].type)
+        {
+            case GP_CHAR:
+            case GP_SIGNED_CHAR:
+            case GP_UNSIGNED_CHAR:
+                push_char(out, (char)va_arg(args, int));
+                break;
 
-// Modes: 'l' left, 'r' right, 'u' UTF-8, 'w' whitespace. Bitwise or.
+            case GP_UNSIGNED_SHORT:
+            case GP_UNSIGNED:
+                out->length += pf_utoa(
+                    capacity_left(*out),
+                    out->data + out->length,
+                    va_arg(args, unsigned));
+                break;
+
+            case GP_UNSIGNED_LONG:
+                out->length += pf_utoa(
+                    capacity_left(*out),
+                    out->data + out->length,
+                    va_arg(args, unsigned long));
+                break;
+
+            case GP_UNSIGNED_LONG_LONG:
+                out->length += pf_utoa(
+                    capacity_left(*out),
+                    out->data + out->length,
+                    va_arg(args, unsigned long long));
+                break;
+
+            case GP_BOOL:
+                if (va_arg(args, int))
+                    concat(out, "true", strlen("true"));
+                else
+                    concat(out, "false", strlen("false"));
+                break;
+
+            case GP_SHORT:
+            case GP_INT:
+                out->length += pf_itoa(
+                    capacity_left(*out),
+                    out->data + out->length,
+                    va_arg(args, int));
+                break;
+
+            case GP_LONG:
+                out->length += pf_itoa(
+                    capacity_left(*out),
+                    out->data + out->length,
+                    va_arg(args, long int));
+                break;
+
+            case GP_LONG_LONG:
+                out->length += pf_itoa(
+                    capacity_left(*out),
+                    out->data + out->length,
+                    va_arg(args, long long int));
+                break;
+
+            case GP_FLOAT:
+            case GP_DOUBLE:
+                out->length += pf_ftoa(
+                    capacity_left(*out),
+                    out->data + out->length,
+                    va_arg(args, double));
+                break;
+
+            void* p;
+            case GP_CHAR_PTR:
+                p = va_arg(args, char*);
+                concat(out, p, strlen(p));
+                break;
+
+            case GP_PTR:
+                p = va_arg(args, void*);
+                if (p != NULL) {
+                    out->length += pf_xtoa(
+                        capacity_left(*out),
+                        out->data + out->length,
+                        (uintptr_t)p);
+                } else {
+                    concat(out, "(nil)", strlen("(nil)"));
+                } break;
+        }
+    }
+    va_end(args);
+    if (out->capacity > 0)
+        out->data[capacity_left(*out) ? out->length : out->capacity - 1] = '\0';
+
+    return out->length;
+}
+
+// // MACRO
+// size_t gp_cstr_print_n(
+//     size_t n,
+//     char*restrict out_str, // optional if n == 0
+//     ...);
+//
+// //MACRO
+// size_t gp_cstr_println(
+//     char*restrict out_str,
+//     ...) GP_NONNULL_ARGS(1);
+//
+// //MACRO
+// size_t gp_cstr_println_n(
+//     size_t n,
+//     char*restrict out_str, // optional if n == 0
+//     ...);
+
+// Modes: 'l' left, 'r' right, 'u' UTF-8. Bitwise or.
 // Whitespace is these: " \t\n\v\f\r". 'u' adds unicode whitespace.
 size_t gp_cstr_trim(
     char*restrict str,
-    const char*restrict optional_char_set,
+    const char*restrict optional_char_set, // whitespace if NULL
     int mode) GP_NONNULL_ARGS(1);
 /*{
 
@@ -252,18 +361,10 @@ size_t gp_big_cstr_trim(
     int mode) GP_NONNULL_ARGS(1);
 
 size_t gp_cstr_to_upper(
-    char*restrict str,
-    wchar_t*restrict optional_buffer) GP_NONNULL_ARGS(1);
+    char*restrict str) GP_NONNULL_ARGS();
 
 size_t gp_cstr_to_lower(
-    char*restrict str,
-    wchar_t*restrict optional_buffer) GP_NONNULL_ARGS(1);
-
-size_t gp_cascii_to_upper(
-    char* str) GP_NONNULL_ARGS();
-
-size_t gp_cascii_to_lower(
-    char* str) GP_NONNULL_ARGS();
+    char*restrict str) GP_NONNULL_ARGS();
 
 bool gp_cutf8_validate(
     const char* str,

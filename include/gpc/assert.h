@@ -22,12 +22,12 @@
 
 // Returns true if condition is true. If condition is false prints fail message,
 // marks current test and suite (if running tests) as failed, and exits program.
-#define /* bool */ gp_assert(/* bool condition, variables*/...) \
+#define/* bool */ gp_assert(/* bool condition, variables*/...) \
 ((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (gp_fatal(__VA_ARGS__), false))
 
 // Returns true if condition is true. If condition is false prints fail message,
 // marks current test and suite (if running tests) as failed, and returns false.
-#define /* bool */ gp_expect(/* bool condition, variables*/...) \
+#define/* bool */ gp_expect(/* bool condition, variables*/...) \
 ((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (gp_fail(__VA_ARGS__), false))
 
 // Tests and suites are thread safe if running C11 or higher. Otherwise tests

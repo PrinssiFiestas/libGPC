@@ -104,10 +104,8 @@ size_t gp_cstr_replace_all(
     const char*restrict replacement,
     size_t* optional_replacement_count) GP_NONNULL_ARGS(1, 2, 3);
 
-// MACRO
-size_t gp_cstr_print(
-    char*restrict out_str,
-    ...) GP_NONNULL_ARGS(1);
+#define/* size_t */ gp_cstr_print(char_ptr_out, ...) \
+    GP_CSTR_PRINT(char_ptr_out, __VA_ARGS__)
 
 // MACRO
 size_t gp_cstr_print_n(
@@ -139,18 +137,10 @@ size_t gp_big_cstr_trim(
     int mode) GP_NONNULL_ARGS(1);
 
 size_t gp_cstr_to_upper(
-    char*restrict str,
-    wchar_t*restrict optional_buffer) GP_NONNULL_ARGS(1);
+    char*restrict str) GP_NONNULL_ARGS(1);
 
 size_t gp_cstr_to_lower(
-    char*restrict str,
-    wchar_t*restrict optional_buffer) GP_NONNULL_ARGS(1);
-
-size_t gp_cascii_to_upper(
-    char* str) GP_NONNULL_ARGS();
-
-size_t gp_cascii_to_lower(
-    char* str) GP_NONNULL_ARGS();
+    char*restrict str) GP_NONNULL_ARGS(1);
 
 bool gp_cutf8_validate(
     const char* str,
@@ -368,6 +358,45 @@ struct GPString* gpstr_print(struct GPString me[GP_NONNULL], ...);
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+
+//
+struct GPPrintable
+{
+    // Created with #. If var_name[0] == '\"', then contains format string.
+    char* identifier;
+
+    // Simplified specifier. If var_name is not a format string, then this is
+    // used avoiding format string parsing.
+    const enum GPType type;
+
+    // Actual data is in pr_cstr_print_internal() variadic args.
+};
+#define GP_PRINTABLE(X) { (char[]){#X}, GP_TYPE(X) }
+
+size_t gp_cstr_print_internal(
+    char*restrict out,
+    size_t arg_count,
+    const struct GPPrintable* objs,
+    ...);
+
+#define GP_CSTR_PRINT(OUT, ...) \
+    gp_cstr_print_internal( \
+        OUT, \
+        GP_COUNT_ARGS(__VA_ARGS__), \
+        (struct GPPrintable[]) \
+            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+        __VA_ARGS__)
+
+
+
+
+
+
+
+
+
+
+// TODO get rid of old stuff
 
 /**@cond */
 #define gpstr_on_stack(cap_in_sqr_brackets, literal) \

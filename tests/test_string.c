@@ -300,26 +300,27 @@ int main(void)
         // }
     }
 
-    gp_suite("C print"); // TODO
+    gp_suite("C print");
     {
-        // #if __STDC_VERSION__ >= 201112L
-        // gp_test("C Numbers");
-        // {
-        //     struct GPString str = gpstr_on_stack([128], "");
-        //     gpstr_print(&str, 1, " divided by ", 3, " is ", 1./3.);
-        //     char buf[128];
-        //     sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
-        //     gp_expect(gpstr_eq(str, gpstr(buf)), (gpcstr(str)));
-        // }
+        #if __STDC_VERSION__ >= 201112L
+        gp_test("C Numbers");
+        {
+            char str[128];
+            gp_cstr_print(str, 1, " divided by ", 3, " is ", 1./3.);
+            char buf[128];
+            sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
+            gp_expect(gp_cstr_equal(str, buf), (str), (buf));
+        }
 
-        // gp_test("C Strings");
-        // {
-        //     struct GPString str  = gpstr_on_stack([128], "");
-        //     struct GPString str1 = gpstr_on_stack([128], "strings");
-        //     gpstr_print(&str, "Copying ", str1, (char)'.');
-        //     gp_expect(gpstr_eq(str, gpstr("Copying strings.")), (gpcstr(str)));
-        // }
-        // #endif
+        gp_test("C Strings");
+        {
+            char str[128];
+            char str1[128];
+            strcpy(str1, "strings");
+            gp_cstr_print(str, "Copying ", str1, (char)'.');
+            gp_expect(gp_cstr_equal(str, "Copying strings."));
+        }
+        #endif
     }
 
     // ------------------------------------------------------------------------
