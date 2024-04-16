@@ -23,6 +23,7 @@ GP_ALWAYS_INLINE void gp_debug_segfault(void) // TODO just put this in a macro
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <printf/printf.h>
 #include "pfstring.h"
 
 size_t gp_cstr_copy(
@@ -213,18 +214,42 @@ size_t gp_cstr_print_internal(
     const struct GPPrintable* objs,
     ...)
 {
-    va_list args;
-    va_start(args, objs);
+    va_list _args;
+    va_start(_args, objs);
+    //https://stackoverflow.com/questions/8047362/is-gcc-mishandling-a-pointer-to-a-va-list-passed-to-a-function
+    pf_va_list args;
+    va_copy(args.list, _args);
 
     struct PFString out_ = { _out, 0, (size_t)-1 };
     struct PFString* out = &out_;
 
-    for (size_t i = 0; i < arg_count; ++i)
+    for (size_t i = 0; i < arg_count; i++)
     {
         if (objs[i].identifier[0] == '\"')
         {
-            // TODO
-            //continue;
+            // Check if this is a format string or any other literal.
+            const char* fmt = objs[i].identifier;
+            while (true)
+            {
+                fmt = strchr(fmt, '%');
+                if (fmt == NULL || fmt[1] != '%')
+                    break;
+                fmt++;
+            }
+
+            const char* fmt_without_quotes = va_arg(args.list, char*);
+            if (fmt == NULL) { // not a format string
+                concat(out, fmt_without_quotes, strlen(fmt_without_quotes));
+            } else {
+                out->length += pf_vsnprintf_consuming(
+                    out->data + out->length,
+                    capacity_left(*out),
+                    fmt_without_quotes,
+                    &args);
+                i++;
+            }
+
+            continue;
         }
 
         switch (objs[i].type)
@@ -232,7 +257,7 @@ size_t gp_cstr_print_internal(
             case GP_CHAR:
             case GP_SIGNED_CHAR:
             case GP_UNSIGNED_CHAR:
-                push_char(out, (char)va_arg(args, int));
+                push_char(out, (char)va_arg(args.list, int));
                 break;
 
             case GP_UNSIGNED_SHORT:
@@ -240,25 +265,25 @@ size_t gp_cstr_print_internal(
                 out->length += pf_utoa(
                     capacity_left(*out),
                     out->data + out->length,
-                    va_arg(args, unsigned));
+                    va_arg(args.list, unsigned));
                 break;
 
             case GP_UNSIGNED_LONG:
                 out->length += pf_utoa(
                     capacity_left(*out),
                     out->data + out->length,
-                    va_arg(args, unsigned long));
+                    va_arg(args.list, unsigned long));
                 break;
 
             case GP_UNSIGNED_LONG_LONG:
                 out->length += pf_utoa(
                     capacity_left(*out),
                     out->data + out->length,
-                    va_arg(args, unsigned long long));
+                    va_arg(args.list, unsigned long long));
                 break;
 
             case GP_BOOL:
-                if (va_arg(args, int))
+                if (va_arg(args.list, int))
                     concat(out, "true", strlen("true"));
                 else
                     concat(out, "false", strlen("false"));
@@ -269,21 +294,21 @@ size_t gp_cstr_print_internal(
                 out->length += pf_itoa(
                     capacity_left(*out),
                     out->data + out->length,
-                    va_arg(args, int));
+                    va_arg(args.list, int));
                 break;
 
             case GP_LONG:
                 out->length += pf_itoa(
                     capacity_left(*out),
                     out->data + out->length,
-                    va_arg(args, long int));
+                    va_arg(args.list, long int));
                 break;
 
             case GP_LONG_LONG:
                 out->length += pf_itoa(
                     capacity_left(*out),
                     out->data + out->length,
-                    va_arg(args, long long int));
+                    va_arg(args.list, long long int));
                 break;
 
             case GP_FLOAT:
@@ -291,17 +316,17 @@ size_t gp_cstr_print_internal(
                 out->length += pf_ftoa(
                     capacity_left(*out),
                     out->data + out->length,
-                    va_arg(args, double));
+                    va_arg(args.list, double));
                 break;
 
             void* p;
             case GP_CHAR_PTR:
-                p = va_arg(args, char*);
+                p = va_arg(args.list, char*);
                 concat(out, p, strlen(p));
                 break;
 
             case GP_PTR:
-                p = va_arg(args, void*);
+                p = va_arg(args.list, void*);
                 if (p != NULL) {
                     out->length += pf_xtoa(
                         capacity_left(*out),
@@ -312,7 +337,8 @@ size_t gp_cstr_print_internal(
                 } break;
         }
     }
-    va_end(args);
+    va_end(_args);
+    va_end(args.list);
     if (out->capacity > 0)
         out->data[capacity_left(*out) ? out->length : out->capacity - 1] = '\0';
 

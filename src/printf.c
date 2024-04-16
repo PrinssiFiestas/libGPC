@@ -317,6 +317,98 @@ static unsigned add_padding(
     return diff;
 }
 
+int pf_vsnprintf_consuming(
+    char*restrict out_buf,
+    const size_t max_size,
+    const char format[restrict static 1],
+    pf_va_list* args)
+{
+    struct PFString out = { out_buf, .capacity = max_size };
+
+    while (1)
+    {
+        const PFFormatSpecifier fmt = pf_scan_format_string(format, args);
+        if (fmt.string == NULL)
+            break;
+
+        concat(&out, format, fmt.string - format);
+
+        // Jump over format specifier for next iteration
+        format = fmt.string + fmt.string_length;
+
+        unsigned written_by_conversion = 0;
+        struct MiscData misc = {};
+
+        switch (fmt.conversion_format)
+        {
+            case 'c':
+                push_char(&out, (char)va_arg(args->list, int));
+                written_by_conversion = 1;
+                break;
+
+            case 's':
+                written_by_conversion += write_s(
+                    &out, args, fmt);
+                break;
+
+            case 'd':
+            case 'i':
+                written_by_conversion += write_i(
+                    &out, &misc, args, fmt);
+                break;
+
+            case 'o':
+                written_by_conversion += write_o(
+                    &out, args, fmt);
+                break;
+
+            case 'x':
+                written_by_conversion += write_x(
+                    &out, &misc, args, fmt);
+                break;
+
+            case 'X':
+                written_by_conversion += write_X(
+                    &out, &misc, args, fmt);
+                break;
+
+            case 'u':
+                written_by_conversion += write_u(
+                    &out, args, fmt);
+                break;
+
+            case 'p':
+                written_by_conversion += write_p(
+                    &out, args, fmt);
+                break;
+
+            case 'f': case 'F':
+            case 'e': case 'E':
+            case 'g': case 'G':
+                written_by_conversion += write_f(
+                    &out, &misc, args, fmt);
+                break;
+
+            case '%':
+                push_char(&out, '%');
+                break;
+        }
+
+        if (written_by_conversion < fmt.field.width)
+            add_padding(
+                &out,
+                written_by_conversion,
+                misc,
+                fmt);
+    }
+
+    // Write what's left in format string
+    concat(&out, format, strlen(format));
+    if (max_size > 0)
+        out.data[capacity_left(out) ? out.length : out.capacity - 1] = '\0';
+
+    return out.length;
+}
 
 
 // ---------------------------------------------------------------------------
@@ -340,94 +432,11 @@ int pf_vsnprintf(
     const char format[restrict static 1],
     va_list _args)
 {
-    struct PFString out = { out_buf, .capacity = max_size };
     pf_va_list args;
     va_copy(args.list, _args);
-
-    while (1)
-    {
-        const PFFormatSpecifier fmt = pf_scan_format_string(format, &args);
-        if (fmt.string == NULL)
-            break;
-
-        concat(&out, format, fmt.string - format);
-
-        // Jump over format specifier for next iteration
-        format = fmt.string + fmt.string_length;
-
-        unsigned written_by_conversion = 0;
-        struct MiscData misc = {};
-
-        switch (fmt.conversion_format)
-        {
-            case 'c':
-                push_char(&out, (char)va_arg(args.list, int));
-                written_by_conversion = 1;
-                break;
-
-            case 's':
-                written_by_conversion += write_s(
-                    &out, &args, fmt);
-                break;
-
-            case 'd':
-            case 'i':
-                written_by_conversion += write_i(
-                    &out, &misc, &args, fmt);
-                break;
-
-            case 'o':
-                written_by_conversion += write_o(
-                    &out, &args, fmt);
-                break;
-
-            case 'x':
-                written_by_conversion += write_x(
-                    &out, &misc, &args, fmt);
-                break;
-
-            case 'X':
-                written_by_conversion += write_X(
-                    &out, &misc, &args, fmt);
-                break;
-
-            case 'u':
-                written_by_conversion += write_u(
-                    &out, &args, fmt);
-                break;
-
-            case 'p':
-                written_by_conversion += write_p(
-                    &out, &args, fmt);
-                break;
-
-            case 'f': case 'F':
-            case 'e': case 'E':
-            case 'g': case 'G':
-                written_by_conversion += write_f(
-                    &out, &misc, &args, fmt);
-                break;
-
-            case '%':
-                push_char(&out, '%');
-                break;
-        }
-
-        if (written_by_conversion < fmt.field.width)
-            add_padding(
-                &out,
-                written_by_conversion,
-                misc,
-                fmt);
-    }
-
-    // Write what's left in format string
-    concat(&out, format, strlen(format));
-    if (max_size > 0)
-        out.data[capacity_left(out) ? out.length : out.capacity - 1] = '\0';
-
+    int result = pf_vsnprintf_consuming(out_buf, max_size, format, &args);
     va_end(args.list);
-    return out.length;
+    return result;
 }
 
 int pf_vsprintf(

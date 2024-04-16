@@ -309,7 +309,7 @@ int main(void)
             gp_cstr_print(str, 1, " divided by ", 3, " is ", 1./3.);
             char buf[128];
             sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
-            gp_expect(gp_cstr_equal(str, buf), (str), (buf));
+            gp_expect(gp_cstr_equal(str, buf));
         }
 
         gp_test("C Strings");
@@ -319,6 +319,16 @@ int main(void)
             strcpy(str1, "strings");
             gp_cstr_print(str, "Copying ", str1, (char)'.');
             gp_expect(gp_cstr_equal(str, "Copying strings."));
+        }
+
+        gp_test("C custom formats");
+        {
+            char str[128];
+            gp_cstr_print(str,
+                "No zeroes in this %g", 1.0, " float. %%");
+            char buf[128];
+            sprintf(buf, "No zeroes in this %g float. %%", 1.0);
+            gp_expect(gp_cstr_equal(str, buf));
         }
         #endif
     }
