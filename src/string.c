@@ -227,27 +227,19 @@ size_t gp_cstr_print_internal(
     {
         if (objs[i].identifier[0] == '\"')
         {
-            // Check if this is a format string or any other literal.
-            const char* fmt = objs[i].identifier;
-            while (true)
+            const char* fmt = va_arg(args.list, char*);
+            for (const char* c = fmt; (c = strchr(c, '%')) != NULL; c++)
             {
-                fmt = strchr(fmt, '%');
-                if (fmt == NULL || fmt[1] != '%')
-                    break;
-                fmt++;
+                if (c[1] == '%')
+                    c++;
+                else // consuming more args
+                    i++;
             }
-
-            const char* fmt_without_quotes = va_arg(args.list, char*);
-            if (fmt == NULL) { // not a format string
-                concat(out, fmt_without_quotes, strlen(fmt_without_quotes));
-            } else {
-                out->length += pf_vsnprintf_consuming(
-                    out->data + out->length,
-                    capacity_left(*out),
-                    fmt_without_quotes,
-                    &args);
-                i++;
-            }
+            out->length += pf_vsnprintf_consuming(
+                out->data + out->length,
+                capacity_left(*out),
+                fmt,
+                &args);
 
             continue;
         }

@@ -317,6 +317,23 @@ static unsigned add_padding(
     return diff;
 }
 
+
+
+// ---------------------------------------------------------------------------
+//
+//
+//
+// IMPLEMENTATIONS OF PUBLIC FUNCTIONS
+//
+//
+//
+// ---------------------------------------------------------------------------
+
+
+
+// ------------------------------
+// String functtions
+
 int pf_vsnprintf_consuming(
     char*restrict out_buf,
     const size_t max_size,
@@ -409,22 +426,6 @@ int pf_vsnprintf_consuming(
 
     return out.length;
 }
-
-
-// ---------------------------------------------------------------------------
-//
-//
-//
-// IMPLEMENTATIONS OF PUBLIC FUNCTIONS
-//
-//
-//
-// ---------------------------------------------------------------------------
-
-
-
-// ------------------------------
-// String functtions
 
 int pf_vsnprintf(
     char* restrict out_buf,

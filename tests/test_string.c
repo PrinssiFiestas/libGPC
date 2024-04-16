@@ -325,9 +325,22 @@ int main(void)
         {
             char str[128];
             gp_cstr_print(str,
-                "No zeroes in this %g", 1.0, " float. %%");
+                "%%No zeroes in this %g", 1.0, " float. %% %%");
             char buf[128];
-            sprintf(buf, "No zeroes in this %g float. %%", 1.0);
+            sprintf(buf, "%%No zeroes in this %g float. %% %%", 1.0);
+            gp_expect(gp_cstr_equal(str, buf));
+
+            gp_cstr_print(str, 2, " formats here: %x%g", 0xbeef, 0., (char)'.');
+            sprintf(buf, "2 formats here: %x%g.", 0xbeef, 0.);
+            gp_expect(gp_cstr_equal(str, buf), (str), (buf));
+        }
+
+        gp_test("C %% only");
+        {
+            char str[128];
+            gp_cstr_print(str, "%%blah%%");
+            char buf[128];
+            sprintf(buf, "%%blah%%");
             gp_expect(gp_cstr_equal(str, buf));
         }
         #endif

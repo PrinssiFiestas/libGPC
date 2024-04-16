@@ -363,7 +363,7 @@ struct GPString* gpstr_print(struct GPString me[GP_NONNULL], ...);
 struct GPPrintable
 {
     // Created with #. If var_name[0] == '\"', then contains format string.
-    char* identifier;
+    const char* identifier;
 
     // Simplified specifier. If var_name is not a format string, then this is
     // used avoiding format string parsing.
@@ -371,7 +371,7 @@ struct GPPrintable
 
     // Actual data is in pr_cstr_print_internal() variadic args.
 };
-#define GP_PRINTABLE(X) { (char[]){#X}, GP_TYPE(X) }
+#define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
 
 size_t gp_cstr_print_internal(
     char*restrict out,

@@ -907,6 +907,11 @@ pf_d2exp_buffered_n(
     if (ieeeExponent == 0 && ieeeMantissa == 0) // d = 0.0
     {
         push_char(&out, '0');
+        if (fmt_is_g && ! fmt.flag.hash) {
+            if (capacity_left(out))
+                out.data[out.length] = '\0';
+            return out.length;
+        }
 
         if (precision > 0 || fmt.flag.hash)
         {
