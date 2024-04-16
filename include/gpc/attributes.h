@@ -6,7 +6,7 @@
 #define GP_ATTRIBUTES_INCLUDED
 
 // ----------------------------------------------------------------------------
-// Atomic
+// Atomic // TODO get rid of this, unsafe! Add C99 specific atomics instead.
 
 #if __STDC_VERSION__ >= 201112L
 #define GP_ATOMIC _Atomic

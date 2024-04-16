@@ -155,20 +155,23 @@ int main(void)
     {
         gp_expect(gp_cstr_equal("blah", "blah"));
         gp_expect( ! gp_cstr_equal("blah", "BLOH"));
+        gp_expect( ! gp_cstr_equal("blah", "blahhhhhhhh"));
     }
 
     gp_suite("C Substrings");
     {
         gp_test("C slice");
         {
-            char str[] = "Some_string_to slice";
+            char str[64]; // non-initialized buffers test null termination
+            strcpy(str, "Some_string_to slice");
             gp_cstr_slice(str, 5, 11); // not including 11!
             gp_expect(gp_cstr_equal(str, "string"));
         }
         gp_test("C slice big string");
         {
             // Not really big here, but doesn't matter for testing.
-            char  str_buf[] = "Some_string_to slice";
+            char  str_buf[64];
+            strcpy(str_buf, "Some_string_to slice");
             char* str = str_buf;
             gp_big_cstr_slice(&str, 5, 11);
             gp_expect(gp_cstr_equal(str, "string"));
@@ -178,7 +181,8 @@ int main(void)
         gp_test("C substr");
         {
             const char* src = "Some_string_to slice";
-            char dest[128] = "";
+            char dest[128];
+            strcpy(dest, "");
             gp_cstr_substr(dest, src, 5, 11); // not including 11!
             gp_expect(gp_cstr_equal(dest, "string"),
                 ("%s", dest));
@@ -189,15 +193,14 @@ int main(void)
     {
         gp_test("C Appending");
         {
-            // Fill with garbage to test null termination
-            char str[128] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+            char str[128];
             strcpy(str, "test");
             gp_cstr_append(str, " tail");
             gp_expect(gp_cstr_equal(str, "test tail"));
             gp_cstr_append_n(str, ".BLAHBLAHBLAH", 1);
             gp_expect(gp_cstr_equal(str, "test tail."));
         }
-        char str[128] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+        char str[128];
         strcpy(str, "test");
         gp_test("C Appending with insert");
         {
@@ -249,7 +252,7 @@ int main(void)
     {
         gp_test("C replace");
         {
-            char str[128] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+            char str[128];
             strcpy(str, "aaabbbcccaaa");
             size_t needlepos = 0;
             gp_cstr_replace(str, "bbb", "X", &needlepos);

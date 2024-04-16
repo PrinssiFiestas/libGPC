@@ -43,7 +43,7 @@ void gp_test(const char* name);
 // with NULL when suite is not running does nothing. Also ends last test.
 void gp_suite(const char* name);
 
-#ifdef GP_TESTS
+#ifdef GP_TESTS // define inline tests
 
 // EXPERIMENTAL
 // Requires GNUC. Use with GP_TEST_INS(). Check tests/test_assert.c for docs.

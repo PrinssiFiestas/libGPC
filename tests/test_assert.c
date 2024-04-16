@@ -100,7 +100,8 @@ int main(void)
     // result.
     gp_suite(NULL);
 
-    // Suites are optional. This test is not part of any suite.
+    // Suites are optional. This test would be part of the last suite, but
+    // there's none running, so this one is not part of any suite.
     gp_test("Array test without suite");
     {
         unsigned arr1[] = { 1, 2, 3, 4 };
@@ -116,7 +117,7 @@ int main(void)
     // function is not called explicitly, it will be called when main() returns.
     gp_end_testing();
 
-    // Define this to see failing messages
+    // Define this to see failing messages // TODO
     #ifdef GPC_NON_PASSING_TESTS
 
     // char dest[100];
