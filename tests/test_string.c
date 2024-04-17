@@ -314,13 +314,13 @@ int main(void)
             gp_cstr_trim(str, "¡", 'l');
             gp_expect(gp_cstr_equal(str, "Left!!!"), (str));
 
-            // strcpy(str, " Right\x85\u200A\r\n");
-            // gp_cstr_trim(str, "", 'r');
-            // gp_expect(gp_cstr_equal(str, " AA Right"));
+            strcpy(str, " Right\r\u200A\r\n");
+            gp_cstr_trim(str, NULL, 'r');
+            gp_expect(gp_cstr_equal(str, " Right"), (str));
 
-            // strcpy(str, "\t\u3000 ¡¡Left and Right!! \n");
-            // gp_cstr_trim(str, GP_WHITESPACE "¡", 'l' | 'r');
-            // gp_expect(gp_cstr_equal(str, "Left and Right!!"));
+            strcpy(str, "\t\u3000 ¡¡Left and Right!! \n");
+            gp_cstr_trim(str, GP_WHITESPACE "¡", 'l' | 'r');
+            gp_expect(gp_cstr_equal(str, "Left and Right!!"));
         }
     }
 

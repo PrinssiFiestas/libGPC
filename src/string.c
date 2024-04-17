@@ -405,36 +405,37 @@ size_t gp_cstr_trim(
     }
     // else utf8
 
+    const char* char_set = optional_char_set != NULL ?
+        optional_char_set :
+        GP_WHITESPACE;
+
     if (left)
     {
-        const char* char_set = optional_char_set != NULL ?
-            optional_char_set :
-            GP_WHITESPACE;
-
         size_t prefix_length = 0;
         while (true)
         {
-            char utf8_char[8] = "";
-            size_t char_length = 1;
-            unsigned first_code_unit = (unsigned char)str[prefix_length];
-
-            if (first_code_unit & 0x80) {
-                if ( ! (first_code_unit & 0x20))
-                    char_length = 2;
-                else if (first_code_unit & 0x10)
-                    char_length = 4;
-                else
-                    char_length = 3;
-            }
-
-            memcpy(utf8_char, str + prefix_length, char_length);
-            if (strstr(char_set, utf8_char) == NULL)
+            char codepoint[8] = "";
+            size_t size = gp_cstr_codepoint_size(str, prefix_length);
+            memcpy(codepoint, str + prefix_length, size);
+            if (strstr(char_set, codepoint) == NULL)
                 break;
 
-            prefix_length += char_length;
+            prefix_length += size;
         }
         length -= prefix_length;
         memmove(str, str + prefix_length, length);
+    }
+    if (right) while (length > 0)
+    {
+        char codepoint[8] = "";
+        size_t i = length - 1;
+        while ( ! gp_cstr_valid_index(str, i) && --i != 0);
+        size_t size = gp_cstr_codepoint_size(str, i);
+        memcpy(codepoint, str + i, size);
+        if (strstr(char_set, codepoint) == NULL)
+            break;
+
+        length -= size;
     }
     str[length] = '\0';
     return length;
