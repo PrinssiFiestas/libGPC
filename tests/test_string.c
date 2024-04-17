@@ -278,26 +278,20 @@ int main(void)
 
     gp_suite("C trim"); // TODO
     {
-        // gp_test("C left");
-        // {
-        //     struct GPString str = gpstr_on_stack([128], "  \t\f \nLeft");
-        //     gpstr_trim(&str, GPSTR_WHITESPACE, 'l');
-        //     gp_expect(gpstr_eq(str, gpstr("Left")), (gpcstr(str)));
-        // }
+        gp_test("C ASCII");
+        {
+            char str[128];
+            strcpy(str, "  \t\f \nLeft Ascii  ");
+            gp_cstr_trim(str, NULL, 'l' | 'a');
+            gp_expect(gp_cstr_equal(str,  "Left Ascii  "), (str));
 
-        // gp_test("C right");
-        // {
-        //     struct GPString str = gpstr_on_stack([128], "Right   \t\v\n\r");
-        //     gpstr_trim(&str, GPSTR_WHITESPACE, 'r');
-        //     gp_expect(gpstr_eq(str, gpstr("Right")), (gpcstr(str)));
-        // }
+            strcpy(str, " AA RightSAICASIACSIACIAS");
+            gp_cstr_trim(str, "ASCII", 'r' | 'a');
+            gp_expect(gp_cstr_equal(str, " AA Right"));
 
-        // gp_test("C left and right");
-        // {
-        //     struct GPString str = gpstr_on_stack([128], "   __Left and Right__   ");
-        //     gpstr_trim(&str, GPSTR_WHITESPACE "_", 'l' + 'r');
-        //     gp_expect(gpstr_eq(str, gpstr("Left and Right")), (gpcstr(str)));
-        // }
+            strcpy(str, "  __Left and Right__  ");
+            gp_cstr_trim(str, GP_ASCII_WHITESPACE "_", 'l' | 'r');
+        }
     }
 
     gp_suite("C print");

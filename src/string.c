@@ -346,22 +346,73 @@ size_t gp_cstr_print_internal(
     return out->length;
 }
 
+// {
+//     size_t i_l = 0;
+//     size_t i_r = me->length;
+//
+//     if (mode == 'l' || mode == 'l' + 'r')
+//         while (strchr(char_set, me->data[i_l]))
+//             i_l++;
+//
+//     if (mode == 'r' || mode == 'l' + 'r') {
+//         i_r--;
+//         while (strchr(char_set, me->data[i_r]))
+//             i_r--;
+//     }
+//
+//     memmove(me->data, me->data + i_l, me->length - i_l);
+//     me->length -= i_l + (me->length - i_r);
+//     if (mode == 'r' || mode == 'l' + 'r')
+//         me->length++;
+//     return me;
+// }
 size_t gp_cstr_trim(
     char*restrict str,
     const char*restrict optional_char_set,
-    int flags) GP_NONNULL_ARGS(1);
-/*{
+    int flags)
+{
+    const bool left  = flags & 0x04;
+    const bool right = flags & 0x02;
+    const bool ascii = flags & 0x01;
 
-    // UTF-8 stuff
-    // some loop construct here
-        char utf8_char[5] = "";
-        size_t utf8_char_len = // decode length
-        memcpy(utf8_char, input, utf_8_char_len);
-        if (strstr(char_set, utf8_char))
-            input++;
-        else
-            break;
-}*/
+    if (ascii)
+    {
+        const char* char_set = optional_char_set != NULL ?
+            optional_char_set :
+            GP_ASCII_WHITESPACE;
+
+        size_t length = strlen(str);
+        if (left)
+        {
+            const size_t prefix_length = strspn(str, char_set);
+            length -= prefix_length;
+            memmove(str, str + prefix_length, length);
+        }
+        if (right && length > 0)
+        {
+            while (strchr(char_set, str[length - 1]) != NULL) {
+                length--;
+                if (length == 0)
+                    break;
+            }
+        }
+        str[length] = '\0';
+        return length;
+    }
+
+    // // TODO UTF-8 stuff
+    // // some loop construct here
+    //     char utf8_char[5] = "";
+    //     size_t utf8_char_len = // decode length
+    //     memcpy(utf8_char, input, utf_8_char_len);
+    //     if (strstr(char_set, utf8_char))
+    //         input++;
+    //     else
+    //         break;
+
+    //TODO
+    return 0;
+}
 
 size_t gp_big_cstr_trim(
     char*restrict* str,
