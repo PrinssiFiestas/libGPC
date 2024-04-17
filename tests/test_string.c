@@ -276,21 +276,51 @@ int main(void)
         }
     }
 
-    gp_suite("C trim"); // TODO
+    gp_suite("C UTF-8 indices");
+    {
+        gp_test("C valid index");
+        {
+            gp_expect(   gp_cstr_valid_index("\u1153", 0));
+            gp_expect( ! gp_cstr_valid_index("\u1153", 1));
+        }
+
+        gp_test("C codepoint size");
+        {
+            gp_expect(gp_cstr_codepoint_size("\u1153", 0) == strlen("\u1153"));
+        }
+    }
+
+    gp_suite("C trim");
     {
         gp_test("C ASCII");
         {
             char str[128];
             strcpy(str, "  \t\f \nLeft Ascii  ");
             gp_cstr_trim(str, NULL, 'l' | 'a');
-            gp_expect(gp_cstr_equal(str,  "Left Ascii  "), (str));
+            gp_expect(gp_cstr_equal(str,  "Left Ascii  "));
 
             strcpy(str, " AA RightSAICASIACSIACIAS");
             gp_cstr_trim(str, "ASCII", 'r' | 'a');
             gp_expect(gp_cstr_equal(str, " AA Right"));
 
             strcpy(str, "  __Left and Right__  ");
-            gp_cstr_trim(str, GP_ASCII_WHITESPACE "_", 'l' | 'r');
+            gp_cstr_trim(str, GP_ASCII_WHITESPACE "_", 'l' | 'r' | 'a');
+            gp_expect(gp_cstr_equal(str, "Left and Right"), (str));
+        }
+        gp_test("C UTF-8");
+        {
+            char str[128];
+            strcpy(str, "¡¡¡Left!!!");
+            gp_cstr_trim(str, "¡", 'l');
+            gp_expect(gp_cstr_equal(str, "Left!!!"), (str));
+
+            // strcpy(str, " Right\x85\u200A\r\n");
+            // gp_cstr_trim(str, "", 'r');
+            // gp_expect(gp_cstr_equal(str, " AA Right"));
+
+            // strcpy(str, "\t\u3000 ¡¡Left and Right!! \n");
+            // gp_cstr_trim(str, GP_WHITESPACE "¡", 'l' | 'r');
+            // gp_expect(gp_cstr_equal(str, "Left and Right!!"));
         }
     }
 

@@ -104,6 +104,15 @@ size_t gp_cstr_replace_all(
     const char*restrict replacement,
     size_t* optional_replacement_count) GP_NONNULL_ARGS(1, 2, 3);
 
+bool gp_cstr_valid_index(
+    const char* str,
+    size_t i) GP_NONNULL_ARGS();
+
+// Assumes valid index
+size_t gp_cstr_codepoint_size(
+    const char* str,
+    size_t i) GP_NONNULL_ARGS();
+
 #define/* size_t */gp_cstr_print(char_ptr_out, ...) \
     GP_CSTR_PRINT(false, char_ptr_out, (size_t)-1, __VA_ARGS__)
 

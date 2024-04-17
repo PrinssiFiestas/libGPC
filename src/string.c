@@ -346,31 +346,36 @@ size_t gp_cstr_print_internal(
     return out->length;
 }
 
-// {
-//     size_t i_l = 0;
-//     size_t i_r = me->length;
-//
-//     if (mode == 'l' || mode == 'l' + 'r')
-//         while (strchr(char_set, me->data[i_l]))
-//             i_l++;
-//
-//     if (mode == 'r' || mode == 'l' + 'r') {
-//         i_r--;
-//         while (strchr(char_set, me->data[i_r]))
-//             i_r--;
-//     }
-//
-//     memmove(me->data, me->data + i_l, me->length - i_l);
-//     me->length -= i_l + (me->length - i_r);
-//     if (mode == 'r' || mode == 'l' + 'r')
-//         me->length++;
-//     return me;
-// }
+bool gp_cstr_valid_index(
+    const char* str,
+    size_t i)
+{
+    unsigned c = (unsigned char)str[i];
+    return ! ((c & 0x80) && (~c & 0x40));
+}
+
+size_t gp_cstr_codepoint_size(
+    const char* str,
+    size_t i)
+{
+    unsigned c = (unsigned char)str[i];
+    if (c & 0x80) {
+        if ( ! (c & 0x20))
+            return 2;
+        else if (c & 0x10)
+            return 4;
+        else
+            return 3;
+    }
+    return 1;
+}
+
 size_t gp_cstr_trim(
     char*restrict str,
     const char*restrict optional_char_set,
     int flags)
 {
+    size_t length = strlen(str);
     const bool left  = flags & 0x04;
     const bool right = flags & 0x02;
     const bool ascii = flags & 0x01;
@@ -381,7 +386,6 @@ size_t gp_cstr_trim(
             optional_char_set :
             GP_ASCII_WHITESPACE;
 
-        size_t length = strlen(str);
         if (left)
         {
             const size_t prefix_length = strspn(str, char_set);
@@ -399,19 +403,41 @@ size_t gp_cstr_trim(
         str[length] = '\0';
         return length;
     }
+    // else utf8
 
-    // // TODO UTF-8 stuff
-    // // some loop construct here
-    //     char utf8_char[5] = "";
-    //     size_t utf8_char_len = // decode length
-    //     memcpy(utf8_char, input, utf_8_char_len);
-    //     if (strstr(char_set, utf8_char))
-    //         input++;
-    //     else
-    //         break;
+    if (left)
+    {
+        const char* char_set = optional_char_set != NULL ?
+            optional_char_set :
+            GP_WHITESPACE;
 
-    //TODO
-    return 0;
+        size_t prefix_length = 0;
+        while (true)
+        {
+            char utf8_char[8] = "";
+            size_t char_length = 1;
+            unsigned first_code_unit = (unsigned char)str[prefix_length];
+
+            if (first_code_unit & 0x80) {
+                if ( ! (first_code_unit & 0x20))
+                    char_length = 2;
+                else if (first_code_unit & 0x10)
+                    char_length = 4;
+                else
+                    char_length = 3;
+            }
+
+            memcpy(utf8_char, str + prefix_length, char_length);
+            if (strstr(char_set, utf8_char) == NULL)
+                break;
+
+            prefix_length += char_length;
+        }
+        length -= prefix_length;
+        memmove(str, str + prefix_length, length);
+    }
+    str[length] = '\0';
+    return length;
 }
 
 size_t gp_big_cstr_trim(
