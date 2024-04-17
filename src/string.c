@@ -209,19 +209,21 @@ size_t gp_cstr_replace_all(
 }
 
 size_t gp_cstr_print_internal(
+    int is_println,
     char*restrict _out,
+    const size_t n,
     const size_t arg_count,
     const struct GPPrintable* objs,
     ...)
 {
     va_list _args;
     va_start(_args, objs);
-    //https://stackoverflow.com/questions/8047362/is-gcc-mishandling-a-pointer-to-a-va-list-passed-to-a-function
     pf_va_list args;
     va_copy(args.list, _args);
 
-    struct PFString out_ = { _out, 0, (size_t)-1 };
+    struct PFString out_ = { _out, 0, n };
     struct PFString* out = &out_;
+    bool capacity_sufficed_for_trailing_space = false;
 
     for (size_t i = 0; i < arg_count; i++)
     {
@@ -241,6 +243,8 @@ size_t gp_cstr_print_internal(
                 fmt,
                 &args);
 
+            if (is_println)
+                capacity_sufficed_for_trailing_space = push_char(out, ' ');
             continue;
         }
 
@@ -311,7 +315,7 @@ size_t gp_cstr_print_internal(
                     va_arg(args.list, double));
                 break;
 
-            void* p;
+            char* p;
             case GP_CHAR_PTR:
                 p = va_arg(args.list, char*);
                 concat(out, p, strlen(p));
@@ -329,38 +333,24 @@ size_t gp_cstr_print_internal(
                     concat(out, "(nil)", strlen("(nil)"));
                 } break;
         }
+        if (is_println)
+            capacity_sufficed_for_trailing_space = push_char(out, ' ');
     }
     va_end(_args);
     va_end(args.list);
-    if (out->capacity > 0)
+    if (out->capacity > 0) {
+        if (capacity_sufficed_for_trailing_space)
+            out->data[out->length - 1] = '\n';
         out->data[capacity_left(*out) ? out->length : out->capacity - 1] = '\0';
-
+    }
     return out->length;
 }
 
-// // MACRO
-// size_t gp_cstr_print_n(
-//     size_t n,
-//     char*restrict out_str, // optional if n == 0
-//     ...);
-//
-// //MACRO
-// size_t gp_cstr_println(
-//     char*restrict out_str,
-//     ...) GP_NONNULL_ARGS(1);
-//
-// //MACRO
-// size_t gp_cstr_println_n(
-//     size_t n,
-//     char*restrict out_str, // optional if n == 0
-//     ...);
-
-// Modes: 'l' left, 'r' right, 'u' UTF-8. Bitwise or.
-// Whitespace is these: " \t\n\v\f\r". 'u' adds unicode whitespace.
+// Flags: 'l' left, 'r' right, 'a' ASCII only. Bitwise or.
 size_t gp_cstr_trim(
     char*restrict str,
     const char*restrict optional_char_set, // whitespace if NULL
-    int mode) GP_NONNULL_ARGS(1);
+    int flags) GP_NONNULL_ARGS(1);
 /*{
 
     // UTF-8 stuff

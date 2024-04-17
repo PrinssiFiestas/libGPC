@@ -104,32 +104,37 @@ size_t gp_cstr_replace_all(
     const char*restrict replacement,
     size_t* optional_replacement_count) GP_NONNULL_ARGS(1, 2, 3);
 
-#define/* size_t */ gp_cstr_print(char_ptr_out, ...) \
-    GP_CSTR_PRINT(char_ptr_out, __VA_ARGS__)
+#define/* size_t */gp_cstr_print(char_ptr_out, ...) \
+    GP_CSTR_PRINT(false, char_ptr_out, (size_t)-1, __VA_ARGS__)
 
-// MACRO
-size_t gp_cstr_print_n(
-    size_t n,
-    char*restrict out_str, // optional if n == 0
-    ...);
+#define/* size_t */gp_cstr_print_n(char_ptr_out, n, ...) \
+    GP_CSTR_PRINT(false, char_ptr_out, n, __VA_ARGS__)
 
-//MACRO
-size_t gp_cstr_println(
-    char*restrict out_str,
-    ...) GP_NONNULL_ARGS(1);
+#define/* size_t */gp_cstr_println(char_ptr_out, ...) \
+    GP_CSTR_PRINT(true, char_ptr_out, (size_t)-1, __VA_ARGS__)
 
-//MACRO
-size_t gp_cstr_println_n(
-    size_t n,
-    char*restrict out_str, // optional if n == 0
-    ...);
+#define/* size_t */gp_cstr_println_n(char_ptr_out, n, ...) \
+    GP_CSTR_PRINT(true, char_ptr_out, n, __VA_ARGS__)
 
-// Modes: 'l' left, 'r' right, 'u' UTF-8, 'w' whitespace. Bitwise or.
-// Whitespace is these: " \t\n\v\f\r". 'u' adds unicode whitespace.
+// //MACRO
+// size_t gp_cstr_println(
+//     char*restrict out_str,
+//     ...) GP_NONNULL_ARGS(1);
+//
+// //MACRO
+// size_t gp_cstr_println_n(
+//     size_t n,
+//     char*restrict out_str, // optional if n == 0
+//     ...);
+
+#define GP_ASCII_WHITESPACE " \t\n\v\f\r"
+
+// Flags: 'l' left, 'r' right, 'a' ASCII only. Use bitwise
+// or for multiple flags
 size_t gp_cstr_trim(
     char*restrict str,
-    const char*restrict optional_char_set,
-    int mode) GP_NONNULL_ARGS(1);
+    const char*restrict optional_char_set, // whitespace if NULL
+    int flags) GP_NONNULL_ARGS(1);
 
 size_t gp_big_cstr_trim(
     char*restrict* str,
@@ -374,14 +379,18 @@ struct GPPrintable
 #define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
 
 size_t gp_cstr_print_internal(
+    int is_println,
     char*restrict out,
+    size_t n,
     size_t arg_count,
     const struct GPPrintable* objs,
     ...);
 
-#define GP_CSTR_PRINT(OUT, ...) \
+#define GP_CSTR_PRINT(IS_PRINTLN, OUT, N, ...) \
     gp_cstr_print_internal( \
+        IS_PRINTLN, \
         OUT, \
+        N, \
         GP_COUNT_ARGS(__VA_ARGS__), \
         (struct GPPrintable[]) \
             { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \

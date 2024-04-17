@@ -355,6 +355,23 @@ int main(void)
             gp_cstr_print(str, NULL);
             sprintf(buf, "(nil)");
         }
+
+        gp_test("C print n");
+        {
+            char str[128];
+            gp_cstr_print_n(str, 7, "blah", 12345);
+            gp_expect(gp_cstr_equal(str, "blah12"));
+        }
+
+        gp_test("C println");
+        {
+            char str[128];
+            gp_cstr_println(str, "Spaces", 3, "inserted.");
+            gp_expect(gp_cstr_equal(str, "Spaces 3 inserted.\n"));
+
+            gp_cstr_println(str, "With %g%i", 2., 0, "fmt specs.");
+            gp_expect(gp_cstr_equal(str, "With 20 fmt specs.\n"), (str));
+        }
         #endif
     }
 
