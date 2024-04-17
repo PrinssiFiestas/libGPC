@@ -319,8 +319,8 @@ int main(void)
             gp_expect(gp_cstr_equal(str, " Right"), (str));
 
             strcpy(str, "\t\u3000 ¡¡Left and Right!! \n");
-            gp_cstr_trim(str, GP_WHITESPACE "¡", 'l' | 'r');
-            gp_expect(gp_cstr_equal(str, "Left and Right!!"));
+            gp_cstr_trim(str, GP_WHITESPACE "¡!", 'l' | 'r');
+            gp_expect(gp_cstr_equal(str, "Left and Right"));
         }
     }
 
