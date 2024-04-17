@@ -116,21 +116,12 @@ size_t gp_cstr_replace_all(
 #define/* size_t */gp_cstr_println_n(char_ptr_out, n, ...) \
     GP_CSTR_PRINT(true, char_ptr_out, n, __VA_ARGS__)
 
-// //MACRO
-// size_t gp_cstr_println(
-//     char*restrict out_str,
-//     ...) GP_NONNULL_ARGS(1);
-//
-// //MACRO
-// size_t gp_cstr_println_n(
-//     size_t n,
-//     char*restrict out_str, // optional if n == 0
-//     ...);
-
+#define GP_WHITESPACE  " \t\n\v\f\r" \
+    "\x85\xA0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006" \
+    "\u2007\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000"
 #define GP_ASCII_WHITESPACE " \t\n\v\f\r"
 
-// Flags: 'l' left, 'r' right, 'a' ASCII only. Use bitwise
-// or for multiple flags
+// Flags: 'l' left, 'r' right, 'a' ASCII only. Bitwise or for multiple flags.
 size_t gp_cstr_trim(
     char*restrict str,
     const char*restrict optional_char_set, // whitespace if NULL
@@ -142,44 +133,67 @@ size_t gp_big_cstr_trim(
     int mode) GP_NONNULL_ARGS(1);
 
 size_t gp_cstr_to_upper(
-    char*restrict str) GP_NONNULL_ARGS(1);
+    char* str) GP_NONNULL_ARGS();
 
 size_t gp_cstr_to_lower(
-    char*restrict str) GP_NONNULL_ARGS(1);
+    char* str) GP_NONNULL_ARGS();
 
-bool gp_cutf8_validate(
-    const char* str,
-    size_t* optional_out_utf8_length) GP_NONNULL_ARGS(1);
+size_t gp_cstr_make_valid(
+    char* str) GP_NONNULL_ARGS();
 
-size_t gp_cutf8_to_wcstr(
-    wchar_t*restrict wcstr_buf, // with cap sizeof(wchar_t)*(strlen(utf8_src)+1)
-    const char*restrict utf8_src) GP_NONNULL_ARGS();
+size_t gp_cstr_to_wcstr(
+    wchar_t*restrict wcstr_buf, // with cap sizeof(wchar_t)*(strlen(cstr_src)+1)
+    const char*restrict utf8_src,
+    size_t bytes_to_convert) GP_NONNULL_ARGS();
 
-size_t gp_cutf8_to_c16str(
-    uint_least16_t*restrict c16str_buf, // with cap sizeof(char16_t)*(strlen(utf8_src)+1)
-    const char*restrict utf8_src) GP_NONNULL_ARGS();
+size_t gp_cstr_to_c16str(
+    uint_least16_t*restrict c16str_buf, // with cap sizeof(char16_t)*(strlen(cstr_src)+1)
+    const char*restrict utf8_src,
+    size_t bytes_to_convert) GP_NONNULL_ARGS();
 
-size_t gp_cutf8_to_c32str(
-    uint_least32_t*restrict c32str_buf, // with cap sizeof(char32_t)*(strlen(utf8_src)+1)
-    const char*restrict utf8_src) GP_NONNULL_ARGS();
+size_t gp_cstr_to_c32str(
+    uint_least32_t*restrict c32str_buf, // with cap sizeof(char32_t)*(strlen(cstr_src)+1)
+    const char*restrict utf8_src,
+    size_t bytes_to_convert) GP_NONNULL_ARGS();
 
-size_t gp_wcstr_to_cutf8(
+size_t gp_wcstr_to_cstr(
     char*restrict utf8_buf, // with cap sizeof(wchar_t)*wcslen(wcstr_src)+1
-    const wchar_t*restrict wcstr_src) GP_NONNULL_ARGS();
+    const wchar_t*restrict wcstr_src,
+    size_t wchars_to_convert) GP_NONNULL_ARGS();
 
-size_t gp_c16str_to_cutf8(
+size_t gp_c16str_to_cstr(
     char*restrict utf8_buf, // with cap sizeof(char16_t)*2*strlen(c16str_src)+1
-    const uint_least16_t*restrict c16str_src) GP_NONNULL_ARGS();
+    const uint_least16_t*restrict c16str_src,
+    size_t char16s_to_convert) GP_NONNULL_ARGS();
 
-size_t gp_c32str_to_cutf8(
+size_t gp_c32str_to_cstr(
     char*restrict utf8_buf, // with cap sizeof(char32_t)*4*strlen(c32str_src)+1
-    const uint_least32_t*restrict c32str_src) GP_NONNULL_ARGS();
+    const uint_least32_t*restrict c32str_src,
+    size_t char32s_to_convert) GP_NONNULL_ARGS();
 
 // String examination
-size_t gp_cstr_find(const char* haystack, const char* needle, size_t start);
-size_t gp_cstr_find_last(const char* haystack, const char* needle);
-size_t gp_cstr_count(const char* haystack, const char* needle);
-bool   gp_cstr_equal(const char* s1, const char* s2);
+
+size_t gp_cstr_find(
+    const char* haystack,
+    const char* needle,
+    size_t start) GP_NONNULL_ARGS();
+
+size_t gp_cstr_find_last(
+    const char* haystack,
+    const char* needle) GP_NONNULL_ARGS();
+
+size_t gp_cstr_count(
+    const char* haystack,
+    const char* needle) GP_NONNULL_ARGS();
+
+bool gp_cstr_equal(
+    const char* s1,
+    const char* s2) GP_NONNULL_ARGS();
+
+bool gp_cstr_validate(
+    const char* str,
+    size_t* optional_out_utf8_char_count) GP_NONNULL_ARGS(1);
+
 
 
 

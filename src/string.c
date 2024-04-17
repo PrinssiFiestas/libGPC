@@ -346,10 +346,9 @@ size_t gp_cstr_print_internal(
     return out->length;
 }
 
-// Flags: 'l' left, 'r' right, 'a' ASCII only. Bitwise or.
 size_t gp_cstr_trim(
     char*restrict str,
-    const char*restrict optional_char_set, // whitespace if NULL
+    const char*restrict optional_char_set,
     int flags) GP_NONNULL_ARGS(1);
 /*{
 
