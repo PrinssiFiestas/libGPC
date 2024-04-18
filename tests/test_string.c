@@ -346,10 +346,12 @@ int main(void)
             {
                 char str[128];
                 strcpy(str, "yaşar bayrı");
-                gp_cstr_to_upper(str);
+                size_t upper_length = gp_cstr_to_upper(str);
                 gp_expect(gp_cstr_equal(str, "YAŞAR BAYRI"), (str));
-                gp_cstr_to_lower(str);
+                size_t lower_length = gp_cstr_to_lower(str);
                 gp_expect(gp_cstr_equal(str, "yaşar bayrı"));
+                gp_expect(upper_length != lower_length,
+                    ("Lengths may change!"));
             }
         } // else Turkish language pack not installed.
     }
