@@ -554,13 +554,14 @@ void d2fixed_buffered(double d, uint32_t precision, char* result) {
   result[len] = '\0';
 }
 
+#if 0 // not used so shut up analyzer
 char* d2fixed(double d, uint32_t precision) {
   char* const buffer = (char*)malloc(2000);
   const int index = d2fixed_buffered_n(d, precision, buffer);
   buffer[index] = '\0';
   return buffer;
 }
-
+#endif
 
 
 int d2exp_buffered_n(double d, uint32_t precision, char* result) {
@@ -811,9 +812,11 @@ void d2exp_buffered(double d, uint32_t precision, char* result) {
   result[len] = '\0';
 }
 
+#if 0 // not used so shut up analyzer
 char* d2exp(double d, uint32_t precision) {
   char* const buffer = (char*)malloc(2000);
   const int index = d2exp_buffered_n(d, precision, buffer);
   buffer[index] = '\0';
   return buffer;
 }
+#endif

@@ -19,7 +19,7 @@ OBJS = $(patsubst src/%.c,build/%.o,$(wildcard src/*.c))
 
 TESTS = $(patsubst tests/test_%.c,build/test_%$(EXE_EXT),$(wildcard tests/test_*.c))
 
-.PHONY: tests all release debug
+.PHONY: tests all release debug analyze
 
 .PRECIOUS: $(TESTS)
 
@@ -29,7 +29,11 @@ release: CFLAGS += -O3
 release: build/libgpc.a
 
 debug: CFLAGS += -ggdb3 -DGP_DEBUG -Og
+debug: CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 debug: build/libgpcd.a
+
+analyze: CFLAGS += -fanalyze
+analyze: tests
 
 build/libgpc.a: $(OBJS)
 	ar -rcs $@ $^
@@ -40,7 +44,8 @@ $(OBJS): build/%.o : src/%.c
 
 -include $(OBJS:.o=.d)
 
-tests: CFLAGS += -DGP_TESTS -ggdb3
+tests: CFLAGS += -DGP_TESTS -ggdb3 -DGP_DEBUG -Og
+tests: CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 tests: $(TESTS)
 $(TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(OBJS)
 	$(CC) $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@

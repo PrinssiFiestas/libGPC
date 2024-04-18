@@ -375,7 +375,19 @@ size_t gp_cstr_trim(
     const char*restrict optional_char_set,
     int flags)
 {
-    size_t length = strlen(str);
+    char* str_start = str;
+    size_t length = gp_big_cstr_trim(&str_start, optional_char_set, flags);
+    memmove(str, str_start, length);
+    str[length] = '\0';
+    return length;
+}
+
+size_t gp_big_cstr_trim(
+    char*restrict* str,
+    const char*restrict optional_char_set,
+    int flags)
+{
+    size_t length = strlen(*str);
     const bool left  = flags & 0x04;
     const bool right = flags & 0x02;
     const bool ascii = flags & 0x01;
@@ -388,19 +400,19 @@ size_t gp_cstr_trim(
 
         if (left)
         {
-            const size_t prefix_length = strspn(str, char_set);
+            const size_t prefix_length = strspn(*str, char_set);
             length -= prefix_length;
-            memmove(str, str + prefix_length, length);
+            *str += prefix_length;
         }
         if (right && length > 0)
         {
-            while (strchr(char_set, str[length - 1]) != NULL) {
+            while (strchr(char_set, (*str)[length - 1]) != NULL) {
                 length--;
                 if (length == 0)
                     break;
             }
         }
-        str[length] = '\0';
+        (*str)[length] = '\0';
         return length;
     }
     // else utf8
@@ -415,29 +427,29 @@ size_t gp_cstr_trim(
         while (true)
         {
             char codepoint[8] = "";
-            size_t size = gp_cstr_codepoint_size(str, prefix_length);
-            memcpy(codepoint, str + prefix_length, size);
+            size_t size = gp_cstr_codepoint_size(*str, prefix_length);
+            memcpy(codepoint, *str + prefix_length, size);
             if (strstr(char_set, codepoint) == NULL)
                 break;
 
             prefix_length += size;
         }
         length -= prefix_length;
-        memmove(str, str + prefix_length, length);
+        *str += prefix_length;
     }
     if (right) while (length > 0)
     {
         char codepoint[8] = "";
         size_t i = length - 1;
-        while ( ! gp_cstr_valid_index(str, i) && --i != 0);
-        size_t size = gp_cstr_codepoint_size(str, i);
-        memcpy(codepoint, str + i, size);
+        while ( ! gp_cstr_valid_index(*str, i) && --i != 0);
+        size_t size = gp_cstr_codepoint_size(*str, i);
+        memcpy(codepoint, *str + i, size);
         if (strstr(char_set, codepoint) == NULL)
             break;
 
         length -= size;
     }
-    str[length] = '\0';
+    (*str)[length] = '\0';
     return length;
 }
 

@@ -447,8 +447,10 @@ void d2s_buffered(double f, char* result) {
   result[index] = '\0';
 }
 
+#if 0 // Not used so shut up analyzer
 char* d2s(double f) {
   char* const result = (char*) malloc(25);
   d2s_buffered(f, result);
   return result;
 }
+#endif
