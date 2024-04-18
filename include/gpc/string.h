@@ -121,7 +121,7 @@ size_t gp_cstr_replace_all(
     "\u2007\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\xC2\x85"
 #define GP_ASCII_WHITESPACE " \t\n\v\f\r"
 
-// Flags: 'l' left, 'r' right, 'a' ASCII only. Bitwise or for multiple flags.
+// Flags: 'l' left, 'r' right, 'a' ASCII char set only. Separate flags with |.
 size_t gp_cstr_trim(
     char*restrict str,
     const char*restrict optional_char_set, // whitespace if NULL
@@ -132,46 +132,18 @@ size_t gp_big_cstr_trim(
     const char*restrict optional_char_set,
     int mode) GP_NONNULL_ARGS(1);
 
-// Locale dependent!
+// Only converts Unicode characters with 1:1 mapping. Result is locale
+// dependent. Result length might differ from input string length.
 size_t gp_cstr_to_upper(
     char* str) GP_NONNULL_ARGS();
 
-// Locale dependent!
+// Only converts Unicode characters with 1:1 mapping. Result is locale
+// dependent. Result length might differ from input string length.
 size_t gp_cstr_to_lower(
     char* str) GP_NONNULL_ARGS();
 
 size_t gp_cstr_make_valid(
     char* str) GP_NONNULL_ARGS();
-
-size_t gp_cstr_to_wcstr(
-    wchar_t*restrict wcstr_buf, // with cap sizeof(wchar_t)*(strlen(cstr_src)+1)
-    const char*restrict utf8_src,
-    size_t bytes_to_convert) GP_NONNULL_ARGS();
-
-size_t gp_cstr_to_c16str(
-    uint_least16_t*restrict c16str_buf, // with cap sizeof(char16_t)*(strlen(cstr_src)+1)
-    const char*restrict utf8_src,
-    size_t bytes_to_convert) GP_NONNULL_ARGS();
-
-size_t gp_cstr_to_c32str(
-    uint_least32_t*restrict c32str_buf, // with cap sizeof(char32_t)*(strlen(cstr_src)+1)
-    const char*restrict utf8_src,
-    size_t bytes_to_convert) GP_NONNULL_ARGS();
-
-size_t gp_wcstr_to_cstr(
-    char*restrict utf8_buf, // with cap sizeof(wchar_t)*wcslen(wcstr_src)+1
-    const wchar_t*restrict wcstr_src,
-    size_t wchars_to_convert) GP_NONNULL_ARGS();
-
-size_t gp_c16str_to_cstr(
-    char*restrict utf8_buf, // with cap sizeof(char16_t)*2*strlen(c16str_src)+1
-    const uint_least16_t*restrict c16str_src,
-    size_t char16s_to_convert) GP_NONNULL_ARGS();
-
-size_t gp_c32str_to_cstr(
-    char*restrict utf8_buf, // with cap sizeof(char32_t)*4*strlen(c32str_src)+1
-    const uint_least32_t*restrict c32str_src,
-    size_t char32s_to_convert) GP_NONNULL_ARGS();
 
 // String examination
 
@@ -194,7 +166,7 @@ bool gp_cstr_equal(
 
 bool gp_cstr_validate(
     const char* str,
-    size_t* optional_out_utf8_char_count) GP_NONNULL_ARGS(1);
+    size_t* optional_out_codepoint_count) GP_NONNULL_ARGS(1);
 
 bool gp_cstr_valid_index(
     const char* str,

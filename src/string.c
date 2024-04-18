@@ -472,8 +472,12 @@ static size_t cstr_to_something(
     for (size_t i = 0; i < buf_length; i++)
         buf[i] = towsomething(buf[i]);
 
-    return wcsrtombs(str,
+    length = wcsrtombs(str,
         (const wchar_t**)&buf, sizeof(buf[0]) * buf_length, &(mbstate_t){0});
+
+    if (buf != stack_buf)
+        free(buf);
+    return length;
 }
 
 size_t gp_cstr_to_upper(
