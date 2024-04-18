@@ -4,6 +4,8 @@
 
 #include "../include/gpc/assert.h"
 #include "../src/string.c"
+#include <locale.h>
+#include <errno.h>
 
 int main(void)
 {
@@ -324,16 +326,47 @@ int main(void)
         }
     }
 
+    gp_suite("C to upper/lower");
+    {
+        gp_test("Finnish");
+        {
+            gp_assert(setlocale(LC_ALL, "C.utf8"));
+
+            char str[128];
+            strcpy(str, "blääf");
+            gp_cstr_to_upper(str);
+            gp_expect(gp_cstr_equal(str, "BLÄÄF"), (str));
+            gp_cstr_to_lower(str);
+            gp_expect(gp_cstr_equal(str, "blääf"));
+        }
+
+        if (setlocale(LC_ALL, "tr_TR.utf8") != NULL)
+        {
+            gp_test("Turkish"); // Note how ı changes to ASCII and back
+            {
+                char str[128];
+                strcpy(str, "yaşar bayrı");
+                gp_cstr_to_upper(str);
+                gp_expect(gp_cstr_equal(str, "YAŞAR BAYRI"), (str));
+                gp_cstr_to_lower(str);
+                gp_expect(gp_cstr_equal(str, "yaşar bayrı"));
+            }
+        } // else Turkish language pack not installed.
+    }
+
+
     gp_suite("C print");
     {
         #if __STDC_VERSION__ >= 201112L
+        // Must reset due to sprintf() changing behaviour.
+        setlocale(LC_ALL, "C");
         gp_test("C Numbers");
         {
             char str[128];
             gp_cstr_print(str, 1, " divided by ", 3, " is ", 1./3.);
             char buf[128];
             sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
-            gp_expect(gp_cstr_equal(str, buf));
+            gp_expect(gp_cstr_equal(str, buf), (str), (buf));
         }
 
         gp_test("C Strings");

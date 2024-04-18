@@ -23,6 +23,8 @@ GP_ALWAYS_INLINE void gp_debug_segfault(void) // TODO just put this in a macro
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <wchar.h>
+#include <wctype.h>
 #include <printf/printf.h>
 #include "pfstring.h"
 
@@ -453,16 +455,38 @@ size_t gp_big_cstr_trim(
     return length;
 }
 
-size_t gp_big_cstr_trim(
-    char*restrict* str,
-    const char*restrict optional_char_set,
-    int mode) GP_NONNULL_ARGS(1);
+static size_t cstr_to_something(
+    char* str,
+    wint_t(*towsomething)(wint_t))
+{
+    size_t length = strlen(str);
+    size_t buf_cap  = 1 << 10;
+    wchar_t stack_buf[1 << 10];
+    wchar_t* buf = stack_buf;
+    if (length + 1 >= buf_cap) {
+        buf_cap = length + 1;
+        buf = malloc(buf_cap * sizeof(wchar_t));
+    }
+    size_t buf_length = mbsrtowcs(buf,
+        &(const char*){str}, buf_cap, &(mbstate_t){0});
+    for (size_t i = 0; i < buf_length; i++)
+        buf[i] = towsomething(buf[i]);
+
+    return wcsrtombs(str,
+        (const wchar_t**)&buf, sizeof(buf[0]) * buf_length, &(mbstate_t){0});
+}
 
 size_t gp_cstr_to_upper(
-    char*restrict str) GP_NONNULL_ARGS();
+    char* str)
+{
+    return cstr_to_something(str, towupper);
+}
 
 size_t gp_cstr_to_lower(
-    char*restrict str) GP_NONNULL_ARGS();
+    char* str)
+{
+    return cstr_to_something(str, towlower);
+}
 
 bool gp_cutf8_validate(
     const char* str,

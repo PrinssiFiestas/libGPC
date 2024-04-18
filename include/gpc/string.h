@@ -132,9 +132,11 @@ size_t gp_big_cstr_trim(
     const char*restrict optional_char_set,
     int mode) GP_NONNULL_ARGS(1);
 
+// Locale dependent!
 size_t gp_cstr_to_upper(
     char* str) GP_NONNULL_ARGS();
 
+// Locale dependent!
 size_t gp_cstr_to_lower(
     char* str) GP_NONNULL_ARGS();
 

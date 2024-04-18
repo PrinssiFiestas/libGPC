@@ -32,7 +32,7 @@ debug: CFLAGS += -ggdb3 -DGP_DEBUG -Og
 debug: CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 debug: build/libgpcd.a
 
-analyze: CFLAGS += -fanalyze
+analyze: CFLAGS += -fanalyzer
 analyze: tests
 
 build/libgpc.a: $(OBJS)
