@@ -155,9 +155,20 @@ int main(void)
 
     gp_suite("C equal");
     {
-        gp_expect(gp_cstr_equal("blah", "blah"));
-        gp_expect( ! gp_cstr_equal("blah", "BLOH"));
-        gp_expect( ! gp_cstr_equal("blah", "blahhhhhhhh"));
+        gp_test("C case sensitive");
+        {
+            gp_expect(gp_cstr_equal("blah", "blah"));
+            gp_expect( ! gp_cstr_equal("blah", "BLOH"));
+            gp_expect( ! gp_cstr_equal("blah", "blahhhhhhhh"));
+        }
+
+        gp_test("C case insensitive");
+        {
+            gp_assert(setlocale(LC_ALL, "C.utf8"));
+            gp_expect(   gp_cstr_equal_case("AaÄäÖö", "aaÄÄöÖ"));
+            gp_expect( ! gp_cstr_equal_case("AaÄäÖö", "aaxÄöÖ"));
+            gp_expect( ! gp_cstr_equal_case("AaÄäÖö", "aaÄÄöÖuuuu"));
+        }
     }
 
     gp_suite("C Substrings");
@@ -289,6 +300,11 @@ int main(void)
         gp_test("C codepoint size");
         {
             gp_expect(gp_cstr_codepoint_size("\u1153", 0) == strlen("\u1153"));
+        }
+
+        gp_test("C codepoint count");
+        {
+            gp_expect(gp_cstr_codepoint_count("aÄb🍌x") == 5);
         }
     }
 

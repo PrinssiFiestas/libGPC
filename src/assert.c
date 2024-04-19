@@ -10,9 +10,8 @@
 #include <string.h>
 #include <stdarg.h>
 
-#define GP_NOT_RUNNING NULL
-static GP_THREAD_LOCAL const char* gp_current_test  = GP_NOT_RUNNING;
-static GP_THREAD_LOCAL const char* gp_current_suite = GP_NOT_RUNNING;
+static GP_THREAD_LOCAL const char* gp_current_test  = NULL;
+static GP_THREAD_LOCAL const char* gp_current_suite = NULL;
 static GP_THREAD_LOCAL bool gp_test_failed  = false;
 static GP_THREAD_LOCAL bool gp_suite_failed = false;
 static GP_ATOMIC unsigned gp_test_count    = 0;
@@ -66,9 +65,9 @@ void gp_test(const char* name)
     gp_init_testing();
 
     // End current test
-    if (gp_current_test != GP_NOT_RUNNING)
+    if (gp_current_test != NULL)
     {
-        const char* indent = gp_current_suite == GP_NOT_RUNNING ? "" : "\t";
+        const char* indent = gp_current_suite == NULL ? "" : "\t";
         if (gp_test_failed) {
             gp_tests_failed++;
             fprintf(stderr,
@@ -78,7 +77,7 @@ void gp_test(const char* name)
             "%s" GP_PASSED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_current_test);
         }
 
-        gp_current_test = GP_NOT_RUNNING;
+        gp_current_test = NULL;
     }
 
     // Start new test
@@ -98,7 +97,7 @@ void gp_suite(const char* name)
     gp_test(NULL); // End current test
 
     // End current suite
-    if (gp_current_suite != GP_NOT_RUNNING)
+    if (gp_current_suite != NULL)
     {
         if (gp_suite_failed) {
             gp_suites_failed++;
@@ -106,7 +105,7 @@ void gp_suite(const char* name)
         } else {
             printf(GP_PASSED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_current_suite);
         }
-        gp_current_suite = GP_NOT_RUNNING;
+        gp_current_suite = NULL;
     }
 
     // Start new suite
@@ -272,15 +271,15 @@ void gp_failure(
     const char* condition,
     ...)
 {
-    if (gp_current_test != GP_NOT_RUNNING)
+    if (gp_current_test != NULL)
     {
         gp_test_failed = true;
         func = gp_current_test;
     }
-    if (gp_current_suite != GP_NOT_RUNNING)
+    if (gp_current_suite != NULL)
     {
         gp_suite_failed = true;
-        if (gp_current_test == GP_NOT_RUNNING)
+        if (gp_current_test == NULL)
             func = gp_current_suite;
     }
 

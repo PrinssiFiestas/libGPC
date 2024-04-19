@@ -492,33 +492,18 @@ size_t gp_cstr_to_lower(
     return cstr_to_something(str, towlower);
 }
 
-bool gp_cutf8_validate(
+bool gp_cstr_is_valid(
     const char* str,
     size_t* optional_out_utf8_length) GP_NONNULL_ARGS(1);
 
-size_t gp_cutf8_to_wcstr(
-    wchar_t*restrict wcstr_buf, // with cap sizeof(wchar_t)*(strlen(utf8_src)+1)
-    const char*restrict utf8_src) GP_NONNULL_ARGS();
-
-size_t gp_cutf8_to_c16str(
-    uint_least16_t*restrict c16str_buf, // with cap sizeof(char16_t)*(strlen(utf8_src)+1)
-    const char*restrict utf8_src) GP_NONNULL_ARGS();
-
-size_t gp_cutf8_to_c32str(
-    uint_least32_t*restrict c32str_buf, // with cap sizeof(char32_t)*(strlen(utf8_src)+1)
-    const char*restrict utf8_src) GP_NONNULL_ARGS();
-
-size_t gp_wcstr_to_cutf8(
-    char*restrict utf8_buf, // with cap sizeof(wchar_t)*wcslen(wcstr_src)+1
-    const wchar_t*restrict wcstr_src) GP_NONNULL_ARGS();
-
-size_t gp_c16str_to_cutf8(
-    char*restrict utf8_buf, // with cap sizeof(char16_t)*2*strlen(c16str_src)+1
-    const uint_least16_t*restrict c16str_src) GP_NONNULL_ARGS();
-
-size_t gp_c32str_to_cutf8(
-    char*restrict utf8_buf, // with cap sizeof(char32_t)*4*strlen(c32str_src)+1
-    const uint_least32_t*restrict c32str_src) GP_NONNULL_ARGS();
+size_t gp_cstr_codepoint_count(
+    const char* str)
+{
+    size_t count = 0;
+    for (size_t i = 0; str[i] != '\0'; i++)
+        count += gp_cstr_valid_index(str, i);
+    return count;
+}
 
 // String examination
 size_t gp_cstr_find(const char* haystack, const char* needle, size_t start)
@@ -584,8 +569,88 @@ bool gp_cstr_equal(const char* s1, const char* s2)
     return strcmp(s1, s2) == 0;
 }
 
+bool gp_cstr_equal_case(
+    const char* s1,
+    const char* s2)
+{
+    size_t s1_length = gp_cstr_codepoint_count(s1);
+    size_t s2_length = gp_cstr_codepoint_count(s2);
+    if (s1_length != s2_length)
+        return false;
 
+    mbstate_t state1 = {0};
+    mbstate_t state2 = {0};
+    wchar_t wc1;
+    wchar_t wc2;
+    for (size_t i = 0; i < s1_length; i++)
+    {
+        size_t wc1_length = mbrtowc(&wc1, s1, sizeof(wchar_t), &state1);
+        size_t wc2_length = mbrtowc(&wc2, s2, sizeof(wchar_t), &state2);
+        if (sizeof(wchar_t) < sizeof(uint32_t)/* Windows probably */&&
+            (wc1_length == (size_t)-2) != (wc2_length == (size_t)-2))
+        { // one fits to wchar_t and other doesn't so most likely different
+            return false;
+        }
+        else if (sizeof(wchar_t) < sizeof(uint32_t) &&
+                 wc1_length == (size_t)-2) // char wider than sizeof(wchar_t)
+        {                                  // so just compare raw bytes
+            size_t s1_codepoint_size = gp_cstr_codepoint_size(s1, 0);
+            size_t s2_codepoint_size = gp_cstr_codepoint_size(s2, 0);
+            if (s1_codepoint_size != s2_codepoint_size ||
+                memcmp(s1, s2, s1_codepoint_size) != 0)
+            {
+                return false;
+            }
+            s1 += s1_codepoint_size;
+            s2 += s2_codepoint_size;
+        }
+        else
+        {
+            wc1 = towlower(wc1);
+            wc2 = towlower(wc2);
+            if (wc1 != wc2)
+                return false;
 
+            s1 += wc1_length;
+            s2 += wc2_length;
+        }
+    }
+    return true;
+}
+
+int gp_cstr_case_compare(
+    const char* s1,
+    const char* s2)
+{
+    size_t s1_length = strlen(s1);
+    size_t s2_length = strlen(s2);
+    if (s1_length != s2_length)
+        return false;
+
+    size_t buf1_cap  = 1 << 10;
+    size_t buf2_cap  = 1 << 10;
+    wchar_t stack_buf1[1 << 10];
+    wchar_t stack_buf2[1 << 10];
+    wchar_t* buf1 = stack_buf1;
+    wchar_t* buf2 = stack_buf2;
+    if (s1_length + 1 >= buf1_cap) {
+        buf1_cap = s1_length + 1;
+        buf1 = malloc(buf1_cap * sizeof(wchar_t));
+    } if (s2_length + 1 >= buf2_cap) {
+        buf2_cap = s2_length + 1;
+        buf2 = malloc(buf2_cap * sizeof(wchar_t));
+    }
+    if (mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0}) !=
+        mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0})) {
+        return false;
+    }
+    int result = wcscoll(buf1, buf2);
+    if (buf1 != stack_buf1)
+        free(buf1);
+    if (buf2 != stack_buf2)
+        free(buf2);
+    return result;
+}
 
 
 // TODO GET RID OF OLD STUFF --------------------------------------------------

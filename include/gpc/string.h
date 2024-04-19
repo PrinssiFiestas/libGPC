@@ -164,11 +164,18 @@ bool gp_cstr_equal(
     const char* s1,
     const char* s2) GP_NONNULL_ARGS();
 
-bool gp_cstr_validate(
+bool gp_cstr_equal_case(
+    const char* s1,
+    const char* s2) GP_NONNULL_ARGS();
+
+size_t gp_cstr_codepoint_count(
+    const char* str) GP_NONNULL_ARGS();
+
+bool gp_cstr_is_valid(
     const char* str,
     size_t* optional_out_codepoint_count) GP_NONNULL_ARGS(1);
 
-bool gp_cstr_valid_index(
+bool gp_cstr_is_valid_index(
     const char* str,
     size_t i) GP_NONNULL_ARGS();
 
