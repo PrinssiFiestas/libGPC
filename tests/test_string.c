@@ -158,6 +158,7 @@ int main(void)
         gp_test("C case sensitive");
         {
             gp_expect(gp_cstr_equal("blah", "blah"));
+            gp_expect(gp_cstr_equal("blääh", "blääh"));
             gp_expect( ! gp_cstr_equal("blah", "BLOH"));
             gp_expect( ! gp_cstr_equal("blah", "blahhhhhhhh"));
         }

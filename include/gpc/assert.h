@@ -98,6 +98,69 @@ void gp_suite(const char* name);
 void gp_end_testing(void);
 
 //
+struct GPPrintable
+{
+    // Created with #. If var_name[0] == '\"', then contains format string.
+    const char* identifier;
+
+    // Simplified specifier. If var_name is not a format string, then this is
+    // used avoiding format string parsing.
+    const enum GPType type;
+
+    // Actual data is in pr_cstr_print_internal() variadic args.
+};
+#ifndef GP_PRINTABLE
+#define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
+#endif
+
+// Returns true if condition is true. If condition is false prints fail message,
+// marks current test and suite (if running tests) as failed, and exits program.
+#define/* bool */ gp_assert_NEW(/* bool condition, variables*/...) \
+((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (GP_FAIL(1,__VA_ARGS__), false))
+
+// Returns true if condition is true. If condition is false prints fail message,
+// marks current test and suite (if running tests) as failed, and returns false.
+#define/* bool */ gp_expect_NEW(/* bool condition, variables*/...) \
+((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (GP_FAIL(0,__VA_ARGS__), false))
+
+#define GP_FAIL(IS_FATAL, ...) \
+    gp_fail_internal( \
+        IS_FATAL, \
+        __FILE__, \
+        __LINE__, \
+        __func__, \
+        GP_COUNT_ARGS(__VA_ARGS__), \
+        (struct GPPrintable[]) \
+            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+        __VA_ARGS__)
+
+void gp_fail_internal(
+    int aborting,
+    const char* file,
+    int line,
+    const char* func,
+    size_t arg_count,
+    const struct GPPrintable* objs,
+    ...) GP_NONNULL_ARGS();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// TODO get rid of old stuff
+
+//
 #define GP_GEN_VAR_INFO(FORMAT, VAR) gp_generate_var_info(#VAR, FORMAT, VAR)
 
 // To be used in GP_PROCESS_ALL()

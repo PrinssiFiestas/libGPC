@@ -4,11 +4,14 @@
 
 #include <gpc/assert.h>
 #include <gpc/terminal.h>
+#include <gpc/utils.h>
+#include <printf/printf.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdint.h>
 
 static GP_THREAD_LOCAL const char* gp_current_test  = NULL;
 static GP_THREAD_LOCAL const char* gp_current_suite = NULL;
@@ -119,6 +122,206 @@ void gp_suite(const char* name)
     }
 }
 
+// ----------------------------------------------------------------------------
+// Implementations for gp_assert(), gp_expect(), and relevant
+
+void gp_fail_internal(
+    int aborting,
+    const char* file,
+    int line,
+    const char* func,
+    size_t arg_count,
+    const struct GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    if (gp_current_test != NULL)
+    {
+        gp_test_failed = true;
+        func = gp_current_test;
+    }
+    if (gp_current_suite != NULL)
+    {
+        gp_suite_failed = true;
+        if (gp_current_test == NULL)
+            func = gp_current_suite;
+    }
+
+    const char* condition = objs[0].identifier;
+    // 1st arg is just condition, ignore that.
+    if (gp_sizeof(objs[0].type) == sizeof(uint64_t))
+        (void)va_arg(args.list, uint64_t);
+    else // 32 bits due to arg conversion
+        (void)va_arg(args.list, uint32_t);
+
+    fprintf(stderr,
+            "Condition " GP_RED"%s"GP_RESET_TERMINAL
+            " in %s " GP_WHITE_BG GP_BLACK "line %i" GP_RESET_TERMINAL" %s "
+            GP_RED"[FAILED]" GP_RESET_TERMINAL"\n",
+            condition, file, line, func);
+
+    char* buf = NULL;
+    size_t buf_capacity = 0;
+    for (size_t i = 1; i < arg_count; i++)
+    {
+        if (objs[i].identifier[0] == '\"')
+        {
+            const char* fmt = va_arg(args.list, char*);
+            size_t fmt_spec_count = 0;
+            char* fmt_spec = NULL;
+            for (const char* c = fmt; (c = strchr(c, '%')) != NULL; c++)
+            {
+                if (c[1] == '%') {
+                    c++;
+                } else {
+                    fmt_spec_count++;
+                    fmt_spec = strpbrk(c, "csdioxXufFeEgGp");
+                    if (fmt_spec == NULL) {
+                        fprintf(stderr, "Invalid format specifier \"%s\".", fmt);
+                        continue;
+                    }
+                }
+            }
+            if (fmt_spec_count == 0) // user comment
+            {
+                fputs(fmt, stderr);
+                continue;
+            }
+            else if (fmt_spec_count == 1)
+            {
+                fprintf(stderr,
+                    GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ",
+                    objs[i].identifier);
+                // Color and opening quote if string or char
+                if (*fmt_spec == 'c') // character
+                    fprintf(stdout, GP_YELLOW "\'");
+                else if (*fmt_spec == 's') // string
+                    fprintf(stdout, GP_BRIGHT_RED "\"");
+                else if (strchr("dibBouxX", *fmt_spec)) // integer
+                    fprintf(stdout, GP_BRIGHT_BLUE);
+                else if (strchr("fFeEgG", *fmt_spec)) // floating point
+                    fprintf(stdout, GP_BRIGHT_MAGENTA);
+                else if (*fmt_spec == 'p') // pointer
+                    fprintf(stdout, GP_BLUE);
+            }
+            else
+            {
+                fprintf(stderr, GP_BRIGHT_WHITE "{ ");
+                for (size_t j = 0; j < fmt_spec_count - 1; j++)
+                    fprintf(stderr, "%s, ", objs[i + j].identifier);
+                fprintf(stderr,
+                    "%s } " GP_RESET_TERMINAL " = " GP_BRIGHT_CYAN "{ ",
+                    objs[i + fmt_spec_count - 1].identifier);
+            }
+            size_t required_capacity = pf_vsnprintf(NULL, 0, fmt, args.list)+1;
+            if (required_capacity >= buf_capacity) {
+                buf = realloc(
+                    buf, buf_capacity = gp_next_power_of_2(required_capacity));
+            }
+            pf_vsnprintf_consuming(buf, buf_capacity, fmt, &args);
+
+            if (fmt_spec_count >= 2)
+                fprintf(stderr, " }");
+            fputs(GP_RESET_TERMINAL, stderr);
+
+            i += fmt_spec_count;
+            continue;
+        } // end if string literal
+
+        fprintf(stderr,
+            GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ",
+            objs[i].identifier);
+
+        switch (objs[i].type)
+        {
+            case GP_CHAR:
+            case GP_SIGNED_CHAR:
+            case GP_UNSIGNED_CHAR:
+                fprintf(stderr,
+                    GP_YELLOW "\'%c\'", (char)va_arg(args.list, int));
+                break;
+
+            case GP_UNSIGNED_SHORT:
+            case GP_UNSIGNED:
+                fprintf(stderr, GP_BRIGHT_BLUE "%u", va_arg(args.list, unsigned));
+                break;
+
+            case GP_UNSIGNED_LONG:
+                fprintf(stderr,
+                    GP_BRIGHT_BLUE "%lu", va_arg(args.list, unsigned long));
+                break;
+
+            case GP_UNSIGNED_LONG_LONG:
+                fprintf(stderr,
+                    GP_BRIGHT_BLUE "%llu", va_arg(args.list, unsigned long long));
+                break;
+
+            case GP_BOOL:
+                fprintf(stderr, va_arg(args.list, int) ? "true" : "false");
+                break;
+
+            case GP_SHORT:
+            case GP_INT:
+                fprintf(stderr, GP_BRIGHT_BLUE "%i", va_arg(args.list, int));
+                break;
+
+            case GP_LONG:
+                fprintf(stderr, GP_BRIGHT_BLUE "%li", va_arg(args.list, long));
+                break;
+
+            case GP_LONG_LONG:
+                fprintf(stderr, GP_BRIGHT_BLUE "%lli", va_arg(args.list, long long));
+                break;
+
+            double f;
+            case GP_FLOAT:
+            case GP_DOUBLE:
+                f = va_arg(args.list, double);
+                fprintf(stderr, GP_BRIGHT_MAGENTA "%g", f);
+                if (f - (int64_t)f == f/* whole number */&&
+                    (int64_t)f < 100000) { // not printed using %e style
+                    fprintf(stderr, ".0");
+                } break;
+
+            case GP_CHAR_PTR:
+                fprintf(stderr, GP_BRIGHT_RED "%s", va_arg(args.list, char*));
+                break;
+
+            case GP_PTR:
+                fprintf(stderr, GP_BLUE "%p", va_arg(args.list, void*));
+                break;
+        }
+        fprintf(stderr, GP_RESET_TERMINAL "\n");
+    } // end for args
+    if (aborting)
+        exit(EXIT_FAILURE);
+    free(buf);
+    va_end(_args);
+    va_end(args.list);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD OLD
 // ----------------------------------------------------------------------------
 // Implementations for gp_assert(), gp_expect(), and relevant
 

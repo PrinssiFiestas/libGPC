@@ -380,7 +380,9 @@ struct GPPrintable
 
     // Actual data is in pr_cstr_print_internal() variadic args.
 };
+#ifndef GP_PRINTABLE
 #define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
+#endif
 
 size_t gp_cstr_print_internal(
     int is_println,
