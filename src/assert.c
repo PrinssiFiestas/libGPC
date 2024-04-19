@@ -155,14 +155,14 @@ void gp_fail_internal(
     // 1st arg is just condition, ignore that.
     if (gp_sizeof(objs[0].type) == sizeof(uint64_t))
         (void)va_arg(args.list, uint64_t);
-    else // 32 bits due to arg conversion
+    else // 32 bits due to arg promotion
         (void)va_arg(args.list, uint32_t);
 
     fprintf(stderr,
-            "Condition " GP_RED"%s"GP_RESET_TERMINAL
-            " in %s " GP_WHITE_BG GP_BLACK "line %i" GP_RESET_TERMINAL" %s "
-            GP_RED"[FAILED]" GP_RESET_TERMINAL"\n",
-            condition, file, line, func);
+        "Condition " GP_RED "%s" GP_RESET_TERMINAL
+        " in %s " GP_WHITE_BG GP_BLACK "line %i" GP_RESET_TERMINAL " %s "
+        GP_FAILED_STR "\n",
+        condition, file, line, func);
 
     char* buf = NULL;
     size_t buf_capacity = 0;
@@ -186,6 +186,7 @@ void gp_fail_internal(
                     }
                 }
             }
+            size_t printed = 0;
             if (fmt_spec_count == 0) // user comment
             {
                 fputs(fmt, stderr);
@@ -210,18 +211,26 @@ void gp_fail_internal(
             }
             else
             {
+                printed = 2; // curly without color
                 fprintf(stderr, GP_BRIGHT_WHITE "{ ");
                 for (size_t j = 0; j < fmt_spec_count - 1; j++)
-                    fprintf(stderr, "%s, ", objs[i + j].identifier);
-                fprintf(stderr,
-                    "%s } " GP_RESET_TERMINAL " = " GP_BRIGHT_CYAN "{ ",
-                    objs[i + fmt_spec_count - 1].identifier);
+                    printed += fprintf(stderr, "%s, ", objs[i + j].identifier);
+                printed += fprintf(stderr,
+                    "%s } ", objs[i + fmt_spec_count - 1].identifier);
+                fprintf(stderr, GP_RESET_TERMINAL " = " GP_BRIGHT_CYAN);
+                printed += strlen(" = ");
             }
+
             size_t required_capacity = pf_vsnprintf(NULL, 0, fmt, args.list)+1;
             if (required_capacity >= buf_capacity) {
                 buf = realloc(
                     buf, buf_capacity = gp_next_power_of_2(required_capacity));
             }
+            if (printed + required_capacity > 120)
+                fprintf(stderr, "\n\t");
+            if (fmt_spec_count >= 2)
+                fprintf(stderr, "{ ");
+
             pf_vsnprintf_consuming(buf, buf_capacity, fmt, &args);
 
             if (fmt_spec_count >= 2)
@@ -233,8 +242,7 @@ void gp_fail_internal(
         } // end if string literal
 
         fprintf(stderr,
-            GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ",
-            objs[i].identifier);
+            GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ", objs[i].identifier);
 
         switch (objs[i].type)
         {
@@ -297,6 +305,7 @@ void gp_fail_internal(
         }
         fprintf(stderr, GP_RESET_TERMINAL "\n");
     } // end for args
+
     if (aborting)
         exit(EXIT_FAILURE);
     free(buf);
