@@ -50,7 +50,28 @@ void inline_test_demo(void)
 
 int main(void)
 {
-    gp_expect_NEW(1 + 1 == 1, "this is a comment", "%c", 'X');
+    char my_c = 'X';
+    gp_expect_NEW(1 + 1 == 1,
+        "this is a comment", "\'%c\' my note for my_c", my_c);
+
+    struct {
+        short i;
+        char* s;
+        float f;
+    } my_s = { -1, "blah", 3.f };
+    gp_expect_NEW(false,
+        "Printing collection of data",
+        "%i, \"%s\", %g", my_s.i, my_s.s, my_s.f);
+
+    gp_expect_NEW(NULL,
+        "Surround with curlies",
+        "{ %i, \"%s\", %g }", my_s.i + 1, "bloink", my_s.f/0.,
+        "{%i, \"%s\", %g} without spaces", my_s.i + 1, "bloink", -my_s.f/0.,
+        "<%i, \"%s\", %g> these are fine too", my_s.i + 1, NULL, -my_s.f/0.);
+
+    const char* my_string = NULL;
+    gp_expect_NEW(my_string, my_string);
+
     gp_assert_NEW(0 + 0);
 
     // Note the semicolon. These are not macro magic but just regular functions

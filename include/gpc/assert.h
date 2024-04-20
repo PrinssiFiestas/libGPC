@@ -141,7 +141,7 @@ void gp_fail_internal(
     const char* func,
     size_t arg_count,
     const struct GPPrintable* objs,
-    ...) GP_NONNULL_ARGS();
+    ...);
 
 
 

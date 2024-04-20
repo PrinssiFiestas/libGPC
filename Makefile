@@ -4,7 +4,6 @@
 
 CC = gcc
 CFLAGS  = -Wall -Wextra -Werror
-CFLAGS += -Wdouble-promotion
 CFLAGS += -Wno-missing-field-initializers -Wno-comment
 CFLAGS += -Iinclude
 
@@ -49,7 +48,7 @@ tests: CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 tests: $(TESTS)
 $(TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(OBJS)
 	$(CC) $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@
-	export LSAN_OPTIONS=verbosity=1:log_threads=1 && ./$@
+	./$@
 
 clean:
 	rm -rf build

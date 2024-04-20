@@ -173,6 +173,10 @@ void gp_fail_internal(
             const char* fmt = va_arg(args.list, char*);
             size_t fmt_spec_count = 0;
             char* fmt_spec = NULL;
+            const char* l_braces = "([{<";
+            const char* r_braces = ")]}>";
+            const char* brace = strchr(l_braces, fmt[0]);
+
             for (const char* c = fmt; (c = strchr(c, '%')) != NULL; c++)
             {
                 if (c[1] == '%') {
@@ -196,12 +200,13 @@ void gp_fail_internal(
             {
                 fprintf(stderr,
                     GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ",
-                    objs[i].identifier);
+                    objs[i + 1/*0 is fmt so next one*/].identifier);
+
                 // Color and opening quote if string or char
                 if (*fmt_spec == 'c') // character
-                    fprintf(stderr, GP_YELLOW "\'");
+                    fprintf(stderr, GP_YELLOW);
                 else if (*fmt_spec == 's') // string
-                    fprintf(stderr, GP_BRIGHT_RED "\"");
+                    fprintf(stderr, GP_BRIGHT_RED);
                 else if (strchr("dibBouxX", *fmt_spec)) // integer
                     fprintf(stderr, GP_BRIGHT_BLUE);
                 else if (strchr("fFeEgG", *fmt_spec)) // floating point
@@ -211,12 +216,27 @@ void gp_fail_internal(
             }
             else
             {
-                printed = 2; // curly without color
-                fprintf(stderr, GP_BRIGHT_WHITE "{ ");
+                if (brace != NULL) {
+                    fputc(*brace, stderr);
+                    printed++;
+                    if (fmt[1] == ' ') {
+                        fputc(' ', stderr);
+                        printed++;
+                    }
+                }
                 for (size_t j = 0; j < fmt_spec_count - 1; j++)
-                    printed += fprintf(stderr, "%s, ", objs[i + j].identifier);
-                printed += fprintf(stderr,
-                    "%s } ", objs[i + fmt_spec_count - 1].identifier);
+                    printed += fprintf(stderr,"%s, ",objs[i + 1 + j].identifier);
+                printed += fprintf(stderr, "%s", objs[i + fmt_spec_count].identifier);
+
+                if (brace != NULL) {
+                    if (fmt[1] == ' ') {
+                        printed++;
+                        fputc(' ', stderr);
+                    }
+                    size_t brace_i = brace - l_braces;
+                    fputc(r_braces[brace_i], stderr);
+                    printed++;
+                }
                 fprintf(stderr, GP_RESET_TERMINAL " = " GP_BRIGHT_CYAN);
                 printed += strlen(" = ");
             }
@@ -228,17 +248,10 @@ void gp_fail_internal(
             }
             if (printed + required_capacity > 120)
                 fprintf(stderr, "\n\t");
-            if (fmt_spec_count >= 2)
-                fprintf(stderr, "{ ");
 
             pf_vsnprintf_consuming(buf, buf_capacity, fmt, &args);
             fprintf(stderr, "%s", buf);
-            if (fmt_spec != NULL)
-                fprintf(stderr,
-                    *fmt_spec == 'c' ? "\'" : *fmt_spec == 's' ? "\"" : "");
 
-            if (fmt_spec_count >= 2)
-                fprintf(stderr, " }");
             fprintf(stderr, GP_RESET_TERMINAL "\n");
 
             i += fmt_spec_count;
@@ -299,8 +312,13 @@ void gp_fail_internal(
                     fprintf(stderr, ".0");
                 } break;
 
+            const char* char_ptr;
             case GP_CHAR_PTR:
-                fprintf(stderr, GP_BRIGHT_RED "\"%s\"", va_arg(args.list, char*));
+                char_ptr = va_arg(args.list, char*);
+                if (char_ptr != NULL)
+                    fprintf(stderr, GP_BRIGHT_RED "\"%s\"", char_ptr);
+                else
+                    fprintf(stderr, GP_BRIGHT_RED "(null)");
                 break;
 
             case GP_PTR:
