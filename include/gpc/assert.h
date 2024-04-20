@@ -7,8 +7,8 @@
  * @brief Unit testing
  */
 
-#ifndef GPASSERT_INCLUDED
-#define GPASSERT_INCLUDED 1
+#ifndef GP_ASSERT_INCLUDED
+#define GP_ASSERT_INCLUDED 1
 
 #include "overload.h"
 #include "attributes.h"
@@ -97,6 +97,7 @@ void gp_suite(const char* name);
 // function is not called explicitly, it will be called when main() returns.
 void gp_end_testing(void);
 
+#ifndef GP_STRING_INCLUDED
 //
 struct GPPrintable
 {
@@ -107,9 +108,8 @@ struct GPPrintable
     // used avoiding format string parsing.
     const enum GPType type;
 
-    // Actual data is in pr_cstr_print_internal() variadic args.
+    // Actual data is in pr_cstr_fail_internal() variadic args.
 };
-#ifndef GP_PRINTABLE
 #define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
 #endif
 
@@ -215,4 +215,4 @@ _Generic(VAR,                 \
     const char*:        true, \
     void*:              true, \
     default:            false)
-#endif // GPASSERT_INCLUDED
+#endif // GP_ASSERT_INCLUDED

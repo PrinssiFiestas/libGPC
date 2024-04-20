@@ -340,7 +340,7 @@ int pf_vsnprintf_consuming(
     const char format[restrict static 1],
     pf_va_list* args)
 {
-    struct PFString out = { out_buf, .capacity = max_size };
+    struct PFString out = { out_buf ? out_buf : "", .capacity = max_size };
 
     while (1)
     {

@@ -28,7 +28,7 @@ all: release
 release: CFLAGS += -O3
 release: build/libgpc.a
 
-debug: CFLAGS += -ggdb3 -DGP_DEBUG -Og
+debug: CFLAGS += -ggdb3 -DGP_DEBUG
 debug: CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 debug: build/libgpcd.a
 
@@ -44,12 +44,12 @@ $(OBJS): build/%.o : src/%.c
 
 -include $(OBJS:.o=.d)
 
-tests: CFLAGS += -DGP_TESTS -ggdb3 -DGP_DEBUG -Og
+tests: CFLAGS += -DGP_TESTS -ggdb3 -DGP_DEBUG
 tests: CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 tests: $(TESTS)
 $(TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(OBJS)
 	$(CC) $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@
-	./$@
+	export LSAN_OPTIONS=verbosity=1:log_threads=1 && ./$@
 
 clean:
 	rm -rf build

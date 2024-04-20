@@ -368,6 +368,7 @@ struct GPString* gpstr_print(struct GPString me[GP_NONNULL], ...);
 //
 // ----------------------------------------------------------------------------
 
+#ifndef GP_ASSERT_INCLUDED
 //
 struct GPPrintable
 {
@@ -380,7 +381,6 @@ struct GPPrintable
 
     // Actual data is in pr_cstr_print_internal() variadic args.
 };
-#ifndef GP_PRINTABLE
 #define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
 #endif
 

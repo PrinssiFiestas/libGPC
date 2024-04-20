@@ -50,6 +50,9 @@ void inline_test_demo(void)
 
 int main(void)
 {
+    gp_expect_NEW(1 + 1 == 1, "this is a comment", "%c", 'X');
+    gp_assert_NEW(0 + 0);
+
     // Note the semicolon. These are not macro magic but just regular functions
     // executed instead.
     gp_suite("First suite");

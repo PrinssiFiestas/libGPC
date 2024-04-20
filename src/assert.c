@@ -189,7 +189,7 @@ void gp_fail_internal(
             size_t printed = 0;
             if (fmt_spec_count == 0) // user comment
             {
-                fputs(fmt, stderr);
+                fprintf(stderr, "%s\n", fmt);
                 continue;
             }
             else if (fmt_spec_count == 1)
@@ -199,15 +199,15 @@ void gp_fail_internal(
                     objs[i].identifier);
                 // Color and opening quote if string or char
                 if (*fmt_spec == 'c') // character
-                    fprintf(stdout, GP_YELLOW "\'");
+                    fprintf(stderr, GP_YELLOW "\'");
                 else if (*fmt_spec == 's') // string
-                    fprintf(stdout, GP_BRIGHT_RED "\"");
+                    fprintf(stderr, GP_BRIGHT_RED "\"");
                 else if (strchr("dibBouxX", *fmt_spec)) // integer
-                    fprintf(stdout, GP_BRIGHT_BLUE);
+                    fprintf(stderr, GP_BRIGHT_BLUE);
                 else if (strchr("fFeEgG", *fmt_spec)) // floating point
-                    fprintf(stdout, GP_BRIGHT_MAGENTA);
+                    fprintf(stderr, GP_BRIGHT_MAGENTA);
                 else if (*fmt_spec == 'p') // pointer
-                    fprintf(stdout, GP_BLUE);
+                    fprintf(stderr, GP_BLUE);
             }
             else
             {
@@ -232,10 +232,14 @@ void gp_fail_internal(
                 fprintf(stderr, "{ ");
 
             pf_vsnprintf_consuming(buf, buf_capacity, fmt, &args);
+            fprintf(stderr, "%s", buf);
+            if (fmt_spec != NULL)
+                fprintf(stderr,
+                    *fmt_spec == 'c' ? "\'" : *fmt_spec == 's' ? "\"" : "");
 
             if (fmt_spec_count >= 2)
                 fprintf(stderr, " }");
-            fputs(GP_RESET_TERMINAL, stderr);
+            fprintf(stderr, GP_RESET_TERMINAL "\n");
 
             i += fmt_spec_count;
             continue;
@@ -296,7 +300,7 @@ void gp_fail_internal(
                 } break;
 
             case GP_CHAR_PTR:
-                fprintf(stderr, GP_BRIGHT_RED "%s", va_arg(args.list, char*));
+                fprintf(stderr, GP_BRIGHT_RED "\"%s\"", va_arg(args.list, char*));
                 break;
 
             case GP_PTR:
