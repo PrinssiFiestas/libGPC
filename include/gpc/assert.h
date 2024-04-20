@@ -23,12 +23,12 @@
 // Returns true if condition is true. If condition is false prints fail message,
 // marks current test and suite (if running tests) as failed, and exits program.
 #define/* bool */ gp_assert(/* bool condition, variables*/...) \
-((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (gp_fatal(__VA_ARGS__), false))
+((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (GP_FAIL(1,__VA_ARGS__), false))
 
 // Returns true if condition is true. If condition is false prints fail message,
 // marks current test and suite (if running tests) as failed, and returns false.
 #define/* bool */ gp_expect(/* bool condition, variables*/...) \
-((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (gp_fail(__VA_ARGS__), false))
+((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (GP_FAIL(0,__VA_ARGS__), false))
 
 // Tests and suites are thread safe if running C11 or higher. Otherwise tests
 // and suites started in one thread ends another.
@@ -113,16 +113,6 @@ struct GPPrintable
 #define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
 #endif
 
-// Returns true if condition is true. If condition is false prints fail message,
-// marks current test and suite (if running tests) as failed, and exits program.
-#define/* bool */ gp_assert_NEW(/* bool condition, variables*/...) \
-((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (GP_FAIL(1,__VA_ARGS__), false))
-
-// Returns true if condition is true. If condition is false prints fail message,
-// marks current test and suite (if running tests) as failed, and returns false.
-#define/* bool */ gp_expect_NEW(/* bool condition, variables*/...) \
-((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true : (GP_FAIL(0,__VA_ARGS__), false))
-
 #define GP_FAIL(IS_FATAL, ...) \
     gp_fail_internal( \
         IS_FATAL, \
@@ -133,7 +123,7 @@ struct GPPrintable
         (struct GPPrintable[]) \
             { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
         __VA_ARGS__)
-
+//
 void gp_fail_internal(
     int aborting,
     const char* file,
@@ -143,59 +133,11 @@ void gp_fail_internal(
     const struct GPPrintable* objs,
     ...);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// TODO get rid of old stuff
-
-//
-#define GP_GEN_VAR_INFO(FORMAT, VAR) gp_generate_var_info(#VAR, FORMAT, VAR)
-
-// To be used in GP_PROCESS_ALL()
-#define GP_GENERATE_VAR_INFO_INDIRECT(VAR) GP_GENERATE_VAR_INFO VAR
-
-#if __STDC_VERSION__ >= 201112L
-#define GP_GEN_VAR_INFO_AUTO_FMT(VAR) gp_generate_var_info(#VAR, GP_GET_FORMAT(VAR), VAR)
-#define GP_GENERATE_VAR_INFO(...) \
-GP_OVERLOAD2(__VA_ARGS__, GP_GEN_VAR_INFO, GP_GEN_VAR_INFO_AUTO_FMT)(__VA_ARGS__)
-#else
-#define GP_GEN_VAR_INFO_NO_FMT(LITERAL) gp_generate_var_info(#LITERAL, " ")
-#define GP_GENERATE_VAR_INFO(...) \
-GP_OVERLOAD2(__VA_ARGS__, GP_GEN_VAR_INFO, GP_GEN_VAR_INFO_NO_FMT)(__VA_ARGS__)
-#endif
-
-// Prints fail message, marks current test and suite (if running tests) as
-// failed, and exits program.
-#define gp_fatal(...) \
-gp_failure(1, __FILE__, __LINE__, __func__, GP_COUNT_ARGS(__VA_ARGS__), GP_STRFY_1ST_ARG(__VA_ARGS__), GP_PROCESS_ALL_BUT_1ST(GP_GENERATE_VAR_INFO_INDIRECT, GP_COMMA, __VA_ARGS__))
-
-// Prints fail message and marks current test and suite (if running tests) as
-// failed.
-#define gp_fail(...) \
-gp_failure(0, __FILE__, __LINE__, __func__, GP_COUNT_ARGS(__VA_ARGS__), GP_STRFY_1ST_ARG(__VA_ARGS__), GP_PROCESS_ALL_BUT_1ST(GP_GENERATE_VAR_INFO_INDIRECT, GP_COMMA, __VA_ARGS__))
-
-// TEMP
-char* gp_generate_var_info(const char* var_name, const char* format, /* T var */...);
-
-void gp_failure(bool aborting, const char* file, int line, const char* func, size_t arg_count, const char* condition, ...);
-
+// Inline test stuff
 #define GP_DECL_ARR(NAME, ...) typeof(NAME) _gp_##NAME[] = { NAME, __VA_ARGS__ };
 #define GP_PASS_TO_DECL_ARR(ARGS) GP_DECL_ARR ARGS
 #define GP_SET_INS(NAME, UNUSED...) NAME = _gp_##NAME[_gp_index];
 #define GP_PASS_TO_SET_INS(ARGS) GP_SET_INS ARGS
-
 #define GP_IS_PRIMITIVE(VAR)  \
 _Generic(VAR,                 \
     bool:               true, \
@@ -215,4 +157,5 @@ _Generic(VAR,                 \
     const char*:        true, \
     void*:              true, \
     default:            false)
+
 #endif // GP_ASSERT_INCLUDED

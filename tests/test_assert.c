@@ -50,30 +50,6 @@ void inline_test_demo(void)
 
 int main(void)
 {
-    char my_c = 'X';
-    gp_expect_NEW(1 + 1 == 1,
-        "this is a comment", "\'%c\' my note for my_c", my_c);
-
-    struct {
-        short i;
-        char* s;
-        float f;
-    } my_s = { -1, "blah", 3.f };
-    gp_expect_NEW(false,
-        "Printing collection of data",
-        "%i, \"%s\", %g", my_s.i, my_s.s, my_s.f);
-
-    gp_expect_NEW(NULL,
-        "Surround with curlies",
-        "{ %i, \"%s\", %g }", my_s.i + 1, "bloink", my_s.f/0.,
-        "{%i, \"%s\", %g} without spaces", my_s.i + 1, "bloink", -my_s.f/0.,
-        "<%i, \"%s\", %g> these are fine too", my_s.i + 1, NULL, -my_s.f/0.);
-
-    const char* my_string = NULL;
-    gp_expect_NEW(my_string, my_string);
-
-    gp_assert_NEW(0 + 0);
-
     // Note the semicolon. These are not macro magic but just regular functions
     // executed instead.
     gp_suite("First suite");
@@ -90,7 +66,7 @@ int main(void)
         {
             int var = 0;
             // Pass format string and variable for better fail message.
-            gp_assert(var == 0, ("%i Additional note", var));
+            gp_assert(var == 0, "%i Additional note", var);
         }
     }
 
@@ -133,7 +109,7 @@ int main(void)
 
         // Array assertion using the return value of gp_expect()
         for (size_t i = 0; i < sizeof(arr1)/sizeof(arr1[0]); i++)
-            if ( ! gp_expect(arr1[i] == arr2[i], ("%u", arr1[i]), ("%u", arr2[i])))
+            if ( ! gp_expect(arr1[i] == arr2[i], arr1[i], arr2[i]))
                 exit(EXIT_FAILURE);
     }
 
@@ -141,27 +117,42 @@ int main(void)
     // function is not called explicitly, it will be called when main() returns.
     gp_end_testing();
 
-    // Define this to see failing messages // TODO
+    // Define this to see failing messages
     #ifdef GPC_NON_PASSING_TESTS
+    gp_suite("Non passing suite");
+    {
+        gp_test("Non passing test");
+        {
+            int my_int = 3;
+            gp_expect(1 + 1 == my_int,
+                "Non-format literals will be printed without formatting.\n"
+                "They can be used as additional comments.\n"
+                "Here we demo automatic formatting for variables.",// no \n here
+                1 + 1, my_int);
 
-    // char dest[100];
-    // char* p = dest;
-    // p = gp_str_push(p, "this", -1);
-    // p = gp_str_push(p, "_is_a_sentence", -1);
-    // printf("%s\n", dest);
+            char my_c = 'X';
+            gp_expect(0,
+                "Format string can be passed too.",
+                "\'%c\' my note for my_c", my_c);
 
-    // gp_assert(0 <= 0);
-    // gp_assert(0 < 1, (0 + 1));
-    // gp_assert(1 < 2, ("%i", 0x1));
-    // gp_assert(1 < 2 && 2 < 3, (0 + 1), ("%i", 0x2), (1 * 3));
+            struct {
+                short i;
+                char* s;
+                float f;
+            } my_s = { -1, "blah", 3.f };
+            gp_expect(false,
+                "Printing collection of data",
+                "%i, \"%s\", %g", my_s.i, my_s.s, my_s.f);
 
-    // gp_expect(0 != 0);
-    // gp_expect(0 > 1, (1));
-    // gp_expect(1 > 0x2, ("%i", 0x2));
-    // gp_expect(1 > 1 + 1 && 0x2 > 1 * 3, (1 + 1), ("%i", 0x2), (1 * 3));
-    // const char blah[] = "blah";
-    // gp_expect(strcmp(blah, "blah"), (blah));
-    // gp_expect(strcmp(blah, "blah"), ("b%%l%%a%%h %.99s IS \"blah\"", blah), ("My additional notes."));
+            gp_expect(NULL,
+                "Surround with curlies",
+                "{ %i, \"%s\", %g }", my_s.i + 1, "bloink", my_s.f/0.,
+                "{%i, \"%s\", %g} without spaces", my_s.i + 1, "bloink", -my_s.f/0.,
+                "<%i, \"%s\", %g> these are fine too", my_s.i + 1, NULL, -my_s.f/0.);
 
+            const char* my_string = NULL;
+            gp_expect(my_string, my_string);
+        }
+    }
     #endif // GPC_NON_PASSING_TESTS
 }

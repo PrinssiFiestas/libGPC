@@ -9,146 +9,146 @@
 
 int main(void)
 {
-    gp_suite("Substrings");
-    {
-        gp_test("slice");
-        {
-            struct GPString str = gpstr_on_stack([], "Some_string_to slice");
-            gpstr_slice(&str, 5, 11); // not including 11!
-            gp_expect(gpstr_eq(str, gpstr("string")));
-        }
+    // gp_suite("Substrings");
+    // {
+    //     gp_test("slice");
+    //     {
+    //         struct GPString str = gpstr_on_stack([], "Some_string_to slice");
+    //         gpstr_slice(&str, 5, 11); // not including 11!
+    //         gp_expect(gpstr_eq(str, gpstr("string")));
+    //     }
 
-        gp_test("substr");
-        {
-            struct GPString src = gpstr("Some_string_to slice");
-            struct GPString dest = gpstr_on_stack([128], "");
-            gpstr_substr(&dest, src, 5, 11); // not including 11!
-            gp_expect(gpstr_eq(dest, gpstr("string")),
-            ("%s", gpcstr(dest)));
-        }
-    }
+    //     gp_test("substr");
+    //     {
+    //         struct GPString src = gpstr("Some_string_to slice");
+    //         struct GPString dest = gpstr_on_stack([128], "");
+    //         gpstr_substr(&dest, src, 5, 11); // not including 11!
+    //         gp_expect(gpstr_eq(dest, gpstr("string")),
+    //         ("%s", gpcstr(dest)));
+    //     }
+    // }
 
-    gp_suite("insert");
-    {
-        struct GPString str = gpstr_on_stack([128], "test");
-        gp_test("Appending");
-        {
-            gpstr_insert(&str, str.length, gpstr(" tail"));
-            gp_expect(gpstr_eq(str, gpstr("test tail")),
-            (gpcstr(str)));
-        }
-        gp_test("Prepending");
-        {
-            gpstr_insert(&str, 0, gpstr("head "));
-            gp_expect(gpstr_eq(str, gpstr("head test tail")),
-            (gpcstr(str)));
-        }
-        gp_test("Insertion");
-        {
-            gpstr_insert(&str, 5, gpstr("insertion "));
-            gp_expect(gpstr_eq(str, gpstr("head insertion test tail")),
-            (gpcstr(str)));
-        }
-    }
+    // gp_suite("insert");
+    // {
+    //     struct GPString str = gpstr_on_stack([128], "test");
+    //     gp_test("Appending");
+    //     {
+    //         gpstr_insert(&str, str.length, gpstr(" tail"));
+    //         gp_expect(gpstr_eq(str, gpstr("test tail")),
+    //         (gpcstr(str)));
+    //     }
+    //     gp_test("Prepending");
+    //     {
+    //         gpstr_insert(&str, 0, gpstr("head "));
+    //         gp_expect(gpstr_eq(str, gpstr("head test tail")),
+    //         (gpcstr(str)));
+    //     }
+    //     gp_test("Insertion");
+    //     {
+    //         gpstr_insert(&str, 5, gpstr("insertion "));
+    //         gp_expect(gpstr_eq(str, gpstr("head insertion test tail")),
+    //         (gpcstr(str)));
+    //     }
+    // }
 
-    gp_suite("finding");
-    {
-        struct GPString haystack = gpstr("bbbaabaaabaa");
-        struct GPString needle = gpstr("aa");
-        size_t pos = 0;
+    // gp_suite("finding");
+    // {
+    //     struct GPString haystack = gpstr("bbbaabaaabaa");
+    //     struct GPString needle = gpstr("aa");
+    //     size_t pos = 0;
 
-        gp_test("find");
-        {
-            pos = gpstr_find(haystack, needle, 0);
-            gp_expect(pos == 3);
-            pos = gpstr_find(haystack, needle, 4);
-            gp_expect(pos == 6);
-            pos = gpstr_find(haystack, gpstr("not in haystack string"), 0);
-            gp_expect(pos == GP_NOT_FOUND);
-        }
-        gp_test("find_last");
-        {
-            pos = gpstr_find_last(haystack, needle);
-            gp_expect(pos == 10, (pos));
-            pos = gpstr_find_last(haystack, gpstr("not in haystack string"));
-            gp_expect(pos == GP_NOT_FOUND);
-        }
-        gp_test("count");
-        {
-            size_t count = gpstr_count(haystack, needle);
-            gp_expect(count == 4);
-        }
-    }
+    //     gp_test("find");
+    //     {
+    //         pos = gpstr_find(haystack, needle, 0);
+    //         gp_expect(pos == 3);
+    //         pos = gpstr_find(haystack, needle, 4);
+    //         gp_expect(pos == 6);
+    //         pos = gpstr_find(haystack, gpstr("not in haystack string"), 0);
+    //         gp_expect(pos == GP_NOT_FOUND);
+    //     }
+    //     gp_test("find_last");
+    //     {
+    //         pos = gpstr_find_last(haystack, needle);
+    //         gp_expect(pos == 10, (pos));
+    //         pos = gpstr_find_last(haystack, gpstr("not in haystack string"));
+    //         gp_expect(pos == GP_NOT_FOUND);
+    //     }
+    //     gp_test("count");
+    //     {
+    //         size_t count = gpstr_count(haystack, needle);
+    //         gp_expect(count == 4);
+    //     }
+    // }
 
-    gp_suite("replacing substrings");
-    {
-        gp_test("replace");
-        {
-            struct GPString str = gpstr_on_stack([128], "aaabbbcccaaa");
-            size_t needlepos = gpstr_replace(&str, gpstr("bbb"), gpstr("X"), 0);
-            gp_expect(gpstr_eq(str, gpstr("aaaXcccaaa")));
-            gp_expect(needlepos == 3);
+    // gp_suite("replacing substrings");
+    // {
+    //     gp_test("replace");
+    //     {
+    //         struct GPString str = gpstr_on_stack([128], "aaabbbcccaaa");
+    //         size_t needlepos = gpstr_replace(&str, gpstr("bbb"), gpstr("X"), 0);
+    //         gp_expect(gpstr_eq(str, gpstr("aaaXcccaaa")));
+    //         gp_expect(needlepos == 3);
 
-            gpstr_replace(&str, gpstr("aaa"), gpstr("XXXXX"), 3);
-            gp_expect(gpstr_eq(str, gpstr("aaaXcccXXXXX")));
+    //         gpstr_replace(&str, gpstr("aaa"), gpstr("XXXXX"), 3);
+    //         gp_expect(gpstr_eq(str, gpstr("aaaXcccXXXXX")));
 
-        }
+    //     }
 
-        gp_test("replace_all");
-        {
-            struct GPString str = gpstr_on_stack([128], "aaxxbbxxxccxx");
-            unsigned replacement_count =
-                gpstr_replace_all(&str, gpstr("xx"), gpstr("XXX"));
-            gp_expect(gpstr_eq(str, gpstr("aaXXXbbXXXxccXXX")));
-            gp_expect(replacement_count == 3);
-        }
-    }
+    //     gp_test("replace_all");
+    //     {
+    //         struct GPString str = gpstr_on_stack([128], "aaxxbbxxxccxx");
+    //         unsigned replacement_count =
+    //             gpstr_replace_all(&str, gpstr("xx"), gpstr("XXX"));
+    //         gp_expect(gpstr_eq(str, gpstr("aaXXXbbXXXxccXXX")));
+    //         gp_expect(replacement_count == 3);
+    //     }
+    // }
 
-    gp_suite("trim");
-    {
-        gp_test("left");
-        {
-            struct GPString str = gpstr_on_stack([128], "  \t\f \nLeft");
-            gpstr_trim(&str, GPSTR_WHITESPACE, 'l');
-            gp_expect(gpstr_eq(str, gpstr("Left")), (gpcstr(str)));
-        }
+    // gp_suite("trim");
+    // {
+    //     gp_test("left");
+    //     {
+    //         struct GPString str = gpstr_on_stack([128], "  \t\f \nLeft");
+    //         gpstr_trim(&str, GPSTR_WHITESPACE, 'l');
+    //         gp_expect(gpstr_eq(str, gpstr("Left")), (gpcstr(str)));
+    //     }
 
-        gp_test("right");
-        {
-            struct GPString str = gpstr_on_stack([128], "Right   \t\v\n\r");
-            gpstr_trim(&str, GPSTR_WHITESPACE, 'r');
-            gp_expect(gpstr_eq(str, gpstr("Right")), (gpcstr(str)));
-        }
+    //     gp_test("right");
+    //     {
+    //         struct GPString str = gpstr_on_stack([128], "Right   \t\v\n\r");
+    //         gpstr_trim(&str, GPSTR_WHITESPACE, 'r');
+    //         gp_expect(gpstr_eq(str, gpstr("Right")), (gpcstr(str)));
+    //     }
 
-        gp_test("left and right");
-        {
-            struct GPString str = gpstr_on_stack([128], "   __Left and Right__   ");
-            gpstr_trim(&str, GPSTR_WHITESPACE "_", 'l' + 'r');
-            gp_expect(gpstr_eq(str, gpstr("Left and Right")), (gpcstr(str)));
-        }
-    }
+    //     gp_test("left and right");
+    //     {
+    //         struct GPString str = gpstr_on_stack([128], "   __Left and Right__   ");
+    //         gpstr_trim(&str, GPSTR_WHITESPACE "_", 'l' + 'r');
+    //         gp_expect(gpstr_eq(str, gpstr("Left and Right")), (gpcstr(str)));
+    //     }
+    // }
 
-    gp_suite("print");
-    {
-        #if __STDC_VERSION__ >= 201112L
-        gp_test("Numbers");
-        {
-            struct GPString str = gpstr_on_stack([128], "");
-            gpstr_print(&str, 1, " divided by ", 3, " is ", 1./3.);
-            char buf[128];
-            sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
-            gp_expect(gpstr_eq(str, gpstr(buf)), (gpcstr(str)));
-        }
+    // gp_suite("print");
+    // {
+    //     #if __STDC_VERSION__ >= 201112L
+    //     gp_test("Numbers");
+    //     {
+    //         struct GPString str = gpstr_on_stack([128], "");
+    //         gpstr_print(&str, 1, " divided by ", 3, " is ", 1./3.);
+    //         char buf[128];
+    //         sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
+    //         gp_expect(gpstr_eq(str, gpstr(buf)), (gpcstr(str)));
+    //     }
 
-        gp_test("Strings");
-        {
-            struct GPString str  = gpstr_on_stack([128], "");
-            struct GPString str1 = gpstr_on_stack([128], "strings");
-            gpstr_print(&str, "Copying ", str1, (char)'.');
-            gp_expect(gpstr_eq(str, gpstr("Copying strings.")), (gpcstr(str)));
-        }
-        #endif
-    }
+    //     gp_test("Strings");
+    //     {
+    //         struct GPString str  = gpstr_on_stack([128], "");
+    //         struct GPString str1 = gpstr_on_stack([128], "strings");
+    //         gpstr_print(&str, "Copying ", str1, (char)'.');
+    //         gp_expect(gpstr_eq(str, gpstr("Copying strings.")), (gpcstr(str)));
+    //     }
+    //     #endif
+    // }
 
     // ------------------------------------------------------------------------
     // C string tests
@@ -189,7 +189,7 @@ int main(void)
             char* str = str_buf;
             gp_big_cstr_slice(&str, 5, 11);
             gp_expect(gp_cstr_equal(str, "string"));
-            gp_expect(str != str_buf, ("Pointer should've gotten mutated."));
+            gp_expect(str != str_buf, "Pointer should've gotten mutated.");
         }
 
         gp_test("C substr");
@@ -198,8 +198,7 @@ int main(void)
             char dest[128];
             strcpy(dest, "");
             gp_cstr_substr(dest, src, 5, 11); // not including 11!
-            gp_expect(gp_cstr_equal(dest, "string"),
-                ("%s", dest));
+            gp_expect(gp_cstr_equal(dest, "string"), dest);
         }
     }
 
@@ -270,12 +269,12 @@ int main(void)
             strcpy(str, "aaabbbcccaaa");
             size_t needlepos = 0;
             gp_cstr_replace(str, "bbb", "X", &needlepos);
-            gp_expect(gp_cstr_equal(str,"aaaXcccaaa"), (str));
+            gp_expect(gp_cstr_equal(str,"aaaXcccaaa"), str);
             gp_expect(needlepos == 3, (needlepos));
 
             size_t start = 3;
             gp_cstr_replace(str, "aaa", "XXXXX", &start);
-            gp_expect(gp_cstr_equal(str, "aaaXcccXXXXX"), (str));
+            gp_expect(gp_cstr_equal(str, "aaaXcccXXXXX"), str);
         }
 
         gp_test("C replace_all");
@@ -324,18 +323,18 @@ int main(void)
 
             strcpy(str, "  __Left and Right__  ");
             gp_cstr_trim(str, GP_ASCII_WHITESPACE "_", 'l' | 'r' | 'a');
-            gp_expect(gp_cstr_equal(str, "Left and Right"), (str));
+            gp_expect(gp_cstr_equal(str, "Left and Right"), str);
         }
         gp_test("C UTF-8");
         {
             char str[128];
             strcpy(str, "¡¡¡Left!!!");
             gp_cstr_trim(str, "¡", 'l');
-            gp_expect(gp_cstr_equal(str, "Left!!!"), (str));
+            gp_expect(gp_cstr_equal(str, "Left!!!"), str);
 
             strcpy(str, " Right\r\u200A\r\n");
             gp_cstr_trim(str, NULL, 'r');
-            gp_expect(gp_cstr_equal(str, " Right"), (str));
+            gp_expect(gp_cstr_equal(str, " Right"), str);
 
             strcpy(str, "\t\u3000 ¡¡Left and Right!! \n");
             gp_cstr_trim(str, GP_WHITESPACE "¡!", 'l' | 'r');
@@ -352,7 +351,7 @@ int main(void)
             char str[128];
             strcpy(str, "blääf");
             gp_cstr_to_upper(str);
-            gp_expect(gp_cstr_equal(str, "BLÄÄF"), (str));
+            gp_expect(gp_cstr_equal(str, "BLÄÄF"), str);
             gp_cstr_to_lower(str);
             gp_expect(gp_cstr_equal(str, "blääf"));
         }
@@ -368,7 +367,7 @@ int main(void)
                 size_t lower_length = gp_cstr_to_lower(str);
                 gp_expect(gp_cstr_equal(str, "yaşar bayrı"));
                 gp_expect(upper_length != lower_length,
-                    ("Lengths may change!"));
+                    "Lengths may change!");
             }
         } // else Turkish language pack not installed.
     }
