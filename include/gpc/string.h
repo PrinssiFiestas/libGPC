@@ -143,7 +143,8 @@ size_t gp_cstr_to_lower(
     char* str) GP_NONNULL_ARGS();
 
 size_t gp_cstr_to_valid(
-    char* str) GP_NONNULL_ARGS();
+    char* str,
+    const char* replacement) GP_NONNULL_ARGS();
 
 // String examination
 

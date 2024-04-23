@@ -168,7 +168,7 @@ size_t gp_cstr_replace(
         haystack,
         start,
         end,
-        replacement,
+replacement,
         replacement_length);
 
     haystack[out_length] = '\0';
@@ -207,7 +207,7 @@ size_t gp_cstr_replace_all(
     if (optional_replacement_count != NULL)
         *optional_replacement_count = replacement_count;
 
-    return replacement_count;
+    return haystack_length;
 }
 
 size_t gp_cstr_print_internal(
@@ -351,8 +351,10 @@ size_t gp_cstr_print_internal(
 size_t gp_cstr_codepoint_length(
     const char* str)
 {
-    static const size_t sizes[] = { 1,1,1,1,1,1,1,1,0,0,0,0,2,2,3,4 };
-    return sizes[(unsigned char)*str >> 4];
+    static const size_t sizes[] = {
+        1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+        0,0,0,0,0,0,0,0, 2,2,2,2,3,3,4,0 };
+    return sizes[(uint8_t)*str >> 3];
 }
 
 size_t gp_cstr_trim(
@@ -426,8 +428,6 @@ size_t gp_big_cstr_trim(
     {
         char codepoint[8] = "";
         size_t i = length - 1;
-        // while ( ! gp_cstr_valid_index(*str, i) && --i != 0);
-        // size_t size = gp_cstr_codepoint_length(*str + i);
         size_t size;
         while ((size = gp_cstr_codepoint_length(*str + i)) == 0 && --i != 0);
         memcpy(codepoint, *str + i, size);
@@ -477,14 +477,6 @@ size_t gp_cstr_to_lower(
     return cstr_to_something(str, towlower);
 }
 
-#if 0
-size_t gp_cstr_to_valid(
-    char* str)
-{
-
-}
-#endif
-
 // https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
 static bool gp_cstr_valid_codepoint(
     const uint32_t c)
@@ -505,6 +497,77 @@ static bool gp_cstr_valid_codepoint(
      return ((c & 0xF8C0C0C0u) == 0xF0808080u);
 
   return false;
+}
+
+static size_t gp_cstr_find_invalid(
+    const char* haystack,
+    const size_t start,
+    const size_t length)
+{
+    for (size_t i = start; i < length;)
+    {
+        size_t cp_length = gp_cstr_codepoint_length(haystack + i);
+        if (cp_length == 0 || i + cp_length > length)
+            return i;
+
+        uint32_t codepoint = 0;
+        for (size_t j = 0; j < cp_length; j++)
+            codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
+        if ( ! gp_cstr_valid_codepoint(codepoint))
+            return i;
+
+        i += cp_length;
+    }
+    return GP_NOT_FOUND;
+}
+
+static size_t gp_cstr_find_valid(
+    const char* haystack,
+    const size_t start,
+    const size_t length)
+{
+    for (size_t i = start; i < length; i++)
+    {
+        size_t cp_length = gp_cstr_codepoint_length(haystack + i);
+        if (cp_length == 1)
+            return i;
+        if (cp_length == 0)
+            continue;
+
+        if (cp_length + i < length) {
+            uint32_t codepoint = 0;
+            for (size_t j = 0; j < cp_length; j++)
+                codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
+            if (gp_cstr_valid_codepoint(codepoint))
+                return i;
+        } // else maybe there's ascii in last bytes so continue
+    }
+    return length;
+}
+
+size_t gp_cstr_to_valid(
+    char* str,
+    const char* replacement)
+{
+          size_t length = strlen(str);
+    const size_t replacement_length = strlen(replacement);
+
+    size_t start = 0;
+    while ((start = gp_cstr_find_invalid(str, start, length)) != GP_NOT_FOUND)
+    {
+        length = cstr_replace_range(
+            length,
+            str,
+            start,
+            gp_cstr_find_valid(str, start, length),
+            replacement,
+            replacement_length);
+
+        start += replacement_length;
+    }
+
+    str[length] = '\0';
+    return length;
 }
 
 bool gp_cstr_is_valid(
@@ -528,7 +591,7 @@ bool gp_cstr_is_valid(
 
         uint32_t codepoint = 0;
         for (size_t j = 0; j < cp_length; j++)
-            codepoint = codepoint << 8 | (unsigned char)str[i + j];
+            codepoint = codepoint << 8 | (uint8_t)str[i + j];
         if ( ! gp_cstr_valid_codepoint(codepoint))
             return false;
 
