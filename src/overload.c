@@ -4,6 +4,11 @@
 
 #include <gpc/overload.h>
 
+extern inline bool gp_is_unsigned(const enum GPType T);
+extern inline bool gp_is_integer (const enum GPType T);
+extern inline bool gp_is_floating(const enum GPType T);
+extern inline bool gp_is_pointer (const enum GPType T);
+
 size_t gp_sizeof(const enum GPType T)
 {
     switch (T)

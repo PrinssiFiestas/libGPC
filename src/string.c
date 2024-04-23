@@ -348,28 +348,11 @@ size_t gp_cstr_print_internal(
     return out->length;
 }
 
-bool gp_cstr_valid_index(
-    const char* str,
-    size_t i)
+size_t gp_cstr_codepoint_length(
+    const char* str)
 {
-    unsigned c = (unsigned char)str[i];
-    return ! ((c & 0x80) && (~c & 0x40));
-}
-
-size_t gp_cstr_codepoint_size(
-    const char* str,
-    size_t i)
-{
-    unsigned c = (unsigned char)str[i];
-    if (c & 0x80) {
-        if ( ! (c & 0x20))
-            return 2;
-        else if (c & 0x10)
-            return 4;
-        else
-            return 3;
-    }
-    return 1;
+    static const size_t sizes[] = { 1,1,1,1,1,1,1,1,0,0,0,0,2,2,3,4 };
+    return sizes[(unsigned char)*str >> 4];
 }
 
 size_t gp_cstr_trim(
@@ -429,7 +412,7 @@ size_t gp_big_cstr_trim(
         while (true)
         {
             char codepoint[8] = "";
-            size_t size = gp_cstr_codepoint_size(*str, prefix_length);
+            size_t size = gp_cstr_codepoint_length(*str + prefix_length);
             memcpy(codepoint, *str + prefix_length, size);
             if (strstr(char_set, codepoint) == NULL)
                 break;
@@ -443,8 +426,10 @@ size_t gp_big_cstr_trim(
     {
         char codepoint[8] = "";
         size_t i = length - 1;
-        while ( ! gp_cstr_valid_index(*str, i) && --i != 0);
-        size_t size = gp_cstr_codepoint_size(*str, i);
+        // while ( ! gp_cstr_valid_index(*str, i) && --i != 0);
+        // size_t size = gp_cstr_codepoint_length(*str + i);
+        size_t size;
+        while ((size = gp_cstr_codepoint_length(*str + i)) == 0 && --i != 0);
         memcpy(codepoint, *str + i, size);
         if (strstr(char_set, codepoint) == NULL)
             break;
@@ -492,20 +477,66 @@ size_t gp_cstr_to_lower(
     return cstr_to_something(str, towlower);
 }
 
+#if 0
+size_t gp_cstr_to_valid(
+    char* str)
+{
+
+}
+#endif
+
+// https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
+static bool gp_cstr_valid_codepoint(
+    const uint32_t c)
+{
+  if (c <= 0x7Fu)
+      return true;
+
+  if (0xC280u <= c && c <= 0xDFBFu)
+     return ((c & 0xE0C0u) == 0xC080u);
+
+  if (0xEDA080u <= c && c <= 0xEDBFBFu)
+     return 0; // Reject UTF-16 surrogates
+
+  if (0xE0A080u <= c && c <= 0xEFBFBFu)
+     return ((c & 0xF0C0C0u) == 0xE08080u);
+
+  if (0xF0908080u <= c && c <= 0xF48FBFBFu)
+     return ((c & 0xF8C0C0C0u) == 0xF0808080u);
+
+  return false;
+}
+
 bool gp_cstr_is_valid(
-    const char* str,
-    size_t* optional_out_utf8_length) GP_NONNULL_ARGS(1);
+    const char* str)
+{
+    const size_t length = strlen(str);
+    for (size_t i = 0; i < length;)
+    {
+        size_t cp_length = gp_cstr_codepoint_length(str + i);
+        if (cp_length == 0 || i + cp_length > length)
+            return false;
+
+        uint32_t codepoint = 0;
+        for (size_t j = 0; j < cp_length; j++)
+            codepoint = codepoint << 8 | (unsigned char)str[i + j];
+        if ( ! gp_cstr_valid_codepoint(codepoint))
+            return false;
+
+        i += cp_length;
+    }
+    return true;
+}
 
 size_t gp_cstr_codepoint_count(
     const char* str)
 {
     size_t count = 0;
     for (size_t i = 0; str[i] != '\0'; i++)
-        count += gp_cstr_valid_index(str, i);
+        count += gp_cstr_codepoint_length(str + i) != 0;
     return count;
 }
 
-// String examination
 size_t gp_cstr_find(const char* haystack, const char* needle, size_t start)
 {
     const char* result = strstr(haystack + start, needle);
@@ -594,8 +625,8 @@ bool gp_cstr_equal_case(
         else if (sizeof(wchar_t) < sizeof(uint32_t) &&
                  wc1_length == (size_t)-2) // char wider than sizeof(wchar_t)
         {                                  // so just compare raw bytes
-            size_t s1_codepoint_size = gp_cstr_codepoint_size(s1, 0);
-            size_t s2_codepoint_size = gp_cstr_codepoint_size(s2, 0);
+            size_t s1_codepoint_size = gp_cstr_codepoint_length(s1);
+            size_t s2_codepoint_size = gp_cstr_codepoint_length(s2);
             if (s1_codepoint_size != s2_codepoint_size ||
                 memcmp(s1, s2, s1_codepoint_size) != 0)
             {

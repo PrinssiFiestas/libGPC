@@ -142,7 +142,7 @@ size_t gp_cstr_to_upper(
 size_t gp_cstr_to_lower(
     char* str) GP_NONNULL_ARGS();
 
-size_t gp_cstr_make_valid(
+size_t gp_cstr_to_valid(
     char* str) GP_NONNULL_ARGS();
 
 // String examination
@@ -172,17 +172,10 @@ size_t gp_cstr_codepoint_count(
     const char* str) GP_NONNULL_ARGS();
 
 bool gp_cstr_is_valid(
-    const char* str,
-    size_t* optional_out_codepoint_count) GP_NONNULL_ARGS(1);
+    const char* str) GP_NONNULL_ARGS();
 
-bool gp_cstr_is_valid_index(
-    const char* str,
-    size_t i) GP_NONNULL_ARGS();
-
-// Assumes valid index
-size_t gp_cstr_codepoint_size(
-    const char* str,
-    size_t i) GP_NONNULL_ARGS();
+size_t gp_cstr_codepoint_length(
+    const char* str) GP_NONNULL_ARGS();
 
 
 
