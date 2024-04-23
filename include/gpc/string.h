@@ -195,9 +195,6 @@ size_t gp_cstr_codepoint_length(
 
 
 
-
-
-
 // TODO GET RID OF OLD STUFF
 
 /** String data structure.
