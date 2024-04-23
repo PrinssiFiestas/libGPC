@@ -60,7 +60,7 @@ tests: CFLAGS += -DGP_TESTS -ggdb3 -DGP_DEBUG
 tests: CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 tests: $(TESTS)
 $(TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(DEBUG_OBJS)
-	$(CC) $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(DEBUG_OBJS)) -o $@
+	$(CC) $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%d.o,$<)),$(DEBUG_OBJS)) -o $@
 
 run_tests:
 	for test in $(TESTS) ; do \

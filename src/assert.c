@@ -13,6 +13,10 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+#ifdef _WIN32
+#include <libloaderapi.h> // GetModuleFileNameA()
+#endif
+
 static GP_THREAD_LOCAL const char* gp_current_test  = NULL;
 static GP_THREAD_LOCAL const char* gp_current_suite = NULL;
 static GP_THREAD_LOCAL bool gp_test_failed  = false;
@@ -24,6 +28,7 @@ static GP_ATOMIC unsigned gp_suites_failed = 0;
 static GP_ATOMIC bool gp_initialized_testing = false;
 #define GP_FAILED_STR GP_RED          "[FAILED]" GP_RESET_TERMINAL
 #define GP_PASSED_STR GP_BRIGHT_GREEN "[PASSED]" GP_RESET_TERMINAL
+static const char* prog_name = "";
 
 // ----------------------------------------------------------------------------
 // Implementations for gp_suite(), gp_test(), and relevant
@@ -36,6 +41,7 @@ void gp_end_testing(void)
     gp_test(NULL);
     gp_suite(NULL);
 
+    printf("Finished testing%s%s\n", *prog_name ? " in " : ".", prog_name);
     printf("A total of %u tests ran in %u suites\n", gp_test_count, gp_suite_count);
 
     if (gp_tests_failed || gp_suites_failed)
@@ -44,6 +50,11 @@ void gp_end_testing(void)
             gp_tests_failed, gp_suites_failed);
     else
         printf(GP_BRIGHT_GREEN "Passed all tests!" GP_RESET_TERMINAL "\n");
+
+    puts("---------------------------------------------------------------");
+
+    if (gp_tests_failed || gp_suites_failed)
+        exit(EXIT_FAILURE);
 
     // Prevent redundant reporting at exit. Also user may want to restart tests.
     gp_test_count    = 0;
@@ -57,7 +68,18 @@ static void gp_init_testing(void)
 {
     if ( ! gp_initialized_testing)
     {
-        printf("\tStarting tests...\n\n");
+        #if (__GNUC__ && __linux__) || BSD
+        extern const char* __progname;
+        prog_name = __progname;
+        #elif _WIN32
+        #define GP_MAX_PATH 256
+        static char prog_name_buf[GP_MAX_PATH] = "";
+        GetModuleFileNameA(NULL, prog_name_buf, GP_MAX_PATH);
+        prog_name = prog_name_buf;
+        #endif
+
+        puts("---------------------------------------------------------------");
+        printf("Starting tests%s%s\n\n", *prog_name ? " in " : "", prog_name);
         atexit(gp_end_testing);
         gp_initialized_testing = true;
     }
