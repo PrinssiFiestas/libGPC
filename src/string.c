@@ -513,6 +513,15 @@ bool gp_cstr_is_valid(
     const size_t length = strlen(str);
     for (size_t i = 0; i < length;)
     {
+        if (i + sizeof(uint64_t) < length) // ascii optimization
+        {
+            uint64_t bytes;
+            memcpy(&bytes, str + i, sizeof bytes);
+            if ((~bytes & 0x8080808080808080llu) == 0x8080808080808080llu) {
+                i += 8;
+                continue;
+            }
+        }
         size_t cp_length = gp_cstr_codepoint_length(str + i);
         if (cp_length == 0 || i + cp_length > length)
             return false;
