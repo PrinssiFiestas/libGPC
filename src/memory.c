@@ -5,33 +5,24 @@
 #include <gpc/memory.h>
 #include <stdlib.h>
 
-extern inline void* gpmem_alloc(const GPAllocator[GP_NONNULL], size_t);
-extern inline void gpmem_dealloc(const GPAllocator[GP_NONNULL], void*);
-extern inline void* gpmem_null_alloc(const GPAllocator*, size_t);
-extern inline void gpmem_null_dealloc(const GPAllocator*, void*);
+extern inline void* gp_mem_alloc(const GPAllocator*, size_t);
+extern inline void  gp_mem_dealloc(const GPAllocator*, void*);
 
-static void* gpmem_std_alloc(const GPAllocator* unused, size_t block_size)
+static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size)
 {
     (void)unused;
     return malloc(block_size);
 }
 
-static void gpmem_std_dealloc(const GPAllocator* unused, void* block)
+static void gp_heap_dealloc(const GPAllocator* unused, void* block)
 {
     (void)unused;
     free(block);
 }
 
-const GPAllocator gpmem_std_allocator =
-{
-    gpmem_std_alloc,
-    gpmem_std_dealloc
-};
-
-const GPAllocator gpmem_null_allocator =
-{
-    gpmem_null_alloc,
-    gpmem_null_dealloc
+const GPAllocator gp_heap = {
+    .alloc   = gp_heap_alloc,
+    .dealloc = gp_heap_dealloc
 };
 
 // ----------------------------------------------------------------------------

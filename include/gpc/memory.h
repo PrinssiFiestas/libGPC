@@ -7,8 +7,8 @@
  * @brief Memory management and allocators
  */
 
-#ifndef GPMEMORY_INCLUDED
-#define GPMEMORY_INCLUDED
+#ifndef GP_MEMORY_INCLUDED
+#define GP_MEMORY_INCLUDED
 
 #include "attributes.h"
 #include <stddef.h>
@@ -20,55 +20,43 @@
 // ----------------------------------------------------------------------------
 
 /** Memory allocator. */
-typedef struct GPAllocator
+typedef struct gp_allocator
 {
-    void* (*const alloc)  (const struct GPAllocator*, size_t block_size);
-    void  (*const dealloc)(const struct GPAllocator*, void* block);
+    void* (*const alloc)  (const struct gp_allocator*, size_t block_size);
+    void  (*const dealloc)(const struct gp_allocator*, void* block);
 } GPAllocator;
 
-GP_NODISCARD inline void* gpmem_alloc(const GPAllocator a[GP_NONNULL], size_t size)
+GP_NONNULL_ARGS() GP_NODISCARD
+inline void* gp_mem_alloc(
+    const GPAllocator* a,
+    size_t size)
 {
     return a->alloc(a, size);
 }
 
-inline void
-gpmem_dealloc(const GPAllocator allocator[GP_NONNULL], void* block)
+GP_NONNULL_ARGS(1)
+inline void gp_mem_dealloc(
+    const GPAllocator* allocator,
+    void* block)
 {
     allocator->dealloc(allocator, block);
 }
 
 #define gp_alloc(allocator, type, count) \
-    (type)gpmem_alloc((GPAllocator*)(allocator), (count) * sizeof(type))
+    gpmem_alloc((GPAllocator*)(allocator), (count) * sizeof(type))
 #define gp_dealloc(allocator, block) \
-    gpmem_dealloc((GPAllocator*)(allocator), block)
+    gpmem_dealloc((GPAllocator*)(allocator), (block))
 
 // ----------------------------------------------------------------------------
 
 /** malloc() based allocator. */
-extern const GPAllocator gpmem_std_allocator;
-
-// ----------------------------------------------------------------------------
-
-inline void* gpmem_null_alloc(const GPAllocator* unused, size_t unused1)
-{
-    (void)unused, (void)unused1;
-    return NULL;
-}
-
-inline void
-gpmem_null_dealloc(const GPAllocator* unused, void* unused1)
-{
-    (void)unused; (void)unused1;
-}
-
-/** Always returns NULL on allocations. */
-extern const GPAllocator gpmem_null_allocator;
+extern const GPAllocator gp_heap;
 
 // ----------------------------------------------------------------------------
 
 typedef struct GPArena GPArena;
 
-GPArena* gpmem_arena(size_t capacity);
-void gpmem_free_arena(GPArena*);
+GPArena* gp_mem_arena(size_t capacity);
+void gp_mem_free_arena(GPArena*);
 
-#endif // GPMEMORY_INCLUDED
+#endif // GP_MEMORY_INCLUDED

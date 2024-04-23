@@ -33,19 +33,6 @@
 #endif
 
 // ----------------------------------------------------------------------------
-// Long double
-
-#if defined(__MINGW32__) && !defined(__clang__)
-#define GP_LONG_DOUBLE double
-#define GP_LG_FORMAT "%g"
-#define GP_SIZE_T_FORMAT "%llu"
-#else
-#define GP_LONG_DOUBLE long double
-#define GP_LG_FORMAT "%Lg"
-#define GP_SIZE_T_FORMAT "%zu"
-#endif
-
-// ----------------------------------------------------------------------------
 // Nonnull args
 
 #if defined(__GNUC__)
@@ -56,8 +43,6 @@
 
 // ----------------------------------------------------------------------------
 // Static array index
-
-// TODO get rid of GP_NONNULL. It's causing problems with MSVC (as usual).
 
 // Static array index in parameter declarations is a C99 feature, however, many
 // compilers do not support it.
@@ -73,13 +58,11 @@
 
 // You must provide a buffer with capacity at least the specified amount.
 #define GP_STATIC static
-#define GP_NONNULL static 1
 
 #else
 
 // Please, provide a buffer with capacity at least the specified amount.
-#define GPC_STATIC
-#define GPC_NONNULL
+#define GP_STATIC
 #endif
 
 // ----------------------------------------------------------------------------
@@ -89,7 +72,7 @@
 
 // Type checking for format strings
 #define GP_PRINTF(FORMAT_STRING_INDEX, FIRST_TO_CHECK) \
-__attribute__((format(printf, FORMAT_STRING_INDEX, FIRST_TO_CHECK)))
+    __attribute__((format(printf, FORMAT_STRING_INDEX, FIRST_TO_CHECK)))
 
 #elif defined(_MSC_VER)
 

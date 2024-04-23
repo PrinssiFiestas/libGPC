@@ -757,7 +757,7 @@ int gp_cstr_case_compare(
 
 
 // TODO GET RID OF OLD STUFF --------------------------------------------------
-
+#if 0
 extern inline const char* gpcstr(struct GPString str);
 extern inline struct GPString gpstr(const char cstr[GP_NONNULL]);
 
@@ -973,3 +973,4 @@ gpstr_print_internal(
     }
     return me;
 }
+#endif
