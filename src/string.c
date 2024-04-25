@@ -28,6 +28,54 @@ GP_ALWAYS_INLINE void gp_debug_segfault(void) // TODO just put this in a macro
 #include <printf/printf.h>
 #include "pfstring.h"
 
+const char* gp_cstr(GPString str)
+{
+    str[gp_str_length(str)].c = '\0';
+    return (const char*)str;
+}
+
+size_t gp_str_length(const GPString str)
+{
+    return ((GPArrayHeader*)str - 1)->length;
+}
+
+size_t gp_str_capacity(const GPString str)
+{
+    return ((GPArrayHeader*)str - 1)->capacity;
+}
+
+bool gp_str_is_allocated(const GPString str)
+{
+    return ((GPArrayHeader*)str - 1)->allocation;
+}
+
+const struct gp_allocator* gp_str_allocator(const GPString str)
+{
+    return (const struct gp_allocator*)(((GPArrayHeader*)str - 1)->allocator);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 size_t gp_cstr_copy(
     char*restrict dest,
     const char*restrict src)
@@ -39,7 +87,7 @@ size_t gp_cstr_copy(
 
 size_t gp_cstr_copy_n(
     char*restrict dest,
-    const char*restrict src,
+    const void*restrict src,
     size_t n)
 {
     memcpy(dest, src, n);
@@ -69,7 +117,7 @@ size_t gp_big_cstr_slice(
 
 size_t gp_cstr_substr(
     char*restrict dest,
-    const char*restrict src,
+    const void*restrict src,
     size_t start,
     size_t end)
 {
@@ -91,7 +139,7 @@ size_t gp_cstr_append(
 
 size_t gp_cstr_append_n(
     char*restrict dest,
-    const char*restrict src,
+    const void*restrict src,
     size_t n)
 {
     size_t dest_length = strlen(dest);
@@ -116,7 +164,7 @@ size_t gp_cstr_insert(
 size_t gp_cstr_insert_n(
     char*restrict dest,
     size_t pos,
-    const char*restrict src,
+    const void*restrict src,
     size_t n)
 {
     size_t dest_length = strlen(dest);
@@ -168,7 +216,7 @@ size_t gp_cstr_replace(
         haystack,
         start,
         end,
-replacement,
+        replacement,
         replacement_length);
 
     haystack[out_length] = '\0';
@@ -321,6 +369,12 @@ size_t gp_cstr_print_internal(
             case GP_CHAR_PTR:
                 p = va_arg(args.list, char*);
                 concat(out, p, strlen(p));
+                break;
+
+            GPString s;
+            case GP_STRING:
+                s = va_arg(args.list, GPString);
+                concat(out, (char*)s, gp_str_length(s));
                 break;
 
             case GP_PTR:

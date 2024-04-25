@@ -80,7 +80,7 @@
 */
 
 // Use in variadic function arguments with GP_TYPE() macro
-enum GPType
+typedef enum gp_type
 {
     GP_UNSIGNED_CHAR,
     GP_UNSIGNED_SHORT,
@@ -97,15 +97,16 @@ enum GPType
     GP_FLOAT,
     GP_DOUBLE,
     GP_CHAR_PTR,
+    GP_STRING,
     GP_PTR,
-};
+} GPType;
 
-inline bool gp_is_unsigned(const enum GPType T) { return T <= GP_UNSIGNED_LONG_LONG; }
-inline bool gp_is_integer (const enum GPType T) { return T <= GP_LONG_LONG; }
-inline bool gp_is_floating(const enum GPType T) { return GP_FLOAT <= T && T <= GP_DOUBLE; }
-inline bool gp_is_pointer (const enum GPType T) { return GP_CHAR_PTR <= T && T <= GP_PTR; }
+inline bool gp_is_unsigned(const GPType T) { return T <= GP_UNSIGNED_LONG_LONG; }
+inline bool gp_is_integer (const GPType T) { return T <= GP_LONG_LONG; }
+inline bool gp_is_floating(const GPType T) { return GP_FLOAT <= T && T <= GP_DOUBLE; }
+inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_PTR; }
 
-size_t gp_sizeof(const enum GPType T);
+size_t gp_sizeof(const GPType T);
 
 #define GP_TYPE(VAR)                           \
 _Generic(VAR,                                  \
@@ -125,8 +126,10 @@ _Generic(VAR,                                  \
     signed char:        GP_SIGNED_CHAR,        \
     char*:              GP_CHAR_PTR,           \
     const char*:        GP_CHAR_PTR,           \
+    struct gp_char*:    GP_STRING,             \
     default:            GP_PTR)
 
+// TODO get rid of this
 #define GP_GET_FORMAT(VAR)      \
 _Generic(VAR,                   \
     bool:               "%i",   \

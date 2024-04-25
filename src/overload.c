@@ -4,12 +4,12 @@
 
 #include <gpc/overload.h>
 
-extern inline bool gp_is_unsigned(const enum GPType T);
-extern inline bool gp_is_integer (const enum GPType T);
-extern inline bool gp_is_floating(const enum GPType T);
-extern inline bool gp_is_pointer (const enum GPType T);
+extern inline bool gp_is_unsigned(const GPType T);
+extern inline bool gp_is_integer (const GPType T);
+extern inline bool gp_is_floating(const GPType T);
+extern inline bool gp_is_pointer (const GPType T);
 
-size_t gp_sizeof(const enum GPType T)
+size_t gp_sizeof(const GPType T)
 {
     switch (T)
     {
@@ -36,9 +36,9 @@ size_t gp_sizeof(const enum GPType T)
         case GP_DOUBLE:
             return sizeof(double);
         case GP_CHAR_PTR:
-            return sizeof(char*);
+        case GP_STRING:
         case GP_PTR:
-            return sizeof(void*);
+            return sizeof(char*);
     }
     return 0; // shut up compiler
 }

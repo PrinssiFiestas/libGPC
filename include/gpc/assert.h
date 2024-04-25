@@ -64,11 +64,16 @@ struct GPPrintable
 
     // Simplified specifier. If var_name is not a format string, then this is
     // used avoiding format string parsing.
-    const enum GPType type;
+    const enum gp_type type;
 
     // Actual data is in pr_cstr_fail_internal() variadic args.
 };
+#if __STDC_VERSION__ >= 201112L
 #define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
+#else
+#define GP_PRINTABLE(X) { #X, -1 }
+#endif
+
 #endif
 
 #define GP_FAIL(...) \

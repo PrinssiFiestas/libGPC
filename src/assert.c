@@ -4,6 +4,7 @@
 
 #include <gpc/assert.h>
 #include <gpc/terminal.h>
+#include <gpc/string.h>
 #include <gpc/utils.h>
 #include <printf/printf.h>
 #include <stddef.h>
@@ -345,6 +346,16 @@ void gp_fail_internal(
                 char_ptr = va_arg(args.list, char*);
                 if (char_ptr != NULL)
                     fprintf(stderr, GP_BRIGHT_RED "\"%s\"", char_ptr);
+                else
+                    fprintf(stderr, GP_BRIGHT_RED "(null)");
+                break;
+
+            GPString str;
+            case GP_STRING:
+                str = va_arg(args.list, GPString);
+                if (str != NULL)
+                    fprintf(stderr, GP_BRIGHT_RED "\"%.*s\"",
+                        (int)gp_str_length(str), (char*)str);
                 else
                     fprintf(stderr, GP_BRIGHT_RED "(null)");
                 break;
