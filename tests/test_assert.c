@@ -4,50 +4,6 @@
 
 #include "../src/assert.c"
 
-// Basic unit test demo can be found in main() after inline_test_demo().
-
-// Blocks inside functions can be tested with GP_TEST_OUT() and GP_TEST_INS().
-// Inline tests require GCC compatible compiler.
-// GCC Extensions used: compound statements and typeof operator.
-void inline_test_demo(void)
-{
-    #if defined(__GNUC__) && defined(GP_TESTS)
-
-    int output = 0;
-    const char* str = "this does not get tested";
-    int n = 1;
-
-    // GP_TEST_OUT() should ALWAYS come before GP_TEST_IN(). First argument is
-    // the variable V to be tested. Second arg is any expression that tests the
-    // variable against V_EXPECTED which has a value from rest of the args.
-    GP_TEST_OUT(output, output == output_EXPECTED, 2, 6) // semicol is optional
-    // First arg tells what's being tested so it must match the first arg of
-    // GP_TEST_OUT(). All subsequent args are parentheses enclosed lists where
-    // the first element is the input variable and the rest are testing values.
-    // The number of test values must match the number of expected values in
-    // GP_TEST_OUT().
-    GP_TEST_INS(output, (str, "aa", "bbb"), (n, 1, 2)) // DON'T ADD SEMICOL HERE
-    { // Code block to be tested. Could be a single line without curlies too.
-      // After test, this block gets executed with original values of str and n.
-      // Note that if GP_TESTS is defined, this block gets executed multiple
-      // times: one time with the original values after testing and in this case
-      // two times during testing so be mindful about side effects. If GP_TESTS
-      // is not defined, the block gets executed once with the original values.
-        size_t len = strlen(str);
-        output = len * n;
-    }
-
-    // User defined struct test demo
-    struct MyI { int i; } my_i = {0};
-    int dummy = 0; // Inputs length have to match outputs length, thus dummy.
-    // Expected outputs in brace enclosed initializer lists.
-    GP_TEST_OUT(my_i, my_i.i == my_i_EXPECTED.i, {1});
-    GP_TEST_INS(my_i, (dummy, 0))
-        my_i.i = 1;
-
-    #endif // __GNUC__
-}
-
 int main(void)
 {
     // Note the semicolon. These are not macro magic but just regular functions
@@ -58,7 +14,6 @@ int main(void)
         gp_test("First test");
         {
             gp_expect(0 == 0);
-            inline_test_demo();
         }
 
         // Starting a new test ends the last one.

@@ -69,20 +69,27 @@ static void gp_init_testing(void)
 {
     if ( ! gp_initialized_testing)
     {
+        gp_initialized_testing = true;
+
         #if (__GNUC__ && __linux__) || BSD
         extern const char* __progname;
         prog_name = __progname;
         #elif _WIN32
-        #define GP_MAX_PATH 256
-        static char prog_name_buf[GP_MAX_PATH] = "";
-        GetModuleFileNameA(NULL, prog_name_buf, GP_MAX_PATH);
-        prog_name = prog_name_buf;
+        static char prog_name_buf[MAX_PATH] = "";
+        size_t length = GetModuleFileNameA(NULL, prog_name_buf, MAX_PATH);
+
+        bool valid_ascii = 0 < length && length < MAX_PATH;
+        for (size_t i = 0; i < length && valid_ascii; i++)
+            valid_ascii = ~prog_name_buf[i] & 0x80;
+        if (valid_ascii) {
+            const char* trimmed = strrchr(prog_name_buf, '\\');
+            prog_name = trimmed ? trimmed + strlen("\\") : prog_name_buf;
+        }
         #endif
 
         puts("---------------------------------------------------------------");
         printf("Starting tests%s%s\n\n", *prog_name ? " in " : "", prog_name);
         atexit(gp_end_testing);
-        gp_initialized_testing = true;
     }
 }
 
@@ -149,7 +156,6 @@ void gp_suite(const char* name)
 // Implementations for gp_assert() and gp_expect()
 
 void gp_fail_internal(
-    int aborting,
     const char* file,
     int line,
     const char* func,
@@ -175,10 +181,9 @@ void gp_fail_internal(
     }
 
     const char* condition = objs[0].identifier;
-    // 1st arg is just condition, ignore that.
     if (gp_sizeof(objs[0].type) == sizeof(uint64_t))
         (void)va_arg(args.list, uint64_t);
-    else // 32 bits due to arg promotion
+    else
         (void)va_arg(args.list, uint32_t);
 
     fprintf(stderr,
@@ -351,8 +356,6 @@ void gp_fail_internal(
         fprintf(stderr, GP_RESET_TERMINAL "\n");
     } // end for args
 
-    if (aborting)
-        exit(EXIT_FAILURE);
     free(buf);
     va_end(_args);
     va_end(args.list);
