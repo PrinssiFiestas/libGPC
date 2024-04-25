@@ -13,23 +13,25 @@
 
 // Overloading functions and macro functions by the number of arguments can be
 // done with OVERLOADN() macros. First arg to OVERLOADN() is always __VA_ARGS__
-// which is followed by names of functions/macros to be overloaded. The actual
-// arguments also has to be given after OVERLOADN().
+// which is followed by names of functions/macros to be overloaded in ascending
+// order. The actual arguments also has to be given after OVERLOADN(). Zero
+// arguments is not possible.
 // Example for max 3 args below:
 /*
-    void func1(int arg1);
-    #define MACRO2(arg1, arg2) somefunc(arg1, arg2)
-    int func3(char arg1, void* arg2, const char* arg3);
+void func1(int arg1);
+#define MACRO2(arg1, arg2) somefunc(arg1, arg2)
+int func3(char arg1, void* arg2, const char* arg3);
 
-    #define func(...) OVERLOAD3(__VA_ARGS__, func3, func2, func1)(__VA_ARGS__)
+// Note 3 in the name of the macro.
+#define func(...) OVERLOAD3(__VA_ARGS__, func3, MACRO2, func1)(__VA_ARGS__)
 
-    int main(void)
-    {
-        // now func() can be called with 1-3 args.
-        func(1);
-        func(1, 2);
-        func('1', (void*)2, "3");
-    }
+int main(void)
+{
+    // now func() can be called with 1-3 args.
+    func(1);
+    func(1, 2);
+    func('1', (void*)2, "3");
+}
 */
 
 // Helper macros
@@ -128,40 +130,6 @@ _Generic(VAR,                                  \
     const char*:        GP_CHAR_PTR,           \
     struct gp_char*:    GP_STRING,             \
     default:            GP_PTR)
-
-// TODO get rid of this
-#define GP_GET_FORMAT(VAR)      \
-_Generic(VAR,                   \
-    bool:               "%i",   \
-    short:              "%hi",  \
-    int:                "%i",   \
-    long:               "%li",  \
-    long long:          "%lli", \
-    unsigned short:     "%hu",  \
-    unsigned int:       "%u",   \
-    unsigned long:      "%lu",  \
-    unsigned long long: "%llu", \
-    float:              "%g",   \
-    double:             "%g",   \
-    char:               "%c",   \
-    unsigned char:      "%c",   \
-    signed char:        "%c",   \
-    char*:              "%s",   \
-    const char*:        "%s",   \
-    default:            "%p")
-
-#define GP_IF_IS_NUMBER(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR,        \
-short: EXPR_IF_TRUE, unsigned short: EXPR_IF_TRUE, int: EXPR_IF_TRUE,          \
-unsigned: EXPR_IF_TRUE, long: EXPR_IF_TRUE, unsigned long: EXPR_IF_TRUE,       \
-long long: EXPR_IF_TRUE, unsigned long long: EXPR_IF_TRUE, float: EXPR_IF_TRUE,\
-double: EXPR_IF_TRUE, long double: EXPR_IF_TRUE, default: EXPR_IF_FALSE)
-
-#define GP_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR, \
-char: EXPR_IF_TRUE, unsigned char: EXPR_IF_TRUE, default: EXPR_IF_FALSE)
-
-#define GP_IF_IS_NUMERIC(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE) _Generic(VAR, \
-_Bool: EXPR_IF_TRUE, default: GP_IF_IS_NUMBER(VAR, EXPR_IF_TRUE,         \
-GP_IF_IS_CHAR(VAR, EXPR_IF_TRUE, EXPR_IF_FALSE)))
 
 // Returns number of arguments
 #define GP_COUNT_ARGS(...) GP_OVERLOAD64(__VA_ARGS__, 64, 63, 62, 61, 60, 59, 58, 57, 56,\

@@ -15,9 +15,9 @@
 #define GPC_UTILS_INCLUDED 1
 
 #include "attributes.h"
+#include <math.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <tgmath.h>
 #include <stddef.h>
 
 // ----------------------------------------------------------------------------
@@ -26,45 +26,96 @@
 //
 // ----------------------------------------------------------------------------
 
-// Raw byte
-typedef unsigned char gp_byte;
-
 /** Round number up to the next power of 2.
  * Used to compute array sizes on reallocations, thus size_t.
  */
-size_t gp_next_power_of_2(size_t x);
+inline size_t gp_next_power_of_2(size_t x)
+{
+    if (x >= SIZE_MAX/2) // prevent overflow
+        return SIZE_MAX;
+    size_t result = 1;
+    while (result <= x)
+        result *= 2;
+    return result;
+}
 
 /** Compare raw memory.
  * @return true if the first @p count bytes of @p lhs and @p rhs are equal.
  */
-bool gp_mem_eq(const void* lhs, const void* rhs, size_t count);
-
-// Random functions. Note that these only work for 64 bit platforms for now.
-
-// Random functions with global state
-
-// ALWAYS seed!
-void gp_g_random_seed(uint64_t seed);
-uint32_t gp_g_random(void);
-double gp_g_frandom(void);
-int32_t gp_g_random_range(int32_t min, int32_t max);
-
-// Random functions with local state
-
-typedef struct gp_RandomState gp_RandomState;
-
-// ALWAYS seed!
-void gp_random_seed(gp_RandomState*, uint64_t seed);
-uint32_t gp_random(gp_RandomState*);
-double gp_frandom(gp_RandomState*);
-int32_t gp_random_range(gp_RandomState*, int32_t min, int32_t max);
-
-#if defined(__GNUC__) || __STDC_VERSION__ >= 201112L
+inline bool gp_mem_equal(const void* lhs, const void* rhs, size_t count) {
+    int memcmp(const void*, const void*, size_t);
+    return memcmp(lhs, rhs, count) == 0;
+}
 
 #define gp_min(x, y) gp_generic_min(x, y)
 #define gp_max(x, y) gp_generic_max(x, y)
 
-#endif
+inline bool gp_fapproxf(float x, float y, float max_relative_diff) {
+    return fabsf(x - y) <= max_relative_diff * fmaxf(x, y);
+}
+inline bool gp_fapprox(double x, double y, double max_relative_diff) {
+    return fabs(x - y) <= max_relative_diff * fmax(x, y);
+}
+inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff){
+    return fabsl(x - y) <= max_rel_diff * fmaxl(x, y);
+}
+
+inline bool gp_clip_range(
+    size_t* optional_start,
+    size_t* optional_end,
+    size_t limit)
+{
+    bool clipped = false;
+
+    // TODO confirm that this works with any start and end when limit == 0.
+
+    if (optional_end != NULL && *optional_end > limit) {
+        *optional_end = limit;
+        clipped = true;
+    }
+    if (limit == 0) { // prevent underflow for start
+        limit = 1;
+    }
+    if (optional_start != NULL && *optional_start >= limit) {
+        *optional_start = limit - 1;
+        clipped = true;
+    }
+    return clipped;
+}
+
+
+// ----------------------------------------------------------------------------
+// Random functions. Only work for 64 bit platforms for now. // TODO
+
+// Random functions with global state
+
+// ALWAYS seed!
+void     gp_g_random_seed(uint64_t seed);
+uint32_t gp_g_random(void);
+double   gp_g_frandom(void);
+int32_t  gp_g_random_range(int32_t min, int32_t max);
+
+// Random functions with local state
+
+typedef struct gp_random_state
+{
+    uint64_t state;
+    uint64_t inc;
+} GPRandomState;
+
+// ALWAYS seed!
+void     gp_random_seed (GPRandomState*, uint64_t seed);
+uint32_t gp_random      (GPRandomState*);
+double   gp_frandom     (GPRandomState*);
+int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max);
+
+// ----------------------------------------------------------------------------
+//
+//          END OF API REFERENCE
+//
+//          Code below is for internal usage and may change without notice.
+//
+// ----------------------------------------------------------------------------
 
 int                gp_imin(int x, int y);
 long               gp_lmin(long x, long y);
@@ -80,60 +131,45 @@ unsigned           gp_umax(unsigned x, unsigned y);
 unsigned long      gp_lumax(unsigned long x, unsigned long y);
 unsigned long long gp_llumax(unsigned long long x, unsigned long long y);
 
-// Generic approx for floats, doubles and long doubles.
-#define gp_approx(x, y, tolerance) (fabs((x) - (y)) <= (tolerance))
-
-bool gp_fapproxf(float x, float y, float tolerance);
-bool gp_fapprox(double x, double y, double tolerance);
-bool gp_fapproxl(long double x, long double y, long double tolerance);
-
-// ----------------------------------------------------------------------------
-//
-//          END OF API REFERENCE
-//
-//          Code below is for internal usage and may change without notice.
-//
-// ----------------------------------------------------------------------------
-
-struct gp_RandomState
-{
-    uint64_t state;
-    uint64_t inc;
-};
-
 #if defined(__GNUC__) // gp_min() and gp_max() implementations
 
 #define gp_generic_min(x, y) \
-({ typeof(x) _##x = (x); typeof(y) _##y = (y); _##x < _##y ? _##x : _##y; })
+    ({ typeof(x) _##x = (x); typeof(y) _##y = (y); _##x < _##y ? _##x : _##y; })
 
 #define gp_generic_max(x, y) \
-({ typeof(x) _##x = (x); typeof(y) _##y = (y); _##x > _##y ? _##x : _##y; })
+    ({ typeof(x) _##x = (x); typeof(y) _##y = (y); _##x > _##y ? _##x : _##y; })
 
 #elif __STDC_VERSION__ >= 201112L
 
 #define gp_generic_min(x, y) \
 _Generic(x, \
-int:                gp_imin(x, y),   \
-long:               gp_lmin(x, y),   \
-long long:          gp_llmin(x, y),  \
-unsigned:           gp_umin(x, y),   \
-unsigned long:      gp_lumin(x, y),  \
-unsigned long long: gp_llumin(x, y), \
-float:              gp_fminf(x, y),  \
-double:             gp_fmin(x, y),   \
-long double:        gp_fminl(x, y))
+    int:                gp_imin(x, y),   \
+    long:               gp_lmin(x, y),   \
+    long long:          gp_llmin(x, y),  \
+    unsigned:           gp_umin(x, y),   \
+    unsigned long:      gp_lumin(x, y),  \
+    unsigned long long: gp_llumin(x, y), \
+    float:              gp_fminf(x, y),  \
+    double:             gp_fmin(x, y),   \
+    long double:        gp_fminl(x, y))
 
 #define gp_generic_max(x, y) \
 _Generic(x, \
-int:                gp_imax(x, y),   \
-long:               gp_lmax(x, y),   \
-long long:          gp_llmax(x, y),  \
-unsigned:           gp_umax(x, y),   \
-unsigned long:      gp_lumax(x, y),  \
-unsigned long long: gp_llumax(x, y), \
-float:              gp_fmaxf(x, y),  \
-double:             gp_fmax(x, y),   \
-long double:        gp_fmaxl(x, y))
+    int:                gp_imax(x, y),   \
+    long:               gp_lmax(x, y),   \
+    long long:          gp_llmax(x, y),  \
+    unsigned:           gp_umax(x, y),   \
+    unsigned long:      gp_lumax(x, y),  \
+    unsigned long long: gp_llumax(x, y), \
+    float:              gp_fmaxf(x, y),  \
+    double:             gp_fmax(x, y),   \
+    long double:        gp_fmaxl(x, y))
+
+#else // Non-GNU C99
+
+// Not ideal but does the job
+#define gp_generic_min(x, y) gp_fmin(x, y)
+#define gp_generic_max(x, y) gp_fmax(x, y)
 
 #endif // gp_min() and gp_max() implementations
 

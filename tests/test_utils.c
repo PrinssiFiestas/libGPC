@@ -40,7 +40,15 @@ int main(void)
     gp_suite("mem_eq sanity check");
     {
         gp_test("if memories are equal");
-            gp_expect(gp_mem_eq("blah", "blah", sizeof("blah")));
+            gp_expect(gp_mem_equal("blah", "blah", sizeof("blah")));
+    }
+
+    gp_suite("Clip range");
+    {
+        gp_test("Clipping");
+        {
+            // TODO
+        }
     }
 
     gp_suite("random nummber generation");

@@ -17,33 +17,9 @@
 #include <stddef.h>
 #include <limits.h>
 #include <stdint.h>
-
-#ifdef __GNUC__ // not required but faster stack allocation
+#ifdef __GNUC__
 #include <alloca.h>
 #endif
-
-// TODO move this to appropriate header
-static inline bool gp_clip_range(size_t* start, size_t* end, size_t limit)
-{
-    bool clipped = false;
-
-    // TODO confirm that this works with any start and end when limit == 0.
-
-    if (end != NULL && *end > limit) {
-        *end = limit;
-        clipped = true;
-    }
-
-    if (limit == 0) // prevent underflow for start
-        limit = 1;
-
-    if (start != NULL && *start >= limit) {
-        *start = limit - 1;
-        clipped = true;
-    }
-
-    return clipped;
-}
 
 // ----------------------------------------------------------------------------
 //
