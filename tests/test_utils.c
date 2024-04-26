@@ -43,11 +43,42 @@ int main(void)
             gp_expect(gp_mem_equal("blah", "blah", sizeof("blah")));
     }
 
-    gp_suite("Clip range");
+    gp_suite("Bounds checking");
     {
-        gp_test("Clipping");
+        gp_test("Basic tests");
         {
-            // TODO
+            size_t start = 5; // non-inclusive
+            size_t end   = 7; // inclusive
+            gp_expect(gp_check_bounds(&start, &end, 7));
+
+            start = 8;
+            end   = 8;
+            gp_expect( ! gp_check_bounds(&start, &end, 999),
+                "end should be at least 1 more than start to not clip");
+            gp_expect(start == 7, start);
+
+            start = 5;
+            end   = 5;
+            gp_expect( ! gp_check_bounds(&start, NULL, 5));
+            gp_expect(   gp_check_bounds(NULL,   &end, 5));
+
+            start = 6;
+            end   = 9;
+            gp_expect( ! gp_check_bounds(&start, &end, 4));
+            gp_expect(end == 4 && start == 3, start, end);
+        }
+        gp_test("Zero limit");
+        {
+            size_t start = 0;
+            size_t end   = 0;
+            gp_expect( ! gp_check_bounds(&start, NULL, 0));
+            gp_expect(start == 0, "Can't make smaller than 0");
+
+            gp_expect(gp_check_bounds(NULL, &end, 0), end);
+
+            gp_expect( ! gp_check_bounds(&start, &end, 0));
+            gp_expect(start == 0 && end == 0, start, end,
+                "Can't have a valid range with 0 limit");
         }
     }
 

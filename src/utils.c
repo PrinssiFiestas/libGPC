@@ -9,12 +9,27 @@
 #include <gpc/utils.h>
 #include "pcg_basic.h"
 
-inline size_t gp_next_power_of_2(size_t n);
-inline bool gp_fapproxf(float x, float y, float max_relative_diff);
-inline bool gp_fapprox(double x, double y, double max_relative_diff);
-inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff);
-inline bool gp_mem_equal(const void* rhs, const void* lhs, size_t count);
-inline bool gp_clip_range(size_t* start, size_t* end, size_t limit);
+extern inline size_t gp_next_power_of_2(size_t n);
+extern inline bool gp_fapproxf(float x, float y, float max_relative_diff);
+extern inline bool gp_fapprox(double x, double y, double max_relative_diff);
+extern inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff);
+extern inline bool gp_mem_equal(const void* rhs, const void* lhs, size_t count);
+
+bool gp_check_bounds(size_t* start, size_t* end, size_t limit)
+{
+    bool clipped = false;
+    end = end != NULL ? end : &(size_t){ limit };
+    if (*end > limit) {
+        *end = limit;
+        clipped = true;
+    }
+    if (start != NULL && *start >= *end) {
+        *start  = *end - (limit != 0);
+        clipped = true;
+    }
+
+    return ! clipped;
+}
 
 
 

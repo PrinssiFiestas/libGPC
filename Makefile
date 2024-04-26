@@ -5,7 +5,7 @@
 CC = gcc
 CFLAGS  = -Wall -Wextra -Werror
 CFLAGS += -Wno-missing-field-initializers -Wno-comment
-CFLAGS += -Iinclude
+CFLAGS += -Iinclude -lm
 
 NPROC = $(shell echo `nproc`)
 THREAD_COUNT = $(if $(NPROC),$(NPROC),4)

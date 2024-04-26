@@ -60,29 +60,10 @@ inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff){
     return fabsl(x - y) <= max_rel_diff * fmaxl(x, y);
 }
 
-inline bool gp_clip_range(
-    size_t* optional_start,
-    size_t* optional_end,
-    size_t limit)
-{
-    bool clipped = false;
-
-    // TODO confirm that this works with any start and end when limit == 0.
-
-    if (optional_end != NULL && *optional_end > limit) {
-        *optional_end = limit;
-        clipped = true;
-    }
-    if (limit == 0) { // prevent underflow for start
-        limit = 1;
-    }
-    if (optional_start != NULL && *optional_start >= limit) {
-        *optional_start = limit - 1;
-        clipped = true;
-    }
-    return clipped;
-}
-
+bool gp_check_bounds(
+    size_t* optional_start_non_inclusive,
+    size_t* optional_end_inclusive,
+    size_t  limit);
 
 // ----------------------------------------------------------------------------
 // Random functions. Only work for 64 bit platforms for now. // TODO
