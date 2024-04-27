@@ -43,20 +43,30 @@ GP_OVERLOAD2(__VA_ARGS__, \
 
 #define gp_str_on_stack(allocator, const_size_t_capacity, cstr_literal_init) \
 
-void gp_str_clear(GPString*);
+GPString gp_str_clear(GPString);
+#ifndef gp_clear
+#define gp_clear(GPString_me) ( \
+    gp_str_clear((void*)(GPString_me)), \
+    (void*)"Deallocated at "__FILE__" line "GP_MEM_STRFY(__LINE__) \
+)
+#endif
 
-const char* gp_cstr(GPString);
+const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
 size_t gp_str_length(GPString) GP_NONNULL_ARGS();
 size_t gp_str_capacity(GPString) GP_NONNULL_ARGS();
-bool   gp_str_is_allocated(GPString) GP_NONNULL_ARGS();
+void*  gp_str_allocation(GPString) GP_NONNULL_ARGS();
 const struct gp_allocator* gp_str_allocator(GPString) GP_NONNULL_ARGS();
 
-#if 0
-size_t gp_cstr_copy(
-    char*restrict dest,
-    const char*restrict src) GP_NONNULL_ARGS();
+void gp_str_reserve(
+    GPString* str,
+    size_t capacity) GP_NONNULL_ARGS();
 
+void gp_str_copy(
+    GPString* dest,
+    GPString src) GP_NONNULL_ARGS();
+
+#if 0
 size_t gp_cstr_copy_n(
     char*restrict dest,
     const void*restrict src,
@@ -232,12 +242,7 @@ size_t gp_cstr_codepoint_length(
 #endif // 0
 
 // ----------------------------------------------------------------------------
-//
-//          END OF API REFERENCE
-//
-//          Code below is for internal usage and may change without notice.
-//
-// ----------------------------------------------------------------------------
+// Low level access
 
 #ifndef GP_ARRAY_INCLUDED
 typedef struct gp_array_header
@@ -248,6 +253,18 @@ typedef struct gp_array_header
     void* allocation;
 } GPArrayHeader;
 #endif
+
+inline GPArrayHeader* gp_str_set(GPString* me) {
+    return (GPArrayHeader*)*me - 1;
+}
+
+// ----------------------------------------------------------------------------
+//
+//          END OF API REFERENCE
+//
+//          Code below is for internal usage and may change without notice.
+//
+// ----------------------------------------------------------------------------
 
 GPString gp_str_new_init_n(
     void* allocator,
