@@ -16,18 +16,30 @@
 
 extern inline GPArrayHeader* gp_str_set(GPStringOut* me);
 
+GPString gp_str_new_init_n(
+    const void* allocator,
+    size_t capacity,
+    const void* init,
+    size_t n)
+{
+    const size_t header_size = sizeof(GPArrayHeader);
+    capacity = gp_next_power_of_2(gp_max(capacity, n));
+    void* block = gp_mem_alloc(allocator, header_size + capacity + sizeof"");
+    *(GPArrayHeader*)block = (GPArrayHeader){
+        .length     = n,
+        .capacity   = capacity,
+        .allocator  = allocator,
+        .allocation = block },
+    memcpy((char*)block + header_size, init, n);
+    return (GPString)(block + header_size);
+}
+
 GPString gp_str_clear(GPString me)
 {
     if (me == NULL)
         return NULL;
     gp_dealloc(gp_str_allocator(me), gp_str_allocation(me));
     return NULL;
-}
-
-const char* gp_cstr(GPString str)
-{
-    str[gp_str_length(str)].c = '\0';
-    return (const char*)str;
 }
 
 size_t gp_str_length(GPStringIn str)
@@ -50,33 +62,81 @@ const struct gp_allocator* gp_str_allocator(GPStringIn str)
     return (const struct gp_allocator*)(((GPArrayHeader*)str - 1)->allocator);
 }
 
+const char* gp_cstr(GPString str)
+{
+    str[gp_str_length(str)].c = '\0';
+    return (const char*)str;
+}
+
 void gp_str_reserve(
     GPStringOut* str,
     size_t capacity)
 {
-    if (gp_str_capacity(*str) <= capacity)
-        gp_realloc(gp_str_allocator(*str), str, gp_str_capacity(*str), capacity);
+    // TODO optimize allocation using
+    //      offset = (*str - sizeof(GPArrayHeader)) - gp_str_allocation(*str).
+    // If offset > capacity then just memmove() to get more capacity. Also
+    // double check the maths in this comment.
+    if (gp_str_capacity(*str) < capacity)
+    {
+        capacity = gp_next_power_of_2(capacity);
+        void* block = gp_mem_alloc(
+            gp_str_allocator(*str),
+            sizeof(GPArrayHeader) + capacity);
+
+        memcpy(block, (GPArrayHeader*)*str - 1, sizeof(GPArrayHeader));
+        memcpy((GPArrayHeader*)block + 1, *str, gp_str_length(*str));
+
+        gp_mem_dealloc(gp_str_allocator(*str), gp_str_allocation(*str));
+
+        *str = (GPChar*)block + sizeof(GPArrayHeader);
+        gp_str_set(str)->allocation = block;
+        gp_str_set(str)->capacity   = capacity;
+    }
 }
 
 void gp_str_copy(
     GPStringOut* dest,
     GPStringIn src)
 {
+    gp_str_reserve(dest, gp_str_length(src));
     memcpy(*dest, src, gp_str_length(src));
     gp_str_set(dest)->length = gp_str_length(src);
 }
 
-#if 0
-size_t gp_cstr_copy_n(
-    char*restrict dest,
+void gp_str_copy_mem(
+    GPStringOut* dest,
     const void*restrict src,
     size_t n)
 {
-    memcpy(dest, src, n);
-    dest[n] = '\0';
-    return n;
+    gp_str_reserve(dest, n);
+    memcpy(*dest, src, n);
+    gp_str_set(dest)->length = n;
 }
 
+void gp_str_repeat(
+    GPStringOut* dest,
+    const size_t n,
+    GPStringIn mem)
+{
+    gp_str_repeat_mem(dest, n, mem, gp_str_length(mem));
+}
+
+void gp_str_repeat_mem(
+    GPStringOut* dest,
+    const size_t n,
+    const void*restrict mem,
+    const size_t mem_length)
+{
+    gp_str_reserve(dest, n * mem_length);
+    if (mem_length == 1) {
+        memset(*dest, *(uint8_t*)mem, n);
+    } else for (size_t i = 0; i < n; i++) {
+        memcpy(*dest + i * mem_length, mem, mem_length);
+    }
+    gp_str_set(dest)->length = n * mem_length;
+}
+
+#if 0
 size_t gp_cstr_slice(
     char* str,
     size_t start,

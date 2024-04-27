@@ -13,7 +13,11 @@
 #include "overload.h"
 #include "attributes.h"
 #include <stdbool.h>
+
+#ifndef GP_USER_ASSERT_EXIT
 void exit(int status);
+#define GP_USER_ASSERT_EXIT (exit)
+#endif
 
 // ----------------------------------------------------------------------------
 //
@@ -25,7 +29,7 @@ void exit(int status);
 // marks current test and suite (if running tests) as failed, and exits program.
 #define gp_assert(/* bool condition, variables*/...) \
     ((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
-        (GP_FAIL(__VA_ARGS__), exit(1), false))
+        (GP_FAIL(__VA_ARGS__), GP_USER_ASSERT_EXIT(1), false))
 
 // Returns true if condition is true. If condition is false prints fail message,
 // marks current test and suite (if running tests) as failed, and returns false.

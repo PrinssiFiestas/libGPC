@@ -10,149 +10,60 @@
 
 int main(void)
 {
-    // gp_suite("Substrings");
-    // {
-    //     gp_test("slice");
-    //     {
-    //         struct GPString str = gpstr_on_stack([], "Some_string_to slice");
-    //         gpstr_slice(&str, 5, 11); // not including 11!
-    //         gp_expect(gpstr_eq(str, gpstr("string")));
-    //     }
+    gp_suite("Creating strings");
+    {
+        gp_test("on stack");
+        {
+            #if GP_INITIALIZER_STRING_IS_TOO_LONG_WARNING
+            GPString str = gp_str_on_stack(GP_NO_ALLOC, 1, "too long!");
+            #elif GP_NON_LITERAL_INITIALIZER_WARNING
+            const char* non_literal = "only literals allowed!";
+            GPString str = gp_str_on_stack(GP_NO_ALLOC, 32, non_literal);
+            #else
+            GPString str = gp_str_on_stack(GP_NO_ALLOC, 7, "ok");
+            #endif
+            gp_expect( ! gp_str_allocation(str),
+                "No allocator given so no allocation either.");
+            gp_str_copy_mem(&str, "1234567", 7);
+            gp_expect(
+                strcmp(gp_cstr(str), "1234567") == 0 &&
+                str[7].c == '\0' &&
+                gp_str_capacity(str) == 8 - 1,
+                "Extra byte is reserved so gp_cstr() can safely null-terminate.");
 
-    //     gp_test("substr");
-    //     {
-    //         struct GPString src = gpstr("Some_string_to slice");
-    //         struct GPString dest = gpstr_on_stack([128], "");
-    //         gpstr_substr(&dest, src, 5, 11); // not including 11!
-    //         gp_expect(gpstr_eq(dest, gpstr("string")),
-    //         ("%s", gpcstr(dest)));
-    //     }
-    // }
+            str = gp_str_clear(str); // safe but pointless
 
-    // gp_suite("insert");
-    // {
-    //     struct GPString str = gpstr_on_stack([128], "test");
-    //     gp_test("Appending");
-    //     {
-    //         gpstr_insert(&str, str.length, gpstr(" tail"));
-    //         gp_expect(gpstr_eq(str, gpstr("test tail")),
-    //         (gpcstr(str)));
-    //     }
-    //     gp_test("Prepending");
-    //     {
-    //         gpstr_insert(&str, 0, gpstr("head "));
-    //         gp_expect(gpstr_eq(str, gpstr("head test tail")),
-    //         (gpcstr(str)));
-    //     }
-    //     gp_test("Insertion");
-    //     {
-    //         gpstr_insert(&str, 5, gpstr("insertion "));
-    //         gp_expect(gpstr_eq(str, gpstr("head insertion test tail")),
-    //         (gpcstr(str)));
-    //     }
-    // }
+            str = gp_str_on_stack(&gp_heap, 1, "");
+            const char* cstr = "Allocator provided, extending is safe!";
+            gp_str_copy_mem(&str, cstr, strlen(cstr));
+            gp_expect(gp_str_allocation(str),
+                "Now in heap, must free with gp_str_clear() or gp_clear()!");
 
-    // gp_suite("finding");
-    // {
-    //     struct GPString haystack = gpstr("bbbaabaaabaa");
-    //     struct GPString needle = gpstr("aa");
-    //     size_t pos = 0;
+            gp_expect((str = gp_str_clear(str)) == NULL,
+                "gp_str_clear() always returns NULL and it's a good idea to "
+                "assign it back to str for easier memory bug debugging.");
+        }
 
-    //     gp_test("find");
-    //     {
-    //         pos = gpstr_find(haystack, needle, 0);
-    //         gp_expect(pos == 3);
-    //         pos = gpstr_find(haystack, needle, 4);
-    //         gp_expect(pos == 6);
-    //         pos = gpstr_find(haystack, gpstr("not in haystack string"), 0);
-    //         gp_expect(pos == GP_NOT_FOUND);
-    //     }
-    //     gp_test("find_last");
-    //     {
-    //         pos = gpstr_find_last(haystack, needle);
-    //         gp_expect(pos == 10, (pos));
-    //         pos = gpstr_find_last(haystack, gpstr("not in haystack string"));
-    //         gp_expect(pos == GP_NOT_FOUND);
-    //     }
-    //     gp_test("count");
-    //     {
-    //         size_t count = gpstr_count(haystack, needle);
-    //         gp_expect(count == 4);
-    //     }
-    // }
+        gp_test("somewhere else than stack");
+        {
+            char* non_const_init = "too long but no worries.";
+            GPString str = gp_str_new(&gp_heap, 1, non_const_init, strlen(non_const_init));
+            gp_expect(gp_str_allocation(str));
+            gp_expect(gp_str_capacity(str) == gp_next_power_of_2(strlen(non_const_init)),
+                gp_str_capacity(str));
 
-    // gp_suite("replacing substrings");
-    // {
-    //     gp_test("replace");
-    //     {
-    //         struct GPString str = gpstr_on_stack([128], "aaabbbcccaaa");
-    //         size_t needlepos = gpstr_replace(&str, gpstr("bbb"), gpstr("X"), 0);
-    //         gp_expect(gpstr_eq(str, gpstr("aaaXcccaaa")));
-    //         gp_expect(needlepos == 3);
+            gp_str_repeat_mem(&str, gp_str_capacity(str), "X", strlen("X"));
+            (void)gp_cstr(str); // again, extra reserved byte makes this safe!
 
-    //         gpstr_replace(&str, gpstr("aaa"), gpstr("XXXXX"), 3);
-    //         gp_expect(gpstr_eq(str, gpstr("aaaXcccXXXXX")));
+            // Must free object on heap!
+            gp_expect((str = gp_clear(str)) != NULL,
+                "As opposed to gp_str_clear() function, gp_clear() macro does "
+                "not return NULL, but a debug string instead.");
+            #if 1
 
-    //     }
-
-    //     gp_test("replace_all");
-    //     {
-    //         struct GPString str = gpstr_on_stack([128], "aaxxbbxxxccxx");
-    //         unsigned replacement_count =
-    //             gpstr_replace_all(&str, gpstr("xx"), gpstr("XXX"));
-    //         gp_expect(gpstr_eq(str, gpstr("aaXXXbbXXXxccXXX")));
-    //         gp_expect(replacement_count == 3);
-    //     }
-    // }
-
-    // gp_suite("trim");
-    // {
-    //     gp_test("left");
-    //     {
-    //         struct GPString str = gpstr_on_stack([128], "  \t\f \nLeft");
-    //         gpstr_trim(&str, GPSTR_WHITESPACE, 'l');
-    //         gp_expect(gpstr_eq(str, gpstr("Left")), (gpcstr(str)));
-    //     }
-
-    //     gp_test("right");
-    //     {
-    //         struct GPString str = gpstr_on_stack([128], "Right   \t\v\n\r");
-    //         gpstr_trim(&str, GPSTR_WHITESPACE, 'r');
-    //         gp_expect(gpstr_eq(str, gpstr("Right")), (gpcstr(str)));
-    //     }
-
-    //     gp_test("left and right");
-    //     {
-    //         struct GPString str = gpstr_on_stack([128], "   __Left and Right__   ");
-    //         gpstr_trim(&str, GPSTR_WHITESPACE "_", 'l' + 'r');
-    //         gp_expect(gpstr_eq(str, gpstr("Left and Right")), (gpcstr(str)));
-    //     }
-    // }
-
-    // gp_suite("print");
-    // {
-    //     #if __STDC_VERSION__ >= 201112L
-    //     gp_test("Numbers");
-    //     {
-    //         struct GPString str = gpstr_on_stack([128], "");
-    //         gpstr_print(&str, 1, " divided by ", 3, " is ", 1./3.);
-    //         char buf[128];
-    //         sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
-    //         gp_expect(gpstr_eq(str, gpstr(buf)), (gpcstr(str)));
-    //     }
-
-    //     gp_test("Strings");
-    //     {
-    //         struct GPString str  = gpstr_on_stack([128], "");
-    //         struct GPString str1 = gpstr_on_stack([128], "strings");
-    //         gpstr_print(&str, "Copying ", str1, (char)'.');
-    //         gp_expect(gpstr_eq(str, gpstr("Copying strings.")), (gpcstr(str)));
-    //     }
-    //     #endif
-    // }
-
-    // ------------------------------------------------------------------------
-    // C string tests
+            #endif
+        }
+    }
 
     gp_suite("C equal");
     {

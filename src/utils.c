@@ -13,7 +13,7 @@ extern inline size_t gp_next_power_of_2(size_t n);
 extern inline bool gp_fapproxf(float x, float y, float max_relative_diff);
 extern inline bool gp_fapprox(double x, double y, double max_relative_diff);
 extern inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff);
-extern inline bool gp_mem_equal(const void* rhs, const void* lhs, size_t count);
+extern inline bool gp_mem_equal(const void* rhs, const void* lhs, size_t, size_t);
 
 bool gp_check_bounds(size_t* start, size_t* end, size_t limit)
 {

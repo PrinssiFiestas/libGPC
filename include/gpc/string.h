@@ -38,15 +38,17 @@ typedef const    GPChar*restrict GPStringIn;
 typedef restrict GPString        GPStringOut;
 
 // init : C string literal or GPString if n not given, any char array otherwise.
-#define gp_str_new(allocator,/*size_t capacity, init, size_t n=0*/...) \
+#define gp_str_new(allocator, size_t_capacity,/*init, size_t n=0*/...) \
 GP_OVERLOAD2(__VA_ARGS__, \
     gp_str_new_init_n, \
-    gp_str_new_init)(__VA_ARGS__)
+    gp_str_new_init)(allocator, size_t_capacity, __VA_ARGS__)
 
-#define gp_str_on_stack(allocator, const_size_t_capacity, cstr_literal_init) \
-    gp_str_on_stack_init(allocator, const_size_t_capacity, cstr_literal_init)
+// Use this to tell readers that no cleanup required
+#define GP_NO_ALLOC NULL
+#define gp_str_on_stack(optional_allocator, const_capacity, cstr_literal_init) \
+    gp_str_on_stack_init(optional_allocator, const_capacity, cstr_literal_init)
 
-GPString gp_str_clear(GPString);
+GPString gp_str_clear(GPString optional_string);
 #ifndef gp_clear
 #define gp_clear(GPString_me) ( \
     gp_str_clear((void*)(GPString_me)), \
@@ -73,6 +75,17 @@ void gp_str_copy_mem(
     GPStringOut*        dest,
     const void*restrict src,
     size_t              src_size) GP_NONNULL_ARGS();
+
+void gp_str_repeat(
+    GPStringOut* dest,
+    size_t       count,
+    GPStringIn   src) GP_NONNULL_ARGS();
+
+void gp_str_repeat_mem(
+    GPStringOut*        dest,
+    size_t              count,
+    const void*restrict src,
+    size_t              src_length) GP_NONNULL_ARGS();
 
 void gp_str_slice(
     GPStringOut* str,
@@ -240,7 +253,7 @@ typedef struct gp_array_header
 {
     size_t length;
     size_t capacity;
-    struct gp_allocator* allocator;
+    const struct gp_allocator* allocator;
     void* allocation;
 } GPArrayHeader;
 #endif
@@ -258,35 +271,55 @@ inline GPArrayHeader* gp_str_set(GPStringOut* me) {
 // ----------------------------------------------------------------------------
 
 GPString gp_str_new_init_n(
-    void* allocator,
+    const void* allocator,
     size_t capacity,
-    void* init,
+    const void* init,
     size_t n) GP_NONNULL_ARGS_AND_RETURN;
 
+// gp_str_new_init()
+#if __STDC_VERSION__ >= 201112L
+static inline GPString gp_str_new_init_str (const void* a, size_t c, GPStringIn s) {
+    return gp_str_new_init_n(a, c, s, gp_str_length(s));
+}
+static inline GPString gp_str_new_init_cstr(const void* a, size_t c, const char* s) {
+    size_t strlen(const char*);
+    return gp_str_new_init_n(a, c, s, strlen(s));
+}
+#define gp_str_new_init(ALLOCATOR, CAPACITY, INIT) _Generic(INIT, \
+    const char*:   gp_str_new_init_cstr, \
+    char*:         gp_str_new_init_cstr, \
+    const GPChar*: gp_str_new_init_str,  \
+    GPString:      gp_str_new_init_str)(ALLOCATOR, CAPACITY, INIT)
+
+#else // less type safety and only accepts GPString or C string literal
 #define gp_str_new_init(ALLOCATOR, CAPACITY, INIT) \
     gp_str_new_init_n( \
         ALLOCATOR, \
         CAPACITY, \
         INIT, \
-        #INIT[0] == '\"' ? sizeof(INIT) - 1 : gp_str_length(INIT))
+        #INIT[0] == '\"' ? sizeof(INIT) - 1 : gp_str_length((void*)INIT))
+#endif
 
 #ifdef TEST_THIS_LATER // __GNUC__
 #define gp_str_on_stack_init(ALLOCATOR, CAPACITY, INIT) \
     ({ \
         GPArrayHeader _gp_header = { \
             .length    = sizeof(INIT) - sizeof"", \
-            .capacity  = sizeof((char[CAPACITY]){ INIT }) + sizeof"", \
+            .capacity  = sizeof((char[CAPACITY]){ INIT }), \
             .allocator = ALLOCATOR }; \
-        GPChar* _gp_str = alloca(sizeof(GPArrayHeader) + _gp_header.capacity); \
+        extern const struct gp_allocator gp_crash_on_alloc; \
+        if (_gp_header.allocator == NULL) \
+            _gp_header.allocator = &gp_crash_on_alloc; \
+        void* _gp_str = alloca(sizeof(GPArrayHeader) + _gp_header.capacity +1);\
         char* strcpy(char*, const char*); \
         strcpy(_gp_str + sizeof _gp_header, INIT); \
-        _gp_str + sizeof _gp_header;
+        (GPChar*)_gp_str + sizeof _gp_header;
     )}
 #else
 
 static inline GPString gp_str_build(
     char* buf,
-    void* allocator,
+    const void* allocator,
     size_t capacity,
     const char* init)
 {
@@ -294,6 +327,9 @@ static inline GPString gp_str_build(
     size_t strlen(const char*);
     GPArrayHeader header =
         {.length = strlen(init), .capacity = capacity, .allocator = allocator };
+    extern const struct gp_allocator gp_crash_on_alloc;
+    if (header.allocator == NULL)
+        header.allocator = &gp_crash_on_alloc;
     memcpy(buf, &header, sizeof header);
     return memcpy(buf + sizeof header, init, header.length + sizeof"");
 }
@@ -301,7 +337,7 @@ static inline GPString gp_str_build(
     gp_str_build( \
         (char[sizeof(GPArrayHeader) + (CAPACITY) + sizeof""]){""}, \
         ALLOCATOR, \
-        sizeof((char[CAPACITY]){ INIT }) + sizeof"", \
+        sizeof((char[CAPACITY]){ INIT }), \
         INIT)
 #endif // __GNUC__ gp_str_on_stack()
 

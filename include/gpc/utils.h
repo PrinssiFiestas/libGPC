@@ -11,20 +11,30 @@
  * @brief General purpose utilities
  */
 
-#ifndef GPC_UTILS_INCLUDED
-#define GPC_UTILS_INCLUDED 1
+#ifndef GP_UTILS_INCLUDED
+#define GP_UTILS_INCLUDED 1
 
 #include "attributes.h"
 #include <math.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <signal.h>
+
+#ifdef _WIN32
+#include <intrin.h>
+#endif
 
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
+
+bool gp_check_bounds(
+    size_t* optional_start_non_inclusive,
+    size_t* optional_end_inclusive,
+    size_t  limit);
 
 /** Round number up to the next power of 2.
  * Used to compute array sizes on reallocations, thus size_t.
@@ -37,14 +47,6 @@ inline size_t gp_next_power_of_2(size_t x)
     while (result <= x)
         result *= 2;
     return result;
-}
-
-/** Compare raw memory.
- * @return true if the first @p count bytes of @p lhs and @p rhs are equal.
- */
-inline bool gp_mem_equal(const void* lhs, const void* rhs, size_t count) {
-    int memcmp(const void*, const void*, size_t);
-    return memcmp(lhs, rhs, count) == 0;
 }
 
 #define gp_min(x, y) gp_generic_min(x, y)
@@ -60,10 +62,20 @@ inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff){
     return fabsl(x - y) <= max_rel_diff * fmaxl(x, y);
 }
 
-bool gp_check_bounds(
-    size_t* optional_start_non_inclusive,
-    size_t* optional_end_inclusive,
-    size_t  limit);
+/** Compare raw memory. */
+inline bool gp_mem_equal(
+    const void* lhs,
+    const void* rhs,
+    size_t lhs_size,
+    size_t rhs_size)
+{
+    if (lhs_size != rhs_size)
+        return false;
+    int memcmp(const void*, const void*, size_t);
+    return memcmp(lhs, rhs, lhs_size) == 0;
+}
+
+#define GP_BREAKPOINT            GP_BREAKPOINT_INTERNAL
 
 // ----------------------------------------------------------------------------
 // Random functions. Only work for 64 bit platforms for now. // TODO
@@ -103,7 +115,8 @@ unsigned           gp_umax(unsigned x, unsigned y);
 unsigned long      gp_lumax(unsigned long x, unsigned long y);
 unsigned long long gp_llumax(unsigned long long x, unsigned long long y);
 
-#if defined(__GNUC__) // gp_min() and gp_max() implementations
+// gp_min() and gp_max() implementations
+#if defined(__GNUC__)
 
 #define gp_generic_min(x, y) \
     ({ typeof(x) _##x = (x); typeof(y) _##y = (y); _##x < _##y ? _##x : _##y; })
@@ -145,4 +158,13 @@ _Generic(x, \
 
 #endif // gp_min() and gp_max() implementations
 
-#endif // GPC_UTILS_INCLUDED
+// Set breakpoint
+#ifdef _WIN32
+#define GP_BREAKPOINT_INTERNAL __debugbreak()
+#elif defined(SIGTRAP)
+#define GP_BREAKPOINT_INTERNAL raise(SIGTRAP)
+#else // no breakpoints for you
+#define GP_BREAKPOINT_INTERNAL
+#endif // breakpoint
+
+#endif // GP_UTILS_INCLUDED

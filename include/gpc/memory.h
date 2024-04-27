@@ -53,7 +53,7 @@ inline void* gp_mem_dealloc(
     return NULL;
 }
 
-GP_NONNULL_ARGS(1) GP_NODISCARD
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
 inline void* gp_mem_realloc(
     const GPAllocator* allocator,
     void*  old_block,
@@ -62,7 +62,8 @@ inline void* gp_mem_realloc(
 {
     void* new_block = gp_mem_alloc(allocator, new_size);
     void* memcpy(void*, const void*, size_t);
-    memcpy(new_block, old_block, old_size);
+    if (old_block != NULL)
+        memcpy(new_block, old_block, old_size);
     gp_mem_dealloc(allocator, old_block);
     return new_block;
 }
@@ -89,6 +90,9 @@ inline void* gp_mem_realloc(
 
 /** malloc() based allocator. */
 extern const GPAllocator gp_heap;
+
+/** Tries to set breakpoint and crashes on allocations. */
+extern const GPAllocator gp_crash_on_alloc;
 
 // ----------------------------------------------------------------------------
 
