@@ -28,8 +28,9 @@ int main(void)
             gp_expect(
                 strcmp(gp_cstr(str), "1234567") == 0 &&
                 str[7].c == '\0' &&
-                gp_str_capacity(str) == 8 - 1,
-                "Extra byte is reserved so gp_cstr() can safely null-terminate.");
+                "\"%s\" extra byte not counted here", gp_str_capacity(str) == 7,
+                "Extra byte is reserved so gp_cstr() can safely null-terminate.",
+                gp_cstr(str), gp_str_capacity(str));
 
             str = gp_str_clear(str); // safe but pointless
 

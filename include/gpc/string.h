@@ -300,7 +300,7 @@ static inline GPString gp_str_new_init_cstr(const void* a, size_t c, const char*
         #INIT[0] == '\"' ? sizeof(INIT) - 1 : gp_str_length((void*)INIT))
 #endif
 
-#ifdef TEST_THIS_LATER // __GNUC__
+#ifdef __GNUC__
 #define gp_str_on_stack_init(ALLOCATOR, CAPACITY, INIT) \
     ({ \
         GPArrayHeader _gp_header = { \
@@ -311,10 +311,11 @@ static inline GPString gp_str_new_init_cstr(const void* a, size_t c, const char*
         if (_gp_header.allocator == NULL) \
             _gp_header.allocator = &gp_crash_on_alloc; \
         void* _gp_str = alloca(sizeof(GPArrayHeader) + _gp_header.capacity +1);\
-        char* strcpy(char*, const char*); \
-        strcpy(_gp_str + sizeof _gp_header, INIT); \
-        (GPChar*)_gp_str + sizeof _gp_header;
-    )}
+        void* memcpy(void*, const void*, size_t); \
+        memcpy(_gp_str, &_gp_header, sizeof _gp_header); \
+        memcpy((char*)_gp_str + sizeof _gp_header, INIT, sizeof(INIT) - 1); \
+        (GPChar*)_gp_str + sizeof _gp_header; \
+    })
 #else
 
 static inline GPString gp_str_build(
