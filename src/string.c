@@ -34,6 +34,23 @@ GPString gp_str_new_init_n(
     return (GPString)(block + header_size);
 }
 
+GPString gp_str_build(
+    char* buf,
+    const void* allocator,
+    size_t capacity,
+    const char* init)
+{
+    void* memcpy(void*, const void*, size_t);
+    size_t strlen(const char*);
+    GPArrayHeader header =
+        {.length = strlen(init), .capacity = capacity, .allocator = allocator };
+    extern const struct gp_allocator gp_crash_on_alloc;
+    if (header.allocator == NULL)
+        header.allocator = &gp_crash_on_alloc;
+    memcpy(buf, &header, sizeof header);
+    return memcpy(buf + sizeof header, init, header.length + sizeof"");
+}
+
 GPString gp_str_clear(GPString me)
 {
     if (me == NULL)

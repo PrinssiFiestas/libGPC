@@ -300,7 +300,11 @@ static inline GPString gp_str_new_init_cstr(const void* a, size_t c, const char*
         #INIT[0] == '\"' ? sizeof(INIT) - 1 : gp_str_length((void*)INIT))
 #endif
 
-#ifdef __GNUC__
+// gp_str_on_stak_init()
+#ifdef __GNUC__ // use alloca() which doesn't zero-initialize memory which is
+                // faster than using a compound literal. A compound literal in
+                // sizeof() gives bounds checking and forces using a literal
+                // anyway so alloca() can't be abused.
 #define gp_str_on_stack_init(ALLOCATOR, CAPACITY, INIT) \
     ({ \
         GPArrayHeader _gp_header = { \
@@ -316,31 +320,19 @@ static inline GPString gp_str_new_init_cstr(const void* a, size_t c, const char*
         memcpy((char*)_gp_str + sizeof _gp_header, INIT, sizeof(INIT) - 1); \
         (GPChar*)_gp_str + sizeof _gp_header; \
     })
-#else
-
-static inline GPString gp_str_build(
+#else // use compound literal to allocate buffer on stack
+GPString gp_str_build(
     char* buf,
     const void* allocator,
     size_t capacity,
-    const char* init)
-{
-    void* memcpy(void*, const void*, size_t);
-    size_t strlen(const char*);
-    GPArrayHeader header =
-        {.length = strlen(init), .capacity = capacity, .allocator = allocator };
-    extern const struct gp_allocator gp_crash_on_alloc;
-    if (header.allocator == NULL)
-        header.allocator = &gp_crash_on_alloc;
-    memcpy(buf, &header, sizeof header);
-    return memcpy(buf + sizeof header, init, header.length + sizeof"");
-}
+    const char* init) GP_NONNULL_ARGS(1, 4) GP_NONNULL_RETURN;
 #define gp_str_on_stack_init(ALLOCATOR, CAPACITY, INIT) \
     gp_str_build( \
         (char[sizeof(GPArrayHeader) + (CAPACITY) + sizeof""]){""}, \
         ALLOCATOR, \
         sizeof((char[CAPACITY]){ INIT }), \
         INIT)
-#endif // __GNUC__ gp_str_on_stack()
+#endif // gp_str_on_stack_init()
 
 #if 0
 
