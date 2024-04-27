@@ -27,7 +27,6 @@ bool gp_check_bounds(size_t* start, size_t* end, size_t limit)
         *start  = *end - (limit != 0);
         clipped = true;
     }
-
     return ! clipped;
 }
 
@@ -37,32 +36,11 @@ bool gp_check_bounds(size_t* start, size_t* end, size_t limit)
 
 //static pcg32_random_t pcg32_global = PCG32_INITIALIZER;
 
-void gp_g_random_seed(uint64_t seed)
+GPRandomState gp_new_random_state(uint64_t seed)
 {
-    pcg32_srandom(seed, 0xf35d3918378e53c4ULL);
-}
-
-uint32_t gp_g_random(void)
-{
-    return pcg32_random();
-}
-
-double gp_g_frandom(void)
-{
-    return ldexp(pcg32_random(), -32);
-}
-
-int32_t gp_g_random_range(int32_t min, int32_t max)
-{
-    if(max - min > 0)
-        return  (int32_t)pcg32_boundedrand((uint32_t) (max - min + 1)) + min;
-    else
-        return -(int32_t)pcg32_boundedrand((uint32_t)(-max + min - 1)) + min;
-}
-
-void gp_random_seed(GPRandomState* state, uint64_t seed)
-{
-    pcg32_srandom_r((pcg32_random_t*)state, seed, 0xf35d3918378e53c4ULL);
+    GPRandomState state;
+    pcg32_srandom_r((pcg32_random_t*)&state, seed, 0xf35d3918378e53c4ULL);
+    return state;
 }
 
 uint32_t gp_random(GPRandomState* state)

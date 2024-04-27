@@ -68,24 +68,9 @@ bool gp_check_bounds(
 // ----------------------------------------------------------------------------
 // Random functions. Only work for 64 bit platforms for now. // TODO
 
-// Random functions with global state
+typedef struct gp_random_state GPRandomState;
 
-// ALWAYS seed!
-void     gp_g_random_seed(uint64_t seed);
-uint32_t gp_g_random(void);
-double   gp_g_frandom(void);
-int32_t  gp_g_random_range(int32_t min, int32_t max);
-
-// Random functions with local state
-
-typedef struct gp_random_state
-{
-    uint64_t state;
-    uint64_t inc;
-} GPRandomState;
-
-// ALWAYS seed!
-void     gp_random_seed (GPRandomState*, uint64_t seed);
+GPRandomState gp_new_random_state(uint64_t seed);
 uint32_t gp_random      (GPRandomState*);
 double   gp_frandom     (GPRandomState*);
 int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max);
@@ -97,6 +82,12 @@ int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max);
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+
+struct gp_random_state
+{
+    uint64_t private_state;
+    uint64_t private_inc;
+};
 
 int                gp_imin(int x, int y);
 long               gp_lmin(long x, long y);
