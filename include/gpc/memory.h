@@ -35,7 +35,7 @@ inline void* gp_mem_alloc(
 }
 
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
-inline void* gp_alloc_zeroes(
+inline void* gp_mem_alloc_zeroes(
     const GPAllocator* allocator,
     size_t size)
 {

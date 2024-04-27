@@ -33,7 +33,9 @@ typedef struct gp_char
     uint8_t c;
 } GPChar;
 
-typedef GPChar* GPString;
+typedef          GPChar*         GPString;
+typedef const    GPChar*restrict GPStringIn;
+typedef restrict GPString        GPStringOut;
 
 // init : C string literal or GPString if n not given, any char array otherwise.
 #define gp_str_new(allocator,/*size_t capacity, init, size_t n=0*/...) \
@@ -42,6 +44,7 @@ GP_OVERLOAD2(__VA_ARGS__, \
     gp_str_new_init)(__VA_ARGS__)
 
 #define gp_str_on_stack(allocator, const_size_t_capacity, cstr_literal_init) \
+    gp_str_on_stack_init(allocator, const_size_t_capacity, cstr_literal_init)
 
 GPString gp_str_clear(GPString);
 #ifndef gp_clear
@@ -66,28 +69,23 @@ void gp_str_copy(
     GPString* dest,
     GPString src) GP_NONNULL_ARGS();
 
-#if 0
-size_t gp_cstr_copy_n(
-    char*restrict dest,
+void gp_str_copy_n(
+    GPString* dest,
     const void*restrict src,
     size_t n) GP_NONNULL_ARGS();
 
-size_t gp_cstr_slice(
-    char* str,
+size_t gp_str_slice(
+    GPString* str,
     size_t start,
     size_t end) GP_NONNULL_ARGS();
 
-size_t gp_big_cstr_slice(
-    char** str,
-    size_t start,
-    size_t end) GP_NONNULL_ARGS();
-
-size_t gp_cstr_substr(
-    char*restrict dest,
+size_t gp_str_substr(
+    GPString* dest,
     const void*restrict src,
     size_t start,
     size_t end) GP_NONNULL_ARGS();
 
+#if 0
 size_t gp_cstr_append(
     char*restrict dest,
     const char*restrict src) GP_NONNULL_ARGS();

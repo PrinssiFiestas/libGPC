@@ -14,6 +14,8 @@
 #include <printf/printf.h>
 #include "pfstring.h"
 
+extern inline GPArrayHeader* gp_str_set(GPString* me);
+
 GPString gp_str_clear(GPString me)
 {
     if (me == NULL)

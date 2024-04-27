@@ -5,8 +5,10 @@
 #include <gpc/memory.h>
 #include <stdlib.h>
 
-extern inline void* gp_mem_alloc(const GPAllocator*, size_t);
-extern inline void  gp_mem_dealloc(const GPAllocator*, void*);
+extern inline void* gp_mem_alloc       (const GPAllocator*,size_t);
+extern inline void* gp_mem_alloc_zeroes(const GPAllocator*,size_t);
+extern inline void* gp_mem_dealloc     (const GPAllocator*,void*);
+extern inline void* gp_mem_realloc     (const GPAllocator*,void*,size_t,size_t);
 
 static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size)
 {

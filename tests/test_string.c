@@ -551,13 +551,22 @@ int main(void)
         const char* haystack_end = haystack + strlen(haystack);
         size_t pos = GP_NOT_FOUND;
 
+        gp_test("last index");
         pos = (size_t)(memchr_r(haystack_end, 'a', strlen(haystack)) - haystack);
         gp_expect(pos == 3, (pos));
 
+        gp_test("index 0");
         pos = (size_t)(memchr_r(haystack_end, 'd', strlen(haystack)) - haystack);
         gp_expect(pos == 0, (pos));
 
+        gp_test("not found");
         const char* _pos = memchr_r(haystack_end, 'x', strlen(haystack));
         gp_expect(_pos == NULL);
     }
+
+    char fjdskla[1] = "";
+    gp_cstr_print_n(
+        fjdskla,
+        0,
+        gp_str_on_stack(NULL, 0, ""));
 }
