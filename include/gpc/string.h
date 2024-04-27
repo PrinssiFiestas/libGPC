@@ -56,64 +56,63 @@ GPString gp_str_clear(GPString);
 
 const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
-size_t gp_str_length(GPString) GP_NONNULL_ARGS();
-size_t gp_str_capacity(GPString) GP_NONNULL_ARGS();
-void*  gp_str_allocation(GPString) GP_NONNULL_ARGS();
-const struct gp_allocator* gp_str_allocator(GPString) GP_NONNULL_ARGS();
+size_t                     gp_str_length    (GPStringIn) GP_NONNULL_ARGS();
+size_t                     gp_str_capacity  (GPStringIn) GP_NONNULL_ARGS();
+void*                      gp_str_allocation(GPStringIn) GP_NONNULL_ARGS();
+const struct gp_allocator* gp_str_allocator (GPStringIn) GP_NONNULL_ARGS();
 
 void gp_str_reserve(
-    GPString* str,
-    size_t capacity) GP_NONNULL_ARGS();
+    GPStringOut* str,
+    size_t       capacity) GP_NONNULL_ARGS();
 
 void gp_str_copy(
-    GPString* dest,
-    GPString src) GP_NONNULL_ARGS();
+    GPStringOut* dest,
+    GPStringIn   src) GP_NONNULL_ARGS();
 
-void gp_str_copy_n(
-    GPString* dest,
+void gp_str_copy_mem(
+    GPStringOut*        dest,
     const void*restrict src,
-    size_t n) GP_NONNULL_ARGS();
+    size_t              src_size) GP_NONNULL_ARGS();
 
-size_t gp_str_slice(
-    GPString* str,
-    size_t start,
-    size_t end) GP_NONNULL_ARGS();
+void gp_str_slice(
+    GPStringOut* str,
+    size_t       start,
+    size_t       end) GP_NONNULL_ARGS();
 
-size_t gp_str_substr(
-    GPString* dest,
+void gp_str_substr(
+    GPStringOut*        dest,
     const void*restrict src,
-    size_t start,
-    size_t end) GP_NONNULL_ARGS();
+    size_t              src_start,
+    size_t              src_end) GP_NONNULL_ARGS();
 
-#if 0
-size_t gp_cstr_append(
-    char*restrict dest,
-    const char*restrict src) GP_NONNULL_ARGS();
+void gp_str_append(
+    GPStringOut* dest,
+    GPStringIn   src) GP_NONNULL_ARGS();
 
-size_t gp_cstr_append_n(
-    char*restrict dest,
+void gp_str_append_mem(
+    GPStringOut*        dest,
     const void*restrict src,
-    size_t n) GP_NONNULL_ARGS();
+    size_t              src_size) GP_NONNULL_ARGS();
 
-size_t gp_cstr_insert(
-    char*restrict dest,
-    size_t pos,
-    const char*restrict src) GP_NONNULL_ARGS();
+void gp_str_insert(
+    GPStringOut* dest,
+    size_t       pos,
+    GPStringIn   src) GP_NONNULL_ARGS();
 
-size_t gp_cstr_insert_n(
-    char*restrict dest,
-    size_t pos,
+void gp_str_insert_mem(
+    GPStringOut*        dest,
+    size_t              pos,
     const void*restrict src,
-    size_t n) GP_NONNULL_ARGS();
+    size_t              src_size) GP_NONNULL_ARGS();
 
-size_t gp_cstr_replace(
-    char*restrict haystack,
-    const char*restrict needle,
-    const char*restrict replacement,
+void gp_str_replace(
+    GPStringOut* haystack,
+    GPStringIn needle,
+    GPStringIn replacement,
     size_t* optional_in_start_out_pos) GP_NONNULL_ARGS(1, 2, 3);
 
-size_t gp_cstr_replace_n(
-    char*restrict haystack,
+void gp_str_replace_n(
+    GPStringOut* haystack,
     size_t haystack_length,
     const void*restrict needle,
     size_t needle_length,
@@ -121,14 +120,14 @@ size_t gp_cstr_replace_n(
     size_t replacement_length,
     size_t* optional_in_start_out_pos) GP_NONNULL_ARGS(1, 3, 5);
 
-size_t gp_cstr_replace_all(
-    char*restrict haystack,
-    const char*restrict needle,
-    const char*restrict replacement,
+void gp_str_replace_all(
+    GPStringOut* haystack,
+    GPStringIn needle,
+    GPStringIn replacement,
     size_t* optional_replacement_count) GP_NONNULL_ARGS(1, 2, 3);
 
-size_t gp_cstr_replace_all_n(
-    char*restrict haystack,
+void gp_str_replace_all_n(
+    GPStringOut* haystack,
     size_t haystack_length,
     const void*restrict needle,
     size_t needle_length,
@@ -136,17 +135,17 @@ size_t gp_cstr_replace_all_n(
     size_t replacement_length,
     size_t* optional_replacement_count) GP_NONNULL_ARGS(1, 3, 5);
 
-#define/* size_t */gp_cstr_print(char_ptr_out, ...) \
-    GP_CSTR_PRINT(false, char_ptr_out, (size_t)-1, __VA_ARGS__)
+#define/* size_t */gp_str_print(str_out, ...) \
+    GP_CSTR_PRINT(false, str_out, (size_t)-1, __VA_ARGS__)
 
-#define/* size_t */gp_cstr_print_n(char_ptr_out, n, ...) \
-    GP_CSTR_PRINT(false, char_ptr_out, n, __VA_ARGS__)
+#define/* size_t */gp_str_n_print(str_out, n, ...) \
+    GP_CSTR_PRINT(false, str_out, n, __VA_ARGS__)
 
-#define/* size_t */gp_cstr_println(char_ptr_out, ...) \
-    GP_CSTR_PRINT(true, char_ptr_out, (size_t)-1, __VA_ARGS__)
+#define/* size_t */gp_str_println(str_out, ...) \
+    GP_CSTR_PRINT(true, str_out, (size_t)-1, __VA_ARGS__)
 
-#define/* size_t */gp_cstr_println_n(char_ptr_out, n, ...) \
-    GP_CSTR_PRINT(true, char_ptr_out, n, __VA_ARGS__)
+#define/* size_t */gp_str_n_println(str_out, n, ...) \
+    GP_CSTR_PRINT(true, str_out, n, __VA_ARGS__)
 
 #define GP_WHITESPACE  " \t\n\v\f\r" \
     "\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006" \
@@ -154,90 +153,84 @@ size_t gp_cstr_replace_all_n(
 #define GP_ASCII_WHITESPACE " \t\n\v\f\r"
 
 // Flags: 'l' left, 'r' right, 'a' ASCII char set only. Separate flags with |.
-size_t gp_cstr_trim(
-    char*restrict str,
-    const char*restrict optional_char_set, // whitespace if NULL
-    int flags) GP_NONNULL_ARGS(1);
-
-size_t gp_cstr_trim_n(
-    char*restrict str,
-    size_t str_length,
-    const char*restrict optional_char_set,
-    int flags) GP_NONNULL_ARGS(1);
-
-size_t gp_big_cstr_trim(
-    char*restrict* str,
-    const char*restrict optional_char_set,
-    int mode) GP_NONNULL_ARGS(1);
-
-size_t gp_big_cstr_trim_n(
-    char*restrict str,
-    size_t str_length,
-    const char*restrict optional_char_set,
-    int mode) GP_NONNULL_ARGS(1);
+// Trims whitespace if char_set is NULL.
+void gp_str_trim(
+    GPStringOut* str,
+    const char*  optional_char_set,
+    int          flags) GP_NONNULL_ARGS(1);
 
 // Only converts Unicode characters with 1:1 mapping. Result is locale
 // dependent. Result length might differ from input string length.
-size_t gp_cstr_to_upper(
-    char* str) GP_NONNULL_ARGS();
-
-size_t gp_cstr_to_upper_n(
-    char* str,
-    size_t n) GP_NONNULL_ARGS();
+void gp_str_to_upper(
+    GPStringOut* str) GP_NONNULL_ARGS();
 
 // Only converts Unicode characters with 1:1 mapping. Result is locale
 // dependent. Result length might differ from input string length.
-size_t gp_cstr_to_lower(
-    char* str) GP_NONNULL_ARGS();
+void gp_str_to_lower(
+    GPStringOut* str) GP_NONNULL_ARGS();
 
-size_t gp_cstr_to_lower_n(
-    char* str,
-    size_t n) GP_NONNULL_ARGS();
+void gp_str_to_valid(
+    GPStringOut* str,
+    const char*  replacement) GP_NONNULL_ARGS();
 
-size_t gp_cstr_to_valid(
-    char*restrict str,
-    const char*restrict replacement) GP_NONNULL_ARGS();
-
-size_t gp_cstr_to_valid_n(
-    char*restrict str,
-    size_t n,
-    const char*restrict replacement) GP_NONNULL_ARGS();
-
+// ----------------------------------------------------------------------------
 // String examination
 
 #define GP_NOT_FOUND ((size_t)-1)
 
-size_t gp_cstr_find(
-    const char* haystack,
-    const char* needle,
-    size_t start) GP_NONNULL_ARGS();
+size_t gp_str_find(
+    GPStringIn haystack,
+    GPStringIn needle,
+    size_t     start) GP_NONNULL_ARGS();
 
-size_t gp_cstr_find_last(
-    const char* haystack,
-    const char* needle) GP_NONNULL_ARGS();
+size_t gp_str_find_mem(
+    GPStringIn  haystack,
+    const void* needle,
+    size_t      needle_size) GP_NONNULL_ARGS();
 
-size_t gp_cstr_count(
-    const char* haystack,
-    const char* needle) GP_NONNULL_ARGS();
+size_t gp_str_find_last(
+    GPStringIn haystack,
+    GPStringIn needle) GP_NONNULL_ARGS();
 
-bool gp_cstr_equal(
-    const char* s1,
-    const char* s2) GP_NONNULL_ARGS();
+size_t gp_str_find_last_mem(
+    GPStringIn haystack,
+    GPStringIn needle) GP_NONNULL_ARGS();
 
-bool gp_cstr_equal_case(
-    const char* s1,
-    const char* s2) GP_NONNULL_ARGS();
+size_t gp_str_count(
+    GPStringIn haystack,
+    GPStringIn needle) GP_NONNULL_ARGS();
 
-size_t gp_cstr_codepoint_count(
-    const char* str) GP_NONNULL_ARGS();
+size_t gp_str_count_mem(
+    GPStringIn haystack,
+    GPStringIn needle,
+    size_t     needle_size) GP_NONNULL_ARGS();
 
-bool gp_cstr_is_valid(
-    const char* str) GP_NONNULL_ARGS();
+bool gp_str_equal(
+    GPStringIn s1,
+    GPStringIn s2) GP_NONNULL_ARGS();
 
-size_t gp_cstr_codepoint_length(
-    const char* str) GP_NONNULL_ARGS();
+bool gp_str_equal_mem(
+    GPStringIn  s1,
+    const void* s2,
+    size_t      s2_size) GP_NONNULL_ARGS();
 
-#endif // 0
+bool gp_str_equal_case(
+    GPStringIn s1,
+    GPStringIn s2) GP_NONNULL_ARGS();
+
+bool gp_str_equal_case_mem(
+    GPStringIn  s1,
+    const void* s2,
+    size_t      s2_size) GP_NONNULL_ARGS();
+
+size_t gp_str_codepoint_count(
+    GPStringIn str) GP_NONNULL_ARGS();
+
+bool gp_str_is_valid(
+    GPStringIn str) GP_NONNULL_ARGS();
+
+size_t gp_str_codepoint_length(
+    GPStringIn str) GP_NONNULL_ARGS();
 
 // ----------------------------------------------------------------------------
 // Low level access
@@ -252,7 +245,7 @@ typedef struct gp_array_header
 } GPArrayHeader;
 #endif
 
-inline GPArrayHeader* gp_str_set(GPString* me) {
+inline GPArrayHeader* gp_str_set(GPStringOut* me) {
     return (GPArrayHeader*)*me - 1;
 }
 

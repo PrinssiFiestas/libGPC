@@ -14,7 +14,7 @@
 #include <printf/printf.h>
 #include "pfstring.h"
 
-extern inline GPArrayHeader* gp_str_set(GPString* me);
+extern inline GPArrayHeader* gp_str_set(GPStringOut* me);
 
 GPString gp_str_clear(GPString me)
 {
@@ -30,28 +30,28 @@ const char* gp_cstr(GPString str)
     return (const char*)str;
 }
 
-size_t gp_str_length(const GPString str)
+size_t gp_str_length(GPStringIn str)
 {
     return ((GPArrayHeader*)str - 1)->length;
 }
 
-size_t gp_str_capacity(const GPString str)
+size_t gp_str_capacity(GPStringIn str)
 {
     return ((GPArrayHeader*)str - 1)->capacity;
 }
 
-void* gp_str_allocation(const GPString str)
+void* gp_str_allocation(GPStringIn str)
 {
     return ((GPArrayHeader*)str - 1)->allocation;
 }
 
-const struct gp_allocator* gp_str_allocator(const GPString str)
+const struct gp_allocator* gp_str_allocator(GPStringIn str)
 {
     return (const struct gp_allocator*)(((GPArrayHeader*)str - 1)->allocator);
 }
 
 void gp_str_reserve(
-    GPString* str,
+    GPStringOut* str,
     size_t capacity)
 {
     if (gp_str_capacity(*str) <= capacity)
@@ -59,8 +59,8 @@ void gp_str_reserve(
 }
 
 void gp_str_copy(
-    GPString* dest,
-    GPString src)
+    GPStringOut* dest,
+    GPStringIn src)
 {
     memcpy(*dest, src, gp_str_length(src));
     gp_str_set(dest)->length = gp_str_length(src);
