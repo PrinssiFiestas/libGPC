@@ -2,6 +2,10 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#ifdef __GNUC__
+#define _GNU_SOURCE // memmem()
+#endif
+
 #include <gpc/string.h>
 #include <gpc/memory.h>
 #include <gpc/utils.h>
@@ -55,33 +59,150 @@ GPString gp_str_clear(GPString me)
 {
     if (me == NULL)
         return NULL;
-    gp_dealloc(gp_str_allocator(me), gp_str_allocation(me));
+    gp_dealloc(gp_allocator(me), gp_allocation(me));
     return NULL;
 }
 
-size_t gp_str_length(GPStringIn str)
+size_t gp_length(const void* arr)
 {
-    return ((GPArrayHeader*)str - 1)->length;
+    return ((GPArrayHeader*)arr - 1)->length;
 }
 
-size_t gp_str_capacity(GPStringIn str)
+size_t gp_capacity(const void* arr)
 {
-    return ((GPArrayHeader*)str - 1)->capacity;
+    return ((GPArrayHeader*)arr - 1)->capacity;
 }
 
-void* gp_str_allocation(GPStringIn str)
+void* gp_allocation(const void* arr)
 {
-    return ((GPArrayHeader*)str - 1)->allocation;
+    return ((GPArrayHeader*)arr - 1)->allocation;
 }
 
-const struct gp_allocator* gp_str_allocator(GPStringIn str)
+const struct gp_allocator* gp_allocator(const void* str)
 {
     return (const struct gp_allocator*)(((GPArrayHeader*)str - 1)->allocator);
 }
 
+static void* gp_memmem(
+    const void* haystack, const size_t hlen, const void* needle, const size_t nlen)
+{
+    #if defined(__GNUC__) && defined(__linux__)
+    return memmem(haystack, hlen, needle, nlen);
+    #endif
+    if (hlen == 0 || nlen == 0)
+        return NULL;
+
+    const char n0 = *(char*)needle;
+    for (void* p = memchr(haystack, n0, hlen); p != NULL;)
+    {
+        if (p + nlen > haystack + hlen)
+            return NULL;
+        if (memcmp(p, needle, nlen) == 0)
+            return p;
+
+        p++;
+        p = memchr(p, n0, hlen - (p - haystack));
+    }
+    return NULL;
+}
+
+size_t gp_str_find(
+    GPStringIn  haystack,
+    const void* needle,
+    size_t      needle_size,
+    size_t      start)
+{
+    const GPChar* result = gp_memmem(
+        haystack + start, gp_length(haystack) - start, needle, needle_size);
+    return result ? (size_t)(result - haystack) : GP_NOT_FOUND;
+}
+
+// Find first occurrence of ch looking from right to left
+static const char* gp_memchr_r(const char* ptr_r, const char ch, size_t count)
+{
+    const char* position = NULL;
+    while (--ptr_r, --count != (size_t)-1) // <=> count >= 0
+    {
+        if (*ptr_r == ch) {
+            position = ptr_r;
+            break;
+        }
+    }
+    return position;
+}
+
+size_t gp_str_find_last(
+    GPStringIn str_haystack,
+    const void* needle,
+    size_t needle_length)
+{
+    const char* haystack = (const char*)str_haystack;
+    size_t haystack_length = gp_length(str_haystack);
+
+    if (needle_length > haystack_length || needle_length==0 || haystack_length==0)
+        return GP_NOT_FOUND;
+
+    size_t position = GP_NOT_FOUND;
+    const size_t needle_last = needle_length - 1;
+    const char* data = haystack + haystack_length - needle_last;
+    size_t to_be_searched = haystack_length - needle_last;
+
+    while ((data = gp_memchr_r(data, *(char*)needle, to_be_searched)))
+    {
+        if (memcmp(data, needle, needle_length) == 0)
+        {
+            position = (size_t)(data - haystack);
+            break;
+        }
+        data--;
+        const char* haystack_end = haystack + haystack_length;
+        to_be_searched = haystack_length - (size_t)(haystack_end - data);
+    }
+    return position;
+}
+
+size_t gp_str_count(
+    GPStringIn haystack,
+    const void* needle,
+    size_t     needle_size)
+{
+    size_t count = 0;
+    size_t i = 0;
+    while ((i = gp_str_find(haystack, needle, needle_size, i)) != GP_NOT_FOUND){
+        count++;
+        i++;
+    }
+    return count;
+}
+
+bool gp_str_equal(
+    GPStringIn  s1,
+    const void* s2,
+    size_t      s2_size)
+{
+    if (gp_length(s1) != s2_size)
+        return false;
+    else
+        return memcmp(s1, s2, s2_size) == 0;
+}
+
+bool gp_str_equal_case(
+    GPStringIn  s1,
+    const void* s2,
+    size_t      s2_size) GP_NONNULL_ARGS();
+
+size_t gp_str_codepoint_count(
+    GPStringIn str) GP_NONNULL_ARGS();
+
+bool gp_str_is_valid(
+    GPStringIn str) GP_NONNULL_ARGS();
+
+size_t gp_str_codepoint_length(
+    GPStringIn str) GP_NONNULL_ARGS();
+
 const char* gp_cstr(GPString str)
 {
-    str[gp_str_length(str)].c = '\0';
+    str[gp_length(str)].c = '\0';
     return (const char*)str;
 }
 
@@ -93,17 +214,17 @@ void gp_str_reserve(
     //      offset = (*str - sizeof(GPArrayHeader)) - gp_str_allocation(*str).
     // If offset > capacity then just memmove() to get more capacity. Also
     // double check the maths in this comment.
-    if (gp_str_capacity(*str) < capacity)
+    if (gp_capacity(*str) < capacity)
     {
         capacity = gp_next_power_of_2(capacity);
         void* block = gp_mem_alloc(
-            gp_str_allocator(*str),
+            gp_allocator(*str),
             sizeof(GPArrayHeader) + capacity);
 
         memcpy(block, (GPArrayHeader*)*str - 1, sizeof(GPArrayHeader));
-        memcpy((GPArrayHeader*)block + 1, *str, gp_str_length(*str));
+        memcpy((GPArrayHeader*)block + 1, *str, gp_length(*str));
 
-        gp_mem_dealloc(gp_str_allocator(*str), gp_str_allocation(*str));
+        gp_mem_dealloc(gp_allocator(*str), gp_allocation(*str));
 
         *str = (GPChar*)block + sizeof(GPArrayHeader);
         gp_str_set(str)->allocation = block;
@@ -112,15 +233,6 @@ void gp_str_reserve(
 }
 
 void gp_str_copy(
-    GPStringOut* dest,
-    GPStringIn src)
-{
-    gp_str_reserve(dest, gp_str_length(src));
-    memcpy(*dest, src, gp_str_length(src));
-    gp_str_set(dest)->length = gp_str_length(src);
-}
-
-void gp_str_copy_mem(
     GPStringOut* dest,
     const void*restrict src,
     size_t n)
@@ -131,14 +243,6 @@ void gp_str_copy_mem(
 }
 
 void gp_str_repeat(
-    GPStringOut* dest,
-    const size_t n,
-    GPStringIn mem)
-{
-    gp_str_repeat_mem(dest, n, mem, gp_str_length(mem));
-}
-
-void gp_str_repeat_mem(
     GPStringOut* dest,
     const size_t n,
     const void*restrict mem,
@@ -153,27 +257,20 @@ void gp_str_repeat_mem(
     gp_str_set(dest)->length = n * mem_length;
 }
 
-#if 0
-size_t gp_cstr_slice(
-    char* str,
+void gp_str_slice(
+    GPStringOut* str,
     size_t start,
     size_t end)
 {
-    memmove(str, str + start, end - start);
-    str[end - start] = '\0';
-    return end - start;
-}
-
-size_t gp_big_cstr_slice(
-    char** str,
-    size_t start,
-    size_t end)
-{
+    memmove(
+        (GPArrayHeader*)*str - 1 + start,
+        (GPArrayHeader*)*str - 1,
+        sizeof(GPArrayHeader));
     *str += start;
-    (*str)[end - start] = '\0';
-    return end - start;
+    gp_str_set(str)->length = end - start;
 }
 
+#if 0
 size_t gp_cstr_substr(
     char*restrict dest,
     const void*restrict src,
@@ -728,20 +825,6 @@ size_t gp_cstr_find(const char* haystack, const char* needle, size_t start)
     return result ? (size_t)(result - haystack) : GP_NOT_FOUND;
 }
 
-// Find first occurrence of ch looking from right to left
-static const char* memchr_r(const char* ptr_r, const char ch, size_t count)
-{
-    const char* position = NULL;
-    while (--ptr_r, --count != (size_t)-1) // <=> count >= 0
-    {
-        if (*ptr_r == ch) {
-            position = ptr_r;
-            break;
-        }
-    }
-    return position;
-}
-
 size_t gp_cstr_find_last(const char* haystack, const char* needle)
 {
     size_t haystack_length = strlen(haystack);
@@ -1184,7 +1267,7 @@ size_t gp_cstr_print_internal(
             GPString s;
             case GP_STRING:
                 s = va_arg(args.list, GPString);
-                concat(out, (char*)s, gp_str_length(s));
+                concat(out, (char*)s, gp_length(s));
                 break;
 
             case GP_PTR:

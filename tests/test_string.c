@@ -22,22 +22,22 @@ int main(void)
             #else
             GPString str = gp_str_on_stack(GP_NO_ALLOC, 7, "ok");
             #endif
-            gp_expect( ! gp_str_allocation(str),
+            gp_expect( ! gp_allocation(str),
                 "No allocator given so no allocation either.");
-            gp_str_copy_mem(&str, "1234567", 7);
+            gp_str_copy(&str, "1234567", 7);
             gp_expect(
                 strcmp(gp_cstr(str), "1234567") == 0 &&
                 str[7].c == '\0' &&
-                "\"%s\" extra byte not counted here", gp_str_capacity(str) == 7,
+                "\"%s\" extra byte not counted here", gp_capacity(str) == 7,
                 "Extra byte is reserved so gp_cstr() can safely null-terminate.",
-                gp_cstr(str), gp_str_capacity(str));
+                gp_cstr(str), gp_capacity(str));
 
             str = gp_str_clear(str); // safe but pointless
 
             str = gp_str_on_stack(&gp_heap, 1, "");
             const char* cstr = "Allocator provided, extending is safe!";
-            gp_str_copy_mem(&str, cstr, strlen(cstr));
-            gp_expect(gp_str_allocation(str),
+            gp_str_copy(&str, cstr, strlen(cstr));
+            gp_expect(gp_allocation(str),
                 "Now in heap, must free with gp_str_clear() or gp_clear()!");
 
             gp_expect((str = gp_str_clear(str)) == NULL,
@@ -49,20 +49,68 @@ int main(void)
         {
             char* non_const_init = "too long but no worries.";
             GPString str = gp_str_new(&gp_heap, 1, non_const_init, strlen(non_const_init));
-            gp_expect(gp_str_allocation(str));
-            gp_expect(gp_str_capacity(str) == gp_next_power_of_2(strlen(non_const_init)),
-                gp_str_capacity(str));
+            gp_expect(gp_allocation(str));
+            gp_expect(gp_capacity(str) == gp_next_power_of_2(strlen(non_const_init)),
+                gp_capacity(str));
 
-            gp_str_repeat_mem(&str, gp_str_capacity(str), "X", strlen("X"));
+            gp_str_repeat(&str, gp_capacity(str), "X", strlen("X"));
             (void)gp_cstr(str); // again, extra reserved byte makes this safe!
 
             // Must free object on heap!
             gp_expect((str = gp_clear(str)) != NULL,
                 "As opposed to gp_str_clear() function, gp_clear() macro does "
                 "not return NULL, but a debug string instead.");
-            #if 1
+        }
+    }
 
-            #endif
+    gp_suite("Finding");
+    {
+        const GPString haystack = gp_str_on_stack(NULL, 16, "bbbaabaaabaa");
+        const char* needle = "aa";
+        const char* needle2 = "not in haystack string";
+        size_t pos = 0;
+
+        gp_test("C find");
+        {
+            pos = gp_str_find(haystack, needle, strlen(needle), 0);
+            gp_expect(pos == 3);
+            pos = gp_str_find(haystack, needle, strlen(needle), 4);
+            gp_expect(pos == 6);
+            pos = gp_str_find(haystack, needle2, strlen(needle2), 0);
+            gp_expect(pos == GP_NOT_FOUND);
+        }
+        gp_test("C find_last");
+        {
+            pos = gp_str_find_last(haystack, needle, strlen(needle));
+            gp_expect(pos == 10, (pos));
+            pos = gp_str_find_last(haystack, needle2, strlen(needle2));
+            gp_expect(pos == GP_NOT_FOUND);
+        }
+        gp_test("C count");
+        {
+            size_t count = gp_str_count(haystack, needle, strlen(needle));
+            gp_expect(count == 4);
+        }
+    }
+
+    gp_suite("Substrings");
+    {
+        gp_test("Slice");
+        {
+            GPString str = gp_str_on_stack(NULL, 20, "Some_string_to slice");
+            const GPChar* str_original_ptr = str;
+            gp_str_slice(&str, 5, 11);
+            gp_expect(gp_str_equal(str, "string", strlen("string")));
+            gp_expect(str != str_original_ptr, "Pointer should've gotten mutated.");
+        }
+
+        gp_test("C substr");
+        {
+            const char* src = "Some_string_to slice";
+            char dest[128];
+            strcpy(dest, "");
+            gp_cstr_substr(dest, src, 5, 11); // not including 11!
+            gp_expect(gp_cstr_equal(dest, "string"), dest);
         }
     }
 
@@ -82,36 +130,6 @@ int main(void)
             gp_expect(   gp_cstr_equal_case("AaÄäÖö", "aaÄÄöÖ"));
             gp_expect( ! gp_cstr_equal_case("AaÄäÖö", "aaxÄöÖ"));
             gp_expect( ! gp_cstr_equal_case("AaÄäÖö", "aaÄÄöÖuuuu"));
-        }
-    }
-
-    gp_suite("C Substrings");
-    {
-        gp_test("C slice");
-        {
-            char str[64]; // non-initialized buffers test null termination
-            strcpy(str, "Some_string_to slice");
-            gp_cstr_slice(str, 5, 11); // not including 11!
-            gp_expect(gp_cstr_equal(str, "string"));
-        }
-        gp_test("C slice big string");
-        {
-            // Not really big here, but doesn't matter for testing.
-            char  str_buf[64];
-            strcpy(str_buf, "Some_string_to slice");
-            char* str = str_buf;
-            gp_big_cstr_slice(&str, 5, 11);
-            gp_expect(gp_cstr_equal(str, "string"));
-            gp_expect(str != str_buf, "Pointer should've gotten mutated.");
-        }
-
-        gp_test("C substr");
-        {
-            const char* src = "Some_string_to slice";
-            char dest[128];
-            strcpy(dest, "");
-            gp_cstr_substr(dest, src, 5, 11); // not including 11!
-            gp_expect(gp_cstr_equal(dest, "string"), dest);
         }
     }
 
@@ -142,35 +160,6 @@ int main(void)
         {
             gp_cstr_insert(str, 5, "insertion ");
             gp_expect(gp_cstr_equal(str, "head insertion test tail"));
-        }
-    }
-
-    gp_suite("C finding");
-    {
-        const char* haystack = "bbbaabaaabaa";
-        const char* needle = "aa";
-        size_t pos = 0;
-
-        gp_test("C find");
-        {
-            pos = gp_cstr_find(haystack, needle, 0);
-            gp_expect(pos == 3);
-            pos = gp_cstr_find(haystack, needle, 4);
-            gp_expect(pos == 6);
-            pos = gp_cstr_find(haystack, "not in haystack string", 0);
-            gp_expect(pos == GP_NOT_FOUND);
-        }
-        gp_test("C find_last");
-        {
-            pos = gp_cstr_find_last(haystack, needle);
-            gp_expect(pos == 10, (pos));
-            pos = gp_cstr_find_last(haystack, "not in haystack string");
-            gp_expect(pos == GP_NOT_FOUND);
-        }
-        gp_test("C count");
-        {
-            size_t count = gp_cstr_count(haystack, needle);
-            gp_expect(count == 4);
         }
     }
 

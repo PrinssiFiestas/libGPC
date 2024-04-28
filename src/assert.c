@@ -355,7 +355,7 @@ void gp_fail_internal(
                 str = va_arg(args.list, GPString);
                 if (str != NULL)
                     fprintf(stderr, GP_BRIGHT_RED "\"%.*s\"",
-                        (int)gp_str_length(str), (char*)str);
+                        (int)gp_length(str), (char*)str);
                 else
                     fprintf(stderr, GP_BRIGHT_RED "(null)");
                 break;

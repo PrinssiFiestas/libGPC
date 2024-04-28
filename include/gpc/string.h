@@ -58,30 +58,21 @@ GPString gp_str_clear(GPString optional_string);
 
 const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
-size_t                     gp_str_length    (GPStringIn) GP_NONNULL_ARGS();
-size_t                     gp_str_capacity  (GPStringIn) GP_NONNULL_ARGS();
-void*                      gp_str_allocation(GPStringIn) GP_NONNULL_ARGS();
-const struct gp_allocator* gp_str_allocator (GPStringIn) GP_NONNULL_ARGS();
+size_t                     gp_length    (const void*) GP_NONNULL_ARGS();
+size_t                     gp_capacity  (const void*) GP_NONNULL_ARGS();
+void*                      gp_allocation(const void*) GP_NONNULL_ARGS();
+const struct gp_allocator* gp_allocator (const void*) GP_NONNULL_ARGS();
 
 void gp_str_reserve(
     GPStringOut* str,
     size_t       capacity) GP_NONNULL_ARGS();
 
 void gp_str_copy(
-    GPStringOut* dest,
-    GPStringIn   src) GP_NONNULL_ARGS();
-
-void gp_str_copy_mem(
     GPStringOut*        dest,
     const void*restrict src,
     size_t              src_size) GP_NONNULL_ARGS();
 
 void gp_str_repeat(
-    GPStringOut* dest,
-    size_t       count,
-    GPStringIn   src) GP_NONNULL_ARGS();
-
-void gp_str_repeat_mem(
     GPStringOut*        dest,
     size_t              count,
     const void*restrict src,
@@ -99,20 +90,11 @@ void gp_str_substr(
     size_t              src_end) GP_NONNULL_ARGS();
 
 void gp_str_append(
-    GPStringOut* dest,
-    GPStringIn   src) GP_NONNULL_ARGS();
-
-void gp_str_append_mem(
     GPStringOut*        dest,
     const void*restrict src,
     size_t              src_size) GP_NONNULL_ARGS();
 
 void gp_str_insert(
-    GPStringOut* dest,
-    size_t       pos,
-    GPStringIn   src) GP_NONNULL_ARGS();
-
-void gp_str_insert_mem(
     GPStringOut*        dest,
     size_t              pos,
     const void*restrict src,
@@ -149,16 +131,16 @@ void gp_str_replace_all_n(
     size_t* optional_replacement_count) GP_NONNULL_ARGS(1, 3, 5);
 
 #define/* size_t */gp_str_print(str_out, ...) \
-    GP_CSTR_PRINT(false, str_out, (size_t)-1, __VA_ARGS__)
+    GP_STR_PRINT(false, str_out, (size_t)-1, __VA_ARGS__)
 
 #define/* size_t */gp_str_n_print(str_out, n, ...) \
-    GP_CSTR_PRINT(false, str_out, n, __VA_ARGS__)
+    GP_STR_PRINT(false, str_out, n, __VA_ARGS__)
 
 #define/* size_t */gp_str_println(str_out, ...) \
-    GP_CSTR_PRINT(true, str_out, (size_t)-1, __VA_ARGS__)
+    GP_STR_PRINT(true, str_out, (size_t)-1, __VA_ARGS__)
 
 #define/* size_t */gp_str_n_println(str_out, n, ...) \
-    GP_CSTR_PRINT(true, str_out, n, __VA_ARGS__)
+    GP_STR_PRINT(true, str_out, n, __VA_ARGS__)
 
 #define GP_WHITESPACE  " \t\n\v\f\r" \
     "\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006" \
@@ -192,46 +174,27 @@ void gp_str_to_valid(
 #define GP_NOT_FOUND ((size_t)-1)
 
 size_t gp_str_find(
-    GPStringIn haystack,
-    GPStringIn needle,
-    size_t     start) GP_NONNULL_ARGS();
+    GPStringIn  haystack,
+    const void* needle,
+    size_t      needle_size,
+    size_t      start) GP_NONNULL_ARGS();
 
-size_t gp_str_find_mem(
+size_t gp_str_find_last(
     GPStringIn  haystack,
     const void* needle,
     size_t      needle_size) GP_NONNULL_ARGS();
 
-size_t gp_str_find_last(
-    GPStringIn haystack,
-    GPStringIn needle) GP_NONNULL_ARGS();
-
-size_t gp_str_find_last_mem(
-    GPStringIn haystack,
-    GPStringIn needle) GP_NONNULL_ARGS();
-
 size_t gp_str_count(
-    GPStringIn haystack,
-    GPStringIn needle) GP_NONNULL_ARGS();
-
-size_t gp_str_count_mem(
-    GPStringIn haystack,
-    GPStringIn needle,
-    size_t     needle_size) GP_NONNULL_ARGS();
+    GPStringIn  haystack,
+    const void* needle,
+    size_t      needle_size) GP_NONNULL_ARGS();
 
 bool gp_str_equal(
-    GPStringIn s1,
-    GPStringIn s2) GP_NONNULL_ARGS();
-
-bool gp_str_equal_mem(
     GPStringIn  s1,
     const void* s2,
     size_t      s2_size) GP_NONNULL_ARGS();
 
 bool gp_str_equal_case(
-    GPStringIn s1,
-    GPStringIn s2) GP_NONNULL_ARGS();
-
-bool gp_str_equal_case_mem(
     GPStringIn  s1,
     const void* s2,
     size_t      s2_size) GP_NONNULL_ARGS();
@@ -279,7 +242,7 @@ GPString gp_str_new_init_n(
 // gp_str_new_init()
 #if __STDC_VERSION__ >= 201112L
 static inline GPString gp_str_new_init_str (const void* a, size_t c, GPStringIn s) {
-    return gp_str_new_init_n(a, c, s, gp_str_length(s));
+    return gp_str_new_init_n(a, c, s, gp_length(s));
 }
 static inline GPString gp_str_new_init_cstr(const void* a, size_t c, const char* s) {
     size_t strlen(const char*);
