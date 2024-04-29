@@ -211,6 +211,8 @@ size_t gp_str_codepoint_length(
 
 // ----------------------------------------------------------------------------
 // Low level access
+// Accessing internals is useful for writing optimized custom functionality.
+// Any other use is highly discouraged.
 
 #ifndef GP_ARRAY_INCLUDED
 typedef struct gp_array_header
@@ -218,14 +220,14 @@ typedef struct gp_array_header
     size_t length;
     size_t capacity;
     const struct gp_allocator* allocator;
-    void* allocation;
+    void* allocation; // pointer to self or NULL if on stack
 } GPArrayHeader;
-#endif
 
 GPArrayHeader* gp_arr_header(const void* arr);
-inline GPArrayHeader* gp_str_set(GPStringOut* me) {
+inline GPArrayHeader* gp_arr_set(GPStringOut* me) {
     return gp_arr_header(*me);
 }
+#endif
 
 // ----------------------------------------------------------------------------
 //

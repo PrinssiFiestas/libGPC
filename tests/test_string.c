@@ -161,13 +161,43 @@ int main(void)
                 str, cstr);
         }
 
-        gp_test("C substr");
+        gp_test("Substr");
         {
             const char* src = "Some_string_to slice";
-            char dest[128];
-            strcpy(dest, "");
-            gp_cstr_substr(dest, src, 5, 11); // not including 11!
-            gp_expect(gp_cstr_equal(dest, "string"), dest);
+            GPString dest = gp_str_on_stack(NULL, 64, "");
+            gp_str_substr(&dest, src, 5, 11); // not including 11!
+            gp_expect(gp_str_equal(dest, "string", strlen("string")), dest);
+        }
+    }
+
+    gp_suite("Insert and append");
+    {
+        gp_test("Appending");
+        {
+            GPString str = gp_str_on_stack(NULL, 36, "test");
+            gp_str_append(&str, " tail", strlen(" tail"));
+            gp_expect(gp_str_equal(str, "test tail", strlen("test tail")));
+            gp_str_append(&str, ".BLAHBLAHBLAH", 1);
+            gp_expect(gp_str_equal(str, "test tail.", strlen("test tail.")));
+        }
+        GPString str = gp_str_on_stack(NULL, 128, "test");
+        const char* cstr = "test tail";
+        gp_test("Appending with insert");
+        {
+            gp_str_insert(&str, gp_length(str), " tail", strlen(" tail"));
+            gp_expect(gp_str_equal(str, cstr, strlen(cstr)));
+        }
+        gp_test("Prepending");
+        {
+            cstr = "head test tail";
+            gp_str_insert(&str, 0, "head XXXXXX", 5);
+            gp_expect(gp_str_equal(str, cstr, strlen(cstr)));
+        }
+        gp_test("Insertion");
+        {
+            cstr = "head insertion test tail";
+            gp_str_insert(&str, 5, "insertion ", strlen("insertion "));
+            gp_expect(gp_str_equal(str, cstr, strlen(cstr)));
         }
     }
 
@@ -199,36 +229,6 @@ int main(void)
     //
     //
     //
-
-    gp_suite("C insert and append");
-    {
-        gp_test("C Appending");
-        {
-            char str[128];
-            strcpy(str, "test");
-            gp_cstr_append(str, " tail");
-            gp_expect(gp_cstr_equal(str, "test tail"));
-            gp_cstr_append_n(str, ".BLAHBLAHBLAH", 1);
-            gp_expect(gp_cstr_equal(str, "test tail."));
-        }
-        char str[128];
-        strcpy(str, "test");
-        gp_test("C Appending with insert");
-        {
-            gp_cstr_insert(str, strlen(str), " tail");
-            gp_expect(gp_cstr_equal(str, "test tail"));
-        }
-        gp_test("C Prepending");
-        {
-            gp_cstr_insert_n(str, 0, "head XXXXXX", 5);
-            gp_expect(gp_cstr_equal(str, "head test tail"));
-        }
-        gp_test("C Insertion");
-        {
-            gp_cstr_insert(str, 5, "insertion ");
-            gp_expect(gp_cstr_equal(str, "head insertion test tail"));
-        }
-    }
 
     gp_suite("C replacing substrings");
     {

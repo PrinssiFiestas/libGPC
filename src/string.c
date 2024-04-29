@@ -18,7 +18,7 @@
 #include <printf/printf.h>
 #include "pfstring.h"
 
-extern inline GPArrayHeader* gp_str_set(GPStringOut* me);
+extern inline GPArrayHeader* gp_arr_set(GPStringOut* me);
 
 GPString gp_str_new_init_n(
     const void* allocator,
@@ -380,7 +380,7 @@ void gp_str_reserve(
         size_t offset = *str - block_start;
         if (gp_capacity(*str) + offset >= capacity) {
             *str = memmove(block_start, *str, gp_length(*str));
-            gp_str_set(str)->capacity = capacity;
+            gp_arr_set(str)->capacity = capacity;
             return;
         }
 
@@ -395,8 +395,8 @@ void gp_str_reserve(
         gp_mem_dealloc(gp_allocator(*str), gp_allocation(*str));
 
         *str = (GPChar*)block + sizeof(GPArrayHeader);
-        gp_str_set(str)->allocation = block;
-        gp_str_set(str)->capacity   = capacity;
+        gp_arr_set(str)->allocation = block;
+        gp_arr_set(str)->capacity   = capacity;
     }
 }
 
@@ -407,7 +407,7 @@ void gp_str_copy(
 {
     gp_str_reserve(dest, n);
     memcpy(*dest, src, n);
-    gp_str_set(dest)->length = n;
+    gp_arr_set(dest)->length = n;
 }
 
 void gp_str_repeat(
@@ -422,7 +422,7 @@ void gp_str_repeat(
     } else for (size_t i = 0; i < n; i++) {
         memcpy(*dest + i * mem_length, mem, mem_length);
     }
-    gp_str_set(dest)->length = n * mem_length;
+    gp_arr_set(dest)->length = n * mem_length;
 }
 
 void gp_str_slice(
@@ -444,66 +444,40 @@ void gp_str_slice(
     header->capacity -= start;
 }
 
-#if 0
-size_t gp_cstr_substr(
-    char*restrict dest,
+void gp_str_substr(
+    GPStringOut* dest,
     const void*restrict src,
     size_t start,
     size_t end)
 {
-    memcpy(dest, src + start, end - start);
-    dest[end - start] = '\0';
-    return end - start;
+    gp_str_reserve(dest, end - start);
+    memcpy(*dest, src + start, end - start);
+    gp_arr_set(dest)->length = end - start;
 }
 
-size_t gp_cstr_append(
-    char*restrict dest,
-    const char*restrict src)
+void gp_str_append(
+    GPStringOut* dest,
+    const void* src,
+    size_t src_length)
 {
-    size_t dest_length = strlen(dest);
-    size_t src_length  = strlen(src);
-    memcpy(dest + dest_length, src, src_length + sizeof(""));
-    dest[dest_length + src_length] = '\0';
-    return dest_length + src_length;
+    gp_str_reserve(dest, gp_length(*dest) + src_length);
+    memcpy(*dest + gp_length(*dest), src, src_length + sizeof(""));
+    gp_arr_set(dest)->length += src_length;
 }
 
-size_t gp_cstr_append_n(
-    char*restrict dest,
-    const void*restrict src,
-    size_t n)
-{
-    size_t dest_length = strlen(dest);
-    memcpy(dest + dest_length, src, n);
-    dest[dest_length + n] = '\0';
-    return dest_length + n;
-}
-
-size_t gp_cstr_insert(
-    char*restrict dest,
-    size_t pos,
-    const char*restrict src)
-{
-    size_t dest_length = strlen(dest);
-    size_t src_length  = strlen(src);
-    memmove(dest + pos + src_length, dest + pos, dest_length - pos);
-    memcpy(dest + pos, src, src_length);
-    dest[dest_length + src_length] = '\0';
-    return dest_length + src_length;
-}
-
-size_t gp_cstr_insert_n(
-    char*restrict dest,
+void gp_str_insert(
+    GPStringOut* dest,
     size_t pos,
     const void*restrict src,
     size_t n)
 {
-    size_t dest_length = strlen(dest);
-    memmove(dest + pos + n, dest + pos, dest_length - pos);
-    memcpy(dest + pos, src, n);
-    dest[dest_length + n] = '\0';
-    return dest_length + n;
+    gp_str_reserve(dest, gp_length(*dest) + n);
+    memmove(*dest + pos + n, *dest + pos, gp_length(*dest) - pos);
+    memcpy(*dest + pos, src, n);
+    gp_arr_set(dest)->length += n;
 }
 
+#if 0
 static size_t cstr_replace_range(
     const size_t me_length,
     char*restrict me,
