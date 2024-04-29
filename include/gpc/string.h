@@ -221,8 +221,9 @@ typedef struct gp_array_header
 } GPArrayHeader;
 #endif
 
+GPArrayHeader* gp_arr_header(const void* arr);
 inline GPArrayHeader* gp_str_set(GPStringOut* me) {
-    return (GPArrayHeader*)*me - 1;
+    return gp_arr_header(*me);
 }
 
 // ----------------------------------------------------------------------------
@@ -238,6 +239,12 @@ GPString gp_str_new_init_n(
     size_t capacity,
     const void* init,
     size_t n) GP_NONNULL_ARGS_AND_RETURN;
+
+GPString gp_str_build(
+    void* buf,
+    const void* allocator,
+    size_t capacity,
+    const char* init) GP_NONNULL_ARGS(1, 4) GP_NONNULL_RETURN;
 
 // gp_str_new_init()
 #if __STDC_VERSION__ >= 201112L
@@ -270,28 +277,18 @@ static inline GPString gp_str_new_init_cstr(const void* a, size_t c, const char*
                 // anyway so alloca() can't be abused.
 #define gp_str_on_stack_init(ALLOCATOR, CAPACITY, INIT) \
     ({ \
-        GPArrayHeader _gp_header = { \
-            .length    = sizeof(INIT) - sizeof"", \
-            .capacity  = sizeof((char[CAPACITY]){ INIT }), \
-            .allocator = ALLOCATOR }; \
-        extern const struct gp_allocator gp_crash_on_alloc; \
-        if (_gp_header.allocator == NULL) \
-            _gp_header.allocator = &gp_crash_on_alloc; \
-        void* _gp_str = alloca(sizeof(GPArrayHeader) + _gp_header.capacity +1);\
-        void* memcpy(void*, const void*, size_t); \
-        memcpy(_gp_str, &_gp_header, sizeof _gp_header); \
-        memcpy((char*)_gp_str + sizeof _gp_header, INIT, sizeof(INIT) - 1); \
-        (GPChar*)_gp_str + sizeof _gp_header; \
+        void* _gp_str_buf = alloca( \
+            sizeof(GPArrayHeader) + (CAPACITY) + 1);\
+        gp_str_build( \
+            _gp_str_buf, \
+            ALLOCATOR, \
+            sizeof((char[CAPACITY]){ INIT }), \
+            INIT); \
     })
 #else // use compound literal to allocate buffer on stack
-GPString gp_str_build(
-    char* buf,
-    const void* allocator,
-    size_t capacity,
-    const char* init) GP_NONNULL_ARGS(1, 4) GP_NONNULL_RETURN;
 #define gp_str_on_stack_init(ALLOCATOR, CAPACITY, INIT) \
     gp_str_build( \
-        (char[sizeof(GPArrayHeader) + (CAPACITY) + sizeof""]){""}, \
+        (GPArrayHeader[2 + (CAPACITY)/sizeof(GPArrayHeader)]){0}, \
         ALLOCATOR, \
         sizeof((char[CAPACITY]){ INIT }), \
         INIT)

@@ -70,7 +70,7 @@ int main(void)
         const char* needle2 = "not in haystack string";
         size_t pos = 0;
 
-        gp_test("C find");
+        gp_test("Find");
         {
             pos = gp_str_find(haystack, needle, strlen(needle), 0);
             gp_expect(pos == 3);
@@ -79,17 +79,39 @@ int main(void)
             pos = gp_str_find(haystack, needle2, strlen(needle2), 0);
             gp_expect(pos == GP_NOT_FOUND);
         }
-        gp_test("C find_last");
+        gp_test("Find last");
         {
             pos = gp_str_find_last(haystack, needle, strlen(needle));
             gp_expect(pos == 10, (pos));
             pos = gp_str_find_last(haystack, needle2, strlen(needle2));
             gp_expect(pos == GP_NOT_FOUND);
         }
-        gp_test("C count");
+        gp_test("Count");
         {
             size_t count = gp_str_count(haystack, needle, strlen(needle));
             gp_expect(count == 4);
+        }
+    }
+
+    gp_suite("Str equal");
+    {
+        gp_test("Case sensitive");
+        {
+            const GPString blah  = gp_str_on_stack(NULL, 8,  "blah");
+            const GPString blaah = gp_str_on_stack(NULL, 16, "blääh");
+            gp_expect(gp_str_equal(blah, blah, gp_length(blah)));
+            gp_expect(gp_str_equal(blaah, blaah, gp_length(blaah)));
+            gp_expect( ! gp_str_equal(blah, "BLOH", strlen("BLOH")));
+            gp_expect( ! gp_str_equal(blah, "blahhhh", 7));
+        }
+
+        gp_test("Case insensitive");
+        {
+            gp_assert(setlocale(LC_ALL, "C.utf8"));
+            const GPString AaAaOo = gp_str_on_stack(NULL, 24, "AaÄäÖö");
+            gp_expect(   gp_str_equal_case(AaAaOo, "aaÄÄöÖ", 6));
+            gp_expect( ! gp_str_equal_case(AaAaOo, "aaxÄöÖ", 6));
+            gp_expect( ! gp_str_equal_case(AaAaOo, "aaÄÄöÖuuuu", 10));
         }
     }
 
@@ -114,24 +136,32 @@ int main(void)
         }
     }
 
-    gp_suite("C equal");
+    gp_suite("UTF-8 indices");
     {
-        gp_test("C case sensitive");
+        gp_test("Valid index");
         {
-            gp_expect(gp_cstr_equal("blah", "blah"));
-            gp_expect(gp_cstr_equal("blääh", "blääh"));
-            gp_expect( ! gp_cstr_equal("blah", "BLOH"));
-            gp_expect( ! gp_cstr_equal("blah", "blahhhhhhhh"));
+            // TODO don't use internals!
+            gp_expect(   gp_mem_codepoint_length(&"\u1153"[0]));
+            gp_expect( ! gp_mem_codepoint_length(&"\u1153"[1]));
         }
 
-        gp_test("C case insensitive");
+        gp_test("Codepoint size");
         {
-            gp_assert(setlocale(LC_ALL, "C.utf8"));
-            gp_expect(   gp_cstr_equal_case("AaÄäÖö", "aaÄÄöÖ"));
-            gp_expect( ! gp_cstr_equal_case("AaÄäÖö", "aaxÄöÖ"));
-            gp_expect( ! gp_cstr_equal_case("AaÄäÖö", "aaÄÄöÖuuuu"));
+            gp_expect(gp_mem_codepoint_length("\u1153") == strlen("\u1153"));
+        }
+
+        gp_test("Codepoint count");
+        {
+            GPString str = gp_str_on_stack(NULL, 16, "aÄb🍌x");
+            gp_expect(gp_mem_codepoint_count(str, gp_length(str)) == 5);
         }
     }
+
+
+    // --------------------------------------
+    //
+    //
+    //
 
     gp_suite("C insert and append");
     {

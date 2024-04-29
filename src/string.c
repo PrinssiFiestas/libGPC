@@ -34,25 +34,23 @@ GPString gp_str_new_init_n(
         .capacity   = capacity,
         .allocator  = allocator,
         .allocation = block },
-    memcpy((char*)block + header_size, init, n);
-    return (GPString)(block + header_size);
+    memcpy((uint8_t*)block + header_size, init, n);
+    return (GPString)block + header_size;
 }
 
 GPString gp_str_build(
-    char* buf,
+    void* buf,
     const void* allocator,
     size_t capacity,
     const char* init)
 {
-    void* memcpy(void*, const void*, size_t);
-    size_t strlen(const char*);
     GPArrayHeader header =
         {.length = strlen(init), .capacity = capacity, .allocator = allocator };
     extern const struct gp_allocator gp_crash_on_alloc;
     if (header.allocator == NULL)
         header.allocator = &gp_crash_on_alloc;
     memcpy(buf, &header, sizeof header);
-    return memcpy(buf + sizeof header, init, header.length + sizeof"");
+    return memcpy(buf + sizeof header, init, header.length + 1);
 }
 
 GPString gp_str_clear(GPString me)
@@ -63,24 +61,35 @@ GPString gp_str_clear(GPString me)
     return NULL;
 }
 
+GPArrayHeader* gp_arr_header(const void* arr)
+{
+    size_t ptr_size = sizeof(GPArrayHeader*);
+    size_t aligment_offset = (uintptr_t)arr % ptr_size;
+    GPArrayHeader* header;
+    memcpy(&header, (uint8_t*)arr - aligment_offset - ptr_size, ptr_size);
+    if (header == NULL)
+        header = (GPArrayHeader*)((uint8_t*)arr - aligment_offset) - 1;
+    return header;
+}
+
 size_t gp_length(const void* arr)
 {
-    return ((GPArrayHeader*)arr - 1)->length;
+    return gp_arr_header(arr)->length;
 }
 
 size_t gp_capacity(const void* arr)
 {
-    return ((GPArrayHeader*)arr - 1)->capacity;
+    return gp_arr_header(arr)->capacity;
 }
 
 void* gp_allocation(const void* arr)
 {
-    return ((GPArrayHeader*)arr - 1)->allocation;
+    return gp_arr_header(arr)->allocation;
 }
 
-const struct gp_allocator* gp_allocator(const void* str)
+const struct gp_allocator* gp_allocator(const void* arr)
 {
-    return (const struct gp_allocator*)(((GPArrayHeader*)str - 1)->allocator);
+    return gp_arr_header(arr)->allocator;
 }
 
 static void* gp_memmem(
@@ -186,10 +195,122 @@ bool gp_str_equal(
         return memcmp(s1, s2, s2_size) == 0;
 }
 
+static size_t gp_mem_codepoint_length(
+    const void* str)
+{
+    static const size_t sizes[] = {
+        1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+        0,0,0,0,0,0,0,0, 2,2,2,2,3,3,4,0 };
+    return sizes[(uint8_t)*(char*)str >> 3];
+}
+
+static size_t gp_mem_codepoint_count(
+    const void* _str,
+    size_t n)
+{
+    size_t count = 0;
+    const char* str = _str;
+    static const size_t valid_leading_nibble[] = {
+        1,1,1,1, 1,1,1,1, 0,0,0,0, 1,1,1,1
+    };
+    const size_t align_offset = (uintptr_t)str     % 8;
+    const size_t remaining    = (n - align_offset) % 8;
+    size_t i = 0;
+
+    for (size_t len = gp_min(align_offset, n); i < len; i++)
+        count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
+    if (n <= 8)
+        return count;
+
+    while (i < n - remaining)
+    {
+        // Read 8 bytes to be processed in parallel
+        uint64_t x;
+        memcpy(&x, str + i, sizeof x);
+
+        // Extract bytes that start with 0b10
+        const uint64_t a =   x & 0x8080808080808080llu;
+        const uint64_t b = (~x & 0x4040404040404040llu) << 1;
+
+        // Each byte in c is either 0 or 0b10000000
+        uint64_t c = a & b;
+
+        uint32_t bit_count;
+        #ifdef __clang__ // only Clang got this right
+        bit_count = __builtin_popcountll(c);
+        #else
+        //https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+        uint32_t v0 = c & 0xffffffffllu;
+        uint32_t v1 = c >> 32;
+
+        v0 = v0 - (v0 >> 1);
+        v0 = (v0 & 0x33333333) + ((v0 >> 2) & 0x33333333);
+        bit_count = (((v0 + (v0 >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+
+        v1 = v1 - (v1 >> 1);
+        v1 = (v1 & 0x33333333) + ((v1 >> 2) & 0x33333333);
+        bit_count += (((v1 + (v1 >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+        #endif
+
+        count += 8 - bit_count;
+        i += 8;
+    }
+    for (; i < n; i++)
+        count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
+
+    return count;
+}
+
 bool gp_str_equal_case(
     GPStringIn  s1,
     const void* s2,
-    size_t      s2_size) GP_NONNULL_ARGS();
+    size_t      s2_size)
+{
+    size_t s1_length = gp_mem_codepoint_count(s1, gp_length(s1));
+    size_t s2_length = gp_mem_codepoint_count(s2, s2_size);
+    if (s1_length != s2_length)
+        return false;
+
+    mbstate_t state1 = {0};
+    mbstate_t state2 = {0};
+    wchar_t wc1;
+    wchar_t wc2;
+    for (size_t i = 0; i < s1_length; i++)
+    {
+        size_t wc1_length = mbrtowc(&wc1, (char*)s1, sizeof(wchar_t), &state1);
+        size_t wc2_length = mbrtowc(&wc2, (char*)s2, sizeof(wchar_t), &state2);
+        if (sizeof(wchar_t) < sizeof(uint32_t)/* Windows probably */&&
+            (wc1_length == (size_t)-2) != (wc2_length == (size_t)-2))
+        { // one fits to wchar_t and other doesn't so most likely different
+            return false;
+        }
+        else if (sizeof(wchar_t) < sizeof(uint32_t) &&
+                 wc1_length == (size_t)-2) // char wider than sizeof(wchar_t)
+        {                                  // so just compare raw bytes
+            size_t s1_codepoint_size = gp_mem_codepoint_length(s1);
+            size_t s2_codepoint_size = gp_mem_codepoint_length(s2);
+            if (s1_codepoint_size != s2_codepoint_size ||
+                memcmp(s1, s2, s1_codepoint_size) != 0)
+            {
+                return false;
+            }
+            s1 += s1_codepoint_size;
+            s2 += s2_codepoint_size;
+        }
+        else
+        {
+            wc1 = towlower(wc1);
+            wc2 = towlower(wc2);
+            if (wc1 != wc2)
+                return false;
+
+            s1 += wc1_length;
+            s2 += wc2_length;
+        }
+    }
+    return true;
+}
+
 
 size_t gp_str_codepoint_count(
     GPStringIn str) GP_NONNULL_ARGS();
@@ -262,12 +383,18 @@ void gp_str_slice(
     size_t start,
     size_t end)
 {
-    memmove(
-        (GPArrayHeader*)*str - 1 + start,
-        (GPArrayHeader*)*str - 1,
-        sizeof(GPArrayHeader));
+    GPArrayHeader* header = gp_arr_header(*str);
+    size_t aligment_offset = (uintptr_t)*str % sizeof(void*);
+    if (start + aligment_offset > sizeof(void*))
+    {
+        GPChar* new_start = *str + start;
+        memcpy(
+            new_start - sizeof(void*) - (uintptr_t)new_start % sizeof(void*),
+            &header, sizeof(void*));
+    }
     *str += start;
-    gp_str_set(str)->length = end - start;
+    header->length    = end - start;
+    header->capacity -= start;
 }
 
 #if 0
@@ -786,15 +913,6 @@ bool gp_cstr_is_valid(
     const size_t length = strlen(str);
     for (size_t i = 0; i < length;)
     {
-        if (i + sizeof(uint64_t) < length) // ascii optimization
-        {
-            uint64_t bytes;
-            memcpy(&bytes, str + i, sizeof bytes);
-            if ((~bytes & 0x8080808080808080llu) == 0x8080808080808080llu) {
-                i += 8;
-                continue;
-            }
-        }
         size_t cp_length = gp_cstr_codepoint_length(str + i);
         if (cp_length == 0 || i + cp_length > length)
             return false;
