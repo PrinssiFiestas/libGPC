@@ -65,10 +65,10 @@ GPArrayHeader* gp_arr_header(const void* arr)
 {
     size_t ptr_size = sizeof(GPArrayHeader*);
     size_t aligment_offset = (uintptr_t)arr % ptr_size;
-    GPArrayHeader* header;
+    void* header;
     memcpy(&header, (uint8_t*)arr - aligment_offset - ptr_size, ptr_size);
     if (header == NULL)
-        header = (GPArrayHeader*)((uint8_t*)arr - aligment_offset) - 1;
+        header = (uint8_t*)arr - aligment_offset - sizeof(GPArrayHeader);
     return header;
 }
 
@@ -219,8 +219,6 @@ static size_t gp_mem_codepoint_count(
 
     for (size_t len = gp_min(align_offset, n); i < len; i++)
         count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
-    if (n <= 8)
-        return count;
 
     while (i < n - remaining)
     {

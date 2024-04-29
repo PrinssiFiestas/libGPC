@@ -187,16 +187,18 @@ void gp_fail_internal(
     else
         (void)va_arg(args.list, uint32_t);
 
+    const char* indent = gp_current_test != NULL ? "\t" : "";
     fprintf(stderr,
-        "Condition " GP_RED "%s" GP_RESET_TERMINAL
-        " in %s " GP_WHITE_BG GP_BLACK "line %i" GP_RESET_TERMINAL " %s "
-        GP_FAILED_STR "\n",
-        condition, file, line, func);
+        "%s%s " GP_WHITE_BG GP_BLACK "line %i" GP_RESET_TERMINAL
+        " in " GP_CYAN "%s" GP_RESET_TERMINAL "\n"
+        "%sCondition " GP_RED "%s " GP_FAILED_STR "\n",
+        indent, file, line, func, indent, condition);
 
     char* buf = NULL;
     size_t buf_capacity = 0;
     for (size_t i = 1; i < arg_count; i++)
     {
+        fputs(indent, stderr);
         if (objs[i].identifier[0] == '\"')
         {
             const char* fmt = va_arg(args.list, char*);
@@ -366,6 +368,7 @@ void gp_fail_internal(
         }
         fprintf(stderr, GP_RESET_TERMINAL "\n");
     } // end for args
+    fputs("\n", stderr);
 
     free(buf);
     va_end(_args);

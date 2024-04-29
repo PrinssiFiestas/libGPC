@@ -109,9 +109,9 @@ int main(void)
         {
             gp_assert(setlocale(LC_ALL, "C.utf8"));
             const GPString AaAaOo = gp_str_on_stack(NULL, 24, "AaÄäÖö");
-            gp_expect(   gp_str_equal_case(AaAaOo, "aaÄÄöÖ", 6));
-            gp_expect( ! gp_str_equal_case(AaAaOo, "aaxÄöÖ", 6));
-            gp_expect( ! gp_str_equal_case(AaAaOo, "aaÄÄöÖuuuu", 10));
+            gp_expect(   gp_str_equal_case(AaAaOo, "aaÄÄöÖ", strlen("aaÄÄöÖ")));
+            gp_expect( ! gp_str_equal_case(AaAaOo, "aaxÄöÖ", strlen("aaxÄöÖ")));
+            gp_expect( ! gp_str_equal_case(AaAaOo, "aaÄÄöÖuu", strlen("aaÄÄöÖuu")));
         }
     }
 
