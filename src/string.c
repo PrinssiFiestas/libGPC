@@ -220,7 +220,7 @@ static size_t gp_mem_codepoint_count(
     for (size_t len = gp_min(align_offset, n); i < len; i++)
         count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
 
-    while (i < n - remaining)
+    for (; i < n - remaining; i += 8)
     {
         // Read 8 bytes to be processed in parallel
         uint64_t x;
@@ -234,7 +234,7 @@ static size_t gp_mem_codepoint_count(
         uint64_t c = a & b;
 
         uint32_t bit_count;
-        #ifdef __clang__ // only Clang got this right
+        #ifdef __clang__ // only Clang seems to benefit from popcount()
         bit_count = __builtin_popcountll(c);
         #else
         //https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
@@ -251,7 +251,6 @@ static size_t gp_mem_codepoint_count(
         #endif
 
         count += 8 - bit_count;
-        i += 8;
     }
     for (; i < n; i++)
         count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
@@ -309,15 +308,61 @@ bool gp_str_equal_case(
     return true;
 }
 
-
 size_t gp_str_codepoint_count(
-    GPStringIn str) GP_NONNULL_ARGS();
+    GPStringIn str)
+{
+    return gp_mem_codepoint_count(str, gp_length(str));
+}
+
+// https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
+static bool gp_valid_codepoint(
+    const uint32_t c)
+{
+  if (c <= 0x7Fu)
+      return true;
+
+  if (0xC280u <= c && c <= 0xDFBFu)
+     return ((c & 0xE0C0u) == 0xC080u);
+
+  if (0xEDA080u <= c && c <= 0xEDBFBFu)
+     return 0; // Reject UTF-16 surrogates
+
+  if (0xE0A080u <= c && c <= 0xEFBFBFu)
+     return ((c & 0xF0C0C0u) == 0xE08080u);
+
+  if (0xF0908080u <= c && c <= 0xF48FBFBFu)
+     return ((c & 0xF8C0C0C0u) == 0xF0808080u);
+
+  return false;
+}
 
 bool gp_str_is_valid(
-    GPStringIn str) GP_NONNULL_ARGS();
+    GPStringIn _str)
+{
+    const char* str = (const char*)_str;
+    const size_t length = gp_length(str);
+    for (size_t i = 0; i < length;)
+    {
+        size_t cp_length = gp_cstr_codepoint_length(str + i);
+        if (cp_length == 0 || i + cp_length > length)
+            return false;
+
+        uint32_t codepoint = 0;
+        for (size_t j = 0; j < cp_length; j++)
+            codepoint = codepoint << 8 | (uint8_t)str[i + j];
+        if ( ! gp_valid_codepoint(codepoint))
+            return false;
+
+        i += cp_length;
+    }
+    return true;
+}
 
 size_t gp_str_codepoint_length(
-    GPStringIn str) GP_NONNULL_ARGS();
+    GPStringIn str)
+{
+    return gp_mem_codepoint_length(str);
+}
 
 const char* gp_cstr(GPString str)
 {
@@ -329,12 +374,16 @@ void gp_str_reserve(
     GPStringOut* str,
     size_t capacity)
 {
-    // TODO optimize allocation using
-    //      offset = (*str - sizeof(GPArrayHeader)) - gp_str_allocation(*str).
-    // If offset > capacity then just memmove() to get more capacity. Also
-    // double check the maths in this comment.
     if (gp_capacity(*str) < capacity)
     {
+        GPChar* block_start = (GPChar*)(gp_arr_header(*str) + 1);
+        size_t offset = *str - block_start;
+        if (gp_capacity(*str) + offset >= capacity) {
+            *str = memmove(block_start, *str, gp_length(*str));
+            gp_str_set(str)->capacity = capacity;
+            return;
+        }
+
         capacity = gp_next_power_of_2(capacity);
         void* block = gp_mem_alloc(
             gp_allocator(*str),

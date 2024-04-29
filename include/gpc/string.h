@@ -194,6 +194,7 @@ bool gp_str_equal(
     const void* s2,
     size_t      s2_size) GP_NONNULL_ARGS();
 
+// Locale dependent!
 bool gp_str_equal_case(
     GPStringIn  s1,
     const void* s2,

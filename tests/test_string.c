@@ -45,6 +45,18 @@ int main(void)
                 "assign it back to str for easier memory bug debugging.");
         }
 
+        gp_test("Reserve");
+        {
+            size_t old_capacity;
+            GPString str = gp_str_on_stack(&gp_heap, 1, "");
+            old_capacity = gp_capacity(str);
+
+            gp_str_reserve(&str, 12);
+            gp_expect(gp_capacity(str) > old_capacity);
+
+            str = gp_str_clear(str);
+        }
+
         gp_test("somewhere else than stack");
         {
             char* non_const_init = "too long but no worries.";
@@ -120,10 +132,33 @@ int main(void)
         gp_test("Slice");
         {
             GPString str = gp_str_on_stack(NULL, 20, "Some_string_to slice");
-            const GPChar* str_original_ptr = str;
             gp_str_slice(&str, 5, 11);
             gp_expect(gp_str_equal(str, "string", strlen("string")));
-            gp_expect(str != str_original_ptr, "Pointer should've gotten mutated.");
+        }
+
+        gp_test("Memory handling on slice");
+        {
+            GPString str = gp_str_on_stack(NULL, 16, "...Junk prefix.");
+            size_t old_capacity = gp_capacity(str);
+            GPChar* old_ptr = str;
+
+            gp_str_slice(&str, 3, gp_length(str));
+            gp_expect(str > old_ptr && gp_capacity(str) < old_capacity,
+                "Memory should've not moved, just the pointer, "
+                "but capacity should shrink!");
+
+            void* old_allocation = gp_allocation(str);
+            old_capacity = gp_capacity(str);
+            gp_str_reserve(&str, 15);
+            gp_expect(gp_capacity(str) > old_capacity,
+                "Capacity should've grown back,");
+            gp_expect(gp_allocation(str) == old_allocation,
+                "but no new allocation!");
+
+            // Sanity check
+            const char* cstr = "Junk prefix.";
+            gp_expect(gp_str_equal(str, cstr, strlen(cstr)),
+                str, cstr);
         }
 
         gp_test("C substr");
@@ -140,20 +175,22 @@ int main(void)
     {
         gp_test("Valid index");
         {
-            // TODO don't use internals!
-            gp_expect(   gp_mem_codepoint_length(&"\u1153"[0]));
-            gp_expect( ! gp_mem_codepoint_length(&"\u1153"[1]));
+            GPString str = gp_str_on_stack(NULL, 8, "\u1153");
+            gp_expect(   gp_str_codepoint_length(str));
+            gp_str_slice(&str, 1, gp_length(str));
+            gp_expect( ! gp_str_codepoint_length(str));
         }
 
         gp_test("Codepoint size");
         {
-            gp_expect(gp_mem_codepoint_length("\u1153") == strlen("\u1153"));
+            GPString str = gp_str_on_stack(NULL, 8, "\u1153");
+            gp_expect(gp_str_codepoint_length(str) == strlen("\u1153"));
         }
 
         gp_test("Codepoint count");
         {
             GPString str = gp_str_on_stack(NULL, 16, "aÄb🍌x");
-            gp_expect(gp_mem_codepoint_count(str, gp_length(str)) == 5);
+            gp_expect(gp_str_codepoint_count(str) == 5);
         }
     }
 
