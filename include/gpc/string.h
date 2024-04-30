@@ -100,47 +100,38 @@ void gp_str_insert(
     const void*restrict src,
     size_t              src_size) GP_NONNULL_ARGS();
 
-void gp_str_replace(
+// Returns index to the first occurrence of needle in haystack.
+size_t gp_str_replace(
     GPStringOut* haystack,
-    GPStringIn needle,
-    GPStringIn replacement,
-    size_t* optional_in_start_out_pos) GP_NONNULL_ARGS(1, 2, 3);
-
-void gp_str_replace_n(
-    GPStringOut* haystack,
-    size_t haystack_length,
     const void*restrict needle,
     size_t needle_length,
     const void*restrict replacement,
     size_t replacement_length,
-    size_t* optional_in_start_out_pos) GP_NONNULL_ARGS(1, 3, 5);
+    size_t start) GP_NONNULL_ARGS();
 
-void gp_str_replace_all(
+// Returns number of replacements made.
+size_t gp_str_replace_all(
     GPStringOut* haystack,
-    GPStringIn needle,
-    GPStringIn replacement,
-    size_t* optional_replacement_count) GP_NONNULL_ARGS(1, 2, 3);
-
-void gp_str_replace_all_n(
-    GPStringOut* haystack,
-    size_t haystack_length,
     const void*restrict needle,
     size_t needle_length,
     const void*restrict replacement,
-    size_t replacement_length,
-    size_t* optional_replacement_count) GP_NONNULL_ARGS(1, 3, 5);
+    size_t replacement_length) GP_NONNULL_ARGS();
 
-#define/* size_t */gp_str_print(str_out, ...) \
-    GP_STR_PRINT(false, str_out, (size_t)-1, __VA_ARGS__)
+// The required buffer size is not calculated precicely to increase preformance.
+// This means that sometimes may allocate needlessly.
+#define/* size_t */gp_str_print(str_ptr_out, ...) \
+    GP_STR_PRINT(false, false, str_ptr_out, (size_t)-1, __VA_ARGS__)
 
-#define/* size_t */gp_str_n_print(str_out, n, ...) \
-    GP_STR_PRINT(false, str_out, n, __VA_ARGS__)
+// Does not allocate but limits the amount of printed bytes to n. If n is 0
+// str_ptr_out may be NULL.
+#define/* size_t */gp_str_n_print(str_ptr_out, n, ...) \
+    GP_STR_PRINT(false, true, str_ptr_out, n, __VA_ARGS__)
 
-#define/* size_t */gp_str_println(str_out, ...) \
-    GP_STR_PRINT(true, str_out, (size_t)-1, __VA_ARGS__)
+#define/* size_t */gp_str_println(str_ptr_out, ...) \
+    GP_STR_PRINT(true, false, str_ptr_out, (size_t)-1, __VA_ARGS__)
 
-#define/* size_t */gp_str_n_println(str_out, n, ...) \
-    GP_STR_PRINT(true, str_out, n, __VA_ARGS__)
+#define/* size_t */gp_str_n_println(str_ptr_out, n, ...) \
+    GP_STR_PRINT(true, true, str_ptr_out, n, __VA_ARGS__)
 
 #define GP_WHITESPACE  " \t\n\v\f\r" \
     "\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006" \
@@ -155,12 +146,12 @@ void gp_str_trim(
     int          flags) GP_NONNULL_ARGS(1);
 
 // Only converts Unicode characters with 1:1 mapping. Result is locale
-// dependent. Result length might differ from input string length.
+// dependent.
 void gp_str_to_upper(
     GPStringOut* str) GP_NONNULL_ARGS();
 
 // Only converts Unicode characters with 1:1 mapping. Result is locale
-// dependent. Result length might differ from input string length.
+// dependent.
 void gp_str_to_lower(
     GPStringOut* str) GP_NONNULL_ARGS();
 
@@ -222,12 +213,18 @@ typedef struct gp_array_header
     const struct gp_allocator* allocator;
     void* allocation; // pointer to self or NULL if on stack
 } GPArrayHeader;
-
-GPArrayHeader* gp_arr_header(const void* arr);
-inline GPArrayHeader* gp_arr_set(GPStringOut* me) {
-    return gp_arr_header(*me);
-}
 #endif
+
+GPArrayHeader* gp_str_header(const void* arr);
+inline GPArrayHeader* gp_str_set(GPStringOut* me) {
+    return gp_str_header(*me);
+}
+
+// Only use this for newly created strings!
+inline GPArrayHeader* gp_str_set_new(GPStringOut* me) {
+    return (GPArrayHeader*)*me - 1;
+}
+
 
 // ----------------------------------------------------------------------------
 //
@@ -236,6 +233,7 @@ inline GPArrayHeader* gp_arr_set(GPStringOut* me) {
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+
 
 GPString gp_str_new_init_n(
     const void* allocator,
@@ -297,7 +295,8 @@ static inline GPString gp_str_new_init_cstr(const void* a, size_t c, const char*
         INIT)
 #endif // gp_str_on_stack_init()
 
-#if 0
+// ----------------------------------------------------------------------------
+// Printing
 
 #ifndef GP_ASSERT_INCLUDED
 //
@@ -308,7 +307,7 @@ struct GPPrintable
 
     // Simplified specifier. If var_name is not a format string, then this is
     // used avoiding format string parsing.
-    const enum GPType type;
+    const enum gp_type type;
 
     // Actual data is in pr_cstr_print_internal() variadic args.
 };
@@ -320,25 +319,25 @@ struct GPPrintable
 
 #endif
 
-size_t gp_cstr_print_internal(
-    int is_println,
-    char*restrict out,
+size_t gp_str_print_internal(
+    bool is_println,
+    bool is_n,
+    GPStringOut* out,
     size_t n,
     size_t arg_count,
     const struct GPPrintable* objs,
     ...);
 
-#define GP_CSTR_PRINT(IS_PRINTLN, OUT, N, ...) \
-    gp_cstr_print_internal( \
+#define GP_STR_PRINT(IS_PRINTLN, IS_N, OUT, N, ...) \
+    gp_str_print_internal( \
         IS_PRINTLN, \
+        IS_N, \
         OUT, \
         N, \
         GP_COUNT_ARGS(__VA_ARGS__), \
         (struct GPPrintable[]) \
             { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
         __VA_ARGS__)
-
-#endif // 0
 
 
 
@@ -553,27 +552,6 @@ size_t gp_cstr_codepoint_length(
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
-
-#ifndef GP_ASSERT_INCLUDED
-//
-struct GPPrintable
-{
-    // Created with #. If var_name[0] == '\"', then contains format string.
-    const char* identifier;
-
-    // Simplified specifier. If var_name is not a format string, then this is
-    // used avoiding format string parsing.
-    const enum gp_type type;
-
-    // Actual data is in pr_cstr_print_internal() variadic args.
-};
-#if __STDC_VERSION__ >= 201112L
-#define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
-#else
-#define GP_PRINTABLE(X) { #X, -1 }
-#endif
-
-#endif
 
 size_t gp_cstr_print_internal(
     int is_println,

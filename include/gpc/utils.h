@@ -118,37 +118,41 @@ unsigned long long gp_llumax(unsigned long long x, unsigned long long y);
 // gp_min() and gp_max() implementations
 #if defined(__GNUC__)
 
-#define gp_generic_min(x, y) \
-    ({ typeof(x) _##x = (x); typeof(y) _##y = (y); _##x < _##y ? _##x : _##y; })
+#define gp_generic_min(X, Y) ({ \
+    typeof(X) _gp_min_X = (X); typeof(Y) _gp_min_Y = (Y); \
+    _gp_min_X < _gp_min_Y ? _gp_min_X : _gp_min_Y; \
+})
 
-#define gp_generic_max(x, y) \
-    ({ typeof(x) _##x = (x); typeof(y) _##y = (y); _##x > _##y ? _##x : _##y; })
+#define gp_generic_max(X, Y) ({ \
+    typeof(X) _gp_max_X = (X); typeof(Y) _gp_max_Y = (Y); \
+    _gp_max_X > _gp_max_Y ? _gp_max_X : _gp_max_Y; \
+})
 
 #elif __STDC_VERSION__ >= 201112L
 
-#define gp_generic_min(x, y) \
-_Generic(x, \
-    int:                gp_imin(x, y),   \
-    long:               gp_lmin(x, y),   \
-    long long:          gp_llmin(x, y),  \
-    unsigned:           gp_umin(x, y),   \
-    unsigned long:      gp_lumin(x, y),  \
-    unsigned long long: gp_llumin(x, y), \
-    float:              gp_fminf(x, y),  \
-    double:             gp_fmin(x, y),   \
-    long double:        gp_fminl(x, y))
+#define gp_generic_min(X, Y) \
+_Generic(X, \
+    int:                gp_imin  (X, Y), \
+    long:               gp_lmin  (X, Y), \
+    long long:          gp_llmin (X, Y), \
+    unsigned:           gp_umin  (X, Y), \
+    unsigned long:      gp_lumin (X, Y), \
+    unsigned long long: gp_llumin(X, Y), \
+    float:              gp_fminf (X, Y), \
+    double:             gp_fmin  (X, Y), \
+    long double:        gp_fminl (X, Y))
 
-#define gp_generic_max(x, y) \
-_Generic(x, \
-    int:                gp_imax(x, y),   \
-    long:               gp_lmax(x, y),   \
-    long long:          gp_llmax(x, y),  \
-    unsigned:           gp_umax(x, y),   \
-    unsigned long:      gp_lumax(x, y),  \
-    unsigned long long: gp_llumax(x, y), \
-    float:              gp_fmaxf(x, y),  \
-    double:             gp_fmax(x, y),   \
-    long double:        gp_fmaxl(x, y))
+#define gp_generic_max(X, Y) \
+_Generic(X, \
+    int:                gp_imax  (X, Y), \
+    long:               gp_lmax  (X, Y), \
+    long long:          gp_llmax (X, Y), \
+    unsigned:           gp_umax  (X, Y), \
+    unsigned long:      gp_lumax (X, Y), \
+    unsigned long long: gp_llumax(X, Y), \
+    float:              gp_fmaxf (X, Y), \
+    double:             gp_fmax  (X, Y), \
+    long double:        gp_fmaxl (X, Y))
 
 #else // Non-GNU C99
 

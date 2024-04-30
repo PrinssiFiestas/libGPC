@@ -127,6 +127,29 @@ int main(void)
         }
     }
 
+    gp_suite("UTF-8 indices");
+    {
+        gp_test("Valid index");
+        {
+            GPString str = gp_str_on_stack(NULL, 8, "\u1153");
+            gp_expect(   gp_str_codepoint_length(str));
+            gp_str_slice(&str, 1, gp_length(str));
+            gp_expect( ! gp_str_codepoint_length(str));
+        }
+
+        gp_test("Codepoint size");
+        {
+            GPString str = gp_str_on_stack(NULL, 8, "\u1153");
+            gp_expect(gp_str_codepoint_length(str) == strlen("\u1153"));
+        }
+
+        gp_test("Codepoint count");
+        {
+            GPString str = gp_str_on_stack(NULL, 16, "aÄb🍌x");
+            gp_expect(gp_str_codepoint_count(str) == 5);
+        }
+    }
+
     gp_suite("Substrings");
     {
         gp_test("Slice");
@@ -136,7 +159,7 @@ int main(void)
             gp_expect(gp_str_equal(str, "string", strlen("string")));
         }
 
-        gp_test("Memory handling on slice");
+        gp_test("Memory management on slice");
         {
             GPString str = gp_str_on_stack(NULL, 16, "...Junk prefix.");
             size_t old_capacity = gp_capacity(str);
@@ -201,26 +224,108 @@ int main(void)
         }
     }
 
-    gp_suite("UTF-8 indices");
+    gp_suite("Replacing substrings");
     {
-        gp_test("Valid index");
+        gp_test("Replace");
         {
-            GPString str = gp_str_on_stack(NULL, 8, "\u1153");
-            gp_expect(   gp_str_codepoint_length(str));
-            gp_str_slice(&str, 1, gp_length(str));
-            gp_expect( ! gp_str_codepoint_length(str));
+            GPString str = gp_str_on_stack(NULL, 128, "aaabbbcccaaa");
+            const char* cstr = "aaaXcccaaa";
+            size_t needlepos = gp_str_replace(&str, "bbb", 3, "X", 1, 0);
+            gp_expect(gp_str_equal(str, cstr, strlen(cstr)), str);
+            gp_expect(needlepos == 3, (needlepos));
+
+            size_t start = 3;
+            gp_str_replace(&str, "aaa", 3, "XXXXX", 5, start);
+            cstr = "aaaXcccXXXXX";
+            gp_expect(gp_str_equal(str, cstr, strlen(cstr)), str);
         }
 
-        gp_test("Codepoint size");
+        gp_test("Replace_all");
         {
-            GPString str = gp_str_on_stack(NULL, 8, "\u1153");
-            gp_expect(gp_str_codepoint_length(str) == strlen("\u1153"));
+            GPString str = gp_str_on_stack(NULL, 128, "aaxxbbxxxccxx");
+            size_t replacement_count = gp_str_replace_all(
+                &str, "xx", 2, "XXX", 3);
+
+            const char* cstr = "aaXXXbbXXXxccXXX";
+            gp_expect(gp_str_equal(str, cstr, strlen(cstr)));
+            gp_expect(replacement_count == 3);
+        }
+    }
+
+    gp_suite("String print");
+    {
+        gp_test("Numbers");
+        {
+            GPString str = gp_str_on_stack(&gp_heap, 1, "");
+            gp_str_print(&str, 1, " divided by ", 3, " is ", 1./3.);
+            char buf[128];
+            sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
+            str = gp_str_clear(str);
         }
 
-        gp_test("Codepoint count");
+        gp_test("Strings");
         {
-            GPString str = gp_str_on_stack(NULL, 16, "aÄb🍌x");
-            gp_expect(gp_str_codepoint_count(str) == 5);
+            GPString str = gp_str_on_stack(NULL, 128, "");
+            char str1[128];
+            strcpy(str1, "strings");
+            gp_str_print(&str, "Copying ", str1, (char)'.');
+            gp_expect(gp_str_equal(str, "Copying strings.", strlen("Copying strings.")));
+        }
+
+        gp_test("Custom formats");
+        {
+            GPString str = gp_str_on_stack(NULL, 128, "");
+            gp_str_print(&str,
+                "%%No zeroes in this %g", 1.0, " float. %% %%");
+            char buf[128];
+            sprintf(buf, "%%No zeroes in this %g float. %% %%", 1.0);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)));
+
+            gp_str_print(&str, 2, " formats here: %x%g", 0xbeef, 0., (char)'.');
+            sprintf(buf, "2 formats here: %x%g.", 0xbeef, 0.);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
+        }
+
+        gp_test("%% only");
+        {
+            GPString str = gp_str_on_stack(NULL, 128, "");
+            gp_str_print(&str, "%%blah%%");
+            char buf[128];
+            sprintf(buf, "%%blah%%");
+            gp_expect(gp_str_equal(str, buf, strlen(buf)));
+        }
+
+        gp_test("Pointers");
+        {
+            GPString str = gp_str_on_stack(NULL, 128, "");
+            char buf[128];
+            gp_str_print(&str, (void*)buf);
+            sprintf(buf, "%p", buf);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
+
+            gp_str_print(&str, NULL);
+            sprintf(buf, "(nil)");
+            gp_expect(gp_str_equal(str, buf, strlen(buf)));
+        }
+
+        gp_test("Print n");
+        {
+            GPString str = gp_str_on_stack(NULL, 128, "");
+            gp_str_n_print(&str, 7, "blah", 12345);
+            gp_expect(gp_str_equal(str, "blah123", strlen("blah123")), str);
+        }
+
+        gp_test("Println");
+        {
+            GPString str = gp_str_on_stack(NULL, 128, "");
+            gp_str_println(&str, "Spaces", 3, "inserted.");
+            const char* cstr = "Spaces 3 inserted.\n";
+            gp_expect(gp_str_equal(str, cstr, strlen(cstr)));
+
+            cstr = "With 20 fmt specs.\n";
+            gp_str_println(&str, "With %g%i", 2., 0, "fmt specs.");
+            gp_expect(gp_str_equal(str, cstr, strlen(cstr)), str);
         }
     }
 
@@ -229,53 +334,6 @@ int main(void)
     //
     //
     //
-
-    gp_suite("C replacing substrings");
-    {
-        gp_test("C replace");
-        {
-            char str[128];
-            strcpy(str, "aaabbbcccaaa");
-            size_t needlepos = 0;
-            gp_cstr_replace(str, "bbb", "X", &needlepos);
-            gp_expect(gp_cstr_equal(str,"aaaXcccaaa"), str);
-            gp_expect(needlepos == 3, (needlepos));
-
-            size_t start = 3;
-            gp_cstr_replace(str, "aaa", "XXXXX", &start);
-            gp_expect(gp_cstr_equal(str, "aaaXcccXXXXX"), str);
-        }
-
-        gp_test("C replace_all");
-        {
-            char str[128];
-            strcpy(str, "aaxxbbxxxccxx");
-            size_t replacement_count;
-            gp_cstr_replace_all(str, "xx", "XXX", &replacement_count);
-
-            gp_expect(gp_cstr_equal(str, "aaXXXbbXXXxccXXX"));
-            gp_expect(replacement_count == 3);
-        }
-    }
-
-    gp_suite("C UTF-8 indices");
-    {
-        gp_test("C valid index");
-        {
-            gp_expect(   gp_cstr_codepoint_length(&"\u1153"[0]));
-            gp_expect( ! gp_cstr_codepoint_length(&"\u1153"[1]));
-        }
-
-        gp_test("C codepoint size");
-        {
-            gp_expect(gp_cstr_codepoint_length("\u1153") == strlen("\u1153"));
-        }
-
-        gp_test("C codepoint count");
-        {
-            gp_expect(gp_cstr_codepoint_count("aÄb🍌x") == 5);
-        }
-    }
 
     gp_suite("C validate");
     {
@@ -432,83 +490,6 @@ int main(void)
         } // else Turkish language pack not installed.
     }
 
-
-    gp_suite("C print");
-    {
-        #if __STDC_VERSION__ >= 201112L
-        // Must reset due to sprintf() changing behaviour.
-        setlocale(LC_ALL, "C");
-        gp_test("C Numbers");
-        {
-            char str[128];
-            gp_cstr_print(str, 1, " divided by ", 3, " is ", 1./3.);
-            char buf[128];
-            sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
-            gp_expect(gp_cstr_equal(str, buf), (str), (buf));
-        }
-
-        gp_test("C Strings");
-        {
-            char str[128];
-            char str1[128];
-            strcpy(str1, "strings");
-            gp_cstr_print(str, "Copying ", str1, (char)'.');
-            gp_expect(gp_cstr_equal(str, "Copying strings."));
-        }
-
-        gp_test("C custom formats");
-        {
-            char str[128];
-            gp_cstr_print(str,
-                "%%No zeroes in this %g", 1.0, " float. %% %%");
-            char buf[128];
-            sprintf(buf, "%%No zeroes in this %g float. %% %%", 1.0);
-            gp_expect(gp_cstr_equal(str, buf));
-
-            gp_cstr_print(str, 2, " formats here: %x%g", 0xbeef, 0., (char)'.');
-            sprintf(buf, "2 formats here: %x%g.", 0xbeef, 0.);
-            gp_expect(gp_cstr_equal(str, buf), (str), (buf));
-        }
-
-        gp_test("C %% only");
-        {
-            char str[128];
-            gp_cstr_print(str, "%%blah%%");
-            char buf[128];
-            sprintf(buf, "%%blah%%");
-            gp_expect(gp_cstr_equal(str, buf));
-        }
-
-        gp_test("C pointers");
-        {
-            char str[128];
-            char buf[128];
-            gp_cstr_print(str, (void*)buf);
-            sprintf(buf, "%p", buf);
-            gp_expect(gp_cstr_equal(str, buf), (str), (buf));
-
-            gp_cstr_print(str, NULL);
-            sprintf(buf, "(nil)");
-        }
-
-        gp_test("C print n");
-        {
-            char str[128];
-            gp_cstr_print_n(str, 7, "blah", 12345);
-            gp_expect(gp_cstr_equal(str, "blah12"));
-        }
-
-        gp_test("C println");
-        {
-            char str[128];
-            gp_cstr_println(str, "Spaces", 3, "inserted.");
-            gp_expect(gp_cstr_equal(str, "Spaces 3 inserted.\n"));
-
-            gp_cstr_println(str, "With %g%i", 2., 0, "fmt specs.");
-            gp_expect(gp_cstr_equal(str, "With 20 fmt specs.\n"), (str));
-        }
-        #endif
-    }
 
     // ------------------------------------------------------------------------
     // Test internals

@@ -18,7 +18,8 @@
 #include <printf/printf.h>
 #include "pfstring.h"
 
-extern inline GPArrayHeader* gp_arr_set(GPStringOut* me);
+extern inline GPArrayHeader* gp_str_set(GPStringOut*);
+extern inline GPArrayHeader* gp_str_set_new(GPStringOut*);
 
 GPString gp_str_new_init_n(
     const void* allocator,
@@ -61,7 +62,7 @@ GPString gp_str_clear(GPString me)
     return NULL;
 }
 
-GPArrayHeader* gp_arr_header(const void* arr)
+GPArrayHeader* gp_str_header(const void* arr)
 {
     size_t ptr_size = sizeof(GPArrayHeader*);
     size_t aligment_offset = (uintptr_t)arr % ptr_size;
@@ -74,22 +75,22 @@ GPArrayHeader* gp_arr_header(const void* arr)
 
 size_t gp_length(const void* arr)
 {
-    return gp_arr_header(arr)->length;
+    return gp_str_header(arr)->length;
 }
 
 size_t gp_capacity(const void* arr)
 {
-    return gp_arr_header(arr)->capacity;
+    return gp_str_header(arr)->capacity;
 }
 
 void* gp_allocation(const void* arr)
 {
-    return gp_arr_header(arr)->allocation;
+    return gp_str_header(arr)->allocation;
 }
 
 const struct gp_allocator* gp_allocator(const void* arr)
 {
-    return gp_arr_header(arr)->allocator;
+    return gp_str_header(arr)->allocator;
 }
 
 static void* gp_memmem(
@@ -376,28 +377,40 @@ void gp_str_reserve(
 {
     if (gp_capacity(*str) < capacity)
     {
-        GPChar* block_start = (GPChar*)(gp_arr_header(*str) + 1);
+        GPArrayHeader* header = gp_str_header(*str);
+        GPChar* block_start = (GPChar*)(header + 1);
         size_t offset = *str - block_start;
-        if (gp_capacity(*str) + offset >= capacity) {
-            *str = memmove(block_start, *str, gp_length(*str));
-            gp_arr_set(str)->capacity = capacity;
+        if (header->capacity + offset >= capacity) {
+            *str = memmove(block_start, *str, header->length);
+            memcpy(&((GPArrayHeader*)*str - 1)->capacity, &capacity, sizeof capacity);
             return;
         }
 
         capacity = gp_next_power_of_2(capacity);
         void* block = gp_mem_alloc(
-            gp_allocator(*str),
+            header->allocator,
             sizeof(GPArrayHeader) + capacity);
 
-        memcpy(block, (GPArrayHeader*)*str - 1, sizeof(GPArrayHeader));
-        memcpy((GPArrayHeader*)block + 1, *str, gp_length(*str));
+        ((GPArrayHeader*)block)->length     = header->length;
+        ((GPArrayHeader*)block)->capacity   = capacity;
+        ((GPArrayHeader*)block)->allocator  = header->allocator;
+        ((GPArrayHeader*)block)->allocation = block;
+        memcpy((GPArrayHeader*)block + 1, *str, header->length);
 
-        gp_mem_dealloc(gp_allocator(*str), gp_allocation(*str));
+        gp_mem_dealloc(header->allocator, header->allocation);
 
         *str = (GPChar*)block + sizeof(GPArrayHeader);
-        gp_arr_set(str)->allocation = block;
-        gp_arr_set(str)->capacity   = capacity;
     }
+}
+
+static void gp_str_clear_contents(
+    GPStringOut* str)
+{
+    GPArrayHeader* header = gp_str_header(*str);
+    size_t offset = *str - (GPChar*)(header + 1);
+    header->length   = 0;
+    header->capacity += offset;
+    *str = (GPChar*)(header + 1);
 }
 
 void gp_str_copy(
@@ -405,9 +418,10 @@ void gp_str_copy(
     const void*restrict src,
     size_t n)
 {
+    gp_str_clear_contents(dest);
     gp_str_reserve(dest, n);
     memcpy(*dest, src, n);
-    gp_arr_set(dest)->length = n;
+    gp_str_set_new(dest)->length = n;
 }
 
 void gp_str_repeat(
@@ -416,13 +430,14 @@ void gp_str_repeat(
     const void*restrict mem,
     const size_t mem_length)
 {
+    gp_str_clear_contents(dest);
     gp_str_reserve(dest, n * mem_length);
     if (mem_length == 1) {
         memset(*dest, *(uint8_t*)mem, n);
     } else for (size_t i = 0; i < n; i++) {
         memcpy(*dest + i * mem_length, mem, mem_length);
     }
-    gp_arr_set(dest)->length = n * mem_length;
+    gp_str_set_new(dest)->length = n * mem_length;
 }
 
 void gp_str_slice(
@@ -430,7 +445,7 @@ void gp_str_slice(
     size_t start,
     size_t end)
 {
-    GPArrayHeader* header = gp_arr_header(*str);
+    GPArrayHeader* header = gp_str_header(*str);
     size_t aligment_offset = (uintptr_t)*str % sizeof(void*);
     if (start + aligment_offset > sizeof(void*))
     {
@@ -450,9 +465,10 @@ void gp_str_substr(
     size_t start,
     size_t end)
 {
+    gp_str_clear_contents(dest);
     gp_str_reserve(dest, end - start);
     memcpy(*dest, src + start, end - start);
-    gp_arr_set(dest)->length = end - start;
+    gp_str_set_new(dest)->length = end - start;
 }
 
 void gp_str_append(
@@ -462,7 +478,7 @@ void gp_str_append(
 {
     gp_str_reserve(dest, gp_length(*dest) + src_length);
     memcpy(*dest + gp_length(*dest), src, src_length + sizeof(""));
-    gp_arr_set(dest)->length += src_length;
+    gp_str_set(dest)->length += src_length;
 }
 
 void gp_str_insert(
@@ -474,11 +490,10 @@ void gp_str_insert(
     gp_str_reserve(dest, gp_length(*dest) + n);
     memmove(*dest + pos + n, *dest + pos, gp_length(*dest) - pos);
     memcpy(*dest + pos, src, n);
-    gp_arr_set(dest)->length += n;
+    gp_str_set(dest)->length += n;
 }
 
-#if 0
-static size_t cstr_replace_range(
+static size_t gp_cstr_replace_range(
     const size_t me_length,
     char*restrict me,
     const size_t start,
@@ -495,58 +510,49 @@ static size_t cstr_replace_range(
     return me_length + replacement_length - (end - start);
 }
 
-size_t gp_cstr_replace(
-    char*restrict haystack,
-    const char*restrict needle,
-    const char*restrict replacement,
-    size_t* optional_in_start_out_pos)
+size_t gp_str_replace(
+    GPStringOut* haystack,
+    const void*restrict needle,
+    const size_t needle_length,
+    const void*restrict replacement,
+    const size_t replacement_length,
+    size_t start)
 {
-    size_t start = optional_in_start_out_pos != NULL ?
-        *optional_in_start_out_pos : 0;
+    if ((start = gp_str_find(*haystack, needle, needle_length, start)) == GP_NOT_FOUND)
+        return GP_NOT_FOUND;
 
-    if ((start = gp_cstr_find(haystack, needle, start)) == GP_NOT_FOUND)
-    {
-        if (optional_in_start_out_pos != NULL)
-            *optional_in_start_out_pos = GP_NOT_FOUND;
-        return strlen(haystack);
-    }
-    const size_t haystack_length    = strlen(haystack);
-    const size_t needle_length      = strlen(needle);
-    const size_t replacement_length = strlen(replacement);
+    gp_str_reserve(haystack,
+        gp_length(*haystack) + replacement_length - needle_length);
+
     const size_t end = start + needle_length;
-
-    const size_t out_length = cstr_replace_range(
-        haystack_length,
-        haystack,
+    gp_str_set(haystack)->length = gp_cstr_replace_range(
+        gp_length(*haystack),
+        (char*)*haystack,
         start,
         end,
         replacement,
         replacement_length);
 
-    haystack[out_length] = '\0';
-    if (optional_in_start_out_pos != NULL)
-        *optional_in_start_out_pos = start;
-
-    return out_length;
+    return start;
 }
 
-size_t gp_cstr_replace_all(
-    char*restrict haystack,
-    const char*restrict needle,
-    const char*restrict replacement,
-    size_t* optional_replacement_count)
+size_t gp_str_replace_all(
+    GPStringOut* haystack,
+    const void*restrict needle,
+    const size_t needle_length,
+    const void*restrict replacement,
+    const size_t replacement_length)
 {
-          size_t haystack_length    = strlen(haystack);
-    const size_t needle_length      = strlen(needle);
-    const size_t replacement_length = strlen(replacement);
-
     size_t start = 0;
     size_t replacement_count = 0;
-    while ((start = gp_cstr_find(haystack, needle, start)) != GP_NOT_FOUND)
+    while ((start = gp_str_find(*haystack, needle, needle_length, start)) != GP_NOT_FOUND)
     {
-        haystack_length = cstr_replace_range(
-            haystack_length,
-            haystack,
+        gp_str_reserve(haystack,
+            gp_length(*haystack) + replacement_length - needle_length);
+
+        gp_str_set(haystack)->length = gp_cstr_replace_range(
+            gp_length(*haystack),
+            (char*)*haystack,
             start,
             start + needle_length,
             replacement,
@@ -555,16 +561,48 @@ size_t gp_cstr_replace_all(
         start += replacement_length;
         replacement_count++;
     }
-    haystack[haystack_length] = '\0';
-    if (optional_replacement_count != NULL)
-        *optional_replacement_count = replacement_count;
-
-    return haystack_length;
+    return replacement_count;
 }
 
-size_t gp_cstr_print_internal(
-    int is_println,
-    char*restrict _out,
+static inline size_t gp_max_digits_in(const GPType T)
+{
+    switch (T)
+    {
+        case GP_FLOAT: // promoted
+        case GP_DOUBLE: // %g
+            return strlen("-0.111111e-9999");
+
+        case GP_PTR:
+            return strlen("0x") + sizeof(void*) * strlen("ff");
+
+        default: // integers https://www.desmos.com/calculator/c1ftloo5ya
+            return (gp_sizeof(T) * 18)/CHAR_BIT + 2;
+    }
+    return 0;
+}
+
+static inline size_t gp_print_cap_left(GPStringIn me, size_t n) {
+    return gp_length(me) >= n ? 0 : n - gp_length(me);
+}
+static inline void gp_print_concat(
+    GPStringOut* me, const size_t n, const void* src, const size_t length)
+{
+    memcpy(*me + gp_length(*me), src, gp_min(gp_print_cap_left(*me, n), length));
+    gp_str_set(me)->length += length;
+}
+static inline bool gp_print_push_char(
+    GPStringOut* me, const size_t n, const uint8_t c)
+{
+    if (gp_length(*me) < n)
+        (*me)[gp_length(*me)].c = c;
+    gp_str_set(me)->length++;
+    return gp_print_cap_left(*me, n) != 0;
+}
+
+size_t gp_str_print_internal(
+    bool is_println,
+    bool is_n,
+    GPStringOut* out,
     const size_t n,
     const size_t arg_count,
     const struct GPPrintable* objs,
@@ -575,9 +613,18 @@ size_t gp_cstr_print_internal(
     pf_va_list args;
     va_copy(args.list, _args);
 
-    struct PFString out_ = { _out, 0, n };
-    struct PFString* out = &out_;
     bool capacity_sufficed_for_trailing_space = false;
+
+    #define GP_PRINT_ADD_RESERVE(N) do \
+    { \
+        if ( ! is_n) \
+            gp_str_reserve(out, gp_length(*out) + (N)); \
+    } while (0)
+
+    gp_str_clear_contents(out);
+    // Avoid many small allocations by estimating a sufficient buffer size. This
+    // estimation is currently completely arbitrary. // TODO better estimation.
+    //GP_PRINT_ADD_RESERVE(arg_count * 10);
 
     for (size_t i = 0; i < arg_count; i++)
     {
@@ -591,14 +638,18 @@ size_t gp_cstr_print_internal(
                 else // consuming more args
                     i++;
             }
-            out->length += pf_vsnprintf_consuming(
-                out->data + out->length,
-                capacity_left(*out),
+            GP_PRINT_ADD_RESERVE(pf_vsnprintf(NULL, 0, fmt, args.list));
+
+            gp_str_set(out)->length += pf_vsnprintf_consuming(
+                (char*)*out + gp_str_set(out)->length,
+                gp_print_cap_left(*out, n),
                 fmt,
                 &args);
 
-            if (is_println)
-                capacity_sufficed_for_trailing_space = push_char(out, ' ');
+            if (is_println) {
+                GP_PRINT_ADD_RESERVE(1);
+                capacity_sufficed_for_trailing_space = gp_print_push_char(out, n, ' ');
+            }
             continue;
         }
 
@@ -607,105 +658,126 @@ size_t gp_cstr_print_internal(
             case GP_CHAR:
             case GP_SIGNED_CHAR:
             case GP_UNSIGNED_CHAR:
-                push_char(out, (char)va_arg(args.list, int));
+                GP_PRINT_ADD_RESERVE(1);
+                gp_print_push_char(out, n, (char)va_arg(args.list, int));
                 break;
 
             case GP_UNSIGNED_SHORT:
             case GP_UNSIGNED:
-                out->length += pf_utoa(
-                    capacity_left(*out),
-                    out->data + out->length,
+                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
+                gp_str_set(out)->length += pf_utoa(
+                    gp_print_cap_left(*out, n),
+                    (char*)*out + gp_str_set(out)->length,
                     va_arg(args.list, unsigned));
                 break;
 
             case GP_UNSIGNED_LONG:
-                out->length += pf_utoa(
-                    capacity_left(*out),
-                    out->data + out->length,
+                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
+                gp_str_set(out)->length += pf_utoa(
+                    gp_print_cap_left(*out, n),
+                    (char*)*out + gp_str_set(out)->length,
                     va_arg(args.list, unsigned long));
                 break;
 
             case GP_UNSIGNED_LONG_LONG:
-                out->length += pf_utoa(
-                    capacity_left(*out),
-                    out->data + out->length,
+                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
+                gp_str_set(out)->length += pf_utoa(
+                    gp_print_cap_left(*out, n),
+                    (char*)*out + gp_str_set(out)->length,
                     va_arg(args.list, unsigned long long));
                 break;
 
             case GP_BOOL:
+                GP_PRINT_ADD_RESERVE(strlen("false"));
                 if (va_arg(args.list, int))
-                    concat(out, "true", strlen("true"));
+                    gp_print_concat(out, n, "true", strlen("true"));
                 else
-                    concat(out, "false", strlen("false"));
+                    gp_print_concat(out, n, "false", strlen("false"));
                 break;
 
             case GP_SHORT:
             case GP_INT:
-                out->length += pf_itoa(
-                    capacity_left(*out),
-                    out->data + out->length,
+                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
+                gp_str_set(out)->length += pf_itoa(
+                    gp_print_cap_left(*out, n),
+                    (char*)*out + gp_str_set(out)->length,
                     va_arg(args.list, int));
                 break;
 
             case GP_LONG:
-                out->length += pf_itoa(
-                    capacity_left(*out),
-                    out->data + out->length,
+                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
+                gp_str_set(out)->length += pf_itoa(
+                    gp_print_cap_left(*out, n),
+                    (char*)*out + gp_str_set(out)->length,
                     va_arg(args.list, long int));
                 break;
 
             case GP_LONG_LONG:
-                out->length += pf_itoa(
-                    capacity_left(*out),
-                    out->data + out->length,
+                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
+                gp_str_set(out)->length += pf_itoa(
+                    gp_print_cap_left(*out, n),
+                    (char*)*out + gp_str_set(out)->length,
                     va_arg(args.list, long long int));
                 break;
 
             case GP_FLOAT:
             case GP_DOUBLE:
-                out->length += pf_ftoa(
-                    capacity_left(*out),
-                    out->data + out->length,
+                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
+                gp_str_set(out)->length += pf_gtoa(
+                    gp_print_cap_left(*out, n),
+                    (char*)*out + gp_str_set(out)->length,
                     va_arg(args.list, double));
                 break;
 
             char* p;
+            size_t p_len;
             case GP_CHAR_PTR:
                 p = va_arg(args.list, char*);
-                concat(out, p, strlen(p));
+                p_len = strlen(p);
+                GP_PRINT_ADD_RESERVE(p_len);
+                gp_print_concat(out, n, p, p_len);
                 break;
 
             GPString s;
             case GP_STRING:
                 s = va_arg(args.list, GPString);
-                concat(out, (char*)s, gp_str_length(s));
+                GP_PRINT_ADD_RESERVE(gp_length(s));
+                gp_print_concat(out, n, (char*)s, gp_length(s));
                 break;
 
             case GP_PTR:
+                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
                 p = va_arg(args.list, void*);
                 if (p != NULL) {
-                    concat(out, "0x", strlen("0x"));
-                    out->length += pf_xtoa(
-                        capacity_left(*out),
-                        out->data + out->length,
+                    gp_print_concat(out, n, "0x", strlen("0x"));
+                    gp_str_set(out)->length += pf_xtoa(
+                        gp_print_cap_left(*out, n),
+                        (char*)*out + gp_str_set(out)->length,
                         (uintptr_t)p);
                 } else {
-                    concat(out, "(nil)", strlen("(nil)"));
+                    gp_print_concat(out, n, "(nil)", strlen("(nil)"));
                 } break;
         }
-        if (is_println)
-            capacity_sufficed_for_trailing_space = push_char(out, ' ');
+        if (is_println) {
+            GP_PRINT_ADD_RESERVE(1);
+            capacity_sufficed_for_trailing_space = gp_print_push_char(out, n, ' ');
+        }
     }
     va_end(_args);
     va_end(args.list);
-    if (out->capacity > 0) {
-        if (capacity_sufficed_for_trailing_space)
-            out->data[out->length - 1] = '\n';
-        out->data[capacity_left(*out) ? out->length : out->capacity - 1] = '\0';
+    if (n > 0 && capacity_sufficed_for_trailing_space)
+        (*out)[gp_str_set(out)->length - 1].c = '\n';
+
+    if (is_n && gp_length(*out) > n) {
+        size_t result = gp_length(*out);
+        gp_str_set(out)->length = n;
+        return result;
     }
-    return out->length;
+    return gp_length(*out);
 }
 
+
+#if 0
 size_t gp_cstr_codepoint_length(
     const char* str)
 {
@@ -1206,23 +1278,6 @@ size_t gp_cstr_insert_n(
     return dest_length + n;
 }
 
-static size_t cstr_replace_range(
-    const size_t me_length,
-    char*restrict me,
-    const size_t start,
-    const size_t end,
-    const char* replacement,
-    const size_t replacement_length)
-{
-    memmove(
-        me + start + replacement_length,
-        me + end,
-        me_length - end);
-
-    memcpy(me + start, replacement, replacement_length);
-    return me_length + replacement_length - (end - start);
-}
-
 size_t gp_cstr_replace(
     char*restrict haystack,
     const char*restrict needle,
@@ -1243,7 +1298,7 @@ size_t gp_cstr_replace(
     const size_t replacement_length = strlen(replacement);
     const size_t end = start + needle_length;
 
-    const size_t out_length = cstr_replace_range(
+    const size_t out_length = gp_cstr_replace_range(
         haystack_length,
         haystack,
         start,
@@ -1272,7 +1327,7 @@ size_t gp_cstr_replace_all(
     size_t replacement_count = 0;
     while ((start = gp_cstr_find(haystack, needle, start)) != GP_NOT_FOUND)
     {
-        haystack_length = cstr_replace_range(
+        haystack_length = gp_cstr_replace_range(
             haystack_length,
             haystack,
             start,
@@ -1641,7 +1696,7 @@ size_t gp_cstr_to_valid(
     size_t start = 0;
     while ((start = gp_cstr_find_invalid(str, start, length)) != GP_NOT_FOUND)
     {
-        length = cstr_replace_range(
+        length = gp_cstr_replace_range(
             length,
             str,
             start,
