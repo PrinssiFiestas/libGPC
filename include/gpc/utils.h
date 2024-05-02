@@ -31,6 +31,15 @@
 //
 // ----------------------------------------------------------------------------
 
+// Aligment of all pointers returned by any valid allocators
+#ifndef GP_MEMORY_INCLUDED
+#if __STDC_VERSION__ >= 201112L
+#define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
+#else
+#define GP_ALLOC_ALIGNMENT (sizeof(long double))
+#endif
+#endif
+
 bool gp_check_bounds(
     size_t* optional_start_non_inclusive,
     size_t* optional_end_inclusive,
@@ -47,6 +56,11 @@ inline size_t gp_next_power_of_2(size_t x)
     while (result <= x)
         result *= 2;
     return result;
+}
+
+inline size_t gp_round_to_aligned(const size_t x)
+{
+    return x + (GP_ALLOC_ALIGNMENT - 1) - ((x - 1) % GP_ALLOC_ALIGNMENT);
 }
 
 #define gp_min(x, y) gp_generic_min(x, y)

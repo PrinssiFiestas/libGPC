@@ -48,10 +48,10 @@ GP_OVERLOAD2(__VA_ARGS__, \
 #define gp_str_on_stack(optional_allocator, const_capacity, cstr_literal_init) \
     gp_str_on_stack_init(optional_allocator, const_capacity, cstr_literal_init)
 
-GPString gp_str_clear(GPString optional_string);
+GPString gp_str_delete(GPString optional_string);
 #ifndef gp_clear
 #define gp_clear(GPString_me) ( \
-    gp_str_clear((void*)(GPString_me)), \
+    gp_str_delete((void*)(GPString_me)), \
     (void*)"Deallocated at "__FILE__" line "GP_MEM_STRFY(__LINE__) \
 )
 #endif

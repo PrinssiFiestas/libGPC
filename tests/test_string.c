@@ -32,7 +32,7 @@ int main(void)
                 "Extra byte is reserved so gp_cstr() can safely null-terminate.",
                 gp_cstr(str), gp_capacity(str));
 
-            str = gp_str_clear(str); // safe but pointless
+            str = gp_str_delete(str); // safe but pointless
 
             str = gp_str_on_stack(&gp_heap, 1, "");
             const char* cstr = "Allocator provided, extending is safe!";
@@ -40,7 +40,7 @@ int main(void)
             gp_expect(gp_allocation(str),
                 "Now in heap, must free with gp_str_clear() or gp_clear()!");
 
-            gp_expect((str = gp_str_clear(str)) == NULL,
+            gp_expect((str = gp_str_delete(str)) == NULL,
                 "gp_str_clear() always returns NULL and it's a good idea to "
                 "assign it back to str for easier memory bug debugging.");
         }
@@ -54,7 +54,7 @@ int main(void)
             gp_str_reserve(&str, 12);
             gp_expect(gp_capacity(str) > old_capacity);
 
-            str = gp_str_clear(str);
+            str = gp_str_delete(str);
         }
 
         gp_test("somewhere else than stack");
@@ -261,7 +261,7 @@ int main(void)
             char buf[128];
             sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
             gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
-            str = gp_str_clear(str);
+            str = gp_str_delete(str);
         }
 
         gp_test("Strings");

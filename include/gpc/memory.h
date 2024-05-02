@@ -12,6 +12,7 @@
 
 #include "attributes.h"
 #include <stddef.h>
+#include <signal.h>
 
 // ----------------------------------------------------------------------------
 //
@@ -19,11 +20,20 @@
 //
 // ----------------------------------------------------------------------------
 
-/** Memory allocator. */
+// Aligment of all pointers returned by any valid allocators
+#ifndef GP_UTILS_INCLUDED
+#if __STDC_VERSION__ >= 201112L
+#define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
+#else
+#define GP_ALLOC_ALIGNMENT (sizeof(long double))
+#endif
+#endif
+
+//
 typedef struct gp_allocator
 {
-    void* (*const alloc)  (const struct gp_allocator*, size_t block_size);
-    void  (*const dealloc)(const struct gp_allocator*, void*  block);
+    void* (*alloc)  (const struct gp_allocator*, size_t block_size);
+    void* (*dealloc)(const struct gp_allocator*, void*  block);
 } GPAllocator;
 
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
@@ -49,7 +59,7 @@ inline void* gp_mem_dealloc(
     void* block)
 {
     if (block != NULL)
-        allocator->dealloc(allocator, block);
+        return allocator->dealloc(allocator, block);
     return NULL;
 }
 
@@ -76,30 +86,48 @@ inline void* gp_mem_realloc(
 
 #define gp_dealloc(allocator, block) ( \
     gp_mem_dealloc((GPAllocator*)(allocator), (block)), \
-    (void*)"Deallocated at "__FILE__" line "GP_MEM_STRFY(__LINE__) \
+    (void*) #block" deallocated at "__FILE__" line "GP_MEM_STRFY(__LINE__) \
 )
 
-#define gp_realloc(allocator, ptrptr, old_capacity, new_capacity) \
-    (*(ptrptr) = gp_mem_realloc( \
+#define gp_realloc(allocator, block, old_capacity, new_capacity) \
+    gp_mem_realloc( \
         allocator, \
-        (*ptrptr), \
-        sizeof(**(ptrptr)) * (old_capacity), \
-        sizeof(**(ptrptr)) * (new_capacity)))
+        block, \
+        old_capacity, \
+        new_capacity)
 
 // ----------------------------------------------------------------------------
 
+#ifdef NDEBUG
+const
+#endif // else heap allocator can be overridden for debugging
 /** malloc() based allocator. */
-extern const GPAllocator gp_heap;
+extern GPAllocator gp_heap;
 
 /** Tries to set breakpoint and crashes on allocations. */
 extern const GPAllocator gp_crash_on_alloc;
 
 // ----------------------------------------------------------------------------
 
-typedef struct GPArena GPArena;
+typedef struct gp_arena
+{
+    GPAllocator allocator;
+    double growth_coefficient;
+    struct gp_arena_node* head;
+} GPArena;
 
-GPArena* gp_mem_arena(size_t capacity);
-void gp_mem_free_arena(GPArena*);
+GPArena gp_arena_new(size_t capacity, double growth_coefficient) GP_NODISCARD;
+void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS(1);
+void gp_arena_delete(GPArena*);
+
+// ----------------------------------------------------------------------------
+
+extern GP_THREAD_LOCAL GPAllocator* gp_scope;
+extern GP_THREAD_LOCAL GPAllocator* gp_scope_back;
+void* gp_begin(void) GP_NODISCARD;
+void  gp_end(void* return_value_of_gp_begin);
+
+extern sig_atomic_t gp_scope_init_capacity;
 
 // ----------------------------------------------------------------------------
 //

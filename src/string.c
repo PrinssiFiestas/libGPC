@@ -54,7 +54,7 @@ GPString gp_str_build(
     return memcpy(buf + sizeof header, init, header.length + 1);
 }
 
-GPString gp_str_clear(GPString me)
+GPString gp_str_delete(GPString me)
 {
     if (me == NULL)
         return NULL;

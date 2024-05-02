@@ -29,15 +29,15 @@ TESTS = $(patsubst tests/test_%.c,build/test_%$(EXE_EXT),$(wildcard tests/test_*
 
 all: release
 
-release: CFLAGS += -O3
+release: CFLAGS += -O3 -DNDEBUG
 release: build/libgpc.a
 
-debug: CFLAGS += -ggdb3 -DGP_DEBUG
+debug: CFLAGS += -ggdb3
 debug: CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 debug: build/libgpcd.a
 
 analyze: CFLAGS += -fanalyzer
-analyze: tests
+analyze: build_tests
 
 build/libgpc.a: $(OBJS)
 	ar -rcs $@ $^
@@ -56,7 +56,7 @@ $(DEBUG_OBJS): build/%d.o : src/%.c
 -include $(OBJS:.o=.d)
 -include $(DEBUG_OBJS:.o=.d)
 
-build_tests: CFLAGS += -DGP_TESTS -ggdb3 -DGP_DEBUG
+build_tests: CFLAGS += -DGP_TESTS -ggdb3
 build_tests: CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 build_tests: $(TESTS)
 $(TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(DEBUG_OBJS)
