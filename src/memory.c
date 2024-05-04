@@ -64,6 +64,7 @@ const GPAllocator gp_crash_on_alloc = {
 
 // ----------------------------------------------------------------------------
 
+//
 typedef struct gp_arena_node
 {
     size_t capacity;
@@ -116,7 +117,7 @@ static bool gp_in_this_node(GPArenaNode* node, void* _pos)
 {
     uint8_t* pos = _pos;
     uint8_t* block_start = (uint8_t*)(node + 1);
-    return block_start <= pos && pos < block_start + node->capacity;
+    return block_start <= pos && pos <= block_start + node->capacity;
 }
 
 void gp_arena_rewind(GPArena* arena, void* new_pos)
@@ -130,8 +131,6 @@ void gp_arena_rewind(GPArena* arena, void* new_pos)
         arena->head->position = arena->head + 1;
         return;
     }
-
-    // TODO in debug mode maybe it's a good idea to validate new_pos?
 
     while ( ! gp_in_this_node(arena->head, new_pos)) {
         GPArenaNode* old_head = arena->head;
@@ -149,4 +148,53 @@ void gp_arena_delete(GPArena* arena)
         gp_mem_dealloc(&gp_heap, old_head);
     }
     *arena = (GPArena){0};
+}
+
+// ----------------------------------------------------------------------------
+// Scope allocator
+
+static GP_THREAD_LOCAL GPArena  gp_scope_factory     = {0};
+static GP_THREAD_LOCAL uint64_t gp_total_scope_sizes =  0 ;
+static GP_THREAD_LOCAL size_t   gp_total_scope_count =  0 ;
+
+static void* gp_scope_alloc(const GPAllocator* scope, size_t size)
+{
+    gp_total_scope_sizes += size;
+    return gp_arena_alloc(scope, size);
+}
+
+#ifdef __GNUC__
+#define GP_UNLIKELY(COND) __builtin_expect(!!(COND), 0)
+#else
+#define GP_UNLIKELY(COND) (COND)
+#endif
+
+#ifndef GP_MAX_SCOPE_DEPTH // exceeding this will cause a memory leak
+#define GP_MAX_SCOPE_DEPTH 1024 // * sizeof(GPArena) == 32 KB per thread
+#endif
+
+GPAllocator* gp_begin(const size_t _size)
+{
+    if (GP_UNLIKELY(gp_scope_factory.head == NULL))
+        gp_scope_factory = gp_arena_new(GP_MAX_SCOPE_DEPTH * sizeof(GPArena), 1.0);
+
+    gp_total_scope_count++;
+    const size_t average_scope_size = gp_total_scope_sizes/gp_total_scope_count;
+    const size_t size = _size == 0 ?
+        gp_max(2 * average_scope_size, (size_t)1024) : _size;
+
+    GPArena* scope = gp_mem_alloc((GPAllocator*)&gp_scope_factory, sizeof*scope);
+    *scope = gp_arena_new(size, 1.0);
+    scope->allocator.alloc = gp_scope_alloc;
+    return (GPAllocator*)scope;
+}
+
+void gp_end(GPAllocator* scope)
+{
+    GPArenaNode* head = gp_scope_factory.head;
+    for (GPArena* unallocd_scope = (GPArena*)scope;
+        unallocd_scope < (GPArena*)(head->position); unallocd_scope++) {
+        gp_arena_delete(unallocd_scope);
+    }
+    gp_arena_rewind(&gp_scope_factory, scope);
 }

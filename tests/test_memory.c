@@ -46,4 +46,38 @@ int main(void)
     gp_expect(_arena.head->position == short_str,
         "short_str was the first allocation.");
     gp_arena_delete(arena);
+
+    // ------------------------------------------------------------------------
+    // Scope allocator
+
+    char* s0 = NULL;
+    char* s1 = NULL;
+    char* s2 = NULL;
+    {
+        GPAllocator* scope0 = gp_begin(0);
+        s0 = gp_alloc(scope0, *s0, 32);
+        strcpy(s0, "outer");
+        {
+            GPAllocator* scope1 = gp_begin(0);
+            s1 = gp_alloc(scope1, *s1, 32);
+            strcpy(s1, "mid");
+            {
+                GPAllocator* scope2 = gp_begin(0);
+                s2 = gp_alloc(scope2, *s2, 32);
+                strcpy(s2, "inner");
+                puts(s0);
+                puts(s1);
+                puts(s2);
+                gp_end(scope2); // gp_end(scope1) and gp_end(scop0) frees this too
+            }
+            puts(s0);
+            puts(s1);
+            // puts(s2); // freed!
+            gp_end(scope1); // gp_end(scope0) frees this too
+        }
+        puts(s0);
+        // puts(s1); // freed!
+        gp_end(scope0);
+    }
+    // puts(s0); // freed!
 }

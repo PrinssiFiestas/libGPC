@@ -122,12 +122,8 @@ void gp_arena_delete(GPArena*);
 
 // ----------------------------------------------------------------------------
 
-extern GP_THREAD_LOCAL GPAllocator* gp_scope;
-extern GP_THREAD_LOCAL GPAllocator* gp_scope_back;
-void* gp_begin(void) GP_NODISCARD;
-void  gp_end(void* return_value_of_gp_begin);
-
-extern sig_atomic_t gp_scope_init_capacity;
+GPAllocator* gp_begin(size_t) GP_NODISCARD GP_NONNULL_RETURN;
+void         gp_end(GPAllocator*) GP_NONNULL_ARGS();
 
 // ----------------------------------------------------------------------------
 //
