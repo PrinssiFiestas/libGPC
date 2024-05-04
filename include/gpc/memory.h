@@ -125,6 +125,15 @@ void gp_arena_delete(GPArena*);
 GPAllocator* gp_begin(size_t) GP_NODISCARD GP_NONNULL_RETURN;
 void         gp_end(GPAllocator*) GP_NONNULL_ARGS();
 
+// Defining GP_MAX_SCOPE_DEPTH allows setting the limit for maximum nested
+// scope depth per thread. Exceeding this value will result in a memory leak.
+// A large value makes this less likely but uses more memory per thread. The
+// default value is 1024 which is very conservative and most likely overkill.
+// 1024*sizeof(GPArena) == 32KB in 64 bit systems.
+// Use this at the end of the your program to estimate a better value for
+// GP_MAX_SCOPE_DEPTH.
+size_t gp_get_max_scope_depth(void);
+
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE

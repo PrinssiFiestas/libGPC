@@ -10,6 +10,8 @@
 
 int main(void)
 {
+    gp_test("Memory");
+
     GPArena _arena = gp_arena_new(16, 2.);
     void* arena = &_arena; // get rid of ugly casts
     char* short_str = gp_alloc(arena, *short_str, strlen("Hi") + 1);
@@ -80,4 +82,6 @@ int main(void)
         gp_end(scope0);
     }
     // puts(s0); // freed!
+
+    gp_expect(gp_get_max_scope_depth() == 3, gp_get_max_scope_depth());
 }

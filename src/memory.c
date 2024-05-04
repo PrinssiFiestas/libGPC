@@ -81,9 +81,8 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
     void* block = head->position;
     if ((uint8_t*)block + size > (uint8_t*)(head + 1) + head->capacity)
     { // out of memory, create new arena
-        const size_t new_cap = arena->growth_coefficient * head->capacity;
-        GPArenaNode* new_node = gp_mem_alloc(&gp_heap,
-            sizeof(GPArenaNode) + gp_max(new_cap, size));
+        const size_t new_cap = gp_max(size, arena->growth_coefficient * head->capacity);
+        GPArenaNode* new_node = gp_mem_alloc(&gp_heap, sizeof(GPArenaNode) + new_cap);
         new_node->capacity = new_cap;
         new_node->tail     = head;
 
@@ -189,12 +188,23 @@ GPAllocator* gp_begin(const size_t _size)
     return (GPAllocator*)scope;
 }
 
+static sig_atomic_t gp_max_scope_depth = 0;
+
 void gp_end(GPAllocator* scope)
 {
-    GPArenaNode* head = gp_scope_factory.head;
+    const size_t depth =
+        ((uintptr_t)(gp_scope_factory.head->position) -
+         (uintptr_t)(gp_scope_factory.head + 1      )  ) / sizeof(GPArena);
+    gp_max_scope_depth = gp_max((size_t)gp_max_scope_depth, depth);
+
     for (GPArena* unallocd_scope = (GPArena*)scope;
-        unallocd_scope < (GPArena*)(head->position); unallocd_scope++) {
+        unallocd_scope < (GPArena*)(gp_scope_factory.head->position); unallocd_scope++) {
         gp_arena_delete(unallocd_scope);
     }
     gp_arena_rewind(&gp_scope_factory, scope);
+}
+
+size_t gp_get_max_scope_depth(void)
+{
+    return gp_max_scope_depth;
 }
