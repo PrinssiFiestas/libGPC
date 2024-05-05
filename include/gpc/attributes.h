@@ -9,28 +9,40 @@
 // Nodiscard
 
 #ifdef __GNUC__
-// Emit warning if return value is discarded.
 #define GP_NODISCARD __attribute__((__warn_unused_result__))
 #elif defined(_MSC_VER)
-// Emit warning if return value is discarded.
 #define GP_NODISCARD _Check_return_
 #else
-// Please, don't discard return value.
 #define GP_NODISCARD
 #endif
 
 // ----------------------------------------------------------------------------
 // Nonnull
 
-#if defined(__GNUC__)
+#ifdef __GNUC__
 #define GP_NONNULL_ARGS(...) __attribute__((nonnull __VA_OPT__((__VA_ARGS__))))
 #define GP_NONNULL_RETURN    __attribute__((returns_nonnull))
 #define GP_NONNULL_ARGS_AND_RETURN \
     __attribute__((nonnull)) __attribute__((returns_nonnull))
+#elif defined(_MSC_VER)
+#define GP_NONNULL_ARGS(...)
+#define GP_NONNULL_RETURN _Ret_notnull_
+#define GP_NONNULL_ARGS_AND_RETURN _Ret_notnull_
 #else
 #define GP_NONNULL_ARGS(...)
 #define GP_NONNULL_RETURN
 #define GP_NONNULL_ARGS_AND_RETURN
+#endif
+
+// ----------------------------------------------------------------------------
+// Malloc-like functions
+
+// https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html
+
+#ifdef __GNUC__
+#define GP_MALLOC_SIZE(...) __attribute__((alloc_size (__VA_ARGS__)))
+#else
+#define GP_MALLOC_SIZE(...)
 #endif
 
 // ----------------------------------------------------------------------------

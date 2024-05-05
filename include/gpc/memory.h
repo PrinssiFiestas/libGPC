@@ -36,7 +36,7 @@ typedef struct gp_allocator
     void* (*dealloc)(const struct gp_allocator*, void*  block);
 } GPAllocator;
 
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_MALLOC_SIZE(2)
 inline void* gp_mem_alloc(
     const GPAllocator* allocator,
     size_t size)
@@ -44,7 +44,7 @@ inline void* gp_mem_alloc(
     return allocator->alloc(allocator, size);
 }
 
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_MALLOC_SIZE(2)
 inline void* gp_mem_alloc_zeroes(
     const GPAllocator* allocator,
     size_t size)
@@ -110,19 +110,15 @@ extern const GPAllocator gp_crash_on_alloc;
 
 // ----------------------------------------------------------------------------
 
-typedef struct gp_arena
-{
-    GPAllocator allocator;
-    double growth_coefficient;
-    struct gp_arena_node* head;
-} GPArena;
-
+//
+typedef struct gp_arena GPArena;
 GPArena gp_arena_new(size_t capacity, double growth_coefficient) GP_NODISCARD;
-void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS(1);
 void gp_arena_delete(GPArena*);
+void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS(1);
 
 // ----------------------------------------------------------------------------
 
+//
 GPAllocator* gp_begin(size_t) GP_NODISCARD GP_NONNULL_RETURN;
 void         gp_end(GPAllocator*) GP_NONNULL_ARGS();
 
@@ -132,7 +128,7 @@ void         gp_end(GPAllocator*) GP_NONNULL_ARGS();
 // default value is 1024 which is very conservative and most likely overkill.
 // 1024*sizeof(GPArena) == 32KB in 64 bit systems.
 // Use this at the end of the your program to estimate a better value for
-// GP_MAX_SCOPE_DEPTH.
+// GP_MAX_SCOPE_DEPTH if memory usage is a concern.
 size_t gp_get_max_scope_depth(void);
 
 // ----------------------------------------------------------------------------
@@ -142,6 +138,14 @@ size_t gp_get_max_scope_depth(void);
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+
+//
+struct gp_arena
+{
+    GPAllocator allocator;
+    double growth_coefficient;
+    struct gp_arena_node* head;
+};
 
 #define GP_MEM_STRFY(A) #A
 

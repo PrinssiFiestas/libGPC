@@ -198,18 +198,18 @@ GPAllocator* gp_begin(const size_t _size)
 {
     gp_thread_once(&gp_scope_factory_key_once, gp_make_scope_factory_key);
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    if (GP_UNLIKELY(scope_factory == NULL))
+    if (GP_UNLIKELY(scope_factory == NULL)) // initialize scope factory
     {
         GPArena scope_factory_data = gp_arena_new(
             (GP_MAX_SCOPE_DEPTH + 1/*self*/) * sizeof(GPArena), 1.);
 
-        // Extend _scope_factory lifetime by storing it to itself
+        // Extend lifetime
         GPArena* scope_factory_mem = gp_arena_alloc(
-            (GPAllocator*)&scope_factory_data, sizeof(scope_factory_data));
+            (GPAllocator*)&scope_factory_data, sizeof scope_factory_data);
         *scope_factory_mem = scope_factory_data;
-        gp_thread_local_set(gp_scope_factory_key, scope_factory_mem);
 
         scope_factory = scope_factory_mem;
+        gp_thread_local_set(gp_scope_factory_key, scope_factory);
     }
     if (gp_total_scope_sizes != SIG_ATOMIC_MAX)
         gp_total_scope_count++;
