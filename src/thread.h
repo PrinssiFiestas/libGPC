@@ -18,7 +18,7 @@
 #define GP_THREAD_LOCAL
 #endif
 
-#if __STDC_VERSION__ >= 2011L && !defined(__STDC_NO_THREADS__) && 1
+#if __STDC_VERSION__ >= 2011L && !defined(__STDC_NO_THREADS__)
 
 #include <threads.h>
 

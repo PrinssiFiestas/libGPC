@@ -4,6 +4,7 @@
 
 #include <gpc/assert.h>
 #include "../src/memory.c"
+#include <threads.h>
 
 // Not many assertions here, address sanitizer does half of the work, manual
 // debugging does the other half.

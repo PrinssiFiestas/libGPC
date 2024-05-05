@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef GP_TESTS
+#include <gpc/assert.h>
+#endif
 
 extern inline void* gp_mem_alloc       (const GPAllocator*,size_t);
 extern inline void* gp_mem_alloc_zeroes(const GPAllocator*,size_t);
@@ -150,19 +153,23 @@ void gp_arena_delete(GPArena* arena)
         arena->head = arena->head->tail;
         gp_mem_dealloc(&gp_heap, old_head);
     }
-    *arena = (GPArena){0};
 }
 
 // ----------------------------------------------------------------------------
 // Scope allocator
 
-static GP_THREAD_LOCAL GPArena gp_scope_factory = {0};
 static GPThreadKey  gp_scope_factory_key;
 static GPThreadOnce gp_scope_factory_key_once = GP_THREAD_ONCE_INIT;
-static void gp_arena_delete_void(void* arena) { gp_arena_delete(arena); }
-static void gp_make_scope_factory_key(void) {
-    gp_thread_key_create(&gp_scope_factory_key, gp_arena_delete_void);
+
+static void gp_delete_scope_factory(void* factory)
+{
+    gp_mem_dealloc(&gp_heap, ((GPArena*)factory)->head);
 }
+static void gp_make_scope_factory_key(void)
+{
+    gp_thread_key_create(&gp_scope_factory_key, gp_delete_scope_factory);
+}
+
 static sig_atomic_t gp_total_scope_sizes = 0;
 static sig_atomic_t gp_total_scope_count = 0;
 static sig_atomic_t gp_max_scope_depth   = 0;
@@ -173,6 +180,7 @@ static void* gp_scope_alloc(const GPAllocator* scope, size_t size)
         gp_total_scope_sizes += size;
     else
         gp_total_scope_sizes = SIG_ATOMIC_MAX;
+
     return gp_arena_alloc(scope, size);
 }
 
@@ -190,9 +198,18 @@ GPAllocator* gp_begin(const size_t _size)
 {
     gp_thread_once(&gp_scope_factory_key_once, gp_make_scope_factory_key);
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    if (GP_UNLIKELY(scope_factory == NULL)) {
-        gp_scope_factory = gp_arena_new(GP_MAX_SCOPE_DEPTH * sizeof(GPArena), 1.);
-        gp_thread_local_set(gp_scope_factory_key, &gp_scope_factory);
+    if (GP_UNLIKELY(scope_factory == NULL))
+    {
+        GPArena scope_factory_data = gp_arena_new(
+            (GP_MAX_SCOPE_DEPTH + 1/*self*/) * sizeof(GPArena), 1.);
+
+        // Extend _scope_factory lifetime by storing it to itself
+        GPArena* scope_factory_mem = gp_arena_alloc(
+            (GPAllocator*)&scope_factory_data, sizeof(scope_factory_data));
+        *scope_factory_mem = scope_factory_data;
+        gp_thread_local_set(gp_scope_factory_key, scope_factory_mem);
+
+        scope_factory = scope_factory_mem;
     }
     if (gp_total_scope_sizes != SIG_ATOMIC_MAX)
         gp_total_scope_count++;
@@ -200,7 +217,7 @@ GPAllocator* gp_begin(const size_t _size)
     const size_t size = _size == 0 ?
         gp_max(2 * average_scope_size, (size_t)1024) : _size;
 
-    GPArena* scope = gp_mem_alloc((GPAllocator*)&gp_scope_factory, sizeof*scope);
+    GPArena* scope = gp_arena_alloc((GPAllocator*)scope_factory, sizeof*scope);
     *scope = gp_arena_new(size, 1.0);
     scope->allocator.alloc = gp_scope_alloc;
     return (GPAllocator*)scope;
@@ -208,16 +225,20 @@ GPAllocator* gp_begin(const size_t _size)
 
 void gp_end(GPAllocator* scope)
 {
+    GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
+    #ifdef GP_TESTS
+    gp_assert(scope_factory != NULL, "Should've been initialized by gp_begin()");
+    #endif
     const size_t depth =
-        ((uintptr_t)(gp_scope_factory.head->position) -
-         (uintptr_t)(gp_scope_factory.head + 1      )  ) / sizeof(GPArena);
+        (((uintptr_t)(scope_factory->head->position) -
+          (uintptr_t)(scope_factory->head + 1      ) ) / sizeof(GPArena)) - 1/*factory*/;
     gp_max_scope_depth = gp_max((size_t)gp_max_scope_depth, depth);
 
     for (GPArena* unallocd_scope = (GPArena*)scope;
-        unallocd_scope < (GPArena*)(gp_scope_factory.head->position); unallocd_scope++) {
+        unallocd_scope < (GPArena*)(scope_factory->head->position); unallocd_scope++) {
         gp_arena_delete(unallocd_scope);
     }
-    gp_arena_rewind(&gp_scope_factory, scope);
+    gp_arena_rewind(scope_factory, scope);
 }
 
 size_t gp_get_max_scope_depth(void)
