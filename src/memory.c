@@ -7,9 +7,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+// #if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
 #include <threads.h>
-#endif
+// #else
+#include <pthread.h>
+// #endif
 
 extern inline void* gp_mem_alloc       (const GPAllocator*,size_t);
 extern inline void* gp_mem_alloc_zeroes(const GPAllocator*,size_t);
@@ -158,7 +160,13 @@ void gp_arena_delete(GPArena* arena)
 // ----------------------------------------------------------------------------
 // Scope allocator
 
-static GP_THREAD_LOCAL GPArena  gp_scope_factory     = {0};
+static GP_THREAD_LOCAL GPArena gp_scope_factory = {0};
+static pthread_key_t  gp_scope_factory_key;
+static pthread_once_t gp_scope_factory_key_once = PTHREAD_ONCE_INIT;
+static void gp_arena_delete_void(void* arena) { gp_arena_delete(arena); }
+static void gp_make_scope_factory_key(void) {
+    pthread_key_create(&gp_scope_factory_key, gp_arena_delete_void);
+}
 
 // TODO make these sig_atomic_t
 static GP_THREAD_LOCAL uint64_t gp_total_scope_sizes =  0 ;
@@ -182,9 +190,14 @@ static void* gp_scope_alloc(const GPAllocator* scope, size_t size)
 
 GPAllocator* gp_begin(const size_t _size)
 {
-    if (GP_UNLIKELY(gp_scope_factory.head == NULL))
-        gp_scope_factory = gp_arena_new(GP_MAX_SCOPE_DEPTH * sizeof(GPArena), 1.0);
-
+    // if (GP_UNLIKELY(gp_scope_factory.head == NULL))
+    //    gp_scope_factory = gp_arena_new(GP_MAX_SCOPE_DEPTH * sizeof(GPArena), 1.0);
+    pthread_once(&gp_scope_factory_key_once, gp_make_scope_factory_key);
+    GPArena* scope_factory = pthread_getspecific(gp_scope_factory_key);
+    if (GP_UNLIKELY(scope_factory == NULL)) {
+        gp_scope_factory = gp_arena_new(GP_MAX_SCOPE_DEPTH * sizeof(GPArena), 1.);
+        pthread_setspecific(gp_scope_factory_key, &gp_scope_factory);
+    }
     gp_total_scope_count++;
     const size_t average_scope_size = gp_total_scope_sizes/gp_total_scope_count;
     const size_t size = _size == 0 ?
