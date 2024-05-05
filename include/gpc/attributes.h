@@ -20,19 +20,6 @@
 #endif
 
 // ----------------------------------------------------------------------------
-// Thread local
-
-#ifdef _MSC_VER
-#define GP_THREAD_LOCAL __declspec(thread)
-#elif __STDC_VERSION__ >= 201112L
-#define GP_THREAD_LOCAL _Thread_local
-#elif defined(__GNUC__)
-#define GP_THREAD_LOCAL __thread
-#else
-#define GP_THREAD_LOCAL
-#endif
-
-// ----------------------------------------------------------------------------
 // Nonnull
 
 #if defined(__GNUC__)

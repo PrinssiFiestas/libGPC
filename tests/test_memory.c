@@ -109,6 +109,4 @@ int main(void)
 
     thrd_join(t, NULL);
     gp_expect(gp_get_max_scope_depth() == 4, gp_get_max_scope_depth());
-
-    //gp_arena_delete(&gp_scope_factory);
 }

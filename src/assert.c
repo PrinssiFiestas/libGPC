@@ -6,6 +6,7 @@
 #include <gpc/terminal.h>
 #include <gpc/string.h>
 #include <gpc/utils.h>
+#include "thread.h"
 #include <printf/printf.h>
 #include <stddef.h>
 #include <stdio.h>
