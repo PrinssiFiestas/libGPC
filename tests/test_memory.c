@@ -8,6 +8,27 @@
 // Not many assertions here, address sanitizer does half of the work, manual
 // debugging does the other half.
 
+int foo(void*_)
+{
+    (void)_;
+    GPAllocator* a = gp_begin(0);
+    {
+        GPAllocator* b = gp_begin(0);
+        {
+            GPAllocator* c = gp_begin(0);
+            {
+                GPAllocator* d = gp_begin(0);
+                gp_end(d);
+            }
+            gp_end(c);
+        }
+        gp_end(b);
+    }
+    gp_end(a);
+
+    return 0;
+}
+
 int main(void)
 {
     gp_test("Memory");
@@ -52,6 +73,9 @@ int main(void)
     // ------------------------------------------------------------------------
     // Scope allocator
 
+    thrd_t t;
+    thrd_create(&t, foo, NULL);
+
     char* s0 = NULL;
     char* s1 = NULL;
     char* s2 = NULL;
@@ -83,5 +107,6 @@ int main(void)
     }
     // puts(s0); // freed!
 
-    gp_expect(gp_get_max_scope_depth() == 3, gp_get_max_scope_depth());
+    thrd_join(t, NULL);
+    gp_expect(gp_get_max_scope_depth() == 4, gp_get_max_scope_depth());
 }

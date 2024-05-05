@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+#include <threads.h>
+#endif
 
 extern inline void* gp_mem_alloc       (const GPAllocator*,size_t);
 extern inline void* gp_mem_alloc_zeroes(const GPAllocator*,size_t);
@@ -81,8 +84,9 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
     void* block = head->position;
     if ((uint8_t*)block + size > (uint8_t*)(head + 1) + head->capacity)
     { // out of memory, create new arena
-        const size_t new_cap = gp_max(size, arena->growth_coefficient * head->capacity);
-        GPArenaNode* new_node = gp_mem_alloc(&gp_heap, sizeof(GPArenaNode) + new_cap);
+        const size_t new_cap = arena->growth_coefficient * head->capacity;
+        GPArenaNode* new_node = gp_mem_alloc(&gp_heap,
+            sizeof(GPArenaNode) + gp_max(new_cap, size));
         new_node->capacity = new_cap;
         new_node->tail     = head;
 
@@ -141,6 +145,8 @@ void gp_arena_rewind(GPArena* arena, void* new_pos)
 
 void gp_arena_delete(GPArena* arena)
 {
+    if (arena == NULL)
+        return;
     while (arena->head != NULL) {
         GPArenaNode* old_head = arena->head;
         arena->head = arena->head->tail;
@@ -153,6 +159,8 @@ void gp_arena_delete(GPArena* arena)
 // Scope allocator
 
 static GP_THREAD_LOCAL GPArena  gp_scope_factory     = {0};
+
+// TODO make these sig_atomic_t
 static GP_THREAD_LOCAL uint64_t gp_total_scope_sizes =  0 ;
 static GP_THREAD_LOCAL size_t   gp_total_scope_count =  0 ;
 

@@ -98,11 +98,12 @@ inline void* gp_mem_realloc(
 
 // ----------------------------------------------------------------------------
 
+extern
 #ifdef NDEBUG
 const
 #endif // else heap allocator can be overridden for debugging
 /** malloc() based allocator. */
-extern GPAllocator gp_heap;
+GPAllocator gp_heap;
 
 /** Tries to set breakpoint and crashes on allocations. */
 extern const GPAllocator gp_crash_on_alloc;
