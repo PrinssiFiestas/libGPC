@@ -40,6 +40,11 @@
 #endif
 #endif
 
+/** Check and limit upper and lower bounds at once.
+ * @p end will be limited to @p limit and @p start will be limited to @p end and
+ * @p limit.
+ * @return true if arguments are in bounds and @p end > @p start.
+ */
 bool gp_check_bounds(
     size_t* optional_start_non_inclusive,
     size_t* optional_end_inclusive,
@@ -58,7 +63,7 @@ inline size_t gp_next_power_of_2(size_t x)
     return result;
 }
 
-inline size_t gp_round_to_aligned(const size_t x)
+inline uintptr_t gp_round_to_aligned(const uintptr_t x)
 {
     return x + (GP_ALLOC_ALIGNMENT - 1) - ((x - 1) % GP_ALLOC_ALIGNMENT);
 }

@@ -162,7 +162,7 @@ void gp_arena_delete(GPArena* arena)
 typedef struct gp_defer_object
 {
     void (*f)(void*);
-    void* x;
+    void* arg;
 } GPDeferObject;
 
 typedef struct gp_defer_stack
@@ -176,7 +176,7 @@ typedef struct gp_scope
 {
     GPArena arena;
     struct gp_scope* next; // nested scopes
-    //GPDeferStack* defer_stack;
+    GPDeferStack* defer_stack;
 } GPScope;
 
 static GPThreadKey  gp_scope_factory_key;
@@ -186,9 +186,11 @@ static void gp_delete_scope_factory(void*_factory)
 {
     GPArena* factory = _factory;
     GPScope* first_scope = (GPScope*)factory + 1;
-    if (first_scope != (GPScope*)factory->head->position)
-        for (GPScope* s = first_scope; s != NULL; s = s->next)
+    if (first_scope != (GPScope*)factory->head->position) {
+        for (GPScope* s = first_scope; s != NULL; s = s->next) {
             gp_arena_delete((GPArena*)s);
+        }
+    }
     gp_mem_dealloc(&gp_heap, factory->head);
 }
 static void gp_make_scope_factory_key(void)
@@ -209,6 +211,11 @@ static void* gp_scope_alloc(const GPAllocator* scope, size_t size)
 
     return gp_arena_alloc(scope, size);
 }
+
+// Many allocations were optimized to single allocations where a single block
+// hold multiple objects and many loops were eliminated by doing some pointer
+// arithmetic so there is a lot of incomprehensible pointer arithmetic.
+// TODO: Document this insanity.
 
 #ifdef __GNUC__
 #define GP_UNLIKELY(COND) __builtin_expect(!!(COND), 0)
@@ -241,7 +248,6 @@ GPAllocator* gp_begin(const size_t _size)
     const size_t size = _size == 0 ?
         gp_max(2 * average_scope_size, (size_t)1024) : _size;
 
-    // TODO document or refactor this insanity
     GPScope* previous = (GPScope*) ((uint8_t*)(scope_factory->head->position) -
         gp_round_to_aligned(sizeof(GPScope)));
     if (previous == (GPScope*)scope_factory) // no previous scopes
@@ -250,27 +256,57 @@ GPAllocator* gp_begin(const size_t _size)
     GPScope* scope = gp_arena_alloc((GPAllocator*)scope_factory, sizeof*scope);
     *(GPArena*)scope = gp_arena_new(size, 1.0);
     scope->arena.allocator.alloc = gp_scope_alloc;
-    scope->next = NULL;
+    scope->next        = NULL;
+    scope->defer_stack = NULL;
 
     if (previous != NULL)
         previous->next = scope;
     return (GPAllocator*)scope;
 }
 
-void gp_end(GPAllocator* scope)
+void gp_end(GPAllocator*_scope)
 {
+    GPScope* scope = (GPScope*)_scope;
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
     const size_t depth =
         (((uintptr_t)(scope_factory->head->position) -
-          (uintptr_t)(scope_factory->head + 1      ) ) / sizeof(GPScope)) - 1/*factory*/;
+          (uintptr_t)(scope_factory->head + 1      ))
+         / gp_round_to_aligned(sizeof(GPScope))      ) - 1/*factory*/;
     gp_max_scope_depth = gp_max((size_t)gp_max_scope_depth, depth);
 
-    for (GPScope* s = (GPScope*)scope; s != NULL; s = s->next)
+    if (scope->defer_stack != NULL) {
+        for (size_t i = scope->defer_stack->length - 1; i != (size_t)-1; i--) {
+            scope->defer_stack->stack[i].f(scope->defer_stack->stack[i].arg);
+        }
+    }
+    for (GPScope* s = scope; s != NULL; s = s->next)
         gp_arena_delete((GPArena*)s);
     gp_arena_rewind(scope_factory, scope);
 }
 
-size_t gp_get_max_scope_depth(void)
+void gp_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
 {
-    return gp_max_scope_depth;
+    GPScope* scope = (GPScope*)_scope;
+    if (scope->defer_stack == NULL)
+    {
+        const size_t init_cap = 8;
+        scope->defer_stack = gp_arena_alloc((GPAllocator*)scope,
+            sizeof*(scope->defer_stack) + init_cap * sizeof(GPDeferObject));
+
+        scope->defer_stack->length   = 0;
+        scope->defer_stack->capacity = init_cap;
+        scope->defer_stack->stack    = (GPDeferObject*)(scope->defer_stack + 1);
+    }
+    else if (scope->defer_stack->length == scope->defer_stack->capacity)
+    {
+        GPDeferStack* old_stack = scope->defer_stack;
+        scope->defer_stack = gp_arena_alloc((GPAllocator*)scope,
+            scope->defer_stack->capacity * 2 * sizeof(GPDeferObject));
+        memcpy(scope->defer_stack, old_stack, scope->defer_stack->length);
+        scope->defer_stack->capacity *= 2;
+    }
+    scope->defer_stack->stack[scope->defer_stack->length].f   = f;
+    scope->defer_stack->stack[scope->defer_stack->length].arg = arg;
+    scope->defer_stack->length++;
 }
+
