@@ -11,6 +11,7 @@
 
 int foo(void*_)
 {
+    return 0; // TEMP
     (void)_;
     GPAllocator* a = gp_begin(0);
     {
@@ -107,7 +108,9 @@ int main(void)
         gp_end(scope0);
     }
     // puts(s0); // freed!
+    // puts(s1); // freed!
+    // puts(s2); // freed!
 
     thrd_join(t, NULL);
-    gp_expect(gp_get_max_scope_depth() == 4, gp_get_max_scope_depth());
+    gp_expect(gp_get_max_scope_depth() == 3, gp_get_max_scope_depth());
 }

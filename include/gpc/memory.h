@@ -97,6 +97,7 @@ inline void* gp_mem_realloc(
         new_capacity)
 
 // ----------------------------------------------------------------------------
+// Heap allocator
 
 extern
 #ifdef NDEBUG
@@ -105,10 +106,11 @@ const
 /** malloc() based allocator. */
 GPAllocator gp_heap;
 
-/** Tries to set breakpoint and crashes on allocations. */
+/** Tries to set breakpoint and crashes on allocations. */ // TODO delete this
 extern const GPAllocator gp_crash_on_alloc;
 
 // ----------------------------------------------------------------------------
+// Arena allocator
 
 //
 typedef struct gp_arena GPArena;
@@ -117,19 +119,11 @@ void gp_arena_delete(GPArena*);
 void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS(1);
 
 // ----------------------------------------------------------------------------
+// Scope allocator
 
 //
 GPAllocator* gp_begin(size_t) GP_NODISCARD GP_NONNULL_RETURN;
 void         gp_end(GPAllocator*) GP_NONNULL_ARGS();
-
-// Defining GP_MAX_SCOPE_DEPTH allows setting the limit for maximum nested
-// scope depth per thread. Exceeding this value will result in a memory leak.
-// A large value makes this less likely but uses more memory per thread. The
-// default value is 1024 which is very conservative and most likely overkill.
-// 1024*sizeof(GPArena) == 32KB in 64 bit systems.
-// Use this at the end of the your program to estimate a better value for
-// GP_MAX_SCOPE_DEPTH if memory usage is a concern.
-size_t gp_get_max_scope_depth(void);
 
 // ----------------------------------------------------------------------------
 //
@@ -144,7 +138,7 @@ struct gp_arena
 {
     GPAllocator allocator;
     double growth_coefficient;
-    struct gp_arena_node* head;
+    struct gp_arena_node* head; // also contains arenas memory block
 };
 
 #define GP_MEM_STRFY(A) #A

@@ -68,7 +68,8 @@ const GPAllocator gp_crash_on_alloc = {
 
 // ----------------------------------------------------------------------------
 
-//
+// Instances of these live in the beginning of the arenas memory block so the
+// first object is in &node + 1;
 typedef struct gp_arena_node
 {
     size_t capacity;
@@ -124,23 +125,23 @@ static bool gp_in_this_node(GPArenaNode* node, void* _pos)
     return block_start <= pos && pos <= block_start + node->capacity;
 }
 
+static void gp_arena_node_delete(GPArena* arena)
+{
+    GPArenaNode* old_head = arena->head;
+    arena->head = arena->head->tail;
+    gp_mem_dealloc(&gp_heap, old_head);
+}
+
 void gp_arena_rewind(GPArena* arena, void* new_pos)
 {
     if (new_pos == NULL) { // clear arena
-        while (arena->head->tail != NULL) {
-            GPArenaNode* old_head = arena->head;
-            arena->head = arena->head->tail;
-            gp_mem_dealloc(&gp_heap, old_head);
-        }
+        while (arena->head->tail != NULL)
+            gp_arena_node_delete(arena);
         arena->head->position = arena->head + 1;
         return;
     }
-
-    while ( ! gp_in_this_node(arena->head, new_pos)) {
-        GPArenaNode* old_head = arena->head;
-        arena->head = arena->head->tail;
-        gp_mem_dealloc(&gp_heap, old_head);
-    }
+    while ( ! gp_in_this_node(arena->head, new_pos))
+        gp_arena_node_delete(arena);
     arena->head->position = new_pos;
 }
 
@@ -158,12 +159,37 @@ void gp_arena_delete(GPArena* arena)
 // ----------------------------------------------------------------------------
 // Scope allocator
 
+typedef struct gp_defer_object
+{
+    void (*f)(void*);
+    void* x;
+} GPDeferObject;
+
+typedef struct gp_defer_stack
+{
+    GPDeferObject* stack;
+    uint32_t length;
+    uint32_t capacity;
+} GPDeferStack;
+
+typedef struct gp_scope
+{
+    GPArena arena;
+    struct gp_scope* next; // nested scopes
+    //GPDeferStack* defer_stack;
+} GPScope;
+
 static GPThreadKey  gp_scope_factory_key;
 static GPThreadOnce gp_scope_factory_key_once = GP_THREAD_ONCE_INIT;
 
-static void gp_delete_scope_factory(void* factory)
+static void gp_delete_scope_factory(void*_factory)
 {
-    gp_mem_dealloc(&gp_heap, ((GPArena*)factory)->head);
+    GPArena* factory = _factory;
+    GPScope* first_scope = (GPScope*)factory + 1;
+    if (first_scope != (GPScope*)factory->head->position)
+        for (GPScope* s = first_scope; s != NULL; s = s->next)
+            gp_arena_delete((GPArena*)s);
+    gp_mem_dealloc(&gp_heap, factory->head);
 }
 static void gp_make_scope_factory_key(void)
 {
@@ -190,22 +216,20 @@ static void* gp_scope_alloc(const GPAllocator* scope, size_t size)
 #define GP_UNLIKELY(COND) (COND)
 #endif
 
-#ifndef GP_MAX_SCOPE_DEPTH // exceeding this will cause a memory leak
-#define GP_MAX_SCOPE_DEPTH 1024 // * sizeof(GPArena) == 32 KB per thread
-#endif
-
 GPAllocator* gp_begin(const size_t _size)
 {
     gp_thread_once(&gp_scope_factory_key_once, gp_make_scope_factory_key);
+
+    // scope_factory should only allocate GPScope sized objects!
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
     if (GP_UNLIKELY(scope_factory == NULL)) // initialize scope factory
     {
         GPArena scope_factory_data = gp_arena_new(
-            (GP_MAX_SCOPE_DEPTH + 1/*self*/) * sizeof(GPArena), 1.);
+            (64/*TODO better default*/+ 1/*self*/) * sizeof(GPScope), 1.);
 
         // Extend lifetime
         GPArena* scope_factory_mem = gp_arena_alloc(
-            (GPAllocator*)&scope_factory_data, sizeof scope_factory_data);
+            (GPAllocator*)&scope_factory_data, sizeof(GPScope));
         *scope_factory_mem = scope_factory_data;
 
         scope_factory = scope_factory_mem;
@@ -217,27 +241,32 @@ GPAllocator* gp_begin(const size_t _size)
     const size_t size = _size == 0 ?
         gp_max(2 * average_scope_size, (size_t)1024) : _size;
 
-    GPArena* scope = gp_arena_alloc((GPAllocator*)scope_factory, sizeof*scope);
-    *scope = gp_arena_new(size, 1.0);
-    scope->allocator.alloc = gp_scope_alloc;
+    // TODO document or refactor this insanity
+    GPScope* previous = (GPScope*) ((uint8_t*)(scope_factory->head->position) -
+        gp_round_to_aligned(sizeof(GPScope)));
+    if (previous == (GPScope*)scope_factory) // no previous scopes
+        previous = NULL;
+
+    GPScope* scope = gp_arena_alloc((GPAllocator*)scope_factory, sizeof*scope);
+    *(GPArena*)scope = gp_arena_new(size, 1.0);
+    scope->arena.allocator.alloc = gp_scope_alloc;
+    scope->next = NULL;
+
+    if (previous != NULL)
+        previous->next = scope;
     return (GPAllocator*)scope;
 }
 
 void gp_end(GPAllocator* scope)
 {
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    #ifdef GP_TESTS
-    gp_assert(scope_factory != NULL, "Should've been initialized by gp_begin()");
-    #endif
     const size_t depth =
         (((uintptr_t)(scope_factory->head->position) -
-          (uintptr_t)(scope_factory->head + 1      ) ) / sizeof(GPArena)) - 1/*factory*/;
+          (uintptr_t)(scope_factory->head + 1      ) ) / sizeof(GPScope)) - 1/*factory*/;
     gp_max_scope_depth = gp_max((size_t)gp_max_scope_depth, depth);
 
-    for (GPArena* unallocd_scope = (GPArena*)scope;
-        unallocd_scope < (GPArena*)(scope_factory->head->position); unallocd_scope++) {
-        gp_arena_delete(unallocd_scope);
-    }
+    for (GPScope* s = (GPScope*)scope; s != NULL; s = s->next)
+        gp_arena_delete((GPArena*)s);
     gp_arena_rewind(scope_factory, scope);
 }
 
