@@ -112,5 +112,4 @@ int main(void)
     // puts(s2); // freed!
 
     thrd_join(t, NULL);
-    gp_expect(gp_max_scope_depth == 3, gp_max_scope_depth);
 }

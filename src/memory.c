@@ -161,7 +161,7 @@ void gp_arena_delete(GPArena* arena)
 
 typedef struct gp_defer_object
 {
-    void (*f)(void*);
+    void (*f)(void* arg);
     void* arg;
 } GPDeferObject;
 
@@ -198,9 +198,10 @@ static void gp_make_scope_factory_key(void)
     gp_thread_key_create(&gp_scope_factory_key, gp_delete_scope_factory);
 }
 
+// Keeping track of average scope size allows scope allocator to estimate
+// optimal scope arena size when creating scopes.
 static sig_atomic_t gp_total_scope_sizes = 0;
 static sig_atomic_t gp_total_scope_count = 0;
-static sig_atomic_t gp_max_scope_depth   = 0;
 
 static void* gp_scope_alloc(const GPAllocator* scope, size_t size)
 {
@@ -227,12 +228,14 @@ GPAllocator* gp_begin(const size_t _size)
 {
     gp_thread_once(&gp_scope_factory_key_once, gp_make_scope_factory_key);
 
-    // scope_factory should only allocate GPScope sized objects!
+    // scope_factory should only allocate gp_round_to_aligned(sizeof(GPScope))
+    // sized objects for consistent pointer arithmetic.
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
     if (GP_UNLIKELY(scope_factory == NULL)) // initialize scope factory
     {
+        const size_t nested_scopes = 64; // before allocation. TODO better default
         GPArena scope_factory_data = gp_arena_new(
-            (64/*TODO better default*/+ 1/*self*/) * sizeof(GPScope), 1.);
+            (nested_scopes + 1/*self*/) * gp_round_to_aligned(sizeof(GPScope)), 1.);
 
         // Extend lifetime
         GPArena* scope_factory_mem = gp_arena_alloc(
@@ -250,7 +253,7 @@ GPAllocator* gp_begin(const size_t _size)
 
     GPScope* previous = (GPScope*) ((uint8_t*)(scope_factory->head->position) -
         gp_round_to_aligned(sizeof(GPScope)));
-    if (previous == (GPScope*)scope_factory) // no previous scopes
+    if (previous == (GPScope*)scope_factory)
         previous = NULL;
 
     GPScope* scope = gp_arena_alloc((GPAllocator*)scope_factory, sizeof*scope);
@@ -268,11 +271,6 @@ void gp_end(GPAllocator*_scope)
 {
     GPScope* scope = (GPScope*)_scope;
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    const size_t depth =
-        (((uintptr_t)(scope_factory->head->position) -
-          (uintptr_t)(scope_factory->head + 1      ))
-         / gp_round_to_aligned(sizeof(GPScope))      ) - 1/*factory*/;
-    gp_max_scope_depth = gp_max((size_t)gp_max_scope_depth, depth);
 
     if (scope->defer_stack != NULL) {
         for (size_t i = scope->defer_stack->length - 1; i != (size_t)-1; i--) {
