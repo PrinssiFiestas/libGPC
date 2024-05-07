@@ -216,8 +216,15 @@ static void gp_delete_scope_factory(void*_factory)
 
     gp_mem_dealloc(&gp_heap, factory->head);
 }
+
+// Make Valgrind shut up.
+static void gp_delete_main_thread_scope_factory(void)
+{
+    gp_delete_scope_factory(gp_thread_local_get(gp_scope_factory_key));
+}
 static void gp_make_scope_factory_key(void)
 {
+    atexit(gp_delete_main_thread_scope_factory);
     gp_thread_key_create(&gp_scope_factory_key, gp_delete_scope_factory);
 }
 
