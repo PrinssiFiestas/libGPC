@@ -159,6 +159,10 @@ void gp_arena_delete(GPArena* arena)
 // ----------------------------------------------------------------------------
 // Scope allocator
 
+#ifndef GP_DEFAULT_MIN_SCOPE_SIZE
+#define GP_DEFAULT_MIN_SCOPE_SIZE 1024
+#endif
+
 typedef struct gp_defer_object
 {
     void (*f)(void* arg);
@@ -198,25 +202,44 @@ static void gp_make_scope_factory_key(void)
     gp_thread_key_create(&gp_scope_factory_key, gp_delete_scope_factory);
 }
 
+#if __STDC_VERSION__ >= 201112L  && \
+    !defined(__STDC_NO_ATOMICS__) && \
+    ATOMIC_LLONG_LOCK_FREE == 2 // always lock-free
 // Keeping track of average scope size allows scope allocator to estimate
 // optimal scope arena size when creating scopes.
-static sig_atomic_t gp_total_scope_sizes = 0;
-static sig_atomic_t gp_total_scope_count = 0;
+static _Atomic uint64_t gp_total_scope_sizes = 0;
+static _Atomic size_t   gp_total_scope_count = 0;
+static _Atomic size_t   gp_total_allocation_count = 0;
+#define GP_ATOMIC_OP(OP) OP
+#else
+#define GP_ATOMIC_OP(OP)
+#endif
 
-static void* gp_scope_alloc(const GPAllocator* scope, size_t size)
+size_t gp_scope_average_memory_usage(void)
 {
-    if ((uint64_t)gp_total_scope_sizes + size <= (uint64_t)SIG_ATOMIC_MAX)
-        gp_total_scope_sizes += size;
-    else
-        gp_total_scope_sizes = SIG_ATOMIC_MAX;
-
-    return gp_arena_alloc(scope, size);
+    return GP_ATOMIC_OP(gp_total_scope_sizes/gp_total_scope_count) - 0;
 }
 
-// Many allocations were optimized to single allocations where a single block
-// hold multiple objects and many loops were eliminated by doing some pointer
-// arithmetic so there is a lot of incomprehensible pointer arithmetic.
-// TODO: Document this insanity.
+size_t gp_scope_allocation_count(void)
+{
+    return GP_ATOMIC_OP(gp_total_allocation_count);
+}
+
+static void* gp_scope_alloc(const GPAllocator* scope, size_t _size)
+{ // TODO clean this up and
+    const size_t size = gp_round_to_aligned(_size);
+    GP_ATOMIC_OP(gp_total_scope_sizes += size);
+
+    GPArenaNode* head = ((GPArena*)scope)->head;
+
+
+    void* block = head->position;
+    GP_ATOMIC_OP(
+        if ((uint8_t*)block + size > (uint8_t*)(head + 1) + head->capacity)
+            gp_total_allocation_count++; // TODO add this eeverywhere
+    )
+    return gp_arena_alloc(scope, size);
+}
 
 #ifdef __GNUC__
 #define GP_UNLIKELY(COND) __builtin_expect(!!(COND), 0)
@@ -233,7 +256,7 @@ GPAllocator* gp_begin(const size_t _size)
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
     if (GP_UNLIKELY(scope_factory == NULL)) // initialize scope factory
     {
-        const size_t nested_scopes = 64; // before allocation. TODO better default
+        const size_t nested_scopes = 64; // before reallocation
         GPArena scope_factory_data = gp_arena_new(
             (nested_scopes + 1/*self*/) * gp_round_to_aligned(sizeof(GPScope)), 1.);
 
@@ -245,11 +268,10 @@ GPAllocator* gp_begin(const size_t _size)
         scope_factory = scope_factory_mem;
         gp_thread_local_set(gp_scope_factory_key, scope_factory);
     }
-    if (gp_total_scope_sizes != SIG_ATOMIC_MAX)
-        gp_total_scope_count++;
-    const size_t average_scope_size = gp_total_scope_sizes/gp_total_scope_count;
+    GP_ATOMIC_OP(gp_total_scope_count++);
     const size_t size = _size == 0 ?
-        gp_max(2 * average_scope_size, (size_t)1024) : _size;
+        gp_max(2 * gp_scope_average_memory_usage(), (size_t)GP_DEFAULT_MIN_SCOPE_SIZE)
+      : _size;
 
     GPScope* previous = (GPScope*) ((uint8_t*)(scope_factory->head->position) -
         gp_round_to_aligned(sizeof(GPScope)));

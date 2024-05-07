@@ -176,8 +176,8 @@ _Generic(X, \
 #else // Non-GNU C99
 
 // Not ideal but does the job
-#define gp_generic_min(x, y) gp_fmin(x, y)
-#define gp_generic_max(x, y) gp_fmax(x, y)
+#define gp_generic_min(X, Y) ((X) < (Y) ? (X) : (Y))
+#define gp_generic_max(X, Y) ((X) > (Y) ? (X) : (Y))
 
 #endif // gp_min() and gp_max() implementations
 

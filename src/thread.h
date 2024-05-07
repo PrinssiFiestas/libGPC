@@ -7,20 +7,32 @@
 #ifndef GP_THREAD_INCLUDED
 #define GP_THREAD_INCLUDED
 
-// Use this only when thread local storage is desired but not necessary.
-#ifdef _MSC_VER
-#define GP_THREAD_LOCAL __declspec(thread)
-#elif __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
-#define GP_THREAD_LOCAL _Thread_local
-#elif defined(__GNUC__)
-#define GP_THREAD_LOCAL __thread
+#if __STDC_VERSION__ >= 201112L
+#include <threads.h>
+#include <stdatomic.h>
 #else
-#define GP_THREAD_LOCAL
+#include <pthread.h>
 #endif
 
-#if __STDC_VERSION__ >= 2011L && !defined(__STDC_NO_THREADS__)
+// Use this only when thread local storage is desirable but not necessary.
+#ifdef _MSC_VER
+#define GP_MAYBE_THREAD_LOCAL __declspec(thread)
+#elif __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+#define GP_MAYBE_THREAD_LOCAL _Thread_local
+#elif defined(__GNUC__)
+#define GP_MAYBE_THREAD_LOCAL __thread
+#else
+#define GP_MAYBE_THREAD_LOCAL
+#endif
 
-#include <threads.h>
+// Use this only when atomis are desirable but not necessary.
+#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
+#define GP_MAYBE_ATOMIC _Atomic
+#else
+#define GP_MAYBE_ATOMIC
+#endif
+
+#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
 
 typedef tss_t     GPThreadKey;
 typedef once_flag GPThreadOnce;
@@ -43,8 +55,6 @@ static inline void gp_thread_once(GPThreadOnce* flag, void(*init)(void))
 }
 
 #else // standard threads not supported, use POSIX threads
-
-#include <pthread.h>
 
 typedef pthread_key_t  GPThreadKey;
 typedef pthread_once_t GPThreadOnce;

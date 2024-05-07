@@ -12,7 +12,6 @@
 
 #include "attributes.h"
 #include <stddef.h>
-#include <signal.h>
 
 // ----------------------------------------------------------------------------
 //
@@ -122,10 +121,12 @@ void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS(1);
 // Scope allocator
 
 //
-GPAllocator* gp_begin(size_t) GP_NODISCARD GP_NONNULL_RETURN;
+GPAllocator* gp_begin(size_t size) GP_NODISCARD GP_NONNULL_RETURN;
 void         gp_end  (GPAllocator*) GP_NONNULL_ARGS();
 void         gp_defer(GPAllocator* scope, void (*f)(void* arg), void* arg)
     GP_NONNULL_ARGS();
+
+size_t gp_scope_average_memory_usage(void);
 
 // ----------------------------------------------------------------------------
 //

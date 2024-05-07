@@ -14,21 +14,20 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <signal.h>
 
 #ifdef _WIN32
 #include <libloaderapi.h> // GetModuleFileNameA()
 #endif
 
-static GP_THREAD_LOCAL const char* gp_current_test  = NULL;
-static GP_THREAD_LOCAL const char* gp_current_suite = NULL;
-static GP_THREAD_LOCAL bool gp_test_failed  = false;
-static GP_THREAD_LOCAL bool gp_suite_failed = false;
-static sig_atomic_t gp_test_count    = 0;
-static sig_atomic_t gp_suite_count   = 0;
-static sig_atomic_t gp_tests_failed  = 0;
-static sig_atomic_t gp_suites_failed = 0;
-static sig_atomic_t gp_initialized_testing = false;
+static GP_MAYBE_THREAD_LOCAL const char* gp_current_test  = NULL;
+static GP_MAYBE_THREAD_LOCAL const char* gp_current_suite = NULL;
+static GP_MAYBE_THREAD_LOCAL bool gp_test_failed  = false;
+static GP_MAYBE_THREAD_LOCAL bool gp_suite_failed = false;
+static GP_MAYBE_ATOMIC uint32_t gp_test_count    = 0;
+static GP_MAYBE_ATOMIC uint32_t gp_suite_count   = 0;
+static GP_MAYBE_ATOMIC uint32_t gp_tests_failed  = 0;
+static GP_MAYBE_ATOMIC uint32_t gp_suites_failed = 0;
+static GP_MAYBE_ATOMIC uint32_t gp_initialized_testing = false;
 #define GP_FAILED_STR GP_RED          "[FAILED]" GP_RESET_TERMINAL
 #define GP_PASSED_STR GP_BRIGHT_GREEN "[PASSED]" GP_RESET_TERMINAL
 static const char* prog_name = "";
