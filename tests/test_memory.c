@@ -8,26 +8,53 @@
 
 // Not many assertions here, address sanitizer does half of the work, manual
 // debugging does the other half.
+// TODO override heap allocator for proper tests.
 
 int foo(void*_)
 {
-    return 0; // TEMP
     (void)_;
-    GPAllocator* a = gp_begin(0);
+    GPAllocator* scope = gp_begin(0);
     {
-        GPAllocator* b = gp_begin(0);
+        GPAllocator* scope = gp_begin(0);
         {
-            GPAllocator* c = gp_begin(0);
+            GPAllocator* scope = gp_begin(0);
             {
-                GPAllocator* d = gp_begin(0);
-                gp_end(d);
+                GPAllocator* scope = gp_begin(0);
+                gp_end(scope);
             }
-            gp_end(c);
+            gp_end(scope);
         }
-        gp_end(b);
+        gp_end(scope);
     }
-    gp_end(a);
+    gp_end(scope);
 
+    return 0;
+}
+
+void to_defer(void* x)
+{
+    printf("%i\n", (int)(intptr_t)x);
+}
+
+int bar(void*_)
+{
+    (void)_;
+    GPAlc* scope = gp_begin(0);
+    gp_defer(scope, to_defer, (void*)-1);
+    gp_defer(scope, to_defer, (void*) 0);
+    gp_defer(scope, to_defer, (void*) 1);
+    gp_defer(scope, to_defer, (void*)-1);
+    {
+        GPAlc* scope = gp_begin(0);
+        gp_defer(scope, to_defer, (void*)123);
+    }
+    gp_defer(scope, to_defer, (void*) 0);
+    gp_defer(scope, to_defer, (void*) 1);
+    gp_defer(scope, to_defer, (void*)-1);
+    gp_defer(scope, to_defer, (void*) 0);
+    gp_defer(scope, to_defer, (void*) 1);
+
+    // Whoops, forgot to gp_end(). No worries, threads clean up their scopes.
     return 0;
 }
 
@@ -111,5 +138,8 @@ int main(void)
     // puts(s1); // freed!
     // puts(s2); // freed!
 
+    thrd_join(t, NULL);
+
+    thrd_create(&t, bar, NULL);
     thrd_join(t, NULL);
 }

@@ -35,6 +35,9 @@ typedef struct gp_allocator
     void* (*dealloc)(const struct gp_allocator*, void*  block);
 } GPAllocator;
 
+// You'll be using this a lot
+typedef GPAllocator GPAlc;
+
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_MALLOC_SIZE(2)
 inline void* gp_mem_alloc(
     const GPAllocator* allocator,
@@ -124,9 +127,7 @@ void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS(1);
 GPAllocator* gp_begin(size_t size) GP_NODISCARD GP_NONNULL_RETURN;
 void         gp_end  (GPAllocator*) GP_NONNULL_ARGS();
 void         gp_defer(GPAllocator* scope, void (*f)(void* arg), void* arg)
-    GP_NONNULL_ARGS();
-
-size_t gp_scope_average_memory_usage(void);
+    GP_NONNULL_ARGS(1, 2);
 
 // ----------------------------------------------------------------------------
 //
