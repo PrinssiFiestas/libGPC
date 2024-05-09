@@ -159,8 +159,8 @@ void gp_arena_delete(GPArena* arena)
 // ----------------------------------------------------------------------------
 // Scope allocator
 
-#ifndef GP_DEFAULT_MIN_SCOPE_SIZE
-#define GP_DEFAULT_MIN_SCOPE_SIZE 1024
+#ifndef GP_MIN_DEFAULT_SCOPE_SIZE
+#define GP_MIN_DEFAULT_SCOPE_SIZE 1024
 #endif
 
 typedef struct gp_defer_object
@@ -282,7 +282,7 @@ GPAllocator* gp_begin(const size_t _size)
     }
     GP_ATOMIC_OP(gp_total_scope_count++);
     const size_t size = _size == 0 ?
-        gp_max(2 * gp_scope_average_memory_usage(), (size_t)GP_DEFAULT_MIN_SCOPE_SIZE)
+        gp_max(2 * gp_scope_average_memory_usage(), (size_t)GP_MIN_DEFAULT_SCOPE_SIZE)
       : _size;
 
     GPScope* previous = gp_last_scope(scope_factory);

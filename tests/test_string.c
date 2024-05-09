@@ -329,14 +329,98 @@ int main(void)
         }
     }
 
-
-    // --------------------------------------
-    //
-    //
-    //
-
-    gp_suite("C validate");
+    gp_suite("Trim");
     {
+        gp_test("ASCII");
+        {
+            GPString str = gp_str_on_stack(NULL, 128, "  \t\f \nLeft Ascii  ");
+            gp_str_trim(&str, NULL, 'l' | 'a');
+            gp_expect(gp_str_equal(str, "Left Ascii  ", strlen("Left Ascii  ")));
+
+            const char* cstr = " AA RightSAICASIACSIACIAS";
+            gp_str_copy(&str, cstr, strlen(cstr));
+            gp_str_trim(&str, "ASCII", 'r' | 'a');
+            gp_expect(gp_str_equal(str, " AA Right", strlen(" AA Right")));
+
+            cstr = "  __Left and Right__  ";
+            gp_str_copy(&str, cstr, strlen(cstr));
+            gp_str_trim(&str, GP_ASCII_WHITESPACE "_", 'l' | 'r' | 'a');
+            gp_expect(gp_str_equal(str, "Left and Right", strlen( "Left and Right")), str);
+        }
+        gp_test("UTF-8");
+        {
+            GPString str = gp_str_on_stack(NULL, 128, "¡¡¡Left!!!");
+            gp_str_trim(&str, "¡", 'l');
+            gp_expect(gp_str_equal(str, "Left!!!", strlen("Left!!!")), str);
+
+            gp_str_copy(&str, " Right\r\u200A\r\n", strlen(" Right\r\u200A\r\n"));
+            gp_str_trim(&str, NULL, 'r');
+            gp_expect(gp_str_equal(str, " Right", strlen(" Right")), str);
+
+            gp_str_copy(&str, "\t\u3000 ¡¡Left and Right!! \n", strlen("\t\u3000 ¡¡Left and Right!! \n"));
+            gp_str_trim(&str, GP_WHITESPACE "¡!", 'l' | 'r');
+            gp_expect(gp_str_equal(str, "Left and Right", strlen("Left and Right")));
+        }
+    }
+
+    gp_suite("To upper/lower");
+    {
+        gp_test("Finnish");
+        {
+            gp_assert(setlocale(LC_ALL, "C.utf8"));
+
+            GPString str = gp_str_on_stack(NULL, 64, "blääf");
+            gp_str_to_upper(&str);
+            gp_expect(gp_str_equal(str, "BLÄÄF", strlen("BLÄÄF")), str);
+            gp_str_to_lower(&str);
+            gp_expect(gp_str_equal(str, "blääf", strlen("blääf")));
+        }
+
+        if (setlocale(LC_ALL, "tr_TR.utf8") != NULL)
+        {
+            gp_test("Turkish"); // Note how ı changes to ASCII and back
+            {
+                GPString str = gp_str_on_stack(NULL, 128, "yaşar bayrı");
+                gp_str_to_upper(&str);
+                gp_expect(gp_str_equal(str, "YAŞAR BAYRI", strlen("YAŞAR BAYRI")), (str));
+                gp_str_to_lower(&str);
+                gp_expect(gp_str_equal(str, "yaşar bayrı", strlen("yaşar bayrı")));
+            }
+        } // else Turkish language pack not installed.
+    }
+
+    gp_suite("Case insensitive comparison");
+    {
+        GPString str1 = gp_str_on_stack(NULL, 64, "hrnec");
+        GPString str2 = gp_str_on_stack(NULL, 64, "chrt");
+
+        if (setlocale(LC_ALL, "en_US.utf8") != NULL)
+        { gp_test("American locale");
+            gp_expect(gp_str_case_compare(str1, str2) > 0);
+        }
+
+        if (setlocale(LC_COLLATE, "cs_CZ.utf8") != NULL)
+        { gp_test("Czech lcoale");
+            gp_expect(gp_str_case_compare(str1, str2) < 0);
+        }
+
+        gp_str_copy(&str1, "år",    strlen("år"));
+        gp_str_copy(&str1, "ängel", strlen("ängel"));
+        if (setlocale(LC_COLLATE, "en_US.utf8") != NULL)
+        { gp_test("American locale å");
+            gp_expect(gp_str_case_compare(str1, str2) < 0);
+        }
+
+        if (setlocale(LC_COLLATE, "sv_SE.utf8") != NULL)
+        { gp_test("Swedish locale å");
+            gp_expect(gp_str_case_compare(str1, str2) > 0);
+        }
+    }
+
+    gp_suite("Validate");
+    {
+        GPString str = gp_str_new(&gp_heap, 32, "");
+
         gp_test("Valids");
         {
             const char *goodsequences[] = {
@@ -349,7 +433,10 @@ int main(void)
                 "\xee\x80\x80",
                 "\xef\xbb\xbf"};
             for (size_t i = 0; i < sizeof(goodsequences)/sizeof(goodsequences[0]); i++)
-                gp_expect(gp_cstr_is_valid(goodsequences[i]), i);
+            {
+                gp_str_copy(&str, goodsequences[i], strlen(goodsequences[i]));
+                gp_expect(gp_str_is_valid(str), i);
+            }
         }
         char *badsequences[] = {
             (char[]){"\xc3\x28"},
@@ -384,7 +471,10 @@ int main(void)
         gp_test("Invalids");
         {
             for (size_t i = 0; i < sizeof(badsequences)/sizeof(badsequences[0]); i++)
-                gp_expect( ! gp_cstr_is_valid(badsequences[i]), i);
+            {
+                gp_str_copy(&str, badsequences[i], strlen(badsequences[i]));
+                gp_expect( ! gp_str_is_valid(str), i);
+            }
         }
 
         gp_test("Make valid");
@@ -419,77 +509,15 @@ int main(void)
                 "\x25\x5b\x6e\x2c\x32\x2c\x5b\x5b\x33\x2c\x34\x2c\x5\x29\x2c\x33\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5d\x2c\x35\x2e\x33\x2c\x39\x2e\x33\x2c\x37\x2e\x33\x2c\x39\x2e\x34\x2c\x37\x2e\x33\x2c\x39\x2e\x33\x2c\x37\x2e\x33\x2c\x39\x2e\x34\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x20\x1\x1\x1\x1\x1\x2\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x23\xa\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x7e\x7e\xa\xa\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5d\x2c\x37\x2e\x33\x2c\x39\x2e\x33\x2c\x37\x2e\x33\x2c\x39\x2e\x34\x2c\x37\x2e\x33\x2c\x39\x2e\x33\x2c\x37\x2e\x33\x2c\x39\x2e\x34\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x5d\x1\x1_\x1\x1\x1\x79\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1",
                 "\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b_\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x10\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1",
                 "\x20\xb\x1\x1\x1\x64\x3a\x64\x3a\x64\x3a\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x5b\x30\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1_\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1\x1"};
-            for (size_t i = 0; i < sizeof(badsequences)/sizeof(badsequences[0]); i++)
-                gp_cstr_to_valid(badsequences[i], "_");
-            for (size_t i = 0; i < sizeof(badsequences)/sizeof(badsequences[0]); i++)
-                gp_expect(gp_cstr_equal(badsequences[i], cleanedsequences[i]), i);
-        }
-    }
-
-    gp_suite("C trim");
-    {
-        gp_test("C ASCII");
-        {
-            char str[128];
-            strcpy(str, "  \t\f \nLeft Ascii  ");
-            gp_cstr_trim(str, NULL, 'l' | 'a');
-            gp_expect(gp_cstr_equal(str,  "Left Ascii  "));
-
-            strcpy(str, " AA RightSAICASIACSIACIAS");
-            gp_cstr_trim(str, "ASCII", 'r' | 'a');
-            gp_expect(gp_cstr_equal(str, " AA Right"));
-
-            strcpy(str, "  __Left and Right__  ");
-            gp_cstr_trim(str, GP_ASCII_WHITESPACE "_", 'l' | 'r' | 'a');
-            gp_expect(gp_cstr_equal(str, "Left and Right"), str);
-        }
-        gp_test("C UTF-8");
-        {
-            char str[128];
-            strcpy(str, "¡¡¡Left!!!");
-            gp_cstr_trim(str, "¡", 'l');
-            gp_expect(gp_cstr_equal(str, "Left!!!"), str);
-
-            strcpy(str, " Right\r\u200A\r\n");
-            gp_cstr_trim(str, NULL, 'r');
-            gp_expect(gp_cstr_equal(str, " Right"), str);
-
-            strcpy(str, "\t\u3000 ¡¡Left and Right!! \n");
-            gp_cstr_trim(str, GP_WHITESPACE "¡!", 'l' | 'r');
-            gp_expect(gp_cstr_equal(str, "Left and Right"));
-        }
-    }
-
-    gp_suite("C to upper/lower");
-    {
-        gp_test("Finnish");
-        {
-            gp_assert(setlocale(LC_ALL, "C.utf8"));
-
-            char str[128];
-            strcpy(str, "blääf");
-            gp_cstr_to_upper(str);
-            gp_expect(gp_cstr_equal(str, "BLÄÄF"), str);
-            gp_cstr_to_lower(str);
-            gp_expect(gp_cstr_equal(str, "blääf"));
-        }
-
-        if (setlocale(LC_ALL, "tr_TR.utf8") != NULL)
-        {
-            gp_test("Turkish"); // Note how ı changes to ASCII and back
+            for (size_t i = 0; i < sizeof(badsequences)/sizeof(*badsequences); i++)
             {
-                char str[128];
-                strcpy(str, "yaşar bayrı");
-                size_t upper_length = gp_cstr_to_upper(str);
-                gp_expect(gp_cstr_equal(str, "YAŞAR BAYRI"), (str));
-                size_t lower_length = gp_cstr_to_lower(str);
-                gp_expect(gp_cstr_equal(str, "yaşar bayrı"));
-                gp_expect(upper_length != lower_length,
-                    "Lengths may change!");
+                gp_str_copy(&str, badsequences[i], strlen(badsequences[i]));
+                gp_str_to_valid(&str, "_");
+                gp_expect(gp_str_equal(str, cleanedsequences[i], strlen(cleanedsequences[i])), i);
             }
-        } // else Turkish language pack not installed.
+        }
+        gp_str_delete(str);
     }
-
 
     // ------------------------------------------------------------------------
     // Test internals
@@ -501,21 +529,15 @@ int main(void)
         size_t pos = GP_NOT_FOUND;
 
         gp_test("last index");
-        pos = (size_t)(memchr_r(haystack_end, 'a', strlen(haystack)) - haystack);
+        pos = (size_t)(gp_memchr_r(haystack_end, 'a', strlen(haystack)) - haystack);
         gp_expect(pos == 3, (pos));
 
         gp_test("index 0");
-        pos = (size_t)(memchr_r(haystack_end, 'd', strlen(haystack)) - haystack);
+        pos = (size_t)(gp_memchr_r(haystack_end, 'd', strlen(haystack)) - haystack);
         gp_expect(pos == 0, (pos));
 
         gp_test("not found");
-        const char* _pos = memchr_r(haystack_end, 'x', strlen(haystack));
+        const char* _pos = gp_memchr_r(haystack_end, 'x', strlen(haystack));
         gp_expect(_pos == NULL);
     }
-
-    char fjdskla[1] = "";
-    gp_cstr_print_n(
-        fjdskla,
-        0,
-        gp_str_on_stack(NULL, 0, ""));
 }
