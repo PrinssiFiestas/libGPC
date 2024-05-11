@@ -54,18 +54,12 @@
     !defined(__TINYC__) && \
     !defined(__MSP430__) && \
     !defined(__COMPCERT__)
-
 // Use to specify an array argument with at least some number of valid elements,
 // e.g. "void foo(int arr[GPC_STATIC 10];". This can be used for optimizations
 // and some compilers may also emit warnings if they can detect that the array
 // passed is too small or NULL.
-
-// You must provide a buffer with capacity at least the specified amount.
 #define GP_STATIC static
-
 #else
-
-// Please, provide a buffer with capacity at least the specified amount.
 #define GP_STATIC
 #endif
 
@@ -73,21 +67,11 @@
 // Printf format string type checking
 
 #if defined(__GNUC__)
-
 // Type checking for format strings
 #define GP_PRINTF(FORMAT_STRING_INDEX, FIRST_TO_CHECK) \
     __attribute__((format(printf, FORMAT_STRING_INDEX, FIRST_TO_CHECK)))
-
-#elif defined(_MSC_VER)
-
-//
-#define GP_PRINTF(STRING_INDEX, FIRST_TO_CHECK)
-
 #else
-
-//
-#define GP_PRINTF(STRING_INDEX, FIRST_TO_CHECK)
-
+#define GP_PRINTF(...)
 #endif
 
 #endif // GP_ATTRIBUTES_INCLUDED

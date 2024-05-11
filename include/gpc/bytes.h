@@ -10,14 +10,15 @@
 #define GP_BYTES_INCLUDED
 
 #include "attributes.h"
+#include "overload.h"
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdint.h>
 
 size_t gp_bytes_copy(
     void*restrict       dest,
     const void*restrict src,
-    size_t              src_size) GP_NONNULL_ARGS();
+    size_t              src_start,
+    size_t              src_end) GP_NONNULL_ARGS();
 
 size_t gp_bytes_repeat(
     void*restrict       dest,
@@ -25,46 +26,47 @@ size_t gp_bytes_repeat(
     const void*restrict src,
     size_t              src_size) GP_NONNULL_ARGS();
 
-size_t gp_bytes_slice(
-    void** bytes,
-    size_t start,
-    size_t end) GP_NONNULL_ARGS();
-
-size_t gp_bytes_subbytes(
-    void*restrict       dest,
-    const void*restrict src,
-    size_t              src_start,
-    size_t              src_end) GP_NONNULL_ARGS();
-
 size_t gp_bytes_append(
     void*restrict       dest,
+    size_t              dest_size,
     const void*restrict src,
     size_t              src_size) GP_NONNULL_ARGS();
 
 size_t gp_bytes_insert(
     void*restrict       dest,
+    size_t              dest_size,
     size_t              pos,
     const void*restrict src,
     size_t              src_size) GP_NONNULL_ARGS();
 
+size_t gp_bytes_replace_range(
+    void*restrict       dest,
+    const size_t        dest_size,
+    const size_t        start,
+    const size_t        end,
+    const void*restrict replacement,
+    const size_t        replacement_length);
+
 // Returns index to the first occurrence of needle in haystack.
 size_t gp_bytes_replace(
     void*restrict       haystack,
-    size_t*             haystack_size,
+    size_t              haystack_size,
     const void*restrict needle,
     size_t              needle_size,
     const void*restrict replacement,
     size_t              replacement_size,
-    size_t              start) GP_NONNULL_ARGS();
+    size_t*             optional_in_start_out_first_occurrence_position)
+    GP_NONNULL_ARGS(1, 3, 5);
 
 // Returns number of replacements made.
 size_t gp_bytes_replace_all(
     void*restrict       haystack,
-    size_t*             haystack_size,
+    size_t              haystack_size,
     const void*restrict needle,
     size_t              needle_size,
     const void*restrict replacement,
-    size_t              replacement_size) GP_NONNULL_ARGS();
+    size_t              replacement_size,
+    size_t*             optional_replacement_count) GP_NONNULL_ARGS(1, 3, 5);
 
 // The required buffer size is not calculated precicely to increase preformance.
 // This means that sometimes may allocate needlessly.
@@ -90,22 +92,27 @@ size_t gp_bytes_replace_all(
 // Flags: 'l' left, 'r' right, 'a' ASCII char set only. Separate flags with |.
 // Trims whitespace if char_set is NULL.
 size_t gp_bytes_trim(
-    void*restrict bytes,
-    const char*   optional_char_set,
-    int           flags) GP_NONNULL_ARGS(1);
+    void*restrict       bytes,
+    size_t              bytes_size,
+    void**restrict      optional_out_ptr, // memmoves() if NULL
+    const char*restrict optional_char_set,
+    int                 flags) GP_NONNULL_ARGS(1);
 
 // Only converts Unicode characters with 1:1 mapping. Result is locale
 // dependent.
 size_t gp_bytes_to_upper(
-    void*restrict bytes) GP_NONNULL_ARGS();
+    void*restrict bytes,
+    size_t        bytes_size) GP_NONNULL_ARGS();
 
 // Only converts Unicode characters with 1:1 mapping. Result is locale
 // dependent.
 size_t gp_bytes_to_lower(
-    void*restrict bytes) GP_NONNULL_ARGS();
+    void*restrict bytes,
+    size_t        bytes_size) GP_NONNULL_ARGS();
 
 size_t gp_bytes_to_valid(
     void*restrict bytes,
+    size_t        bytes_size,
     const char*   replacement) GP_NONNULL_ARGS();
 
 // ----------------------------------------------------------------------------
@@ -155,5 +162,55 @@ bool gp_bytes_is_valid(
 
 size_t gp_bytes_codepoint_length(
     const void* min_4_bytes) GP_NONNULL_ARGS();
+
+int gp_bytes_case_compare(
+    const void*restrict s1,
+    size_t              s1_length,
+    const void*restrict s2,
+    size_t              s2_length) GP_NONNULL_ARGS();
+
+// ----------------------------------------------------------------------------
+// Printing
+
+#ifndef GP_ASSERT_INCLUDED
+//
+struct GPBytesPrintable
+{
+    // Created with #. If var_name[0] == '\"', then contains format string.
+    const char* identifier;
+
+    // Simplified specifier. If var_name is not a format string, then this is
+    // used avoiding format string parsing.
+    const enum gp_type type;
+
+    // Actual data is in gp_bytes_print_internal() variadic args.
+};
+#if __STDC_VERSION__ >= 201112L || defined(__COMPCERT__)
+#define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
+#else
+#define GP_PRINTABLE(X) { #X, -1 }
+#endif
+
+#endif
+
+size_t gp_bytes_print_internal(
+    bool is_println,
+    bool is_n,
+    void*restrict out,
+    size_t n,
+    size_t arg_count,
+    const struct GPBytesPrintable* objs,
+    ...);
+
+#define GP_BYTES_PRINT(IS_PRINTLN, IS_N, OUT, N, ...) \
+    gp_bytes_print_internal( \
+        IS_PRINTLN, \
+        IS_N, \
+        OUT, \
+        N, \
+        GP_COUNT_ARGS(__VA_ARGS__), \
+        (struct GPPrintable[]) \
+            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+        __VA_ARGS__)
 
 #endif // GP_BYTES_INCLUDED

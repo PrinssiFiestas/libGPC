@@ -50,7 +50,7 @@ static uintmax_t get_uint(pf_va_list args[static 1], const PFFormatSpecifier fmt
 }
 
 static unsigned write_s(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     pf_va_list args[static 1],
     const PFFormatSpecifier fmt)
 {
@@ -77,20 +77,20 @@ static unsigned write_s(
     const unsigned diff = field_width - cstr_len;
     if (fmt.flag.dash) // left justified
     { // first string, then pad
-        concat(out, cstr, cstr_len);
-        pad(out, ' ', diff);
+        pf_concat(out, cstr, cstr_len);
+        pf_pad(out, ' ', diff);
     }
     else // first pad, then string
     {
-        pad(out, ' ', diff);
-        concat(out, cstr, cstr_len);
+        pf_pad(out, ' ', diff);
+        pf_concat(out, cstr, cstr_len);
     }
 
     return out->length - original_length;
 }
 
 static void write_leading_zeroes(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     const unsigned written_by_utoa,
     const PFFormatSpecifier fmt)
 {
@@ -102,8 +102,8 @@ static void write_leading_zeroes(
         memmove(
             out->data + out->length + diff,
             out->data + out->length,
-            limit(*out, written_by_utoa));
-        memset(out->data + out->length, '0', limit(*out, diff));
+            pf_limit(*out, written_by_utoa));
+        memset(out->data + out->length, '0', pf_limit(*out, diff));
         out->length += written_by_utoa + diff;
     }
     else
@@ -113,7 +113,7 @@ static void write_leading_zeroes(
 }
 
 static unsigned write_i(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     struct MiscData md[static 1],
     pf_va_list args[static 1],
     const PFFormatSpecifier fmt)
@@ -154,19 +154,19 @@ static unsigned write_i(
     const char sign = i < 0 ? '-' : fmt.flag.plus ? '+' : fmt.flag.space ? ' ' : 0;
     if (sign)
     {
-        push_char(out, sign);
+        pf_push_char(out, sign);
         md->has_sign = true;
     }
 
     const unsigned max_written = pf_utoa(
-        capacity_left(*out), out->data + out->length, imaxabs(i));
+        pf_capacity_left(*out), out->data + out->length, imaxabs(i));
 
     write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
 static unsigned write_o(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     pf_va_list args[static 1],
     const PFFormatSpecifier fmt)
 {
@@ -176,12 +176,12 @@ static unsigned write_o(
     bool zero_written = false;
     if (fmt.flag.hash && u > 0)
     {
-        push_char(out, '0');
+        pf_push_char(out, '0');
         zero_written = true;
     }
 
     const unsigned max_written = pf_otoa(
-        capacity_left(*out), out->data + out->length, u);
+        pf_capacity_left(*out), out->data + out->length, u);
 
     // zero_written tells pad_zeroes() to add 1 less '0'
     write_leading_zeroes(out, zero_written + max_written, fmt);
@@ -192,7 +192,7 @@ static unsigned write_o(
 }
 
 static unsigned write_x(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     struct MiscData md[static 1],
     pf_va_list args[static 1],
     const PFFormatSpecifier fmt)
@@ -202,19 +202,19 @@ static unsigned write_x(
 
     if (fmt.flag.hash && u > 0)
     {
-        concat(out, "0x", strlen("0x"));
+        pf_concat(out, "0x", strlen("0x"));
         md->has_0x = true;
     }
 
     const unsigned max_written = pf_xtoa(
-        capacity_left(*out), out->data + out->length, u);
+        pf_capacity_left(*out), out->data + out->length, u);
 
     write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
 static unsigned write_X(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     struct MiscData md[static 1],
     pf_va_list args[static 1],
     const PFFormatSpecifier fmt)
@@ -224,32 +224,32 @@ static unsigned write_X(
 
     if (fmt.flag.hash && u > 0)
     {
-        concat(out, "0X", strlen("0X"));
+        pf_concat(out, "0X", strlen("0X"));
         md->has_0x = true;
     }
 
     const unsigned max_written = pf_Xtoa(
-        capacity_left(*out), out->data + out->length, u);
+        pf_capacity_left(*out), out->data + out->length, u);
 
     write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
 static unsigned write_u(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     pf_va_list args[static 1],
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
     const uintmax_t u = get_uint(args, fmt);
     const unsigned max_written = pf_utoa(
-        capacity_left(*out), out->data + out->length, u);
+        pf_capacity_left(*out), out->data + out->length, u);
     write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
 static unsigned write_p(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     pf_va_list args[static 1],
     const PFFormatSpecifier fmt)
 {
@@ -258,20 +258,20 @@ static unsigned write_p(
 
     if (u > 0)
     {
-        concat(out, "0x", strlen("0x"));
+        pf_concat(out, "0x", strlen("0x"));
         const unsigned max_written = pf_xtoa(
-            capacity_left(*out), out->data + out->length, u);
+            pf_capacity_left(*out), out->data + out->length, u);
         write_leading_zeroes(out, max_written, fmt);
     }
     else
     {
-        concat(out, "(nil)", strlen("(nil)"));
+        pf_concat(out, "(nil)", strlen("(nil)"));
     }
     return out->length - original_length;
 }
 
 static unsigned write_f(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     struct MiscData md[static 1],
     pf_va_list args[static 1],
     const PFFormatSpecifier fmt)
@@ -288,7 +288,7 @@ static unsigned write_f(
 }
 
 static unsigned add_padding(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     const unsigned written,
     const struct MiscData md,
     const PFFormatSpecifier fmt)
@@ -302,16 +302,16 @@ static unsigned add_padding(
 
     if (fmt.flag.dash) // left justified, append padding
     {
-        pad(out, ' ', diff);
+        pf_pad(out, ' ', diff);
     }
     else if (fmt.flag.zero && ! ignore_zero) // fill in zeroes
     { // 0-padding minding "0x" or sign prefix
         const unsigned offset = md.has_sign + 2 * md.has_0x;
-        insert_pad(out, start + offset, '0', diff);
+        pf_insert_pad(out, start + offset, '0', diff);
     }
     else // fill in spaces
     {
-        insert_pad(out, start, ' ', diff);
+        pf_insert_pad(out, start, ' ', diff);
     }
 
     return diff;
@@ -340,7 +340,7 @@ int pf_vsnprintf_consuming(
     const char format[restrict static 1],
     pf_va_list* args)
 {
-    struct PFString out = { out_buf ? out_buf : "", .capacity = max_size };
+    struct pf_string out = { out_buf ? out_buf : "", .capacity = max_size };
 
     while (1)
     {
@@ -348,7 +348,7 @@ int pf_vsnprintf_consuming(
         if (fmt.string == NULL)
             break;
 
-        concat(&out, format, fmt.string - format);
+        pf_concat(&out, format, fmt.string - format);
 
         // Jump over format specifier for next iteration
         format = fmt.string + fmt.string_length;
@@ -359,7 +359,7 @@ int pf_vsnprintf_consuming(
         switch (fmt.conversion_format)
         {
             case 'c':
-                push_char(&out, (char)va_arg(args->list, int));
+                pf_push_char(&out, (char)va_arg(args->list, int));
                 written_by_conversion = 1;
                 break;
 
@@ -407,7 +407,7 @@ int pf_vsnprintf_consuming(
                 break;
 
             case '%':
-                push_char(&out, '%');
+                pf_push_char(&out, '%');
                 break;
         }
 
@@ -420,9 +420,9 @@ int pf_vsnprintf_consuming(
     }
 
     // Write what's left in format string
-    concat(&out, format, strlen(format));
+    pf_concat(&out, format, strlen(format));
     if (max_size > 0)
-        out.data[capacity_left(out) ? out.length : out.capacity - 1] = '\0';
+        out.data[pf_capacity_left(out) ? out.length : out.capacity - 1] = '\0';
 
     return out.length;
 }

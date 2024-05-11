@@ -347,11 +347,11 @@ append_d_digits(const uint32_t olength, uint32_t digits, char* const result)
 
 static inline void
 pf_append_d_digits(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     const uint32_t maximum, // first_available_digits
     const uint32_t digits)
 {
-    if (capacity_left(*out) >= maximum) // write directly
+    if (pf_capacity_left(*out) >= maximum) // write directly
     {
         append_d_digits(
             maximum, digits, out->data + out->length);
@@ -361,7 +361,7 @@ pf_append_d_digits(
     {
         char buf[10];
         append_d_digits(maximum, digits, buf);
-        concat(out, buf, maximum + strlen("."));
+        pf_concat(out, buf, maximum + strlen("."));
     }
 }
 
@@ -388,11 +388,11 @@ append_c_digits(const uint32_t count, uint32_t digits, char* const result)
 
 static inline void
 pf_append_c_digits(
-    struct PFString out[static 1],
+    struct pf_string out[static 1],
     const uint32_t count,
     const uint32_t digits)
 {
-    if (capacity_left(*out) >= count) // write directly
+    if (pf_capacity_left(*out) >= count) // write directly
     {
         append_c_digits(
             count, digits, out->data + out->length);
@@ -403,7 +403,7 @@ pf_append_c_digits(
         char buf[10];
         append_c_digits(
             count, digits, buf);
-        concat(out, buf, count);
+        pf_concat(out, buf, count);
     }
 }
 
@@ -435,9 +435,9 @@ append_nine_digits(uint32_t digits, char* const result)
 }
 
 static inline void
-pf_append_nine_digits(struct PFString out[static 1], uint32_t digits)
+pf_append_nine_digits(struct pf_string out[static 1], uint32_t digits)
 {
-    if (capacity_left(*out) >= 9) // write directly
+    if (pf_capacity_left(*out) >= 9) // write directly
     {
         append_nine_digits(digits, out->data + out->length);
         out->length += 9;
@@ -446,23 +446,23 @@ pf_append_nine_digits(struct PFString out[static 1], uint32_t digits)
     {
         char buf[10];
         append_nine_digits(digits, buf);
-        concat(out, buf, 9);
+        pf_concat(out, buf, 9);
     }
 }
 
 static inline void
-append_utoa(struct PFString out[static 1], uint32_t digits)
+append_utoa(struct pf_string out[static 1], uint32_t digits)
 {
-    if (capacity_left(*out) >= 9) // write directly
+    if (pf_capacity_left(*out) >= 9) // write directly
     {
         out->length += pf_utoa(
-            capacity_left(*out), out->data + out->length, digits);
+            pf_capacity_left(*out), out->data + out->length, digits);
     }
     else // write only as much as fits
     {
         char buf[10];
         unsigned buf_len = pf_utoa(sizeof(buf), buf, digits);
-        concat(out, buf, buf_len);
+        pf_concat(out, buf, buf_len);
     }
 }
 
@@ -488,21 +488,21 @@ static inline uint32_t lengthForIndex(const uint32_t idx)
 
 static inline unsigned
 pf_copy_special_str_printf(
-    struct PFString out[const static 1],
+    struct pf_string out[const static 1],
     const uint64_t mantissa,
     const bool uppercase)
 {
     if (mantissa != 0)
     {
-        concat(out, uppercase ? "NAN" : "nan", strlen("nan"));
-        if (capacity_left(*out))
+        pf_concat(out, uppercase ? "NAN" : "nan", strlen("nan"));
+        if (pf_capacity_left(*out))
             out->data[out->length] = '\0';
         return out->length;
     }
     else
     {
-        concat(out, uppercase ? "INF" : "inf", strlen("inf"));
-        if (capacity_left(*out))
+        pf_concat(out, uppercase ? "INF" : "inf", strlen("inf"));
+        if (pf_capacity_left(*out))
             out->data[out->length] = '\0';
         return out->length;
     }
@@ -515,7 +515,7 @@ pf_d2fixed_buffered_n(
     const PFFormatSpecifier fmt,
     const double d)
 {
-    struct PFString out = { result, .capacity = n };
+    struct pf_string out = { result, .capacity = n };
     const bool fmt_is_g =
         fmt.conversion_format == 'g' || fmt.conversion_format == 'G';
     unsigned precision;
@@ -534,11 +534,11 @@ pf_d2fixed_buffered_n(
         ((bits >> DOUBLE_MANTISSA_BITS) & ((1u << DOUBLE_EXPONENT_BITS) - 1));
 
     if (ieeeSign)
-        push_char(&out, '-');
+        pf_push_char(&out, '-');
     else if (fmt.flag.plus)
-        push_char(&out, '+');
+        pf_push_char(&out, '+');
     else if (fmt.flag.space)
-        push_char(&out, ' ');
+        pf_push_char(&out, ' ');
 
     // Case distinction; exit early for the easy cases.
     if (ieeeExponent == ((1u << DOUBLE_EXPONENT_BITS) - 1u))
@@ -550,13 +550,13 @@ pf_d2fixed_buffered_n(
 
     if (ieeeExponent == 0 && ieeeMantissa == 0) // d == 0.0
     {
-        push_char(&out, '0');
+        pf_push_char(&out, '0');
 
         if (precision > 0 || fmt.flag.hash)
-            push_char(&out, '.');
-        pad(&out, '0', precision);
+            pf_push_char(&out, '.');
+        pf_pad(&out, '0', precision);
 
-        if (capacity_left(out))
+        if (pf_capacity_left(out))
             out.data[out.length] = '\0';
         return out.length;
     }
@@ -793,11 +793,11 @@ pf_d2fixed_buffered_n(
     if ( ! fmt_is_g || fmt.flag.hash)
     {
         if (precision > 0 || fmt.flag.hash)
-            push_char(&out, '.');
+            pf_push_char(&out, '.');
 
         if (digits_length != integer_part_end)
         {
-            pad(&out, '0', fract_leading_zeroes);
+            pf_pad(&out, '0', fract_leading_zeroes);
 
             for (size_t k = integer_part_end; k < digits_length - 1; k++)
                 pf_append_nine_digits(&out, all_digits[k]);
@@ -805,11 +805,11 @@ pf_d2fixed_buffered_n(
             if (maximum > 0) // write the last digits left
                 pf_append_c_digits(&out, maximum, all_digits[digits_length - 1]);
 
-            pad(&out, '0', fract_trailing_zeroes);
+            pf_pad(&out, '0', fract_trailing_zeroes);
         }
         else
         {
-            pad(&out, '0', precision);
+            pf_pad(&out, '0', precision);
         }
     }
     else
@@ -838,8 +838,8 @@ pf_d2fixed_buffered_n(
 
         if (digits_length > integer_part_end)
         {
-            push_char(&out, '.');
-            pad(&out, '0', fract_leading_zeroes);
+            pf_push_char(&out, '.');
+            pf_pad(&out, '0', fract_leading_zeroes);
 
             for (size_t k = integer_part_end; k < digits_length - 1; k++)
                 pf_append_nine_digits(&out, all_digits[k]);
@@ -848,7 +848,7 @@ pf_d2fixed_buffered_n(
         }
     }
 
-    if (capacity_left(out))
+    if (pf_capacity_left(out))
         out.data[out.length] = '\0';
     return out.length;
 }
@@ -860,7 +860,7 @@ pf_d2exp_buffered_n(
     const PFFormatSpecifier fmt,
     const double d)
 {
-    struct PFString out = { result, .capacity = n };
+    struct pf_string out = { result, .capacity = n };
     const bool fmt_is_g =
         fmt.conversion_format == 'g' || fmt.conversion_format == 'G';
 
@@ -890,11 +890,11 @@ pf_d2exp_buffered_n(
         ((bits >> DOUBLE_MANTISSA_BITS) & ((1u << DOUBLE_EXPONENT_BITS) - 1));
 
     if (ieeeSign)
-        push_char(&out, '-');
+        pf_push_char(&out, '-');
     else if (fmt.flag.plus)
-        push_char(&out, '+');
+        pf_push_char(&out, '+');
     else if (fmt.flag.space)
-        push_char(&out, ' ');
+        pf_push_char(&out, ' ');
 
     // Case distinction; exit early for the easy cases.
     if (ieeeExponent == ((1u << DOUBLE_EXPONENT_BITS) - 1u))
@@ -906,25 +906,25 @@ pf_d2exp_buffered_n(
 
     if (ieeeExponent == 0 && ieeeMantissa == 0) // d = 0.0
     {
-        push_char(&out, '0');
+        pf_push_char(&out, '0');
         if (fmt_is_g && ! fmt.flag.hash) {
-            if (capacity_left(out))
+            if (pf_capacity_left(out))
                 out.data[out.length] = '\0';
             return out.length;
         }
 
         if (precision > 0 || fmt.flag.hash)
         {
-            push_char(&out, '.');
-            pad(&out, '0', precision);
+            pf_push_char(&out, '.');
+            pf_pad(&out, '0', precision);
         }
 
         if (fmt.conversion_format == 'e')
-            concat(&out, "e+00", strlen("e+00"));
+            pf_concat(&out, "e+00", strlen("e+00"));
         else if (fmt.conversion_format == 'E')
-            concat(&out, "E+00", strlen("E+00"));
+            pf_concat(&out, "E+00", strlen("E+00"));
 
-        if (capacity_left(out))
+        if (pf_capacity_left(out))
             out.data[out.length] = '\0';
         return out.length;
     }
@@ -1146,9 +1146,9 @@ pf_d2exp_buffered_n(
     {
         if (all_digits[0] == 10) // rounded up from 9
             all_digits[0] = 1;
-        push_char(&out, '0' + all_digits[0]);
+        pf_push_char(&out, '0' + all_digits[0]);
         if (fmt.flag.hash)
-            push_char(&out, '.');
+            pf_push_char(&out, '.');
     }
     else if ( ! fmt_is_g || fmt.flag.hash)
     {
@@ -1160,7 +1160,7 @@ pf_d2exp_buffered_n(
                 pf_append_nine_digits(&out, all_digits[i]);
 
             if (all_digits[digits_length - 1] == 0)
-                pad(&out, '0', maximum);
+                pf_pad(&out, '0', maximum);
             else
                 pf_append_c_digits(&out, maximum, all_digits[digits_length - 1]);
         }
@@ -1211,18 +1211,18 @@ pf_d2exp_buffered_n(
                 pf_append_d_digits(
                     &out, decimalLength9(all_digits[0]), all_digits[0]);
             else
-                push_char(&out, '0' + all_digits[0]);
+                pf_push_char(&out, '0' + all_digits[0]);
         }
     }
 
     const bool uppercase =
         fmt.conversion_format == 'E' || fmt.conversion_format == 'G';
-    push_char(&out, uppercase ? 'E' : 'e');
+    pf_push_char(&out, uppercase ? 'E' : 'e');
     if (exp < 0) {
-        push_char(&out, '-');
+        pf_push_char(&out, '-');
         exp = -exp;
     } else {
-        push_char(&out, '+');
+        pf_push_char(&out, '+');
     }
 
     char buf[4] = "";
@@ -1233,9 +1233,9 @@ pf_d2exp_buffered_n(
     } else {
         memcpy(buf, DIGIT_TABLE + 2 * exp, 2);
     }
-    concat(&out, buf, strlen(buf));
+    pf_concat(&out, buf, strlen(buf));
 
-    if (capacity_left(out))
+    if (pf_capacity_left(out))
         out.data[out.length] = '\0';
     return out.length;
 }

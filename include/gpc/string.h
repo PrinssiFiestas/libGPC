@@ -308,7 +308,7 @@ struct GPPrintable
     // used avoiding format string parsing.
     const enum gp_type type;
 
-    // Actual data is in pr_cstr_print_internal() variadic args.
+    // Actual data is in gp_str_print_internal() variadic args.
 };
 #if __STDC_VERSION__ >= 201112L
 #define GP_PRINTABLE(X) { #X, GP_TYPE(X) }

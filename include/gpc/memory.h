@@ -108,7 +108,7 @@ const
 /** malloc() based allocator. */
 GPAllocator gp_heap;
 
-/** Tries to set breakpoint and crashes on allocations. */ // TODO delete this
+/** Tries to set breakpoint and crashes on allocations. */
 extern const GPAllocator gp_crash_on_alloc;
 
 // ----------------------------------------------------------------------------
@@ -124,9 +124,10 @@ void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS(1);
 // Scope allocator
 
 //
-GPAllocator* gp_begin(size_t size) GP_NODISCARD GP_NONNULL_RETURN;
-void         gp_end  (GPAllocator*) GP_NONNULL_ARGS();
-void         gp_defer(GPAllocator* scope, void (*f)(void* arg), void* arg)
+GPAllocator* gp_begin     (size_t size)  GP_NONNULL_RETURN GP_NODISCARD;
+void         gp_end       (GPAllocator*) GP_NONNULL_ARGS();
+GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
+void         gp_defer     (GPAllocator* scope, void (*f)(void* arg), void* arg)
     GP_NONNULL_ARGS(1, 2);
 
 // ----------------------------------------------------------------------------

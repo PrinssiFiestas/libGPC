@@ -201,16 +201,25 @@ static void gp_end_scopes(GPScope* scope, GPScope*const last_to_be_ended)
 
 // scope_factory lives in it's own arena so returns &scope_factory if there is
 // no scopes.
-static GPScope* gp_last_scope(GPArena* scope_factory)
+static GPScope* gp_last_scope_of(GPArena* scope_factory)
 {
     return (GPScope*) ((uint8_t*)(scope_factory->head->position) -
        gp_round_to_aligned(sizeof(GPScope)));
 }
 
+GPAllocator* gp_last_scope(GPAllocator* fallback)
+{
+    GPArena* factory = gp_thread_local_get(gp_scope_factory_key);
+    GPScope* scope = NULL;
+    if (factory == NULL || (scope = gp_last_scope_of(factory)) == (GPScope*)factory)
+        return fallback;
+    return (GPAllocator*)scope;
+}
+
 static void gp_delete_scope_factory(void*_factory)
 {
     GPArena* factory = _factory;
-    GPScope* remaining = gp_last_scope(factory);
+    GPScope* remaining = gp_last_scope_of(factory);
     if (remaining != (GPScope*)factory)
         gp_end_scopes(remaining, NULL);
 
@@ -285,7 +294,7 @@ GPAllocator* gp_begin(const size_t _size)
         gp_max(2 * gp_scope_average_memory_usage(), (size_t)GP_MIN_DEFAULT_SCOPE_SIZE)
       : _size;
 
-    GPScope* previous = gp_last_scope(scope_factory);
+    GPScope* previous = gp_last_scope_of(scope_factory);
     if (previous == (GPScope*)scope_factory)
         previous = NULL;
 
@@ -302,7 +311,7 @@ void gp_end(GPAllocator*_scope)
 {
     GPScope* scope = (GPScope*)_scope;
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    gp_end_scopes(gp_last_scope(scope_factory), scope);
+    gp_end_scopes(gp_last_scope_of(scope_factory), scope);
 
     gp_arena_rewind(scope_factory, scope);
 }
