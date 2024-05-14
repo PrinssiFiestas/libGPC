@@ -16,7 +16,7 @@
 #include <stddef.h>
 #include <limits.h>
 #include <stdint.h>
-#ifdef __GNUC__
+#if __GNUC__ && ! _WIN32
 #include <alloca.h>
 #endif
 
@@ -40,7 +40,7 @@ typedef restrict GPString        GPStringOut;
 #define gp_str_new(allocator_ptr, size_t_capacity,/*init, size_t n=0*/...) \
 GP_OVERLOAD2(__VA_ARGS__, \
     gp_str_new_init_n, \
-    gp_str_new_init)(allocator, size_t_capacity, __VA_ARGS__)
+    gp_str_new_init)(allocator_ptr, size_t_capacity, __VA_ARGS__)
 
 #define GP_NO_ALLOC &gp_crash_on_alloc
 #define gp_str_on_stack(optional_allocator, const_capacity, cstr_literal_init) \
@@ -273,7 +273,7 @@ static inline GPString gp_str_new_init_cstr(const void* a, size_t c, const char*
 #endif
 
 // gp_str_on_stak_init()
-#ifdef __GNUC__ // use alloca() which doesn't zero-initialize memory which is
+#if __GNUC__ && ! _WIN32// use alloca() which doesn't zero-initialize memory which is
                 // faster than using a compound literal. A compound literal in
                 // sizeof() gives bounds checking and forces using a literal
                 // anyway so alloca() can't be abused.

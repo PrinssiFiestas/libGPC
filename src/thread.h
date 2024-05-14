@@ -7,7 +7,7 @@
 #ifndef GP_THREAD_INCLUDED
 #define GP_THREAD_INCLUDED
 
-#if __STDC_VERSION__ >= 201112L
+#if __STDC_VERSION__ >= 201112L && !defined(__MINGW32__)
 #include <threads.h>
 #include <stdatomic.h>
 #else
@@ -32,7 +32,9 @@
 #define GP_MAYBE_ATOMIC
 #endif
 
-#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+#if __STDC_VERSION__ >= 201112L && \
+    !defined(__MINGW32__)       && \
+    !defined(__STDC_NO_THREADS__)
 
 typedef tss_t     GPThreadKey;
 typedef once_flag GPThreadOnce;

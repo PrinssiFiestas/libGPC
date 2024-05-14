@@ -4,7 +4,8 @@
 
 #include <gpc/assert.h>
 #include "../src/memory.c"
-#include <threads.h>
+
+// #include <threads.h>
 
 // Not many assertions here, address sanitizer does half of the work, manual
 // debugging does the other half.
@@ -39,13 +40,13 @@ void to_defer(void* x)
 int bar(void*_)
 {
     (void)_;
-    GPAlc* scope = gp_begin(0);
+    GPAllocator* scope = gp_begin(0);
     gp_defer(scope, to_defer, (void*)-1);
     gp_defer(scope, to_defer, (void*) 0);
     gp_defer(scope, to_defer, (void*) 1);
     gp_defer(scope, to_defer, (void*)-1);
     {
-        GPAlc* scope = gp_begin(0);
+        GPAllocator* scope = gp_begin(0);
         gp_defer(scope, to_defer, (void*)123);
     }
     gp_defer(scope, to_defer, (void*) 0);
@@ -102,8 +103,8 @@ int main(void)
     // ------------------------------------------------------------------------
     // Scope allocator
 
-    thrd_t t;
-    thrd_create(&t, foo, NULL);
+    // thrd_t t;
+    // thrd_create(&t, foo, NULL);
 
     char* s0 = NULL;
     char* s1 = NULL;
@@ -138,8 +139,8 @@ int main(void)
     // puts(s1); // freed!
     // puts(s2); // freed!
 
-    thrd_join(t, NULL);
+    // thrd_join(t, NULL);
 
-    thrd_create(&t, bar, NULL);
-    thrd_join(t, NULL);
+    // thrd_create(&t, bar, NULL);
+    // thrd_join(t, NULL);
 }
