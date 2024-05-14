@@ -35,9 +35,6 @@ typedef struct gp_allocator
     void* (*dealloc)(const struct gp_allocator*, void*  block);
 } GPAllocator;
 
-// You'll be using this a lot
-typedef GPAllocator GPAlc;
-
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_MALLOC_SIZE(2)
 inline void* gp_mem_alloc(
     const GPAllocator* allocator,

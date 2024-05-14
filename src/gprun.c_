@@ -81,9 +81,7 @@ int main(int argc, char* argv[])
 
         push(compiler);
         push((char[]){"-Wall"});
-        push((char[]){"-g3"});
-        push((char[]){"-fsanitize=address"});
-        push((char[]){"-fsanitize=undefined"});
+        bool optimized = false;
 
         if (argv1 != NULL) for (char* arg = argv1;;)
         {
@@ -105,6 +103,9 @@ int main(int argc, char* argv[])
                     *end = '\0';
                 cleanup_required = false;
             }
+
+            if (memcmp(arg, "-O", 2) == 0 && '1' <= arg[2] && arg[2] <= '3')
+                optimized = true;
 
             do {
                 arg++;
@@ -129,7 +130,11 @@ int main(int argc, char* argv[])
             if (*arg == '\0')
                 break;
         }
-
+        if ( ! optimized) {
+            push((char[]){"-g3"});
+            push((char[]){"-fsanitize=address"});
+            push((char[]){"-fsanitize=undefined"});
+        }
         cc_argv.argv[cc_argv.argc] = NULL;
     }
 
@@ -180,7 +185,6 @@ int main(int argc, char* argv[])
                 strcpy(strchr(out_executable, '.'), ".exe");
             }
         }
-
         WaitForSingleObject(process_info.hProcess, INFINITE);
 
         DWORD compiler_exit_code;
@@ -190,7 +194,6 @@ int main(int argc, char* argv[])
         } else if (compiler_exit_code != 0) {
             exit(compiler_exit_code);
         }
-
         CloseHandle(process_info.hProcess);
         CloseHandle(process_info.hThread);
     }
@@ -207,7 +210,6 @@ int main(int argc, char* argv[])
                 exit(EXIT_FAILURE);
             }
         }
-
         int wstatus;
         do {
             pid_t w = wait(&wstatus);
@@ -254,7 +256,6 @@ int main(int argc, char* argv[])
             fputs("Failed running compiled executable!", stderr);
             exit(EXIT_FAILURE);
         }
-
         WaitForSingleObject(process_info.hProcess, INFINITE);
 
         DWORD exit_code;
@@ -295,7 +296,6 @@ int main(int argc, char* argv[])
                 exit(EXIT_FAILURE);
             }
         }
-
         int wstatus;
         do {
             pid_t w = wait(&wstatus);

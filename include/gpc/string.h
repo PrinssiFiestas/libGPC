@@ -9,9 +9,9 @@
 #ifndef GP_STRING_INCLUDED
 #define GP_STRING_INCLUDED
 
+#include <gpc/memory.h>
 #include "attributes.h"
 #include "overload.h"
-#include <printf/conversions.h> // TODO is this needed anymore??
 #include <stdbool.h>
 #include <stddef.h>
 #include <limits.h>
@@ -37,17 +37,19 @@ typedef const    GPChar*restrict GPStringIn;
 typedef restrict GPString        GPStringOut;
 
 // init : C string literal or GPString if n not given, any char array otherwise.
-#define gp_str_new(allocator, size_t_capacity,/*init, size_t n=0*/...) \
+#define gp_str_new(allocator_ptr, size_t_capacity,/*init, size_t n=0*/...) \
 GP_OVERLOAD2(__VA_ARGS__, \
     gp_str_new_init_n, \
     gp_str_new_init)(allocator, size_t_capacity, __VA_ARGS__)
 
-// Use this to tell readers that no cleanup required
-#define GP_NO_ALLOC NULL
+#define GP_NO_ALLOC &gp_crash_on_alloc
 #define gp_str_on_stack(optional_allocator, const_capacity, cstr_literal_init) \
     gp_str_on_stack_init(optional_allocator, const_capacity, cstr_literal_init)
 
 GPString gp_str_delete(GPString optional_string);
+
+// TODO get rid of this. That string is not helpful. Also should return nothing
+// for defer().
 #ifndef gp_clear
 #define gp_clear(GPString_me) ( \
     gp_str_delete((void*)(GPString_me)), \
@@ -57,10 +59,10 @@ GPString gp_str_delete(GPString optional_string);
 
 const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
-size_t                     gp_length    (const void*) GP_NONNULL_ARGS();
-size_t                     gp_capacity  (const void*) GP_NONNULL_ARGS();
-void*                      gp_allocation(const void*) GP_NONNULL_ARGS();
-const struct gp_allocator* gp_allocator (const void*) GP_NONNULL_ARGS();
+size_t             gp_length    (const void*) GP_NONNULL_ARGS();
+size_t             gp_capacity  (const void*) GP_NONNULL_ARGS();
+void*              gp_allocation(const void*) GP_NONNULL_ARGS();
+const GPAllocator* gp_allocator (const void*) GP_NONNULL_ARGS();
 
 void gp_str_reserve(
     GPStringOut* str,
@@ -207,9 +209,9 @@ size_t gp_str_codepoint_length(
 #ifndef GP_ARRAY_INCLUDED
 typedef struct gp_array_header
 {
-    size_t length;
-    size_t capacity;
-    const struct gp_allocator* allocator;
+    uintptr_t length;
+    uintptr_t capacity;
+    const GPAllocator* allocator;
     void* allocation; // pointer to self or NULL if on stack
 } GPArrayHeader;
 #endif

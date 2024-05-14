@@ -74,4 +74,13 @@
 #define GP_PRINTF(...)
 #endif
 
+// ----------------------------------------------------------------------------
+// Disable sanitizer
+
+#ifdef __GNUC__
+#define GP_NO_SANITIZE __attribute__((no_sanitize("address", "leak", "undefined")))
+#else
+#define GP_NO_SANITIZE
+#endif
+
 #endif // GP_ATTRIBUTES_INCLUDED

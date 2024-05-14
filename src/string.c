@@ -16,6 +16,7 @@
 #include <wchar.h>
 #include <wctype.h>
 #include <printf/printf.h>
+#include <printf/conversions.h>
 #include "pfstring.h"
 
 extern inline GPArrayHeader* gp_str_set(GPStringOut*);
