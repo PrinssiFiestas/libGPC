@@ -33,7 +33,9 @@ release: CFLAGS += -O3 -DNDEBUG
 release: build/libgpc.a
 
 debug: CFLAGS += -ggdb3
+ifneq ($(OS), Windows_NT)
 debug: CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
+endif
 debug: build/libgpcd.a
 
 analyze: CFLAGS += -fanalyzer
@@ -57,7 +59,9 @@ $(DEBUG_OBJS): build/%d.o : src/%.c
 -include $(DEBUG_OBJS:.o=.d)
 
 build_tests: CFLAGS += -DGP_TESTS -ggdb3
+ifneq ($(OS), Windows_NT)
 build_tests: CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
+endif
 build_tests: $(TESTS)
 $(TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(DEBUG_OBJS)
 	$(CC) $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%d.o,$<)),$(DEBUG_OBJS)) -o $@

@@ -132,8 +132,10 @@ int main(int argc, char* argv[])
         }
         if ( ! optimized) {
             push((char[]){"-g3"});
-            push((char[]){"-fsanitize=address"});
-            push((char[]){"-fsanitize=undefined"});
+            #if ! _WIN32
+                push((char[]){"-fsanitize=address"});
+                push((char[]){"-fsanitize=undefined"});
+            #endif
         }
         cc_argv.argv[cc_argv.argc] = NULL;
     }
