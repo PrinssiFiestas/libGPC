@@ -4,10 +4,11 @@
 
 #include <gpc/array.h>
 #include <gpc/utils.h>
+#include "common.h"
 #include <string.h>
 
 GPArray(void) gp_arr_new(
-    GPAllocator* allocator,
+    const GPAllocator* allocator,
     const size_t element_size,
     const size_t element_count)
 {
@@ -21,27 +22,6 @@ void gp_arr_delete(GPArray(void) arr)
 {
     if (arr != NULL)
         gp_mem_dealloc(gp_allocator(arr), gp_allocation(arr));
-}
-
-GPArray(void) gp_arr_reserve(
-    const size_t element_size,
-    GPArray(void) arr,
-    size_t        capacity)
-{
-    if (capacity >= gp_capacity(arr))
-    {
-        capacity = gp_next_power_of_2(capacity);
-        GPArrayHeader* new_block = gp_mem_realloc(
-            gp_allocator(arr),
-            gp_allocation(arr),
-            gp_length(arr) * element_size,
-            sizeof(*new_block) + capacity * element_size);
-
-        new_block->capacity   = capacity;
-        new_block->allocation = new_block;
-        arr = new_block + 1;
-    }
-    return arr;
 }
 
 GPArray(void) gp_arr_copy(

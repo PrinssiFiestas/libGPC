@@ -68,7 +68,7 @@ pf_insert_pad(
     if (i >= real_length)
         return 0;
 
-    // Ignore string head by subtracting i
+    // Ignore string head by subtracting i // TODO simplify this insanity
     const size_t cap = me->capacity - i;
     const size_t len = real_length - i;
     const size_t uncut_result_len = len + n;
@@ -85,7 +85,7 @@ pf_insert_pad(
 }
 
 static inline bool pf_push_char(struct pf_string me[static 1], const char c)
-{
+{ // TODO simplify this confusing mess
     if (pf_limit(*me, 1) != 0)
         me->data[me->length] = c;
     me->length++;

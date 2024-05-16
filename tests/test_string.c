@@ -21,12 +21,12 @@ int main(void)
         gp_test("on stack");
         {
             #if GP_INITIALIZER_STRING_IS_TOO_LONG_WARNING
-            GPString str = gp_str_on_stack(GP_NO_ALLOC, 1, "too long!");
+            GPString str = gp_str_on_stack(NULL, 1, "too long!");
             #elif GP_NON_LITERAL_INITIALIZER_WARNING
             const char* non_literal = "only literals allowed!";
-            GPString str = gp_str_on_stack(GP_NO_ALLOC, 32, non_literal);
+            GPString str = gp_str_on_stack(NULL, 32, non_literal);
             #else
-            GPString str = gp_str_on_stack(GP_NO_ALLOC, 7, "ok");
+            GPString str = gp_str_on_stack(NULL, 8, "ok");
             #endif
             gp_expect( ! gp_allocation(str),
                 "No allocator given so no allocation either.");
@@ -34,21 +34,18 @@ int main(void)
             gp_expect(
                 strcmp(gp_cstr(str), "1234567") == 0 &&
                 str[7].c == '\0' &&
-                "\"%s\" extra byte not counted here", gp_capacity(str) == 7,
-                "Extra byte is reserved so gp_cstr() can safely null-terminate.",
+                "\"%s\" extra byte not counted here", gp_capacity(str) == 8,
+                "Extra byte should be reserved so gp_cstr() can null-terminate.",
                 gp_cstr(str), gp_capacity(str));
 
-            str = gp_str_delete(str); // safe but pointless
+            gp_str_delete(str); // safe but pointless
 
             str = gp_str_on_stack(&gp_heap, 1, "");
             const char* cstr = "Allocator provided, extending is safe!";
             gp_str_copy(&str, cstr, strlen(cstr));
             gp_expect(gp_allocation(str),
-                "Now in heap, must free with gp_str_clear() or gp_clear()!");
-
-            gp_expect((str = gp_str_delete(str)) == NULL,
-                "gp_str_clear() always returns NULL and it's a good idea to "
-                "assign it back to str for easier memory bug debugging.");
+                "Now in heap, must free with gp_str_delete()!");
+            gp_str_delete(str);
         }
 
         gp_test("Reserve");
@@ -60,24 +57,19 @@ int main(void)
             gp_str_reserve(&str, 12);
             gp_expect(gp_capacity(str) > old_capacity);
 
-            str = gp_str_delete(str);
+            gp_str_delete(str);
         }
 
         gp_test("somewhere else than stack");
         {
-            char* non_const_init = "too long but no worries.";
-            GPString str = gp_str_new(&gp_heap, 1, non_const_init, strlen(non_const_init));
-            gp_expect(gp_allocation(str));
-            gp_expect(gp_capacity(str) == gp_next_power_of_2(strlen(non_const_init)),
-                gp_capacity(str));
+            GPString str = gp_str_new(&gp_heap, 1);
+            gp_expect(gp_allocation(str) != NULL);
 
             gp_str_repeat(&str, gp_capacity(str), "X", strlen("X"));
             (void)gp_cstr(str); // again, extra reserved byte makes this safe!
 
             // Must free object on heap!
-            gp_expect((str = gp_clear(str)) != NULL,
-                "As opposed to gp_str_clear() function, gp_clear() macro does "
-                "not return NULL, but a debug string instead.");
+            gp_str_delete(str);
         }
     }
 
@@ -141,7 +133,7 @@ int main(void)
         {
             GPString str = gp_str_on_stack(NULL, 8, "\u1153");
             gp_expect(   gp_str_codepoint_length(str));
-            gp_str_slice(&str, 1, gp_length(str));
+            gp_str_slice(&str, NULL, 1, gp_length(str));
             gp_expect( ! gp_str_codepoint_length(str));
         }
 
@@ -163,40 +155,15 @@ int main(void)
         gp_test("Slice");
         {
             GPString str = gp_str_on_stack(NULL, 20, "Some_string_to slice");
-            gp_str_slice(&str, 5, 11);
+            gp_str_slice(&str, NULL, 5, 11);
             gp_expect(gp_str_equal(str, "string", strlen("string")));
-        }
-
-        gp_test("Memory management on slice");
-        {
-            GPString str = gp_str_on_stack(NULL, 16, "...Junk prefix.");
-            size_t old_capacity = gp_capacity(str);
-            GPChar* old_ptr = str;
-
-            gp_str_slice(&str, 3, gp_length(str));
-            gp_expect(str > old_ptr && gp_capacity(str) < old_capacity,
-                "Memory should've not moved, just the pointer, "
-                "but capacity should shrink!");
-
-            void* old_allocation = gp_allocation(str);
-            old_capacity = gp_capacity(str);
-            gp_str_reserve(&str, 15);
-            gp_expect(gp_capacity(str) > old_capacity,
-                "Capacity should've grown back,");
-            gp_expect(gp_allocation(str) == old_allocation,
-                "but no new allocation!");
-
-            // Sanity check
-            const char* cstr = "Junk prefix.";
-            gp_expect(gp_str_equal(str, cstr, strlen(cstr)),
-                str, cstr);
         }
 
         gp_test("Substr");
         {
             const char* src = "Some_string_to slice";
             GPString dest = gp_str_on_stack(NULL, 64, "");
-            gp_str_substr(&dest, src, 5, 11); // not including 11!
+            gp_str_slice(&dest, src, 5, 11); // not including 11!
             gp_expect(gp_str_equal(dest, "string", strlen("string")), dest);
         }
     }
@@ -270,7 +237,7 @@ int main(void)
             char buf[128];
             sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
             gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
-            str = gp_str_delete(str);
+            gp_str_delete(str);
         }
 
         gp_test("Strings");
@@ -431,7 +398,7 @@ int main(void)
 
     gp_suite("Validate");
     {
-        GPString str = gp_str_new(&gp_heap, 32, "");
+        GPString str = gp_str_new(&gp_heap, 32);
 
         gp_test("Valids");
         {

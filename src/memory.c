@@ -14,7 +14,7 @@
 
 extern inline void* gp_mem_alloc       (const GPAllocator*,size_t);
 extern inline void* gp_mem_alloc_zeroes(const GPAllocator*,size_t);
-extern inline void* gp_mem_dealloc     (const GPAllocator*,void*);
+extern inline void  gp_mem_dealloc     (const GPAllocator*,void*);
 extern inline void* gp_mem_realloc     (const GPAllocator*,void*,size_t,size_t);
 
 static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size)
@@ -29,11 +29,10 @@ static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size)
     return mem;
 }
 
-static void* gp_heap_dealloc(const GPAllocator* unused, void* block)
+static void  gp_heap_dealloc(const GPAllocator* unused, void* block)
 {
     (void)unused;
     free(block);
-    return NULL;
 }
 
 #ifdef NDEBUG
@@ -55,10 +54,9 @@ static inline void* gp_crashing_alloc(const GPAllocator* unused, size_t unused_s
     return "";
 }
 
-static void* gp_no_op_dealloc(const GPAllocator* unused, void* block)
+static void gp_no_op_dealloc(const GPAllocator* unused, void* block)
 {
-    (void)unused;
-    return block;
+    (void)unused; (void)block;
 }
 
 const GPAllocator gp_crash_on_alloc = {

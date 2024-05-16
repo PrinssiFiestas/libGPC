@@ -9,7 +9,8 @@
 #include <gpc/string.h>
 #include <gpc/memory.h>
 #include <gpc/utils.h>
-#include <stdio.h>
+#include <gpc/array.h>
+#include "common.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -19,79 +20,28 @@
 #include <printf/conversions.h>
 #include "pfstring.h"
 
-extern inline GPArrayHeader* gp_str_set(GPStringOut*);
-extern inline GPArrayHeader* gp_str_set_new(GPStringOut*);
-
-GPString gp_str_new_init_n(
-    const void* allocator,
-    size_t capacity,
-    const void* init,
-    size_t n)
+GPString gp_str_new(
+    const GPAllocator* allocator,
+    size_t capacity)
 {
-    const size_t header_size = sizeof(GPArrayHeader);
-    capacity = gp_next_power_of_2(gp_max(capacity, n));
-    void* block = gp_mem_alloc(allocator, header_size + capacity + sizeof"");
-    *(GPArrayHeader*)block = (GPArrayHeader){
-        .length     = n,
+    GPStringHeader* me = gp_mem_alloc(allocator, sizeof*me + capacity + sizeof"");
+    *me = (GPStringHeader) {
         .capacity   = capacity,
         .allocator  = allocator,
-        .allocation = block },
-    memcpy((uint8_t*)block + header_size, init, n);
-    return (GPString)block + header_size;
+        .allocation = me };
+    return (GPString)(me + 1);
 }
 
-GPString gp_str_build(
-    void* buf,
-    const void* allocator,
-    size_t capacity,
-    const char* init)
+void gp_str_delete(GPString me)
 {
-    GPArrayHeader header =
-        {.length = strlen(init), .capacity = capacity, .allocator = allocator };
-    extern const struct gp_allocator gp_crash_on_alloc;
-    if (header.allocator == NULL)
-        header.allocator = &gp_crash_on_alloc;
-    memcpy(buf, &header, sizeof header);
-    return memcpy(buf + sizeof header, init, header.length + 1);
-}
-
-GPString gp_str_delete(GPString me)
-{
-    if (me == NULL)
-        return NULL;
+    if (me == NULL || gp_allocation(me) == NULL)
+        return;
     gp_dealloc(gp_allocator(me), gp_allocation(me));
-    return NULL;
 }
 
-GPArrayHeader* gp_str_header(const void* arr)
+static GPStringHeader* gp_str_header(const GPString str)
 {
-    size_t ptr_size = sizeof(GPArrayHeader*);
-    size_t aligment_offset = (uintptr_t)arr % ptr_size;
-    void* header;
-    memcpy(&header, (uint8_t*)arr - aligment_offset - ptr_size, ptr_size);
-    if (header == NULL)
-        header = (uint8_t*)arr - aligment_offset - sizeof(GPArrayHeader);
-    return header;
-}
-
-size_t gp_length(const void* arr)
-{
-    return gp_str_header(arr)->length;
-}
-
-size_t gp_capacity(const void* arr)
-{
-    return gp_str_header(arr)->capacity;
-}
-
-void* gp_allocation(const void* arr)
-{
-    return gp_str_header(arr)->allocation;
-}
-
-const struct gp_allocator* gp_allocator(const void* arr)
-{
-    return gp_str_header(arr)->allocator;
+    return (GPStringHeader*)str - 1;
 }
 
 static void* gp_memmem(
@@ -118,7 +68,7 @@ static void* gp_memmem(
 }
 
 size_t gp_str_find(
-    GPStringIn  haystack,
+    GPString  haystack,
     const void* needle,
     size_t      needle_size,
     size_t      start)
@@ -143,7 +93,7 @@ static const char* gp_memchr_r(const char* ptr_r, const char ch, size_t count)
 }
 
 size_t gp_str_find_last(
-    GPStringIn str_haystack,
+    GPString str_haystack,
     const void* needle,
     size_t needle_length)
 {
@@ -173,7 +123,7 @@ size_t gp_str_find_last(
 }
 
 size_t gp_str_count(
-    GPStringIn haystack,
+    GPString haystack,
     const void* needle,
     size_t     needle_size)
 {
@@ -187,7 +137,7 @@ size_t gp_str_count(
 }
 
 bool gp_str_equal(
-    GPStringIn  s1,
+    GPString  s1,
     const void* s2,
     size_t      s2_size)
 {
@@ -261,7 +211,7 @@ static size_t gp_mem_codepoint_count(
 }
 
 bool gp_str_equal_case(
-    GPStringIn  s1,
+    GPString  s1,
     const void* s2,
     size_t      s2_size)
 {
@@ -311,7 +261,7 @@ bool gp_str_equal_case(
 }
 
 size_t gp_str_codepoint_count(
-    GPStringIn str)
+    GPString str)
 {
     return gp_mem_codepoint_count(str, gp_length(str));
 }
@@ -339,7 +289,7 @@ static bool gp_valid_codepoint(
 }
 
 bool gp_str_is_valid(
-    GPStringIn _str)
+    GPString _str)
 {
     const char* str = (const char*)_str;
     const size_t length = gp_length(str);
@@ -361,7 +311,7 @@ bool gp_str_is_valid(
 }
 
 size_t gp_str_codepoint_length(
-    GPStringIn str)
+    GPString str)
 {
     return gp_mem_codepoint_length(str);
 }
@@ -373,117 +323,65 @@ const char* gp_cstr(GPString str)
 }
 
 void gp_str_reserve(
-    GPStringOut* str,
+    GPString* str,
     size_t capacity)
 {
-    if (gp_capacity(*str) < capacity)
-    {
-        GPArrayHeader* header = gp_str_header(*str);
-        GPChar* block_start = (GPChar*)(header + 1);
-        size_t offset = *str - block_start;
-        if (header->capacity + offset >= capacity) {
-            *str = memmove(block_start, *str, header->length);
-            memcpy(&((GPArrayHeader*)*str - 1)->capacity, &capacity, sizeof capacity);
-            return;
-        }
-
-        capacity = gp_next_power_of_2(capacity);
-        void* block = gp_mem_alloc(
-            header->allocator,
-            sizeof(GPArrayHeader) + capacity);
-
-        ((GPArrayHeader*)block)->length     = header->length;
-        ((GPArrayHeader*)block)->capacity   = capacity;
-        ((GPArrayHeader*)block)->allocator  = header->allocator;
-        ((GPArrayHeader*)block)->allocation = block;
-        memcpy((GPArrayHeader*)block + 1, *str, header->length);
-
-        gp_mem_dealloc(header->allocator, header->allocation);
-
-        *str = (GPChar*)block + sizeof(GPArrayHeader);
-    }
-}
-
-static void gp_str_clear_contents(
-    GPStringOut* str)
-{
-    GPArrayHeader* header = gp_str_header(*str);
-    size_t offset = *str - (GPChar*)(header + 1);
-    header->length   = 0;
-    header->capacity += offset;
-    *str = (GPChar*)(header + 1);
+    *str = gp_arr_reserve(sizeof**str, *str, capacity);
 }
 
 void gp_str_copy(
-    GPStringOut* dest,
+    GPString* dest,
     const void*restrict src,
     size_t n)
 {
-    gp_str_clear_contents(dest);
     gp_str_reserve(dest, n);
     memcpy(*dest, src, n);
-    gp_str_set_new(dest)->length = n;
+    gp_str_header(*dest)->length = n;
 }
 
 void gp_str_repeat(
-    GPStringOut* dest,
+    GPString* dest,
     const size_t n,
     const void*restrict mem,
     const size_t mem_length)
 {
-    gp_str_clear_contents(dest);
     gp_str_reserve(dest, n * mem_length);
     if (mem_length == 1) {
         memset(*dest, *(uint8_t*)mem, n);
     } else for (size_t i = 0; i < n; i++) {
         memcpy(*dest + i * mem_length, mem, mem_length);
     }
-    gp_str_set_new(dest)->length = n * mem_length;
+    gp_str_header(*dest)->length = n * mem_length;
 }
 
 void gp_str_slice(
-    GPStringOut* str,
-    size_t start,
-    size_t end)
-{
-    GPArrayHeader* header = gp_str_header(*str);
-    size_t aligment_offset = (uintptr_t)*str % sizeof(void*);
-    if (start + aligment_offset > sizeof(void*))
-    {
-        GPChar* new_start = *str + start;
-        memcpy(
-            new_start - sizeof(void*) - (uintptr_t)new_start % sizeof(void*),
-            &header, sizeof(void*));
-    }
-    *str += start;
-    header->length    = end - start;
-    header->capacity -= start;
-}
-
-void gp_str_substr(
-    GPStringOut* dest,
+    GPString* dest,
     const void*restrict src,
     size_t start,
     size_t end)
 {
-    gp_str_clear_contents(dest);
-    gp_str_reserve(dest, end - start);
-    memcpy(*dest, src + start, end - start);
-    gp_str_set_new(dest)->length = end - start;
+    if (src != NULL) {
+        gp_str_reserve(dest, end - start);
+        memcpy(*dest, src + start, end - start);
+        gp_str_header(*dest)->length = end - start;
+    } else {
+        memmove(*dest, *dest + start,  end - start);
+        gp_str_header(*dest)->length = end - start;
+    }
 }
 
 void gp_str_append(
-    GPStringOut* dest,
+    GPString* dest,
     const void* src,
     size_t src_length)
 {
     gp_str_reserve(dest, gp_length(*dest) + src_length);
-    memcpy(*dest + gp_length(*dest), src, src_length + sizeof(""));
-    gp_str_set(dest)->length += src_length;
+    memcpy(*dest + gp_length(*dest), src, src_length + sizeof"");
+    gp_str_header(*dest)->length += src_length;
 }
 
 void gp_str_insert(
-    GPStringOut* dest,
+    GPString* dest,
     size_t pos,
     const void*restrict src,
     size_t n)
@@ -491,7 +389,7 @@ void gp_str_insert(
     gp_str_reserve(dest, gp_length(*dest) + n);
     memmove(*dest + pos + n, *dest + pos, gp_length(*dest) - pos);
     memcpy(*dest + pos, src, n);
-    gp_str_set(dest)->length += n;
+    gp_str_header(*dest)->length += n;
 }
 
 static size_t gp_cstr_replace_range(
@@ -512,7 +410,7 @@ static size_t gp_cstr_replace_range(
 }
 
 size_t gp_str_replace(
-    GPStringOut* haystack,
+    GPString* haystack,
     const void*restrict needle,
     const size_t needle_length,
     const void*restrict replacement,
@@ -526,7 +424,7 @@ size_t gp_str_replace(
         gp_length(*haystack) + replacement_length - needle_length);
 
     const size_t end = start + needle_length;
-    gp_str_set(haystack)->length = gp_cstr_replace_range(
+    gp_str_header(*haystack)->length = gp_cstr_replace_range(
         gp_length(*haystack),
         (char*)*haystack,
         start,
@@ -538,7 +436,7 @@ size_t gp_str_replace(
 }
 
 size_t gp_str_replace_all(
-    GPStringOut* haystack,
+    GPString* haystack,
     const void*restrict needle,
     const size_t needle_length,
     const void*restrict replacement,
@@ -551,7 +449,7 @@ size_t gp_str_replace_all(
         gp_str_reserve(haystack,
             gp_length(*haystack) + replacement_length - needle_length);
 
-        gp_str_set(haystack)->length = gp_cstr_replace_range(
+        gp_str_header(*haystack)->length = gp_cstr_replace_range(
             gp_length(*haystack),
             (char*)*haystack,
             start,
@@ -565,48 +463,59 @@ size_t gp_str_replace_all(
     return replacement_count;
 }
 
-static inline size_t gp_max_digits_in(const GPType T)
+static size_t gp_str_print_object_size(GPPrintable object, pf_va_list _args)
 {
-    switch (T)
+    va_list args;
+    va_copy(args, _args.list);
+
+    size_t length = 0;
+    if (object.identifier[0] == '\"')
     {
-        case GP_FLOAT: // promoted
-        case GP_DOUBLE: // %g
-            return strlen("-0.111111e-9999");
+        const char* fmt = va_arg(args, char*);
+        length = pf_vsnprintf(
+            NULL,
+            0,
+            fmt,
+            args);
+    } else {
+        switch (object.type)
+        {
+            case GP_CHAR:
+            case GP_SIGNED_CHAR:
+            case GP_UNSIGNED_CHAR:
+                length = 1;
+                break;
 
-        case GP_PTR:
-            return strlen("0x") + sizeof(void*) * strlen("ff");
+            case GP_BOOL:
+                length = strlen("false");
+                break;
 
-        default: // integers https://www.desmos.com/calculator/c1ftloo5ya
-            return (gp_sizeof(T) * 18)/CHAR_BIT + 2;
+            char* p;
+            size_t p_len;
+            case GP_CHAR_PTR:
+                p = va_arg(args, char*);
+                p_len = strlen(p);
+                length = p_len;
+                break;
+
+            GPString s;
+            case GP_STRING:
+                s = va_arg(args, GPString);
+                length = gp_length(s);
+                break;
+
+            default:
+                length = gp_max_digits_in(object.type);
+        }
     }
-    return 0;
-}
-
-static inline size_t gp_print_cap_left(GPStringIn me, size_t n) {
-    return gp_length(me) >= n ? 0 : n - gp_length(me);
-}
-static inline void gp_print_concat(
-    GPStringOut* me, const size_t n, const void* src, const size_t length)
-{
-    memcpy(*me + gp_length(*me), src, gp_min(gp_print_cap_left(*me, n), length));
-    gp_str_set(me)->length += length;
-}
-static inline bool gp_print_push_char(
-    GPStringOut* me, const size_t n, const uint8_t c)
-{
-    if (gp_length(*me) < n)
-        (*me)[gp_length(*me)].c = c;
-    gp_str_set(me)->length++;
-    return gp_print_cap_left(*me, n) != 0;
+    va_end(args);
+    return length;
 }
 
 size_t gp_str_print_internal(
-    bool is_println,
-    bool is_n,
-    GPStringOut* out,
-    const size_t n,
-    const size_t arg_count,
-    const struct GPPrintable* objs,
+    GPString* out,
+    size_t arg_count,
+    const GPPrintable* objs,
     ...)
 {
     va_list _args;
@@ -614,171 +523,134 @@ size_t gp_str_print_internal(
     pf_va_list args;
     va_copy(args.list, _args);
 
-    bool capacity_sufficed_for_trailing_space = false;
-
-    #define GP_PRINT_ADD_RESERVE(N) do \
-    { \
-        if ( ! is_n) \
-            gp_str_reserve(out, gp_length(*out) + (N)); \
-    } while (0)
-
-    gp_str_clear_contents(out);
     // Avoid many small allocations by estimating a sufficient buffer size. This
-    // estimation is currently completely arbitrary. // TODO better estimation.
-    //GP_PRINT_ADD_RESERVE(arg_count * 10);
+    // estimation is currently completely arbitrary.
+    gp_str_reserve(out, arg_count * 10);
 
+    gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        if (objs[i].identifier[0] == '\"')
-        {
-            const char* fmt = va_arg(args.list, char*);
-            for (const char* c = fmt; (c = strchr(c, '%')) != NULL; c++)
-            {
-                if (c[1] == '%')
-                    c++;
-                else // consuming more args
-                    i++;
-            }
-            GP_PRINT_ADD_RESERVE(pf_vsnprintf(NULL, 0, fmt, args.list));
-
-            gp_str_set(out)->length += pf_vsnprintf_consuming(
-                (char*)*out + gp_str_set(out)->length,
-                gp_print_cap_left(*out, n),
-                fmt,
-                &args);
-
-            if (is_println) {
-                GP_PRINT_ADD_RESERVE(1);
-                capacity_sufficed_for_trailing_space = gp_print_push_char(out, n, ' ');
-            }
-            continue;
-        }
-
-        switch (objs[i].type)
-        {
-            case GP_CHAR:
-            case GP_SIGNED_CHAR:
-            case GP_UNSIGNED_CHAR:
-                GP_PRINT_ADD_RESERVE(1);
-                gp_print_push_char(out, n, (char)va_arg(args.list, int));
-                break;
-
-            case GP_UNSIGNED_SHORT:
-            case GP_UNSIGNED:
-                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
-                gp_str_set(out)->length += pf_utoa(
-                    gp_print_cap_left(*out, n),
-                    (char*)*out + gp_str_set(out)->length,
-                    va_arg(args.list, unsigned));
-                break;
-
-            case GP_UNSIGNED_LONG:
-                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
-                gp_str_set(out)->length += pf_utoa(
-                    gp_print_cap_left(*out, n),
-                    (char*)*out + gp_str_set(out)->length,
-                    va_arg(args.list, unsigned long));
-                break;
-
-            case GP_UNSIGNED_LONG_LONG:
-                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
-                gp_str_set(out)->length += pf_utoa(
-                    gp_print_cap_left(*out, n),
-                    (char*)*out + gp_str_set(out)->length,
-                    va_arg(args.list, unsigned long long));
-                break;
-
-            case GP_BOOL:
-                GP_PRINT_ADD_RESERVE(strlen("false"));
-                if (va_arg(args.list, int))
-                    gp_print_concat(out, n, "true", strlen("true"));
-                else
-                    gp_print_concat(out, n, "false", strlen("false"));
-                break;
-
-            case GP_SHORT:
-            case GP_INT:
-                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
-                gp_str_set(out)->length += pf_itoa(
-                    gp_print_cap_left(*out, n),
-                    (char*)*out + gp_str_set(out)->length,
-                    va_arg(args.list, int));
-                break;
-
-            case GP_LONG:
-                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
-                gp_str_set(out)->length += pf_itoa(
-                    gp_print_cap_left(*out, n),
-                    (char*)*out + gp_str_set(out)->length,
-                    va_arg(args.list, long int));
-                break;
-
-            case GP_LONG_LONG:
-                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
-                gp_str_set(out)->length += pf_itoa(
-                    gp_print_cap_left(*out, n),
-                    (char*)*out + gp_str_set(out)->length,
-                    va_arg(args.list, long long int));
-                break;
-
-            case GP_FLOAT:
-            case GP_DOUBLE:
-                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
-                gp_str_set(out)->length += pf_gtoa(
-                    gp_print_cap_left(*out, n),
-                    (char*)*out + gp_str_set(out)->length,
-                    va_arg(args.list, double));
-                break;
-
-            char* p;
-            size_t p_len;
-            case GP_CHAR_PTR:
-                p = va_arg(args.list, char*);
-                p_len = strlen(p);
-                GP_PRINT_ADD_RESERVE(p_len);
-                gp_print_concat(out, n, p, p_len);
-                break;
-
-            GPString s;
-            case GP_STRING:
-                s = va_arg(args.list, GPString);
-                GP_PRINT_ADD_RESERVE(gp_length(s));
-                gp_print_concat(out, n, (char*)s, gp_length(s));
-                break;
-
-            case GP_PTR:
-                GP_PRINT_ADD_RESERVE(gp_max_digits_in(objs[i].type));
-                p = va_arg(args.list, void*);
-                if (p != NULL) {
-                    gp_print_concat(out, n, "0x", strlen("0x"));
-                    gp_str_set(out)->length += pf_xtoa(
-                        gp_print_cap_left(*out, n),
-                        (char*)*out + gp_str_set(out)->length,
-                        (uintptr_t)p);
-                } else {
-                    gp_print_concat(out, n, "(nil)", strlen("(nil)"));
-                } break;
-        }
-        if (is_println) {
-            GP_PRINT_ADD_RESERVE(1);
-            capacity_sufficed_for_trailing_space = gp_print_push_char(out, n, ' ');
-        }
+        gp_str_reserve(out, gp_length(*out) + gp_str_print_object_size(objs[i], args));
+        gp_str_header(*out)->length += gp_print_objects(
+            (size_t)-1,
+            *out + gp_length(*out),
+            &args,
+            &i,
+            objs[i]);
     }
     va_end(_args);
     va_end(args.list);
-    if (n > 0 && capacity_sufficed_for_trailing_space)
-        (*out)[gp_str_set(out)->length - 1].c = '\n';
 
-    if (is_n && gp_length(*out) > n) {
-        size_t result = gp_length(*out);
-        gp_str_set(out)->length = n;
-        return result;
+    return gp_str_header(*out)->length;
+}
+
+size_t gp_str_n_print_internal(
+    GPString* out,
+    size_t n,
+    size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    gp_str_header(*out)->length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        gp_str_header(*out)->length += gp_print_objects(
+            n >= gp_length(*out) ? n - gp_length(*out) : 0,
+            *out + gp_length(*out),
+            &args,
+            &i,
+            objs[i]);
     }
-    return gp_length(*out);
+    va_end(_args);
+    va_end(args.list);
+
+    const size_t out_length = gp_length(*out);
+    if (out_length > n)
+        gp_str_header(*out)->length = n;
+    return out_length;
+}
+
+size_t gp_str_println_internal(
+    GPString* out,
+    size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    // Avoid many small allocations by estimating a sufficient buffer size. This
+    // estimation is currently completely arbitrary.
+    gp_str_reserve(out, arg_count * 10);
+
+    gp_str_header(*out)->length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        gp_str_reserve(out,
+            gp_length(*out) + strlen(" ") + gp_str_print_object_size(objs[i], args));
+
+        gp_str_header(*out)->length += gp_print_objects(
+            (size_t)-1,
+            *out + gp_length(*out),
+            &args,
+            &i,
+            objs[i]);
+
+        (*out)[gp_str_header(*out)->length++].c = ' ';
+    }
+    va_end(_args);
+    va_end(args.list);
+
+    (*out)[gp_length(*out) - 1].c = '\n';
+    return gp_str_header(*out)->length;
+}
+
+size_t gp_str_n_println_internal(
+    GPString* out,
+    size_t n,
+    size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    gp_str_header(*out)->length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        gp_str_header(*out)->length += gp_print_objects(
+            n >= gp_length(*out) ? n - gp_length(*out) : 0,
+            *out + gp_length(*out),
+            &args,
+            &i,
+            objs[i]);
+
+        if (n > gp_length(*out))
+            (*out)[gp_str_header(*out)->length++].c = ' ';
+    }
+    va_end(_args);
+    va_end(args.list);
+
+    if (n > (gp_length(*out) - !!gp_length(*out))) // overwrite last space
+        (*out)[gp_length(*out) - 1].c = '\n';
+
+    const size_t out_length = gp_length(*out);
+    if (out_length > n)
+        gp_str_header(*out)->length = n;
+    return out_length;
 }
 
 void gp_str_trim(
-    GPStringOut* str,
+    GPString* str,
     const char*restrict optional_char_set,
     int flags)
 {
@@ -809,7 +681,7 @@ void gp_str_trim(
                     break;
             }
         }
-        gp_str_set(str)->length = length;
+        gp_str_header(*str)->length = length;
         return;
     }
     // else utf8
@@ -847,11 +719,11 @@ void gp_str_trim(
 
         length -= size;
     }
-    gp_str_set(str)->length = length;
+    gp_str_header(*str)->length = length;
 }
 
 static void gp_str_to_something(
-    GPStringOut* str,
+    GPString* str,
     wint_t(*towsomething)(wint_t))
 {
     size_t length = gp_length(*str);
@@ -873,17 +745,17 @@ static void gp_str_to_something(
 
     if (buf != stack_buf)
         free(buf);
-    gp_str_set(str)->length = length;
+    gp_str_header(*str)->length = length;
 }
 
 void gp_str_to_upper(
-    GPStringOut* str)
+    GPString* str)
 {
     gp_str_to_something(str, towupper);
 }
 
 void gp_str_to_lower(
-    GPStringOut* str)
+    GPString* str)
 {
     gp_str_to_something(str, towlower);
 }
@@ -937,7 +809,7 @@ static size_t gp_bytes_find_valid(
 }
 
 void gp_str_to_valid(
-    GPStringOut* str,
+    GPString* str,
     const char* replacement)
 {
           size_t length = gp_length(*str);
@@ -956,12 +828,12 @@ void gp_str_to_valid(
 
         start += replacement_length;
     }
-    gp_str_set(str)->length = length;
+    gp_str_header(*str)->length = length;
 }
 
 int gp_str_case_compare( // TODO use allocator
-    GPStringIn _s1,
-    GPStringIn _s2)
+    const GPString _s1,
+    const GPString _s2)
 {
     const char* s1 = (const char*)_s1;
     const char* s2 = (const char*)_s2;

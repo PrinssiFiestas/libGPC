@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include "d2s_full_table.h"
 #include "ryu.h"
-#include "common.h"
+#include "ryu_common.h"
 #include "digit_table.h"
 #include "d2fixed_full_table.h"
 #include "d2s_intrinsics.h"

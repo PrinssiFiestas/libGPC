@@ -16,27 +16,51 @@
 //
 // ----------------------------------------------------------------------------
 
+//
+typedef struct gp_array_header
+{
+    uintptr_t length;
+    uintptr_t capacity;
+    const GPAllocator* allocator;
+    void* allocation; // pointer to self or NULL if on stack
+} GPArrayHeader;
+
 #define GPArray(T) T*
 
 #define GP_ARR_ATTRS(...) \
     GP_NONNULL_RETURN GP_NODISCARD GP_NONNULL_ARGS(__VA_ARGS__)
 
 GPArray(void) gp_arr_new(
-    GPAllocator*,
+    const GPAllocator*,
     size_t element_size,
     size_t element_count) GP_ARR_ATTRS();
 
+#define/* GPArray(T) */gp_arr_on_stack( \
+    optional_allocator_ptr, \
+    size_t_capacity, \
+    T, ...) (struct { GPArrayHeader header; T data[size_t_capacity]; }) { \
+{ \
+    .length     = sizeof((T[]){__VA_ARGS__})/sizeof(T), \
+    .capacity   = size_t_capacity, \
+    .allocator  = optional_allocator_ptr, \
+    .allocation = NULL \
+}, {__VA_ARGS__} }.data
+
+// If not zeroing memory for performance is desirable and/or macro magic is
+// undesirable, arrays can be created on stack manually. Example with int:
+/*
+    struct { GPArrayHeader header; int data[2048]; } my_array_mem;
+    my_array_mem.header = (GPArrayHeader) {.capacity = 2048 };
+    GPArray(int) my_array = my_array_mem.data;
+*/
+
+// Passing arrays on stack is safe too.
 void gp_arr_delete(GPArray(void) optional);
 
 size_t             gp_length    (const void*) GP_NONNULL_ARGS();
 size_t             gp_capacity  (const void*) GP_NONNULL_ARGS();
 void*              gp_allocation(const void*) GP_NONNULL_ARGS();
 const GPAllocator* gp_allocator (const void*) GP_NONNULL_ARGS();
-
-GPArray(void) gp_arr_reserve(
-    size_t        element_size,
-    GPArray(void) arr,
-    size_t        capacity) GP_ARR_ATTRS();
 
 GPArray(void) gp_arr_copy(
     size_t              element_size,
@@ -113,14 +137,9 @@ GPArray(void) gp_arr_filter(
 //
 // ----------------------------------------------------------------------------
 
-#ifndef GP_STRING_INCLUDED
-typedef struct gp_array_header
-{
-    uintptr_t length;
-    uintptr_t capacity;
-    const GPAllocator* allocator;
-    void* allocation; // pointer to self or NULL if on stack
-} GPArrayHeader;
+#ifdef _MSC_VER
+// unnamed struct in parenthesis in gp_arr_on_stack()
+#pragma warning(disable : 4116)
 #endif
 
 #endif // GPC_ARRAY_H

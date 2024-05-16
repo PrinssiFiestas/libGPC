@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common.h"
+#include "ryu_common.h"
 #include "digit_table.h"
 #include "d2s_intrinsics.h"
 

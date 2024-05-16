@@ -32,7 +32,7 @@
 typedef struct gp_allocator
 {
     void* (*alloc)  (const struct gp_allocator*, size_t block_size);
-    void* (*dealloc)(const struct gp_allocator*, void*  block);
+    void  (*dealloc)(const struct gp_allocator*, void*  block);
 } GPAllocator;
 
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_MALLOC_SIZE(2)
@@ -53,13 +53,12 @@ inline void* gp_mem_alloc_zeroes(
 }
 
 GP_NONNULL_ARGS(1)
-inline void* gp_mem_dealloc(
+inline void gp_mem_dealloc(
     const GPAllocator* allocator,
     void* block)
 {
     if (block != NULL)
-        return allocator->dealloc(allocator, block);
-    return NULL;
+        allocator->dealloc(allocator, block);
 }
 
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD

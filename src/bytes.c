@@ -12,6 +12,7 @@
 #include <gpc/string.h>
 #include <printf/conversions.h>
 #include "pfstring.h"
+#include "common.h"
 #include <stdlib.h> // malloc() TODO use allocator instead
 #include <string.h>
 #include <stdint.h>
@@ -285,13 +286,16 @@ bool gp_bytes_is_valid(
     return true;
 }
 
-size_t gp_bytes_copy(
+size_t gp_bytes_slice(
     void*restrict dest,
     const void*restrict src,
     size_t start,
     size_t end)
 {
-    memcpy(dest, src + start, end - start);
+    if (src != NULL)
+        memcpy(dest, src + start, end - start);
+    else
+        memmove(dest, (uint8_t*)dest + start, end - start);
     return end - start;
 }
 
@@ -347,25 +351,7 @@ size_t gp_bytes_replace_range(
     memcpy(me + start, replacement, replacement_length);
     return me_length + replacement_length - (end - start);
 }
-#if 0 // TODO use arrays when implemented to implement this to optimize replace_all()
-static size_t gp_bytes_find_indices(
-// vvvvvv MODIFY ALL THIS vvvvvvvvvvvvvv
-    const void*  haystack,
-    const size_t haystack_length,
-    const void*  needle,
-    const size_t needle_size)
-{
-    size_t count = 0;
-    size_t i = 0;
-    while ((i = gp_bytes_find(haystack, haystack_length, needle, needle_size, i))
-        != GP_NOT_FOUND)
-    {
-        count++;
-        i++;
-    }
-    return count;
-}
-#endif
+
 size_t gp_bytes_replace(
     void*restrict haystack,
     const size_t haystack_length,
@@ -424,30 +410,11 @@ size_t gp_bytes_replace_all(
     return haystack_length;
 }
 
-static inline size_t gp_max_digits_in(const GPType T)
-{
-    switch (T)
-    {
-        case GP_FLOAT: // promoted
-        case GP_DOUBLE: // %g
-            return strlen("-0.111111e-9999");
-
-        case GP_PTR:
-            return strlen("0x") + sizeof(void*) * strlen("ff");
-
-        default: // integers https://www.desmos.com/calculator/c1ftloo5ya
-            return (gp_sizeof(T) * 18)/CHAR_BIT + 2;
-    }
-    return 0;
-}
-
 size_t gp_bytes_print_internal(
-    bool is_println,
-    bool is_n,
-    void*restrict _out,
+    void*restrict out,
     const size_t n,
     const size_t arg_count,
-    const struct GPBytesPrintable* objs,
+    const GPPrintable* objs,
     ...)
 {
     va_list _args;
@@ -455,141 +422,54 @@ size_t gp_bytes_print_internal(
     pf_va_list args;
     va_copy(args.list, _args);
 
-    PFString out = {_out };
-    bool capacity_sufficed_for_trailing_space = false;
-
+    size_t length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        if (objs[i].identifier[0] == '\"')
-        {
-            const char* fmt = va_arg(args.list, char*);
-            for (const char* c = fmt; (c = strchr(c, '%')) != NULL; c++)
-            {
-                if (c[1] == '%')
-                    c++;
-                else // consuming more args
-                    i++;
-            }
-            out.length += pf_vsnprintf_consuming(
-                out.data + out.length,
-                pf_capacity_left(out),
-                fmt,
-                &args);
-
-            if (is_println) {
-                capacity_sufficed_for_trailing_space = pf_push_char(&out, ' ');
-            }
-            continue;
-        }
-
-        switch (objs[i].type)
-        {
-            case GP_CHAR:
-            case GP_SIGNED_CHAR:
-            case GP_UNSIGNED_CHAR:
-                pf_push_char(&out, (char)va_arg(args.list, int));
-                break;
-
-            case GP_UNSIGNED_SHORT:
-            case GP_UNSIGNED:
-                out.length += pf_utoa(
-                    pf_capacity_left(out),
-                    out.data + out.length,
-                    va_arg(args.list, unsigned));
-                break;
-
-            case GP_UNSIGNED_LONG:
-                out.length += pf_utoa(
-                    pf_capacity_left(out),
-                    out.data + out.length,
-                    va_arg(args.list, unsigned long));
-                break;
-
-            case GP_UNSIGNED_LONG_LONG:
-                out.length += pf_utoa(
-                    pf_capacity_left(out),
-                    out.data + out.length,
-                    va_arg(args.list, unsigned long long));
-                break;
-
-            case GP_BOOL:
-                if (va_arg(args.list, int))
-                    pf_concat(&out, "true", strlen("true"));
-                else
-                    pf_concat(&out, "false", strlen("false"));
-                break;
-
-            case GP_SHORT:
-            case GP_INT:
-                out.length += pf_itoa(
-                    pf_capacity_left(out),
-                    out.data + out.length,
-                    va_arg(args.list, int));
-                break;
-
-            case GP_LONG:
-                out.length += pf_itoa(
-                    pf_capacity_left(out),
-                    out.data + out.length,
-                    va_arg(args.list, long int));
-                break;
-
-            case GP_LONG_LONG:
-                out.length += pf_itoa(
-                    pf_capacity_left(out),
-                    out.data + out.length,
-                    va_arg(args.list, long long int));
-                break;
-
-            case GP_FLOAT:
-            case GP_DOUBLE:
-                out.length += pf_gtoa(
-                    pf_capacity_left(out),
-                    out.data + out.length,
-                    va_arg(args.list, double));
-                break;
-
-            char* p;
-            size_t p_len;
-            case GP_CHAR_PTR:
-                p = va_arg(args.list, char*);
-                p_len = strlen(p);
-                pf_concat(&out, p, p_len);
-                break;
-
-            GPString s;
-            case GP_STRING:
-                s = va_arg(args.list, GPString);
-                pf_concat(&out, (char*)s, gp_length(s));
-                break;
-
-            case GP_PTR:
-                p = va_arg(args.list, void*);
-                if (p != NULL) {
-                    pf_concat(&out, "0x", strlen("0x"));
-                    out.length += pf_xtoa(
-                        pf_capacity_left(out),
-                        out.data + out.length,
-                        (uintptr_t)p);
-                } else {
-                    pf_concat(&out, "(nil)", strlen("(nil)"));
-                } break;
-        }
-        if (is_println) {
-            capacity_sufficed_for_trailing_space = pf_push_char(&out, ' ');
-        }
+        length += gp_print_objects(
+            n >= length ? n - length : 0,
+            (uint8_t*)out + length,
+            &args,
+            &i,
+            objs[i]);
     }
     va_end(_args);
     va_end(args.list);
-    if (n > 0 && capacity_sufficed_for_trailing_space)
-        (out.data)[out.length - 1] = '\n';
 
-    if (is_n && out.length > n) {
-        size_t result = out.length;
-        out.length = n;
-        return result;
+    return length;
+}
+
+size_t gp_bytes_println_internal(
+    void*restrict out,
+    const size_t n,
+    const size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    size_t length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        length += gp_print_objects(
+            n >= length ? n - length : 0,
+            (uint8_t*)out + length,
+            &args,
+            &i,
+            objs[i]);
+
+        if (n > length)
+            ((char*)out)[length++] = ' ';
     }
-    return out.length;
+    va_end(_args);
+    va_end(args.list);
+
+    if (n > (length - !!length)) // overwrite last space
+        ((char*)out)[length - 1] = '\n';
+
+    return length;
 }
 
 size_t gp_bytes_trim(
