@@ -168,7 +168,7 @@ int gp_bytes_case_compare(
 // ----------------------------------------------------------------------------
 // Printing
 
-typedef struct gp_printable // TODO use in assert
+typedef struct gp_printable
 {
     // Created with #. If var_name[0] == '\"', then contains format string.
     const char* identifier;

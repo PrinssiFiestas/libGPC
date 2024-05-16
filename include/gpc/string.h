@@ -165,6 +165,11 @@ void gp_str_to_valid(
     GPString*   str,
     const char* replacement) GP_NONNULL_ARGS();
 
+// Returns false if file operations fail. Check errno for the specific error.
+bool gp_str_from_path(
+    GPString*   str,
+    const char* file_path) GP_NONNULL_ARGS() GP_NODISCARD;
+
 // ----------------------------------------------------------------------------
 // String examination
 

@@ -10,6 +10,7 @@
 #ifndef GP_ASSERT_INCLUDED
 #define GP_ASSERT_INCLUDED 1
 
+#include "bytes.h"
 #include "overload.h"
 #include "attributes.h"
 #include <stdbool.h>
@@ -59,34 +60,13 @@ void gp_suite(const char* name);
 // function is not called explicitly, it will be called when main() returns.
 void gp_end_testing(void);
 
-#ifndef GP_STRING_INCLUDED
-//
-struct GPPrintable
-{
-    // Created with #. If var_name[0] == '\"', then contains format string.
-    const char* identifier;
-
-    // Simplified specifier. If var_name is not a format string, then this is
-    // used avoiding format string parsing.
-    const enum gp_type type;
-
-    // Actual data is in pr_cstr_fail_internal() variadic args.
-};
-#if __STDC_VERSION__ >= 201112L
-#define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
-#else
-#define GP_PRINTABLE(X) { #X, -1 }
-#endif
-
-#endif
-
 #define GP_FAIL(...) \
     gp_fail_internal( \
         __FILE__, \
         __LINE__, \
         __func__, \
         GP_COUNT_ARGS(__VA_ARGS__), \
-        (struct GPPrintable[]) \
+        (GPPrintable[]) \
             { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
         __VA_ARGS__)
 //
@@ -95,7 +75,7 @@ void gp_fail_internal(
     int line,
     const char* func,
     size_t arg_count,
-    const struct GPPrintable* objs,
+    const GPPrintable* objs,
     ...);
 
 #endif // GP_ASSERT_INCLUDED

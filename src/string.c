@@ -11,6 +11,7 @@
 #include <gpc/utils.h>
 #include <gpc/array.h>
 #include "common.h"
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -864,3 +865,22 @@ int gp_str_case_compare( // TODO use allocator
     return result;
 }
 
+bool gp_str_from_path(
+    GPString*   str,
+    const char* file_path)
+{
+    FILE* f = fopen(file_path, "r");
+    if (f == NULL)
+        return false;
+
+    fseek(f, 0, SEEK_END);
+    size_t file_size = ftell(f);
+    gp_str_reserve(str, file_size);
+
+    rewind(f);
+    fread(*str, 1, file_size, f);
+    gp_str_header(*str)->length = file_size;
+
+    fclose(f);
+    return true;
+}

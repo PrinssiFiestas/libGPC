@@ -10,7 +10,7 @@
 
 #if _WIN32
 // quick hack to disable locale dependent tests for now
-// TODO operating system agnostic setlocale()
+// TODO operating system agnostic way to set locale to utf-8
 #define setlocale(...) NULL
 #endif
 
@@ -496,6 +496,28 @@ int main(void)
             }
         }
         gp_str_delete(str);
+    }
+
+    gp_suite("Read file");
+    {
+        FILE* file = fopen("gp_test_str_file.txt", "w");
+        fwrite("blah blah", 1, strlen("blah blah"), file);
+        fclose(file);
+
+        gp_test("Reading");
+        {
+            GPString str = gp_str_on_stack(&gp_heap, 1, "");
+            gp_expect(gp_str_from_path(&str, "gp_test_str_file.txt"));
+            gp_expect(gp_str_equal(str, "blah blah", strlen("blah blah")));
+            gp_str_delete(str);
+        }
+
+        gp_test("Non existent");
+        {
+            GPString str = gp_str_on_stack(&gp_heap, 1, "");
+            gp_expect( ! gp_str_from_path(&str, "NON_EXISTENT.txt"));
+            gp_str_delete(str);
+        }
     }
 
     // ------------------------------------------------------------------------

@@ -161,7 +161,7 @@ void gp_fail_internal(
     int line,
     const char* func,
     size_t arg_count,
-    const struct GPPrintable* objs,
+    const GPPrintable* objs,
     ...)
 {
     va_list _args;
