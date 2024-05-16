@@ -518,6 +518,8 @@ int main(void)
             gp_expect( ! gp_str_from_path(&str, "NON_EXISTENT.txt"));
             gp_str_delete(str);
         }
+
+        gp_assert(remove("gp_test_str_file.txt") == 0);
     }
 
     // ------------------------------------------------------------------------
