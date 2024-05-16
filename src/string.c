@@ -532,7 +532,7 @@ size_t gp_str_print_internal(
     for (size_t i = 0; i < arg_count; i++)
     {
         gp_str_reserve(out, gp_length(*out) + gp_str_print_object_size(objs[i], args));
-        gp_str_header(*out)->length += gp_print_objects(
+        gp_str_header(*out)->length += gp_bytes_print_objects(
             (size_t)-1,
             *out + gp_length(*out),
             &args,
@@ -560,7 +560,7 @@ size_t gp_str_n_print_internal(
     gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        gp_str_header(*out)->length += gp_print_objects(
+        gp_str_header(*out)->length += gp_bytes_print_objects(
             n >= gp_length(*out) ? n - gp_length(*out) : 0,
             *out + gp_length(*out),
             &args,
@@ -597,7 +597,7 @@ size_t gp_str_println_internal(
         gp_str_reserve(out,
             gp_length(*out) + strlen(" ") + gp_str_print_object_size(objs[i], args));
 
-        gp_str_header(*out)->length += gp_print_objects(
+        gp_str_header(*out)->length += gp_bytes_print_objects(
             (size_t)-1,
             *out + gp_length(*out),
             &args,
@@ -628,7 +628,7 @@ size_t gp_str_n_println_internal(
     gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        gp_str_header(*out)->length += gp_print_objects(
+        gp_str_header(*out)->length += gp_bytes_print_objects(
             n >= gp_length(*out) ? n - gp_length(*out) : 0,
             *out + gp_length(*out),
             &args,

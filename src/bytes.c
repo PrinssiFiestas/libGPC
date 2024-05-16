@@ -425,7 +425,7 @@ size_t gp_bytes_print_internal(
     size_t length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        length += gp_print_objects(
+        length += gp_bytes_print_objects(
             n >= length ? n - length : 0,
             (uint8_t*)out + length,
             &args,
@@ -453,7 +453,7 @@ size_t gp_bytes_println_internal(
     size_t length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        length += gp_print_objects(
+        length += gp_bytes_print_objects(
             n >= length ? n - length : 0,
             (uint8_t*)out + length,
             &args,
