@@ -31,8 +31,8 @@
 typedef struct gp_char { uint8_t c; } GPChar;
 typedef struct gp_string_header
 {
-    uintptr_t length;
-    uintptr_t capacity;
+    size_t length;
+    size_t capacity;
     const GPAllocator* allocator;
     void* allocation; // pointer to self or NULL if on stack
 } GPStringHeader;

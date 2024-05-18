@@ -10,6 +10,7 @@
 #ifndef GPC_HASHMAP_INCLUDED
 #define GPC_HASHMAP_INCLUDED
 
+#include "memory.h"
 #include "attributes.h"
 #include <stdint.h>
 #include <stdbool.h>
@@ -22,119 +23,115 @@
 //
 // ----------------------------------------------------------------------------
 
-typedef struct gpc_StringMap
-{
-    const size_t element_size;
-    const unsigned init_size;     // Should be power of 2
-    const unsigned alloc_divider; // Should be power of 2
-    const bool no_hashing;
-    struct gpc_Slots* slots;      // Private!
-} gpc_StringMap;
+typedef struct gp_map      GPMap;
+typedef struct gp_hash_map GPHashMap;
 
-typedef struct gpc_IntegerMap
+// Optional attributes
+typedef struct gp_map_initializer
 {
-    const size_t element_size;
-    const unsigned init_size;     // Should be power of 2
-    const unsigned alloc_divider; // Should be power of 2
-    const bool no_hashing;
-    struct gpc_Slots* slots;      // Private!
-} gpc_IntegerMap;
+    // If 0, elements are assumed to be pointers.
+    size_t element_size;
 
-typedef struct gpc_String128Map
-{
-    const size_t element_size;
-    const bool no_hashing;
-    const unsigned init_size;     // Should be power of 2
-    const unsigned alloc_divider; // Should be power of 2
-    struct gpc_Slots128* slots;   // Private!
-} gpc_String128Map;
+    // Should be a power of 2. Defaults to 256
+    size_t capacity;
 
-typedef struct gpc_Integer128Map
-{
-    const size_t element_size;
-    const bool no_hashing;
-    const unsigned init_size;     // Should be power of 2
-    const unsigned alloc_divider; // Should be power of 2
-    struct gpc_Slots128* slots;   // Private!
-} gpc_Integer128Map;
-
-#if UINTPTR_MAX == UINT64_MAX
-typedef double gpc_floatptr;
-#else
-typedef float gpc_floatptr;
-#endif
-
-typedef struct gpc_Uint128
-{
-    uint64_t lo;
-    uint64_t hi;
-} gpc_Uint128;
+    // If element_size != 0, argument is pointer to the element, else argument
+    // is the actual pointer. In the latter case an example of a valid
+    // destructor is free().
+    void (*destructor)(void* element);
+} GPMapInitializer;
 
 // ------------------
+// 128-bit uint
 
-uint32_t    gpc_hash32 (const char* str);
-uint64_t    gpc_hash64 (const char* str);
-gpc_Uint128 gpc_hash128(const char* str);
+const union
+{
+    uint16_t u16;
+    struct { uint8_t is_little_endian; uint8_t is_big_endian; };
+} GP_INTEGER = {.u16 = 1 };
 
-// ------------------
+typedef union gp_uint128
+{
+    struct {
+        uint64_t lo;
+        uint64_t hi;
+    }; struct {
+        uint64_t hi;
+        uint64_t lo;
+    } big_endian;
+    #if __GNUC__
+    __uint128_t u128;
+    #endif
+} GPUint128;
 
-void  gpc_smap_set(gpc_StringMap* map,      const char* key, void* value);
-void  gpc_smap_setf(gpc_StringMap* map,     const char* key, gpc_floatptr value);
-void* gpc_smap_get(const gpc_StringMap map, const char* key);
-gpc_floatptr gpc_smap_getf(const gpc_StringMap map, const char* key);
-void gpc_smap_delete(gpc_StringMap* map, const char* key);
-
-// ------------------
-
-void  gpc_umap_set(gpc_IntegerMap* map,      uint64_t key, void* value);
-void  gpc_umap_setf(gpc_IntegerMap* map,     uint64_t key, gpc_floatptr value);
-void* gpc_umap_get(const gpc_IntegerMap map, uint64_t key);
-gpc_floatptr gpc_umap_getf(const gpc_IntegerMap map, uint64_t key);
-void gpc_umap_delete(gpc_IntegerMap* map, uint64_t key);
-
-// ------------------
-
-void  gpc_s128map_set(
-    gpc_String128Map* map,
-    const char* key,
-    void* value);
-
-void  gpc_s128map_setf(
-    gpc_String128Map* map,
-    const char*,
-    gpc_floatptr value);
-
-void* gpc_s128map_get(
-    const gpc_String128Map map,
-    const char* key);
-
-gpc_floatptr gpc_s128map_getf(
-    const gpc_String128Map map,
-    const char* key);
-
-void gpc_s128map_delete(gpc_String128Map* map, const char* key);
+GP_NONNULL_ARGS_AND_RETURN
+inline uint64_t* gp_u128_lo(GPUint128* u)
+{
+    return GP_INTEGER.is_little_endian ? &u->lo : &u->big_endian.lo;
+}
+GP_NONNULL_ARGS_AND_RETURN
+inline uint64_t* gp_u128_hi(GPUint128* u)
+{
+    return GP_INTEGER.is_little_endian ? &u->hi : &u->big_endian.hi;
+}
 
 // ------------------
+// Hash map
 
-void  gpc_u128map_set(
-    gpc_Integer128Map* map,
-    gpc_Uint128 key,
-    void* value);
+GPHashMap* gp_hash_map_new(
+    const GPAllocator*,
+    const GPMapInitializer* optional) GP_NONNULL_ARGS(1) GP_NONNULL_RETURN;
 
-void  gpc_u128map_setf(
-    gpc_Integer128Map* map,
-    gpc_Uint128 key,
-    gpc_floatptr value);
+void gp_hash_map_delete(GPHashMap*);
 
-void* gpc_u128map_get(
-    const gpc_Integer128Map map,
-    gpc_Uint128 key);
+void gp_hash_map_set(
+    GPHashMap*,
+    const void* key,
+    size_t      key_size,
+    const void* value) GP_NONNULL_ARGS();
 
-gpc_floatptr gpc_u128map_getf(
-    const gpc_Integer128Map map,
-    gpc_Uint128 key);
+// Returns NULL if not found
+void* gp_hash_map_get(
+    GPHashMap*,
+    const void* key,
+    size_t      key_size) GP_NONNULL_ARGS();
 
-void gpc_u128map_delete(gpc_Integer128Map* map, gpc_Uint128 key);
+bool gp_hash_map_remove(
+    GPHashMap*,
+    const void* key,
+    size_t      key_size) GP_NONNULL_ARGS();
+
+// ------------------
+// Non-hashed map
+
+GPMap* gp_map_new(
+    const GPAllocator*,
+    const GPMapInitializer* optional) GP_NONNULL_ARGS(1) GP_NONNULL_RETURN;
+
+void gp_map_delete(GPMap*);
+
+void gp_map_set(
+    GPMap*,
+    GPUint128   key,
+    const void* value) GP_NONNULL_ARGS();
+
+// Returns NULL if not found
+void* gp_map_get(
+    GPMap*,
+    GPUint128 key) GP_NONNULL_ARGS();
+
+// Returns false if not found
+bool gp_map_remove(
+    GPMap*,
+    GPUint128 key) GP_NONNULL_ARGS();
+
+// ------------------
+// Hashing
+
+uint32_t  gp_bytes_hash32 (const void* key, size_t key_size) GP_NONNULL_ARGS();
+uint64_t  gp_bytes_hash64 (const void* key, size_t key_size) GP_NONNULL_ARGS();
+GPUint128 gp_bytes_hash128(const void* key, size_t key_size) GP_NONNULL_ARGS();
+
 
 // ----------------------------------------------------------------------------
 //
@@ -144,37 +141,5 @@ void gpc_u128map_delete(gpc_Integer128Map* map, gpc_Uint128 key);
 //
 // ----------------------------------------------------------------------------
 
-//
-typedef struct gpc_Slots
-{
-//    union
-//    {
-//        void* value;
-//        gpc_floatptr fvalue;
-//        struct gpc_Slots* next;
-//    };
-    union
-    {
-        uint64_t ukey;
-        bool has_value;
-    };
-    void* value[];
-} gpc_Slots;
-
-typedef struct gpc_Slots128
-{
-//    union
-//    {
-//        void* value;
-//        gpc_floatptr fvalue;
-//        struct gpc_Slots* next;
-//    };
-    union
-    {
-        gpc_Uint128 key;
-        bool has_value; // This makes empty string an invalid key when no hash!
-    };
-    void* value[];
-} gpc_Slots128;
 
 #endif // GPC_HASHMAP_INCLUDED

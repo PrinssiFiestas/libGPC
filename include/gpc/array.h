@@ -19,8 +19,8 @@
 //
 typedef struct gp_array_header
 {
-    uintptr_t length;
-    uintptr_t capacity;
+    size_t length;
+    size_t capacity;
     const GPAllocator* allocator;
     void* allocation; // pointer to self or NULL if on stack
 } GPArrayHeader;
