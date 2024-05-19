@@ -121,7 +121,7 @@ pf_scan_format_string(
     }
 
     // Find length modifier
-    const char* modifier = strchr("hljztL", *c);
+    const char* modifier = strchr("hljztLBWDQ", *c);
     if (modifier != NULL)
     {
         fmt.length_modifier = *modifier;

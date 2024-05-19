@@ -7,6 +7,7 @@
 #include <locale.h>
 #include <errno.h>
 #include <signal.h>
+#include <inttypes.h>
 
 #if _WIN32
 // quick hack to disable locale dependent tests for now
@@ -261,6 +262,30 @@ int main(void)
             gp_str_print(&str, 2, " formats here: %x%g", 0xbeef, 0., (char)'.');
             sprintf(buf, "2 formats here: %x%g.", 0xbeef, 0.);
             gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
+        }
+
+        gp_test("Fixed width length modifiers for format strings");
+        { // Can be used for any integer formats. Here we stick with %u for
+          // simplicity.
+            GPString str = gp_str_on_stack(NULL, 128, "");
+            char buf[128];
+
+            gp_str_print(&str, "Byte %Bu", (uint8_t)-1);
+            sprintf(buf, "Byte %"PRIu8, (uint8_t)-1);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)));
+
+            gp_str_print(&str, "Word %Wu", (uint16_t)-1);
+            sprintf(buf, "Word %"PRIu16, (uint16_t)-1);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)));
+
+            gp_str_print(&str, "Double word %Du", (uint32_t)-1);
+            sprintf(buf, "Double word %"PRIu32, (uint32_t)-1);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)));
+
+            gp_str_print(&str, "Quad word %Qu", (uint64_t)-1);
+            sprintf(buf, "Quad word %"PRIu64, (uint64_t)-1);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)));
+
         }
 
         gp_test("%% only");

@@ -44,6 +44,18 @@ static uintmax_t get_uint(pf_va_list args[static 1], const PFFormatSpecifier fmt
         case 'z':
             return (size_t)va_arg(args->list, size_t);
 
+        case 'B': // byte
+            return (uint8_t)va_arg(args->list, unsigned);
+
+        case 'W': // word
+            return (uint16_t)va_arg(args->list, unsigned);
+
+        case 'D': // double word
+            return (uint32_t)va_arg(args->list, uint32_t);
+
+        case 'Q': // quad word
+            return (uint64_t)va_arg(args->list, uint64_t);
+
         default:
             return va_arg(args->list, unsigned);
     }
@@ -143,6 +155,22 @@ static unsigned write_i(
 
         case 't':
             i = (ptrdiff_t)va_arg(args->list, ptrdiff_t);
+            break;
+
+        case 'B': // byte
+            i = (int8_t)va_arg(args->list, int);
+            break;
+
+        case 'W': // word
+            i = (int16_t)va_arg(args->list, int);
+            break;
+
+        case 'D': // double word
+            i = (int32_t)va_arg(args->list, int32_t);
+            break;
+
+        case 'Q': // quad word
+            i = (int64_t)va_arg(args->list, int64_t);
             break;
 
         default:

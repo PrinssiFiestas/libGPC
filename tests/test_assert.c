@@ -25,12 +25,6 @@ int main(void)
         }
     }
 
-    void* p;
-    // Assertions can be placed anywhere in code. This one is not part of any
-    // test or suite.
-    gp_assert(p = malloc(1));
-    free(p);
-
     // Starting a new suite ends the last one.
     gp_suite("Second suite");
     {
@@ -44,16 +38,22 @@ int main(void)
 
         #if __STDC_VERSION__ >= 201112L // C11
         // Format string is optional.
-        gp_assert(l1 == l2 && f1 < f2, (l1), (l2), (f1), (f2), ("My note"));
+        gp_assert(l1 == l2 && f1 < f2, l1, l2, f1, f2, "My note");
         #else // C99
         // Literals do not require a format string.
         gp_assert(l1 == l2 && f1 < f2,
-            ("%l", l1), ("%l", l2), ("%g", f1), ("%g", f2), ("My note"));
+            "%l", l1, "%l", l2, "%g", f1, "%g", f2, "My note");
         #endif
     }
     // Tests and suites can be explicitly ended with NULL which also prints
     // result.
     gp_suite(NULL);
+
+    void* p;
+    // Assertions can be placed anywhere in code. This one is not part of any
+    // test or suite.
+    gp_assert(p = malloc(1));
+    free(p);
 
     // Suites are optional. This test would be part of the last suite, but
     // there's none running, so this one is not part of any suite.
