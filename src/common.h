@@ -66,4 +66,27 @@ size_t gp_bytes_print_objects(
     size_t*const i,
     GPPrintable obj);
 
+bool gp_valid_codepoint(
+    const uint32_t c);
+
+GP_NONNULL_ARGS()
+size_t gp_bytes_find_invalid(
+    const void* _haystack,
+    const size_t start,
+    const size_t length);
+
+GP_NONNULL_ARGS()
+size_t gp_bytes_find_valid(
+    const void* _haystack,
+    const size_t start,
+    const size_t length);
+
+GP_NONNULL_ARGS()
+int gp_bytes_case_compare_alc(
+    const void*_s1,
+    const size_t s1_length,
+    const void*_s2,
+    const size_t s2_length,
+    const GPAllocator* allocator);
+
 #endif // GP_PRINT_COMMON_INCLUDED

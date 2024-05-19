@@ -160,10 +160,10 @@ size_t gp_bytes_codepoint_length(
     const void* min_4_bytes) GP_NONNULL_ARGS();
 
 int gp_bytes_case_compare(
-    const void*restrict s1,
-    size_t              s1_length,
-    const void*restrict s2,
-    size_t              s2_length) GP_NONNULL_ARGS();
+    const void* s1,
+    size_t      s1_length,
+    const void* s2,
+    size_t      s2_length) GP_NONNULL_ARGS();
 
 // ----------------------------------------------------------------------------
 // Printing

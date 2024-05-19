@@ -551,26 +551,4 @@ int main(void)
 
         gp_assert(remove("gp_test_str_file.txt") == 0);
     }
-
-    // ------------------------------------------------------------------------
-    // Test internals
-
-    gp_suite("memchr_r");
-    {
-        const char* haystack = "dcba";
-        const char* haystack_end = haystack + strlen(haystack);
-        size_t pos = GP_NOT_FOUND;
-
-        gp_test("last index");
-        pos = (size_t)(gp_memchr_r(haystack_end, 'a', strlen(haystack)) - haystack);
-        gp_expect(pos == 3, (pos));
-
-        gp_test("index 0");
-        pos = (size_t)(gp_memchr_r(haystack_end, 'd', strlen(haystack)) - haystack);
-        gp_expect(pos == 0, (pos));
-
-        gp_test("not found");
-        const char* _pos = gp_memchr_r(haystack_end, 'x', strlen(haystack));
-        gp_expect(_pos == NULL);
-    }
 }

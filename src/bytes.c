@@ -242,28 +242,6 @@ size_t gp_bytes_codepoint_count(
     return count;
 }
 
-// https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
-static bool gp_valid_codepoint(
-    const uint32_t c)
-{
-  if (c <= 0x7Fu)
-      return true;
-
-  if (0xC280u <= c && c <= 0xDFBFu)
-     return ((c & 0xE0C0u) == 0xC080u);
-
-  if (0xEDA080u <= c && c <= 0xEDBFBFu)
-     return 0; // Reject UTF-16 surrogates
-
-  if (0xE0A080u <= c && c <= 0xEFBFBFu)
-     return ((c & 0xF0C0C0u) == 0xE08080u);
-
-  if (0xF0908080u <= c && c <= 0xF48FBFBFu)
-     return ((c & 0xF8C0C0C0u) == 0xF0808080u);
-
-  return false;
-}
-
 bool gp_bytes_is_valid(
     const void*restrict _str,
     const size_t length)
@@ -496,7 +474,7 @@ size_t gp_bytes_trim(
             str[length - 1] = '\0';
             size_t prefix_length = strspn(str, char_set);
             str[length - 1] = last;
-            // TODO test this
+
             if (prefix_length == length - 1 && strchr(char_set, last) != NULL)
                 prefix_length++;
 
@@ -538,8 +516,11 @@ size_t gp_bytes_trim(
             prefix_length += size;
         }
         length -= prefix_length;
-        // *str += prefix_length; // TODO this goes to bytes module
-        memmove(str, str + prefix_length, length);
+
+        if (optional_out_ptr != NULL)
+            *optional_out_ptr = str + prefix_length;
+        else
+            memmove(str, str + prefix_length, length);
     }
     if (right) while (length > 0)
     {
@@ -596,54 +577,6 @@ size_t gp_bytes_to_lower(
     return gp_bytes_to_something(str, str_length, towlower);
 }
 
-static size_t gp_bytes_find_invalid(
-    const void* _haystack,
-    const size_t start,
-    const size_t length)
-{
-    const char* haystack = _haystack;
-    for (size_t i = start; i < length;)
-    {
-        size_t cp_length = gp_bytes_codepoint_length(haystack + i);
-        if (cp_length == 0 || i + cp_length > length)
-            return i;
-
-        uint32_t codepoint = 0;
-        for (size_t j = 0; j < cp_length; j++)
-            codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
-        if ( ! gp_valid_codepoint(codepoint))
-            return i;
-
-        i += cp_length;
-    }
-    return GP_NOT_FOUND;
-}
-
-static size_t gp_bytes_find_valid(
-    const void* _haystack,
-    const size_t start,
-    const size_t length)
-{
-    const char* haystack = _haystack;
-    for (size_t i = start; i < length; i++)
-    {
-        size_t cp_length = gp_bytes_codepoint_length(haystack + i);
-        if (cp_length == 1)
-            return i;
-        if (cp_length == 0)
-            continue;
-
-        if (cp_length + i < length) {
-            uint32_t codepoint = 0;
-            for (size_t j = 0; j < cp_length; j++)
-                codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
-            if (gp_valid_codepoint(codepoint))
-                return i;
-        } // else maybe there's ascii in last bytes so continue
-    }
-    return length;
-}
-
 size_t gp_bytes_to_valid(
     void*restrict str,
     size_t length,
@@ -667,36 +600,11 @@ size_t gp_bytes_to_valid(
     return length;
 }
 
-int gp_bytes_case_compare( // TODO use allocator
-    const void*restrict _s1,
+int gp_bytes_case_compare(
+    const void*  s1,
     const size_t s1_length,
-    const void*restrict _s2,
+    const void*  s2,
     const size_t s2_length)
 {
-    const char* s1 = (const char*)_s1;
-    const char* s2 = (const char*)_s2;
-
-    size_t buf1_cap  = 1 << 10;
-    size_t buf2_cap  = 1 << 10;
-    wchar_t stack_buf1[1 << 10];
-    wchar_t stack_buf2[1 << 10];
-    wchar_t* buf1 = stack_buf1;
-    wchar_t* buf2 = stack_buf2;
-    if (s1_length + 1 >= buf1_cap) {
-        buf1_cap = s1_length + 1;
-        buf1 = malloc(buf1_cap * sizeof(wchar_t));
-    } if (s2_length + 1 >= buf2_cap) {
-        buf2_cap = s2_length + 1;
-        buf2 = malloc(buf2_cap * sizeof(wchar_t));
-    }
-    mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0});
-    mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0});
-
-    int result = wcscoll(buf1, buf2);
-    if (buf1 != stack_buf1)
-        free(buf1);
-    if (buf2 != stack_buf2)
-        free(buf2);
-    return result;
+    return gp_bytes_case_compare_alc(s1, s1_length, s2, s2_length, &gp_heap);
 }
-
