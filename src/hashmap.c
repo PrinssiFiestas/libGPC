@@ -10,7 +10,7 @@ const union gp_endiannes_detector GP_INTEGER = {.u16 = 1 };
 
 extern inline uint64_t* gp_u128_lo(const GPUint128*t);
 extern inline uint64_t* gp_u128_hi(const GPUint128*t);
-#if !__GNUC__// unused static function
+#if !__GNUC__ // unused static function
 static void gp_mult64to128(
     uint64_t u, uint64_t v, uint64_t* h, uint64_t* l)
 {
@@ -188,7 +188,6 @@ static inline GPUint128 gp_shift_key(const GPUint128 key, const size_t length)
     bitw |= (((uint64_t)length & b[3]) != 0) << 3;
     bitw |= (((uint64_t)length & b[2]) != 0) << 2;
     bitw |= (((uint64_t)length & b[1]) != 0) << 1;
-    bitw++;
 
     // 128-bit bit shift right
     GPUint128 new_key = {0};
@@ -200,36 +199,32 @@ static inline GPUint128 gp_shift_key(const GPUint128 key, const size_t length)
 }
 
 void gp_map_delete_elems(
+    GPMap*const  map,
     GPSlot*const slots,
-    const size_t length,
-    const size_t elem_size,
-    void (*destructor)(void*))
+    const size_t length)
 {
     for (size_t i = 0; i < length; i++)
     {
         if (slots[i].slot == GP_IN_USE)
         {
-            destructor(elem_size == 0 ?
+            map->destructor(map->element_size == 0 ?
                 (void*)slots[i].element
-              : (uint8_t*)(slots + length) + i * elem_size);
+              : (uint8_t*)(slots + length) + i * map->element_size);
         }
         else if (slots[i].slot != GP_EMPTY)
         {
-            gp_map_delete_elems(
-                slots[i].slots, gp_next_length(length), elem_size, destructor);
+            gp_map_delete_elems(map, slots[i].slots, gp_next_length(length));
         }
     }
+    if (slots != (GPSlot*)(map + 1))
+        gp_mem_dealloc(map->allocator, slots);
+    else
+        gp_mem_dealloc(map->allocator, map);
 }
 
 void gp_map_delete(GPMap* map)
 {
-    gp_map_delete_elems(
-        (GPSlot*)(map + 1),
-        map->length,
-        map->element_size,
-        map->destructor);
-
-    gp_mem_dealloc(map->allocator, map);
+    gp_map_delete_elems(map, (GPSlot*)(map + 1), map->length);
 }
 
 static void gp_map_set_elem(
@@ -263,8 +258,8 @@ static void gp_map_set_elem(
             allocator,
             new_slots,
             next_length,
-            gp_shift_key(slots[i].key, next_length),
-            values + i * elem_size,
+            gp_shift_key(slots[i].key, length),
+            elem_size != 0 ? values + i * elem_size : slots[i].element,
             elem_size);
 
         slots[i].slots = new_slots;
@@ -273,7 +268,7 @@ static void gp_map_set_elem(
         allocator,
         slots[i].slots,
         next_length,
-        gp_shift_key(key, next_length),
+        gp_shift_key(key, length),
         elem,
         elem_size);
 }
@@ -305,9 +300,8 @@ static void* gp_map_get_elem(
     else if (slots[i].slot == GP_EMPTY)
         return NULL;
 
-    const size_t next_length = gp_next_length(length);
     return gp_map_get_elem(
-        slots, gp_next_length(length), gp_shift_key(key, next_length), elem_size);
+        slots[i].slots, gp_next_length(length), gp_shift_key(key, length), elem_size);
 }
 
 void* gp_map_get(GPMap* map, GPUint128 key)
@@ -337,9 +331,8 @@ static bool gp_map_remove_elem(
     else if (slots[i].slot == GP_EMPTY) {
         return false;
     }
-    const size_t next_length = gp_next_length(length);
     return gp_map_remove_elem(
-        slots, next_length, gp_shift_key(key, next_length), elem_size, destructor);
+        slots, gp_next_length(length), gp_shift_key(key, length), elem_size, destructor);
 }
 
 bool gp_map_remove(GPMap* map, GPUint128 key)

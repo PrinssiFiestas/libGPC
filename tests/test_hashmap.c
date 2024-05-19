@@ -4,6 +4,7 @@
 
 #include "../src/hashmap.c"
 #include <gpc/assert.h>
+#include <stdlib.h>
 
 int main(void)
 {
@@ -28,10 +29,40 @@ int main(void)
 
     gp_suite("Non-hashed map");
     {
-        // TODO just test that this matches hash map for documentation.
-        // Then, test the internals more troughoutly.
+        GPMapInitializer init = {.destructor = free };
+        GPMap* map = gp_map_new(&gp_heap, &init);
+
+        int* elem_25 = malloc(sizeof(int));
+        int* elem_67 = malloc(sizeof(int));
+        *elem_25 = 25;
+        *elem_67 = 67;
+        GPUint128 key_25 = {0};
+        GPUint128 key_67 = {0};
+        *gp_u128_lo(&key_25) = 3;
+        *gp_u128_hi(&key_25) = 0;
+        *gp_u128_lo(&key_67) = 3;
+        *gp_u128_hi(&key_67) = 9;
+
+        gp_map_set(map, key_25, elem_25);
+        gp_map_set(map, key_67, elem_67);
+        gp_expect(*(int*)gp_map_get(map, key_25) == *elem_25);
+        gp_expect(*(int*)gp_map_get(map, key_67) == *elem_67);
+
+        gp_map_delete(map);
     }
 
-    // ------------------------------------------------------------------------
-    // TODO internal tests for 128 bit stuff
+    // -------------------------------------------
+    // Internal tests
+
+    #if __GNUC__
+    gp_suite("Uint128");
+    {
+        gp_test("Shift key");
+        {
+            GPUint128 x  = {{.hi = 59318, .lo = 86453012}};
+            size_t shift = 8;
+            gp_expect(gp_shift_key(x, shift).u128 == x.u128 >> 3);
+        }
+    }
+    #endif
 }
