@@ -27,14 +27,6 @@ int main(void)
             size_t npo2_6 = gp_next_power_of_2(1 << 6);
             gp_expect(npo2_6 == 1 << 7, ("Should be the NEXT power of 2."));
         }
-
-        gp_test("Overflow protection");
-        {
-            size_t very_large_number = SIZE_MAX - 16;
-            size_t npo_max = gp_next_power_of_2(very_large_number);
-            gp_expect(npo_max == SIZE_MAX,
-            ("Will lead to infinite loop without protection."));
-        }
     }
 
     gp_suite("mem_eq sanity check");

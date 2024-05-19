@@ -9,12 +9,38 @@
 #include <gpc/utils.h>
 #include "pcg_basic.h"
 
-extern inline size_t gp_next_power_of_2(size_t);
 extern inline uintptr_t gp_round_to_aligned(uintptr_t);
 extern inline bool gp_fapproxf(float x, float y, float max_relative_diff);
 extern inline bool gp_fapprox(double x, double y, double max_relative_diff);
 extern inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff);
 extern inline bool gp_mem_equal(const void* rhs, const void* lhs, size_t, size_t);
+
+size_t gp_next_power_of_2(size_t x)
+{
+    return sizeof x == sizeof(uint32_t) ?
+        gp_next_power_of_2_32(x) : gp_next_power_of_2_64(x);
+}
+
+uint32_t gp_next_power_of_2_32(uint32_t x)
+{
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    return x + 1;
+}
+
+uint64_t gp_next_power_of_2_64(uint64_t x)
+{
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x |= x >> 32;
+    return x + 1;
+}
 
 bool gp_check_bounds(size_t* start, size_t* end, size_t limit)
 {

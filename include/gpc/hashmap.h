@@ -44,35 +44,41 @@ typedef struct gp_map_initializer
 // ------------------
 // 128-bit uint
 
-const union
+union gp_endiannes_detector
 {
     uint16_t u16;
     struct { uint8_t is_little_endian; uint8_t is_big_endian; };
-} GP_INTEGER = {.u16 = 1 };
+};
+extern const union gp_endiannes_detector GP_INTEGER; // = {.u16 = 1 }
 
 typedef union gp_uint128
 {
     struct {
         uint64_t lo;
         uint64_t hi;
-    }; struct {
+    } little_endian;
+
+    struct {
         uint64_t hi;
         uint64_t lo;
     } big_endian;
+
     #if __GNUC__
     __uint128_t u128;
     #endif
 } GPUint128;
 
 GP_NONNULL_ARGS_AND_RETURN
-inline uint64_t* gp_u128_lo(GPUint128* u)
+inline uint64_t* gp_u128_lo(const GPUint128* u)
 {
-    return GP_INTEGER.is_little_endian ? &u->lo : &u->big_endian.lo;
+    return (uint64_t*)(GP_INTEGER.is_little_endian ?
+        &u->little_endian.lo : &u->big_endian.lo);
 }
 GP_NONNULL_ARGS_AND_RETURN
-inline uint64_t* gp_u128_hi(GPUint128* u)
+inline uint64_t* gp_u128_hi(const GPUint128* u)
 {
-    return GP_INTEGER.is_little_endian ? &u->hi : &u->big_endian.hi;
+    return (uint64_t*)(GP_INTEGER.is_little_endian ?
+        &u->little_endian.hi : &u->big_endian.hi);
 }
 
 // ------------------

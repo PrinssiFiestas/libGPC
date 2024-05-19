@@ -53,15 +53,9 @@ bool gp_check_bounds(
 /** Round number up to the next power of 2.
  * Used to compute array sizes on reallocations, thus size_t.
  */
-inline size_t gp_next_power_of_2(size_t x)
-{
-    if (x >= SIZE_MAX/2) // prevent overflow
-        return SIZE_MAX;
-    size_t result = 1;
-    while (result <= x)
-        result *= 2;
-    return result;
-}
+size_t   gp_next_power_of_2   (size_t);
+uint32_t gp_next_power_of_2_32(uint32_t);
+uint64_t gp_next_power_of_2_64(uint64_t);
 
 inline uintptr_t gp_round_to_aligned(const uintptr_t x)
 {
