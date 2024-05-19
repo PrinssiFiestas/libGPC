@@ -7,6 +7,8 @@
 #include <printf/conversions.h>
 #include "pfstring.h"
 
+#include <gpc/string.h>
+
 #include <stdlib.h>
 #include <inttypes.h>
 #include <math.h>
@@ -61,6 +63,28 @@ static uintmax_t get_uint(pf_va_list args[static 1], const PFFormatSpecifier fmt
     }
 }
 
+static void string_padding(
+    struct pf_string out[static 1],
+    const PFFormatSpecifier fmt,
+    const void* string,
+    const size_t length)
+{
+    const unsigned field_width = fmt.field.width > length ?
+        fmt.field.width : length;
+    const unsigned diff = field_width - length;
+    if (fmt.flag.dash) // left justified
+    { // first string, then pad
+        pf_concat(out, string, length);
+        pf_pad(out, ' ', diff);
+    }
+    else // first pad, then string
+    {
+        pf_pad(out, ' ', diff);
+        pf_concat(out, string, length);
+    }
+
+}
+
 static unsigned write_s(
     struct pf_string out[static 1],
     pf_va_list args[static 1],
@@ -68,14 +92,6 @@ static unsigned write_s(
 {
     const size_t original_length = out->length;
     const char* cstr = va_arg(args->list, const char*);
-    if (cstr == NULL)
-    {
-        if (fmt.precision.option == PF_SOME &&
-            fmt.precision.width < strlen("(null)"))
-            cstr = "";
-        else
-            cstr = "(null)";
-    }
 
     size_t cstr_len = 0;
     if (fmt.precision.option == PF_NONE) // should be null-terminated
@@ -84,20 +100,22 @@ static unsigned write_s(
         while (cstr_len < fmt.precision.width && cstr[cstr_len] != '\0')
             cstr_len++;
 
-    const unsigned field_width = fmt.field.width > cstr_len ?
-        fmt.field.width : cstr_len;
-    const unsigned diff = field_width - cstr_len;
-    if (fmt.flag.dash) // left justified
-    { // first string, then pad
-        pf_concat(out, cstr, cstr_len);
-        pf_pad(out, ' ', diff);
-    }
-    else // first pad, then string
-    {
-        pf_pad(out, ' ', diff);
-        pf_concat(out, cstr, cstr_len);
-    }
+    string_padding(out, fmt, cstr, cstr_len);
+    return out->length - original_length;
+}
 
+static unsigned write_S(
+    struct pf_string out[static 1],
+    pf_va_list args[static 1],
+    const PFFormatSpecifier fmt)
+{
+    const size_t original_length = out->length;
+    const GPString str = va_arg(args->list, GPString);
+    size_t length = gp_str_length(str);
+    if (fmt.precision.option != PF_NONE)
+        length = pf_min(length, fmt.precision.width);
+
+    string_padding(out, fmt, str, length);
     return out->length - original_length;
 }
 
@@ -393,6 +411,11 @@ int pf_vsnprintf_consuming(
 
             case 's':
                 written_by_conversion += write_s(
+                    &out, args, fmt);
+                break;
+
+            case 'S':
+                written_by_conversion += write_S(
                     &out, args, fmt);
                 break;
 

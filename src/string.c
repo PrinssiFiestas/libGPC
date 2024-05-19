@@ -45,6 +45,11 @@ static GPStringHeader* gp_str_header(const GPString str)
     return (GPStringHeader*)str - 1;
 }
 
+size_t             gp_str_length    (GPString s) { return gp_str_header(s)->length;    }
+size_t             gp_str_capacity  (GPString s) { return gp_str_header(s)->capacity;  }
+void*              gp_str_allocation(GPString s) { return gp_str_header(s)->allocation;}
+const GPAllocator* gp_str_allocator (GPString s) { return gp_str_header(s)->allocator; }
+
 static void* gp_memmem(
     const void* haystack, const size_t hlen, const void* needle, const size_t nlen)
 {

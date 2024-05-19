@@ -69,10 +69,10 @@ void gp_str_delete(GPString optional_string);
 
 const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
-size_t             gp_length    (const void*) GP_NONNULL_ARGS();
-size_t             gp_capacity  (const void*) GP_NONNULL_ARGS();
-void*              gp_allocation(const void*) GP_NONNULL_ARGS();
-const GPAllocator* gp_allocator (const void*) GP_NONNULL_ARGS();
+size_t             gp_str_length    (GPString) GP_NONNULL_ARGS();
+size_t             gp_str_capacity  (GPString) GP_NONNULL_ARGS();
+void*              gp_str_allocation(GPString) GP_NONNULL_ARGS();
+const GPAllocator* gp_str_allocator (GPString) GP_NONNULL_ARGS();
 
 void gp_str_reserve(
     GPString* str,

@@ -262,6 +262,11 @@ int main(void)
             gp_str_print(&str, 2, " formats here: %x%g", 0xbeef, 0., (char)'.');
             sprintf(buf, "2 formats here: %x%g.", 0xbeef, 0.);
             gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
+
+            GPString str2 = gp_str_on_stack(NULL, 128, "Capital S");
+            gp_str_print(&str, "%S for GPString", str2);
+            sprintf(buf, "%s for GPString", gp_cstr(str2));
+            gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
         }
 
         gp_test("Fixed width length modifiers for format strings");
