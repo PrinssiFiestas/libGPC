@@ -15,11 +15,6 @@
 #include <string.h>
 #include <limits.h>
 
-GPArray(void) gp_arr_reserve(
-    size_t        element_size,
-    GPArray(void) arr,
-    size_t        capacity) GP_ARR_ATTRS();
-
 inline size_t gp_max_digits_in(const GPType T)
 {
     switch (T)

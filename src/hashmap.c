@@ -6,7 +6,7 @@
 #include <gpc/utils.h>
 #include <string.h>
 
-const union gp_endiannes_detector GP_INTEGER = {.u16 = 1 };
+const union gp_endianness_detector GP_INTEGER = {.u16 = 1 };
 
 extern inline uint64_t* gp_u128_lo(const GPUint128*t);
 extern inline uint64_t* gp_u128_hi(const GPUint128*t);

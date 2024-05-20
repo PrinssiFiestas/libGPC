@@ -38,7 +38,9 @@ GPArray(void) gp_arr_new(
 #define/* GPArray(T) */gp_arr_on_stack( \
     optional_allocator_ptr, \
     size_t_capacity, \
-    T, ...) (struct { GPArrayHeader header; T data[size_t_capacity]; }) { \
+    T, ...) \
+(struct GP_C99_UNIQUE_STRUCT(__LINE__) \
+{ GPArrayHeader header; T data[size_t_capacity]; }) { \
 { \
     .length     = sizeof((T[]){__VA_ARGS__})/sizeof(T), \
     .capacity   = size_t_capacity, \
@@ -49,7 +51,7 @@ GPArray(void) gp_arr_new(
 // If not zeroing memory for performance is desirable and/or macro magic is
 // undesirable, arrays can be created on stack manually. Example with int:
 /*
-    struct { GPArrayHeader header; int data[2048]; } my_array_mem;
+    struct optional_name { GPArrayHeader header; int data[2048]; } my_array_mem;
     my_array_mem.header = (GPArrayHeader) {.capacity = 2048 };
     GPArray(int) my_array = my_array_mem.data;
 */
@@ -57,10 +59,15 @@ GPArray(void) gp_arr_new(
 // Passing arrays on stack is safe too.
 void gp_arr_delete(GPArray(void) optional);
 
-size_t             gp_length    (const void*) GP_NONNULL_ARGS();
-size_t             gp_capacity  (const void*) GP_NONNULL_ARGS();
-void*              gp_allocation(const void*) GP_NONNULL_ARGS();
-const GPAllocator* gp_allocator (const void*) GP_NONNULL_ARGS();
+size_t             gp_arr_length    (const void*) GP_NONNULL_ARGS();
+size_t             gp_arr_capacity  (const void*) GP_NONNULL_ARGS();
+void*              gp_arr_allocation(const void*) GP_NONNULL_ARGS();
+const GPAllocator* gp_arr_allocator (const void*) GP_NONNULL_ARGS();
+
+GPArray(void) gp_arr_reserve(
+    size_t        element_size,
+    GPArray(void) arr,
+    size_t        capacity) GP_ARR_ATTRS();
 
 GPArray(void) gp_arr_copy(
     size_t              element_size,

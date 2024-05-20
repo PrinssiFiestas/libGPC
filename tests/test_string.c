@@ -29,22 +29,22 @@ int main(void)
             #else
             GPString str = gp_str_on_stack(NULL, 8, "ok");
             #endif
-            gp_expect( ! gp_allocation(str),
+            gp_expect( ! gp_arr_allocation(str),
                 "No allocator given so no allocation either.");
             gp_str_copy(&str, "1234567", 7);
             gp_expect(
                 strcmp(gp_cstr(str), "1234567") == 0 &&
                 str[7].c == '\0' &&
-                "\"%s\" extra byte not counted here", gp_capacity(str) == 8,
+                "\"%s\" extra byte not counted here", gp_arr_capacity(str) == 8,
                 "Extra byte should be reserved so gp_cstr() can null-terminate.",
-                gp_cstr(str), gp_capacity(str));
+                gp_cstr(str), gp_arr_capacity(str));
 
             gp_str_delete(str); // safe but pointless
 
             str = gp_str_on_stack(&gp_heap, 1, "");
             const char* cstr = "Allocator provided, extending is safe!";
             gp_str_copy(&str, cstr, strlen(cstr));
-            gp_expect(gp_allocation(str),
+            gp_expect(gp_arr_allocation(str),
                 "Now in heap, must free with gp_str_delete()!");
             gp_str_delete(str);
         }
@@ -53,10 +53,10 @@ int main(void)
         {
             size_t old_capacity;
             GPString str = gp_str_on_stack(&gp_heap, 1, "");
-            old_capacity = gp_capacity(str);
+            old_capacity = gp_arr_capacity(str);
 
             gp_str_reserve(&str, 12);
-            gp_expect(gp_capacity(str) > old_capacity);
+            gp_expect(gp_arr_capacity(str) > old_capacity);
 
             gp_str_delete(str);
         }
@@ -64,9 +64,9 @@ int main(void)
         gp_test("somewhere else than stack");
         {
             GPString str = gp_str_new(&gp_heap, 1);
-            gp_expect(gp_allocation(str) != NULL);
+            gp_expect(gp_arr_allocation(str) != NULL);
 
-            gp_str_repeat(&str, gp_capacity(str), "X", strlen("X"));
+            gp_str_repeat(&str, gp_arr_capacity(str), "X", strlen("X"));
             (void)gp_cstr(str); // again, extra reserved byte makes this safe!
 
             // Must free object on heap!
@@ -110,8 +110,8 @@ int main(void)
         {
             const GPString blah  = gp_str_on_stack(NULL, 8,  "blah");
             const GPString blaah = gp_str_on_stack(NULL, 16, "blääh");
-            gp_expect(gp_str_equal(blah, blah, gp_length(blah)));
-            gp_expect(gp_str_equal(blaah, blaah, gp_length(blaah)));
+            gp_expect(gp_str_equal(blah, blah, gp_arr_length(blah)));
+            gp_expect(gp_str_equal(blaah, blaah, gp_arr_length(blaah)));
             gp_expect( ! gp_str_equal(blah, "BLOH", strlen("BLOH")));
             gp_expect( ! gp_str_equal(blah, "blahhhh", 7));
         }
@@ -134,7 +134,7 @@ int main(void)
         {
             GPString str = gp_str_on_stack(NULL, 8, "\u1153");
             gp_expect(   gp_str_codepoint_length(str));
-            gp_str_slice(&str, NULL, 1, gp_length(str));
+            gp_str_slice(&str, NULL, 1, gp_arr_length(str));
             gp_expect( ! gp_str_codepoint_length(str));
         }
 
@@ -183,7 +183,7 @@ int main(void)
         const char* cstr = "test tail";
         gp_test("Appending with insert");
         {
-            gp_str_insert(&str, gp_length(str), " tail", strlen(" tail"));
+            gp_str_insert(&str, gp_arr_length(str), " tail", strlen(" tail"));
             gp_expect(gp_str_equal(str, cstr, strlen(cstr)));
         }
         gp_test("Prepending");

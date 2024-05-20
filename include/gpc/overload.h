@@ -154,7 +154,7 @@ inline bool gp_is_integer (const GPType T) { return T <= GP_LONG_LONG; }
 inline bool gp_is_floating(const GPType T) { return GP_FLOAT <= T && T <= GP_DOUBLE; }
 inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_PTR; }
 
-// Returns number of arguments
+// Returns the number of arguments
 #define GP_COUNT_ARGS(...) GP_OVERLOAD64(__VA_ARGS__, 64, 63, 62, 61, 60, 59, 58, 57, 56,\
 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34,  \
 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12,  \
@@ -169,6 +169,14 @@ inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_
 //
 // ----------------------------------------------------------------------------
 
+#if __STDC_VERSION__ <= 199901L
+// Unique struct/union name
+#define GP_MAKE_UNIQUE(A, B) A##B
+#define GP_C99_UNIQUE_STRUCT(LINE) GP_MAKE_UNIQUE(_gp_uniqs__, LINE)
+#else
+// C11 allows structs and unions to be unnamed
+#define GP_C99_UNIQUE_STRUCT(_)
+#endif
 
 // ----------------------------------------------------------------------------
 // Gory script generated internals below. You have been warned.

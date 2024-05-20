@@ -46,9 +46,10 @@ GPString gp_str_new(
 #define/* GPString */gp_str_on_stack( \
     optional_allocator_ptr, \
     size_t_capacity, \
-    const_char_ptr_init) (GPString)\
-\
-(struct {GPStringHeader header; char data[(size_t_capacity) + sizeof""];}) { { \
+    const_char_ptr_init) (GPString) \
+(struct GP_C99_UNIQUE_STRUCT(__LINE__) \
+{ GPStringHeader header; char data[ (size_t_capacity) + sizeof"" ]; }) { \
+{ \
     .length     = sizeof(const_char_ptr_init) - 1, \
     .capacity   = size_t_capacity, \
     .allocator  = optional_allocator_ptr, \
@@ -59,9 +60,9 @@ GPString gp_str_new(
 // undesirable, arrays can be created on stack manually. Capacity should be
 // initialized to be actual capacity -1 for null termination.
 /*
-    struct { GPStringHeader header; GPChar data[2048]; } my_string_mem;
-    my_string_mem.header = (GPStringHeader) {.capacity = 2048 - sizeof"" };
-    GPString my_string = my_string_mem.data;
+    struct optional_name{ GPStringHeader header; GPChar data[2048]; }my_str_mem;
+    my_str_mem.header = (GPStringHeader) {.capacity = 2048 - sizeof"" };
+    GPString my_string = my_str_mem.data;
 */
 
 // Passing strings on stack is safe too.

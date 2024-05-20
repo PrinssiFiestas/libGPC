@@ -82,7 +82,7 @@ static size_t gp_print_va_arg(
         GPString s;
         case GP_STRING:
             s = va_arg(args->list, GPString);
-            length = gp_length(s);
+            length = gp_arr_length(s);
             fwrite(s, 1, length, out);
             break;
 

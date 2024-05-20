@@ -21,7 +21,7 @@ GPArray(void) gp_arr_new(
 void gp_arr_delete(GPArray(void) arr)
 {
     if (arr != NULL)
-        gp_mem_dealloc(gp_allocator(arr), gp_allocation(arr));
+        gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
 }
 
 GPArray(void) gp_arr_copy(
@@ -59,7 +59,7 @@ GPArray(void) gp_arr_push(
     GPArray(void)       arr,
     const void*restrict element)
 {
-    const size_t length = gp_length(arr);
+    const size_t length = gp_arr_length(arr);
     arr = gp_arr_reserve(element_size, arr, length + 1);
     memcpy((uint8_t*)arr + length * element_size, element, element_size);
     ((GPArrayHeader*)arr - 1)->length--;
@@ -79,7 +79,7 @@ GPArray(void) gp_arr_append(
     const void*restrict src,
     const size_t n)
 {
-    const size_t length = gp_length(arr);
+    const size_t length = gp_arr_length(arr);
     arr = gp_arr_reserve(element_size, arr, length + n);
     memcpy((uint8_t*)arr + length * element_size, src, n * element_size);
     ((GPArrayHeader*)arr - 1)->length--;
@@ -93,7 +93,7 @@ GPArray(void) gp_arr_insert(
     const void*restrict src,
     const size_t n)
 {
-    const size_t length = gp_length(arr);
+    const size_t length = gp_arr_length(arr);
     arr = gp_arr_reserve(elem_size, arr, length + n);
 
     memmove(
@@ -131,7 +131,7 @@ GPArray(void) gp_arr_map(
     void (*const f)(void* out, const void* in))
 {
     if (optional_src == NULL) {
-        for (size_t i = 0; i < gp_length(arr); i++)
+        for (size_t i = 0; i < gp_arr_length(arr); i++)
             f((uint8_t*)arr + i * elem_size, (uint8_t*)arr + i * elem_size);
     } else {
         arr = gp_arr_reserve(elem_size, arr, src_length);
@@ -148,7 +148,7 @@ void* gp_arr_fold(
     void* accumulator,
     void* (*const f)(void* accumulator, const void* element))
 {
-    for (size_t i = 0; i < gp_length(arr); i++)
+    for (size_t i = 0; i < gp_arr_length(arr); i++)
         accumulator = f(accumulator, (uint8_t*)arr + i * elem_size);
     return accumulator;
 }
@@ -159,7 +159,7 @@ void* gp_arr_foldr(
     void* accumulator,
     void* (*const f)(void* accumulator, const void* element))
 {
-    for (size_t i = gp_length(arr) - 1; i != (size_t)-1; i--)
+    for (size_t i = gp_arr_length(arr) - 1; i != (size_t)-1; i--)
         accumulator = f(accumulator, (uint8_t*)arr + i * elem_size);
     return accumulator;
 }
@@ -226,7 +226,7 @@ GPArray(void) gp_arr_filter(
         return gp_arr_filter_aliasing(
             elem_size,
             arr,
-            gp_length(arr),
+            gp_arr_length(arr),
             f);
     else
         return gp_arr_filter_non_aliasing(

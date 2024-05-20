@@ -10,22 +10,22 @@
 #include <stdint.h>
 #include <wchar.h>
 
-size_t gp_length(const void* arr)
+size_t gp_arr_length(const void* arr)
 {
     return ((GPArrayHeader*)arr - 1)->length;
 }
 
-size_t gp_capacity(const void* arr)
+size_t gp_arr_capacity(const void* arr)
 {
     return ((GPArrayHeader*)arr - 1)->capacity;
 }
 
-void* gp_allocation(const void* arr)
+void* gp_arr_allocation(const void* arr)
 {
     return ((GPArrayHeader*)arr - 1)->allocation;
 }
 
-const GPAllocator* gp_allocator(const void* arr)
+const GPAllocator* gp_arr_allocator(const void* arr)
 {
     return ((GPArrayHeader*)arr - 1)->allocator;
 }
@@ -35,20 +35,20 @@ GPArray(void) gp_arr_reserve(
     GPArray(void) arr,
     size_t        capacity)
 {
-    if (capacity >= gp_capacity(arr))
+    if (capacity >= gp_arr_capacity(arr))
     {
         capacity = gp_next_power_of_2(capacity);
         GPArrayHeader* new_block = gp_mem_alloc(
-            gp_allocator(arr),
+            gp_arr_allocator(arr),
             sizeof*new_block + capacity * element_size);
 
         memcpy(new_block, (GPArrayHeader*)arr - 1,
-            sizeof*new_block + gp_length(arr) * element_size);
+            sizeof*new_block + gp_arr_length(arr) * element_size);
 
         new_block->capacity   = capacity;
         new_block->allocation = new_block;
 
-        gp_mem_dealloc(gp_allocator(arr), gp_allocation(arr));
+        gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
         arr = new_block + 1;
     }
     return arr;
@@ -147,8 +147,8 @@ size_t gp_convert_va_arg(
         GPString s;
         case GP_STRING:
             s = va_arg(args->list, GPString);
-            memcpy(out, s, gp_min(gp_length(s), limit));
-            length += gp_length(s);
+            memcpy(out, s, gp_min(gp_arr_length(s), limit));
+            length += gp_arr_length(s);
             break;
 
         case GP_PTR:
