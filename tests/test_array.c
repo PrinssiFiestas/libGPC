@@ -165,6 +165,52 @@ int main(void)
             arr = gp_arr_remove(sizeof*arr, arr, 3, 2);
             arr_assert_eq(arr, ((int[]){1,2,3,4,5,6}), 6);
         }
+
+        gp_test("Map, fold, foldr, filter");
+        {
+            void increment(void* out, const void* in);
+
+            GPArray(int) arr  = gp_arr_on_stack(scope, 2, int);
+            GPArray(int) arr2 = gp_arr_on_stack(scope, 4, int, 1, 2, 3, 4);
+            arr = gp_arr_map(sizeof*arr, arr, arr2, gp_arr_length(arr2), increment);
+            arr_assert_eq(arr, ((int[]){2, 3, 4, 5}), 4);
+
+            arr = gp_arr_map(sizeof*arr, arr, NULL, 0, increment);
+            arr_assert_eq(arr, ((int[]){3, 4, 5, 6}), 4);
+
+            void* sum(void* accumulator, const void* element);
+            gp_expect(*(int*)gp_arr_fold(sizeof*arr, arr, &(int){0}, sum)
+                == 0 + 3 + 4 + 5 + 6);
+
+            void* append(void* accumulator, const void* element);
+            GPArray(const char*) arr_cstr = gp_arr_on_stack(scope, 4, const char*,
+                "I", "am", "the", "Walrus");
+            char* result = gp_arr_foldr(sizeof*arr_cstr, arr_cstr, NULL, append);
+            gp_expect(strcmp(result, "Walrus the am I ") == 0, result);
+
+            bool even(const void* element);
+            arr2 = gp_arr_filter(sizeof*arr2, arr2, arr, gp_arr_length(arr), even);
+            arr_assert_eq(arr2, ((int[]){4, 6}), 2);
+
+            bool more_than_5(const void* element);
+            arr2 = gp_arr_filter(sizeof*arr2, arr2, NULL, 0, more_than_5);
+            arr_assert_eq(arr2, ((int[]){6}), 1);
+        }
         gp_end(scope);
     }
 }
+
+void increment(void* out, const void* in) { *(int*)out = *(int*)in + 1; }
+void* sum(void* y, const void* x) { *(int*)y += *(int*)x; return y; }
+void* append(void* result, const void*_element)
+{
+    const char* element = *(const char**)_element;
+    const size_t length = result && strlen(result);
+    result = gp_mem_realloc(
+        gp_last_scope(NULL), result, length, length + strlen(element) + sizeof" ");
+    if (length == 0)
+        ((char*)result)[0] = '\0';
+    return strcat(strcat(result, element), " ");
+}
+bool even(const void* element) { return !(*(int*)element % 2); }
+bool more_than_5(const void* element) { return *(int*)element > 5; }
