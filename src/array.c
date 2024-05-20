@@ -7,6 +7,26 @@
 #include "common.h"
 #include <string.h>
 
+size_t gp_arr_length(const void* arr)
+{
+    return ((GPArrayHeader*)arr - 1)->length;
+}
+
+size_t gp_arr_capacity(const void* arr)
+{
+    return ((GPArrayHeader*)arr - 1)->capacity;
+}
+
+void* gp_arr_allocation(const void* arr)
+{
+    return ((GPArrayHeader*)arr - 1)->allocation;
+}
+
+const GPAllocator* gp_arr_allocator(const void* arr)
+{
+    return ((GPArrayHeader*)arr - 1)->allocator;
+}
+
 GPArray(void) gp_arr_new(
     const GPAllocator* allocator,
     const size_t element_size,
@@ -22,6 +42,42 @@ void gp_arr_delete(GPArray(void) arr)
 {
     if (arr != NULL && gp_arr_allocator(arr) != NULL)
         gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
+}
+
+GPArray(void) gp_arr_reserve(
+    const size_t element_size,
+    GPArray(void) arr,
+    size_t        capacity)
+{
+    if (capacity > gp_arr_capacity(arr))
+    {
+        capacity = gp_next_power_of_2(capacity);
+        if (gp_arr_allocator(arr)->dealloc == gp_arena_dealloc &&
+            gp_arr_allocation(arr) != NULL)
+        { // gp_mem_realloc() knows how to just extend block in arena
+            GPArrayHeader* new_block = gp_mem_realloc(
+                gp_arr_allocator(arr),
+                gp_arr_allocation(arr),
+                sizeof*new_block + gp_arr_capacity(arr) * element_size,
+                sizeof*new_block + capacity             * element_size);
+            new_block->capacity   = capacity;
+            new_block->allocation = new_block;
+            return new_block + 1;
+        } // else not arena or must copy contens from stack
+        GPArrayHeader* new_block = gp_mem_alloc(
+            gp_arr_allocator(arr),
+            sizeof*new_block + capacity * element_size);
+
+        memcpy(new_block, (GPArrayHeader*)arr - 1,
+            sizeof*new_block + gp_arr_length(arr) * element_size);
+
+        new_block->capacity   = capacity;
+        new_block->allocation = new_block;
+
+        gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
+        arr = new_block + 1;
+    }
+    return arr;
 }
 
 GPArray(void) gp_arr_copy(
