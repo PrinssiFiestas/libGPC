@@ -139,7 +139,7 @@ GPArray(void) gp_arr_append(
     const size_t length = gp_arr_length(arr);
     arr = gp_arr_reserve(element_size, arr, length + n);
     memcpy((uint8_t*)arr + length * element_size, src, n * element_size);
-    ((GPArrayHeader*)arr - 1)->length--;
+    ((GPArrayHeader*)arr - 1)->length += n;
     return arr;
 }
 

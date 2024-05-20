@@ -43,6 +43,12 @@ size_t gp_file_print_internal(
     const GPPrintable* objs,
     ...);
 
+size_t gp_file_println_internal(
+    FILE* file,
+    size_t arg_count,
+    const GPPrintable* objs,
+    ...);
+
 #define GP_FILE_PRINT(OUT, ...) \
     gp_file_print_internal( \
         OUT, \

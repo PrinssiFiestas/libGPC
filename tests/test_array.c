@@ -3,6 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include <gpc/assert.h>
+#include <gpc/io.h>
 #include "../src/array.c"
 
 #define arr_assert_eq(ARR, CARR, CARR_LENGTH) do { \
@@ -11,8 +12,19 @@
     const size_t _gp_arr2_length = CARR_LENGTH; \
     gp_expect(gp_arr_length(_gp_arr1) == _gp_arr2_length, \
         gp_arr_length(_gp_arr1), _gp_arr2_length); \
-    for (size_t _gp_i = 0; _gp_i < _gp_arr2_length; _gp_i++) \
-        gp_assert(_gp_arr1[_gp_i] == _gp_arr2[_gp_i], _gp_arr1[_gp_i], _gp_arr2[_gp_i]); \
+    for (size_t _gp_i = 0; _gp_i < _gp_arr2_length; _gp_i++) { \
+        if ( ! gp_expect(_gp_arr1[_gp_i] == _gp_arr2[_gp_i], \
+            _gp_arr1[_gp_i], _gp_arr2[_gp_i], _gp_i)) { \
+            gp_print("arr1 = { "); \
+            for (size_t _gp_j = 0; _gp_j < _gp_arr2_length; _gp_j++) \
+                gp_print(_gp_arr1[_gp_j], ", "); \
+            gp_print("}\narr2 = { "); \
+            for (size_t _gp_j = 0; _gp_j < _gp_arr2_length; _gp_j++) \
+                gp_print(_gp_arr2[_gp_j], ", "); \
+            gp_println("}"); \
+            break;\
+        } \
+    } \
 } while(0)
 
 #define CARR_LEN(CARR) (sizeof(CARR) / sizeof*(CARR))
@@ -105,16 +117,16 @@ int main(void)
     gp_suite("Array manipulation");
     {
         GPAllocator* scope = gp_begin(0);
-        const int carr[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
         gp_test("Copy slice");
         {
             GPArray(int) arr = gp_arr_on_stack(NULL, 64, int);
+            const int carr[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
             // Always reassign destination array to self in case of reallocation!
             arr = gp_arr_slice(sizeof*arr, arr, carr, 1, 6);
-            const int carr[] = { 1, 2, 3, 4, 5 };
-            arr_assert_eq(arr, carr, CARR_LEN(carr));
+            const int carr2[] = { 1, 2, 3, 4, 5 };
+            arr_assert_eq(arr, carr2, CARR_LEN(carr2));
         }
 
         gp_test("Mutating slice");
@@ -139,6 +151,19 @@ int main(void)
 
             // Undefined, arr length is 0, don't do this!
             // gp_arr_pop(sizeof*arr, arr);
+        }
+
+        gp_test("Append, insert, and remove");
+        {
+            GPArray(int) arr = gp_arr_new(scope, sizeof*arr, 4);
+            arr = gp_arr_append(sizeof*arr, arr, (int[]){1,2,3}, 3);
+            arr_assert_eq(arr, ((int[]){1,2,3}), 3);
+            arr = gp_arr_append(sizeof*arr, arr, (int[]){4,5,6}, 3);
+            arr_assert_eq(arr, ((int[]){1,2,3,4,5,6}), 6);
+            arr = gp_arr_insert(sizeof*arr, arr, 3, (int[]){0,0}, 2);
+            arr_assert_eq(arr, ((int[]){1,2,3,0,0,4,5,6}), 8);
+            arr = gp_arr_remove(sizeof*arr, arr, 3, 2);
+            arr_assert_eq(arr, ((int[]){1,2,3,4,5,6}), 6);
         }
         gp_end(scope);
     }
