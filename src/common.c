@@ -10,6 +10,8 @@
 #include <stdint.h>
 #include <wchar.h>
 
+extern inline void gp_arena_dealloc(const GPAllocator*_, void*__);
+
 size_t gp_arr_length(const void* arr)
 {
     return ((GPArrayHeader*)arr - 1)->length;
@@ -35,9 +37,21 @@ GPArray(void) gp_arr_reserve(
     GPArray(void) arr,
     size_t        capacity)
 {
-    if (capacity >= gp_arr_capacity(arr))
+    if (capacity > gp_arr_capacity(arr))
     {
         capacity = gp_next_power_of_2(capacity);
+        if (gp_arr_allocator(arr)->dealloc == gp_arena_dealloc &&
+            gp_arr_allocation(arr) != NULL)
+        { // gp_mem_realloc() knows how to just extend block in arena
+            GPArrayHeader* new_block = gp_mem_realloc(
+                gp_arr_allocator(arr),
+                gp_arr_allocation(arr),
+                sizeof*new_block + gp_arr_capacity(arr) * element_size,
+                sizeof*new_block + capacity             * element_size);
+            new_block->capacity   = capacity;
+            new_block->allocation = new_block;
+            return new_block + 1;
+        } // else not arena or must copy contens from stack
         GPArrayHeader* new_block = gp_mem_alloc(
             gp_arr_allocator(arr),
             sizeof*new_block + capacity * element_size);

@@ -81,6 +81,16 @@ int main(void)
     printf("%i", sq(1) + sq(2) + sq(3));
 */
 
+// ----------------------------------------------------------------------------
+// typeof() operator. GNUC and MSVC already covers mostly used compilers, but
+// not all compilers are supported.
+
+#if __STDC_VERSION__ >= 202311L || defined(__GNUC__) || defined(__TINYC__)
+#define GP_TYPEOF(X) typeof(X)
+#elif defined(_MSC_VER)
+#define GP_TYPEOF(X) __typeof__(X)
+#endif
+
 // Use in variadic function arguments with GP_TYPE() macro
 typedef enum gp_type
 {

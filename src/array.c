@@ -12,7 +12,7 @@ GPArray(void) gp_arr_new(
     const size_t element_size,
     const size_t element_count)
 {
-    const size_t size = gp_next_power_of_2(element_size * element_count);
+    const size_t size = element_size * element_count;
     GPArrayHeader* me = gp_mem_alloc(allocator, sizeof(*me) + size);
     *me = (GPArrayHeader) { 0, element_count, allocator, me };
     return me + 1;
@@ -20,7 +20,7 @@ GPArray(void) gp_arr_new(
 
 void gp_arr_delete(GPArray(void) arr)
 {
-    if (arr != NULL)
+    if (arr != NULL && gp_arr_allocator(arr) != NULL)
         gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
 }
 
@@ -32,6 +32,7 @@ GPArray(void) gp_arr_copy(
 {
     dest = gp_arr_reserve(element_size, dest, src_length);
     memcpy(dest, src, src_length * element_size);
+    ((GPArrayHeader*)dest - 1)->length = src_length;
     return dest;
 }
 

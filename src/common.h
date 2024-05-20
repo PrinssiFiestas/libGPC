@@ -15,6 +15,13 @@
 #include <string.h>
 #include <limits.h>
 
+// This should be used instead of gp_no_op_dealloc() so gp_mem_realloc() can
+// identify allocator as arena.
+inline void gp_arena_dealloc(const GPAllocator*_, void*__)
+{
+    (void)_; (void)__;
+}
+
 inline size_t gp_max_digits_in(const GPType T)
 {
     switch (T)

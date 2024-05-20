@@ -35,9 +35,8 @@ GPString gp_str_new(
 
 void gp_str_delete(GPString me)
 {
-    if (me == NULL || gp_arr_allocation(me) == NULL)
-        return;
-    gp_dealloc(gp_arr_allocator(me), gp_arr_allocation(me));
+    if (me != NULL && gp_str_allocation(me) != NULL)
+        gp_dealloc(gp_str_allocator(me), gp_str_allocation(me));
 }
 
 static GPStringHeader* gp_str_header(const GPString str)
@@ -80,7 +79,7 @@ bool gp_str_equal(
     const void* s2,
     size_t      s2_size)
 {
-    if (gp_arr_length(s1) != s2_size)
+    if (gp_str_length(s1) != s2_size)
         return false;
     else
         return memcmp(s1, s2, s2_size) == 0;
@@ -97,7 +96,7 @@ bool gp_str_equal_case(
 size_t gp_str_codepoint_count(
     GPString str)
 {
-    return gp_bytes_codepoint_count(str, gp_arr_length(str));
+    return gp_bytes_codepoint_count(str, gp_str_length(str));
 }
 
 bool gp_str_is_valid(
@@ -122,7 +121,8 @@ void gp_str_reserve(
     GPString* str,
     size_t capacity)
 {
-    *str = gp_arr_reserve(sizeof**str, *str, capacity);
+    *str = gp_arr_reserve(sizeof**str, *str, capacity + sizeof"");
+    gp_str_header(*str)->capacity -= sizeof"";
 }
 
 void gp_str_copy(
@@ -171,8 +171,8 @@ void gp_str_append(
     const void* src,
     size_t src_length)
 {
-    gp_str_reserve(dest, gp_arr_length(*dest) + src_length);
-    memcpy(*dest + gp_arr_length(*dest), src, src_length + sizeof"");
+    gp_str_reserve(dest, gp_str_length(*dest) + src_length);
+    memcpy(*dest + gp_str_length(*dest), src, src_length + sizeof"");
     gp_str_header(*dest)->length += src_length;
 }
 
@@ -182,8 +182,8 @@ void gp_str_insert(
     const void*restrict src,
     size_t n)
 {
-    gp_str_reserve(dest, gp_arr_length(*dest) + n);
-    memmove(*dest + pos + n, *dest + pos, gp_arr_length(*dest) - pos);
+    gp_str_reserve(dest, gp_str_length(*dest) + n);
+    memmove(*dest + pos + n, *dest + pos, gp_str_length(*dest) - pos);
     memcpy(*dest + pos, src, n);
     gp_str_header(*dest)->length += n;
 }
@@ -200,7 +200,7 @@ size_t gp_str_replace(
         return GP_NOT_FOUND;
 
     gp_str_reserve(haystack,
-        gp_arr_length(*haystack) + replacement_length - needle_length);
+        gp_str_length(*haystack) + replacement_length - needle_length);
 
     const size_t end = start + needle_length;
     gp_str_header(*haystack)->length = gp_bytes_replace_range(
@@ -226,7 +226,7 @@ size_t gp_str_replace_all(
     while ((start = gp_str_find(*haystack, needle, needle_length, start)) != GP_NOT_FOUND)
     {
         gp_str_reserve(haystack,
-            gp_arr_length(*haystack) + replacement_length - needle_length);
+            gp_str_length(*haystack) + replacement_length - needle_length);
 
         gp_str_header(*haystack)->length = gp_bytes_replace_range(
             *haystack,
@@ -280,7 +280,7 @@ static size_t gp_str_print_object_size(GPPrintable object, pf_va_list _args)
             GPString s;
             case GP_STRING:
                 s = va_arg(args, GPString);
-                length = gp_arr_length(s);
+                length = gp_str_length(s);
                 break;
 
             default:
@@ -309,10 +309,10 @@ size_t gp_str_print_internal(
     gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        gp_str_reserve(out, gp_arr_length(*out) + gp_str_print_object_size(objs[i], args));
+        gp_str_reserve(out, gp_str_length(*out) + gp_str_print_object_size(objs[i], args));
         gp_str_header(*out)->length += gp_bytes_print_objects(
             (size_t)-1,
-            *out + gp_arr_length(*out),
+            *out + gp_str_length(*out),
             &args,
             &i,
             objs[i]);
@@ -339,8 +339,8 @@ size_t gp_str_n_print_internal(
     for (size_t i = 0; i < arg_count; i++)
     {
         gp_str_header(*out)->length += gp_bytes_print_objects(
-            n >= gp_arr_length(*out) ? n - gp_arr_length(*out) : 0,
-            *out + gp_arr_length(*out),
+            n >= gp_str_length(*out) ? n - gp_str_length(*out) : 0,
+            *out + gp_str_length(*out),
             &args,
             &i,
             objs[i]);
@@ -348,7 +348,7 @@ size_t gp_str_n_print_internal(
     va_end(_args);
     va_end(args.list);
 
-    const size_t out_length = gp_arr_length(*out);
+    const size_t out_length = gp_str_length(*out);
     if (out_length > n)
         gp_str_header(*out)->length = n;
     return out_length;
@@ -373,11 +373,11 @@ size_t gp_str_println_internal(
     for (size_t i = 0; i < arg_count; i++)
     {
         gp_str_reserve(out,
-            gp_arr_length(*out) + strlen(" ") + gp_str_print_object_size(objs[i], args));
+            gp_str_length(*out) + strlen(" ") + gp_str_print_object_size(objs[i], args));
 
         gp_str_header(*out)->length += gp_bytes_print_objects(
             (size_t)-1,
-            *out + gp_arr_length(*out),
+            *out + gp_str_length(*out),
             &args,
             &i,
             objs[i]);
@@ -387,7 +387,7 @@ size_t gp_str_println_internal(
     va_end(_args);
     va_end(args.list);
 
-    (*out)[gp_arr_length(*out) - 1].c = '\n';
+    (*out)[gp_str_length(*out) - 1].c = '\n';
     return gp_str_header(*out)->length;
 }
 
@@ -407,22 +407,22 @@ size_t gp_str_n_println_internal(
     for (size_t i = 0; i < arg_count; i++)
     {
         gp_str_header(*out)->length += gp_bytes_print_objects(
-            n >= gp_arr_length(*out) ? n - gp_arr_length(*out) : 0,
-            *out + gp_arr_length(*out),
+            n >= gp_str_length(*out) ? n - gp_str_length(*out) : 0,
+            *out + gp_str_length(*out),
             &args,
             &i,
             objs[i]);
 
-        if (n > gp_arr_length(*out))
+        if (n > gp_str_length(*out))
             (*out)[gp_str_header(*out)->length++].c = ' ';
     }
     va_end(_args);
     va_end(args.list);
 
-    if (n > (gp_arr_length(*out) - !!gp_arr_length(*out))) // overwrite last space
-        (*out)[gp_arr_length(*out) - 1].c = '\n';
+    if (n > (gp_str_length(*out) - !!gp_str_length(*out))) // overwrite last space
+        (*out)[gp_str_length(*out) - 1].c = '\n';
 
-    const size_t out_length = gp_arr_length(*out);
+    const size_t out_length = gp_str_length(*out);
     if (out_length > n)
         gp_str_header(*out)->length = n;
     return out_length;
@@ -485,7 +485,7 @@ void gp_str_to_valid(
     GPString* str,
     const char* replacement)
 {
-          size_t length = gp_arr_length(*str);
+          size_t length = gp_str_length(*str);
     const size_t replacement_length = strlen(replacement);
 
     size_t start = 0;
@@ -493,7 +493,7 @@ void gp_str_to_valid(
     {
         const size_t end = gp_bytes_find_valid(*str, start, length);
         gp_str_reserve(str,
-            gp_arr_length(*str) + replacement_length - (end - start));
+            gp_str_length(*str) + replacement_length - (end - start));
 
         length = gp_bytes_replace_range(
             *str,

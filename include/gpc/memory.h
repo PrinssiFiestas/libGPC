@@ -62,19 +62,11 @@ inline void gp_mem_dealloc(
 }
 
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
-inline void* gp_mem_realloc(
+void* gp_mem_realloc(
     const GPAllocator* allocator,
     void*  old_block,
     size_t old_size,
-    size_t new_size)
-{
-    void* new_block = gp_mem_alloc(allocator, new_size);
-    void* memcpy(void*, const void*, size_t);
-    if (old_block != NULL)
-        memcpy(new_block, old_block, old_size);
-    gp_mem_dealloc(allocator, old_block);
-    return new_block;
-}
+    size_t new_size);
 
 #define gp_alloc(allocator, type, count) \
     gp_mem_alloc((GPAllocator*)(allocator), (count) * sizeof(type))

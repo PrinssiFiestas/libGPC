@@ -4,6 +4,7 @@
 
 #include <gpc/memory.h>
 #include <gpc/utils.h>
+#include "common.h"
 #include "thread.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,7 +16,6 @@
 extern inline void* gp_mem_alloc       (const GPAllocator*,size_t);
 extern inline void* gp_mem_alloc_zeroes(const GPAllocator*,size_t);
 extern inline void  gp_mem_dealloc     (const GPAllocator*,void*);
-extern inline void* gp_mem_realloc     (const GPAllocator*,void*,size_t,size_t);
 
 static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size)
 {
@@ -29,7 +29,7 @@ static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size)
     return mem;
 }
 
-static void  gp_heap_dealloc(const GPAllocator* unused, void* block)
+static void gp_heap_dealloc(const GPAllocator* unused, void* block)
 {
     (void)unused;
     free(block);
@@ -109,7 +109,7 @@ GPArena gp_arena_new(const size_t capacity, const double growth_coefficient)
     node->position = node + 1;
     node->tail     = NULL;
     GPArena arena = {
-        { gp_arena_alloc, gp_no_op_dealloc },
+        { gp_arena_alloc, gp_arena_dealloc },
         growth_coefficient,
         node
     };
@@ -152,6 +152,31 @@ void gp_arena_delete(GPArena* arena)
         arena->head = arena->head->tail;
         gp_mem_dealloc(&gp_heap, old_head);
     }
+}
+
+// ----------------------------------------------------------------------------
+
+void* gp_mem_realloc(
+    const GPAllocator* allocator,
+    void* old_block,
+    size_t old_size,
+    size_t new_size)
+{
+    GPArena* arena = (GPArena*)allocator;
+    if (allocator->dealloc == gp_arena_dealloc &&
+        (char*)old_block + gp_round_to_aligned(old_size) == (char*)arena->head->position)
+    { // extend block instead of reallocating and copying
+        arena->head->position = old_block;
+        void* new_block = gp_arena_alloc(allocator, new_size);
+        if (new_block != old_block) // arena ran out of space and reallocated
+            memcpy(new_block, old_block, old_size);
+        return new_block;
+    }
+    void* new_block = gp_mem_alloc(allocator, new_size);
+    if (old_block != NULL)
+        memcpy(new_block, old_block, old_size);
+    gp_mem_dealloc(allocator, old_block);
+    return new_block;
 }
 
 // ----------------------------------------------------------------------------

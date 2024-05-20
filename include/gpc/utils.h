@@ -101,16 +101,6 @@ double   gp_frandom     (GPRandomState*);
 int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max);
 
 // ----------------------------------------------------------------------------
-// typeof() operator. GNUC and MSVC already covers mostly used compilers, but
-// not all compilers are supported.
-
-#if __STDC_VERSION__ >= 202311L || defined(__GNUC__) || defined(__TINYC__)
-#define GP_TYPEOF(X) typeof(X)
-#elif defined(_MSC_VER)
-#define GP_TYPEOF(X) __typeof__(X)
-#endif
-
-// ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
 //
