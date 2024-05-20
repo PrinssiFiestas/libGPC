@@ -100,11 +100,13 @@ int main(void)
             // No need to delete arr or dealloc new_object, they live in scope.
             gp_end(scope);
         }
-    }
+    } // gp_suite("Memory");
 
     gp_suite("Array manipulation");
     {
+        GPAllocator* scope = gp_begin(0);
         const int carr[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
         gp_test("Copy slice");
         {
             GPArray(int) arr = gp_arr_on_stack(NULL, 64, int);
@@ -122,5 +124,22 @@ int main(void)
             const int carr[] = { 2, 3, 4 };
             arr_assert_eq(arr, carr, CARR_LEN(carr));
         }
+
+        gp_test("Push and pop");
+        {
+            GPArray(int) arr = gp_arr_new(scope, sizeof*arr, 4);
+            arr = gp_arr_push(sizeof*arr, arr, &(int){3});
+            arr = gp_arr_push(sizeof*arr, arr, &(int){6});
+            gp_expect(arr[0] == 3);
+            gp_expect(arr[1] == 6);
+            gp_expect(gp_arr_length(arr) == 2);
+            gp_expect(*(int*)gp_arr_pop(sizeof*arr, arr) == 6);
+            gp_expect(*(int*)gp_arr_pop(sizeof*arr, arr) == 3);
+            gp_expect(gp_arr_length(arr) == 0);
+
+            // Undefined, arr length is 0, don't do this!
+            // gp_arr_pop(sizeof*arr, arr);
+        }
+        gp_end(scope);
     }
 }
