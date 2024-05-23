@@ -166,8 +166,10 @@ void gp_str_to_valid(
     GPString*   str,
     const char* replacement) GP_NONNULL_ARGS();
 
-// Returns false if file operations fail. Check errno for the specific error.
-bool gp_str_from_path(
+// Returns 0 on success.
+// Returns -1 if file operations fail. Check errno for the specific error.
+// Returns  1 if file size > SIZE_MAX in 32-bit systems.
+int gp_str_from_path(
     GPString*   str,
     const char* file_path) GP_NONNULL_ARGS() GP_NODISCARD;
 

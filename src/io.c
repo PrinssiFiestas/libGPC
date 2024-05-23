@@ -7,18 +7,7 @@
 #include <printf/printf.h>
 #include "common.h"
 
-size_t gp_file_size(const char* file_name)
-{
-    FILE* f = fopen(file_name, "r");
-    if (f == NULL)
-        return (size_t)-1;
-
-    fseek(f, 0, SEEK_END);
-    size_t file_size = ftell(f);
-
-    fclose(f);
-    return file_size;
-}
+extern inline int gp_stat(GPStat* s, const char* path);
 
 static size_t gp_print_va_arg(
     FILE* out,

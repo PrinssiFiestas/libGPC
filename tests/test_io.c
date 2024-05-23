@@ -17,9 +17,12 @@ int main(void)
             fwrite(f_contents, 1, strlen(f_contents), f);
             fclose(f);
 
-            size_t file_size = gp_file_size("gp_io_test_file.txt");
-            gp_expect(file_size == strlen(f_contents),
-                file_size, f_contents);
+            GPStat s;
+            gp_expect(gp_stat(&s, "gp_io_test_file.txt") == 0);
+            gp_expect((size_t)s.st_size == strlen(f_contents),
+                s.st_size, f_contents);
+
+            gp_assert(remove("gp_io_test_file.txt") == 0);
         }
     }
 

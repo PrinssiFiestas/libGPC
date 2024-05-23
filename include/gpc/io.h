@@ -7,6 +7,11 @@
 
 #include "bytes.h"
 #include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
 
 // ----------------------------------------------------------------------------
 //
@@ -14,8 +19,25 @@
 //
 // ----------------------------------------------------------------------------
 
-// Returns (size_t)-1 on errors. Check errno for specific error.
-size_t gp_file_size(const char* file_name) GP_NONNULL_ARGS();
+#if _WIN32
+typedef struct __stat64 GPStat;
+#elif _GNU_SOURCE
+typedef struct stat64 GPStat;
+#else // 64-bit in 64-bit Linux
+typedef struct stat GPStat;
+#endif
+
+GP_NONNULL_ARGS() GP_NODISCARD
+inline int gp_stat(GPStat* s, const char* path)
+{
+    #if _WIN32
+    return _stat64(path, s);
+    #elif _GNU_SOURCE
+    return stat64(path, s);
+    #else
+    return stat(path, s);
+    #endif
+}
 
 #define/* size_t */gp_print(...) \
     GP_FILE_PRINT(stdout, __VA_ARGS__)

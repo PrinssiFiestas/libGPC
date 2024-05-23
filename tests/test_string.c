@@ -376,7 +376,6 @@ int main(void)
         {
             gp_test("Finnish");
             {
-
                 GPString str = gp_str_on_stack(NULL, 64, "blääf");
                 gp_str_to_upper(&str);
                 gp_expect(gp_str_equal(str, "BLÄÄF", strlen("BLÄÄF")), str);
@@ -537,7 +536,7 @@ int main(void)
         gp_test("Reading");
         {
             GPString str = gp_str_on_stack(&gp_heap, 1, "");
-            gp_expect(gp_str_from_path(&str, "gp_test_str_file.txt"));
+            gp_expect(gp_str_from_path(&str, "gp_test_str_file.txt") == 0);
             gp_expect(gp_str_equal(str, "blah blah", strlen("blah blah")));
             gp_str_delete(str);
         }
@@ -545,10 +544,10 @@ int main(void)
         gp_test("Non existent");
         {
             GPString str = gp_str_on_stack(&gp_heap, 1, "");
-            gp_expect( ! gp_str_from_path(&str, "NON_EXISTENT.txt"));
+            gp_expect(gp_str_from_path(&str, "NON_EXISTENT.txt") != 0);
             gp_str_delete(str);
         }
 
-        gp_assert(remove("gp_test_str_file.txt") == 0);
+        gp_expect(remove("gp_test_str_file.txt") == 0);
     }
 }

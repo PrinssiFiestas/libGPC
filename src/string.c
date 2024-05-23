@@ -2,10 +2,6 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#ifdef __GNUC__
-#define _GNU_SOURCE // memmem()
-#endif
-
 #include <gpc/string.h>
 #include <gpc/memory.h>
 #include <gpc/utils.h>
@@ -20,6 +16,8 @@
 #include <printf/printf.h>
 #include <printf/conversions.h>
 #include "pfstring.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 
 GPString gp_str_new(
     const GPAllocator* allocator,
@@ -518,22 +516,33 @@ int gp_str_case_compare(
         s1, gp_str_length(s1), s2, gp_str_length(s2), alc);
 }
 
-bool gp_str_from_path(
+int gp_str_from_path(
     GPString*   str,
     const char* file_path)
 {
+    #if _WIN32
+    struct __stat64 s;
+    if (_stat64(file_path, &s) != 0)
+    #elif _GNU_SOURCE
+    struct stat64 s;
+    if (stat64(file_path, &s) != 0)
+    #else
+    struct stat s;
+    if (stat(file_path, &s) != 0)
+    #endif
+        return -1;
+
+    if ((uint64_t)s.st_size > SIZE_MAX)
+        return 1;
+
     FILE* f = fopen(file_path, "r");
     if (f == NULL)
-        return false;
+        return -1;
 
-    fseek(f, 0, SEEK_END);
-    size_t file_size = ftell(f);
-    gp_str_reserve(str, file_size);
-
-    rewind(f);
-    fread(*str, 1, file_size, f);
-    gp_str_header(*str)->length = file_size;
+    gp_str_reserve(str, s.st_size);
+    fread(*str, sizeof**str, s.st_size, f);
+    gp_str_header(*str)->length = s.st_size;
 
     fclose(f);
-    return true;
+    return 0;
 }
