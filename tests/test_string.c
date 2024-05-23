@@ -243,7 +243,7 @@ int main(void)
 
         gp_test("Strings");
         {
-            GPString str = gp_str_on_stack(NULL, 128, "");
+            GPString str = gp_str_on_stack(NULL, 16, "");
             char str1[128];
             strcpy(str1, "strings");
             gp_str_print(&str, "Copying ", str1, (char)'.');

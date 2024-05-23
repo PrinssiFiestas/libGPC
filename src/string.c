@@ -445,12 +445,14 @@ size_t gp_str_print_internal(
 
     // Avoid many small allocations by estimating a sufficient buffer size. This
     // estimation is currently completely arbitrary.
-    gp_str_reserve(out, arg_count * 10);
+    if (gp_str_allocator(*out) != NULL)
+        gp_str_reserve(out, arg_count * 10);
 
     gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        gp_str_reserve(out, gp_str_length(*out) + gp_str_print_object_size(objs[i], args));
+        if (gp_str_allocator(*out) != NULL)
+            gp_str_reserve(out, gp_str_length(*out) + gp_str_print_object_size(objs[i], args));
         gp_str_header(*out)->length += gp_bytes_print_objects(
             (size_t)-1,
             *out + gp_str_length(*out),
@@ -508,13 +510,15 @@ size_t gp_str_println_internal(
 
     // Avoid many small allocations by estimating a sufficient buffer size. This
     // estimation is currently completely arbitrary.
-    gp_str_reserve(out, arg_count * 10);
+    if (gp_str_allocator(*out) != NULL)
+        gp_str_reserve(out, arg_count * 10);
 
     gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        gp_str_reserve(out,
-            gp_str_length(*out) + strlen(" ") + gp_str_print_object_size(objs[i], args));
+        if (gp_str_allocator(*out) != NULL)
+            gp_str_reserve(out,
+                gp_str_length(*out) + strlen(" ") + gp_str_print_object_size(objs[i], args));
 
         gp_str_header(*out)->length += gp_bytes_print_objects(
             (size_t)-1,
