@@ -143,14 +143,13 @@ size_t gp_str_replace_all(
 #define GP_WHITESPACE  " \t\n\v\f\r" \
     "\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006" \
     "\u2007\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\xC2\x85"
-#define GP_ASCII_WHITESPACE " \t\n\v\f\r"
 
 // Flags: 'l' left, 'r' right, 'a' ASCII char set only. Separate flags with |.
 // Trims whitespace if char_set is NULL.
 void gp_str_trim(
-    GPString*    str,
-    const char*  optional_char_set,
-    int          flags) GP_NONNULL_ARGS(1);
+    GPString*   str,
+    const char* optional_char_set,
+    int         flags) GP_NONNULL_ARGS(1);
 
 // Only converts Unicode characters with 1:1 mapping. Result is locale
 // dependent.

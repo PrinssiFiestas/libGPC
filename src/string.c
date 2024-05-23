@@ -83,12 +83,117 @@ bool gp_str_equal(
         return memcmp(s1, s2, s2_size) == 0;
 }
 
+static size_t gp_bytes_codepoint_count(
+    const void* _str,
+    const size_t n)
+{
+    size_t count = 0;
+    const char* str = _str;
+    static const size_t valid_leading_nibble[] = {
+        1,1,1,1, 1,1,1,1, 0,0,0,0, 1,1,1,1
+    };
+    const size_t align_offset = (uintptr_t)str     % 8;
+    const size_t remaining    = (n - align_offset) % 8;
+    size_t i = 0;
+
+    for (size_t len = gp_min(align_offset, n); i < len; i++)
+        count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
+
+    for (; i < n - remaining; i += 8)
+    {
+        // Read 8 bytes to be processed in parallel
+        uint64_t x;
+        memcpy(&x, str + i, sizeof x);
+
+        // Extract bytes that start with 0b10
+        const uint64_t a =   x & 0x8080808080808080llu;
+        const uint64_t b = (~x & 0x4040404040404040llu) << 1;
+
+        // Each byte in c is either 0 or 0b10000000
+        uint64_t c = a & b;
+
+        uint32_t bit_count;
+        #ifdef __clang__ // only Clang seems to benefit from popcount()
+        bit_count = __builtin_popcountll(c);
+        #else
+        //https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+        uint32_t v0 = c & 0xffffffffllu;
+        uint32_t v1 = c >> 32;
+
+        v0 = v0 - (v0 >> 1);
+        v0 = (v0 & 0x33333333) + ((v0 >> 2) & 0x33333333);
+        bit_count = (((v0 + (v0 >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+
+        v1 = v1 - (v1 >> 1);
+        v1 = (v1 & 0x33333333) + ((v1 >> 2) & 0x33333333);
+        bit_count += (((v1 + (v1 >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+        #endif
+
+        count += 8 - bit_count;
+    }
+    for (; i < n; i++)
+        count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
+
+    return count;
+}
+
+static size_t gp_bytes_codepoint_length(
+    const void* str)
+{
+    static const size_t sizes[] = {
+        1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+        0,0,0,0,0,0,0,0, 2,2,2,2,3,3,4,0 };
+    return sizes[*(uint8_t*)str >> 3];
+}
+
 bool gp_str_equal_case(
-    GPString  s1,
+    GPString    s1,
     const void* s2,
     size_t      s2_size)
 {
-    return gp_bytes_equal_case(s1, gp_str_length(s1), s2, s2_size);
+    size_t s1_length = gp_bytes_codepoint_count(s1, gp_str_length(s1));
+    size_t s2_length = gp_bytes_codepoint_count(s2, s2_size);
+    if (s1_length != s2_length)
+        return false;
+
+    mbstate_t state1 = {0};
+    mbstate_t state2 = {0};
+    wchar_t wc1;
+    wchar_t wc2;
+    for (size_t i = 0; i < s1_length; i++)
+    {
+        size_t wc1_length = mbrtowc(&wc1, (char*)s1, sizeof(wchar_t), &state1);
+        size_t wc2_length = mbrtowc(&wc2, (char*)s2, sizeof(wchar_t), &state2);
+        if (sizeof(wchar_t) < sizeof(uint32_t)/* Windows probably */&&
+            (wc1_length == (size_t)-2) != (wc2_length == (size_t)-2))
+        { // one fits to wchar_t and other doesn't so most likely different
+            return false;
+        }
+        else if (sizeof(wchar_t) < sizeof(uint32_t) &&
+                 wc1_length == (size_t)-2) // char wider than sizeof(wchar_t)
+        {                                  // so just compare raw bytes
+            size_t s1_codepoint_size = gp_bytes_codepoint_length(s1);
+            size_t s2_codepoint_size = gp_bytes_codepoint_length(s2);
+            if (s1_codepoint_size != s2_codepoint_size ||
+                memcmp(s1, s2, s1_codepoint_size) != 0)
+            {
+                return false;
+            }
+            s1 += s1_codepoint_size;
+            s2 += s2_codepoint_size;
+        }
+        else
+        {
+            wc1 = towlower(wc1);
+            wc2 = towlower(wc2);
+            if (wc1 != wc2)
+                return false;
+
+            s1 += wc1_length;
+            s2 += wc2_length;
+        }
+    }
+    return true;
 }
 
 size_t gp_str_codepoint_count(
@@ -98,9 +203,25 @@ size_t gp_str_codepoint_count(
 }
 
 bool gp_str_is_valid(
-    GPString str)
+    GPString _str)
 {
-    return gp_bytes_is_valid(str, gp_str_length(str));
+    const char* str = (const char*)_str;
+    const size_t length = gp_str_length(_str);
+    for (size_t i = 0; i < length;)
+    {
+        size_t cp_length = gp_bytes_codepoint_length(str + i);
+        if (cp_length == 0 || i + cp_length > length)
+            return false;
+
+        uint32_t codepoint = 0;
+        for (size_t j = 0; j < cp_length; j++)
+            codepoint = codepoint << 8 | (uint8_t)str[i + j];
+        if ( ! gp_valid_codepoint(codepoint))
+            return false;
+
+        i += cp_length;
+    }
+    return true;
 }
 
 size_t gp_str_codepoint_length(
@@ -431,8 +552,51 @@ void gp_str_trim(
     const char*restrict optional_char_set,
     int flags)
 {
-    gp_str_header(*str)->length = gp_bytes_trim(
-        *str, gp_str_length(*str), NULL, optional_char_set, flags);
+    const bool ascii = flags & 0x01;
+    if (ascii) {
+        gp_str_header(*str)->length = gp_bytes_trim(
+            *str, gp_str_length(*str), NULL, optional_char_set, flags);
+        return;
+    }
+    // else utf8
+
+    size_t      length   = gp_str_length(*str);
+    const bool  left     = flags & 0x04;
+    const bool  right    = flags & 0x02;
+    const char* char_set = optional_char_set != NULL ?
+        optional_char_set :
+        GP_WHITESPACE;
+
+    if (left)
+    {
+        size_t prefix_length = 0;
+        while (true)
+        {
+            char codepoint[8] = "";
+            size_t size = gp_bytes_codepoint_length(str + prefix_length);
+            memcpy(codepoint, str + prefix_length, size);
+            if (strstr(char_set, codepoint) == NULL)
+                break;
+
+            prefix_length += size;
+        }
+        length -= prefix_length;
+
+        memmove(str, str + prefix_length, length);
+    }
+    if (right) while (length > 0)
+    {
+        char codepoint[8] = "";
+        size_t i = length - 1;
+        size_t size;
+        while ((size = gp_bytes_codepoint_length(str + i)) == 0 && --i != 0);
+        memcpy(codepoint, str + i, size);
+        if (strstr(char_set, codepoint) == NULL)
+            break;
+
+        length -= size;
+    }
+    gp_str_header(*str)->length = length;
 }
 
 static void gp_str_to_something(
@@ -476,6 +640,54 @@ void gp_str_to_lower(
     gp_str_to_something(str, towlower);
 }
 
+static size_t gp_str_find_invalid(
+    const void* _haystack,
+    const size_t start,
+    const size_t length)
+{
+    const char* haystack = _haystack;
+    for (size_t i = start; i < length;)
+    {
+        size_t cp_length = gp_bytes_codepoint_length(haystack + i);
+        if (cp_length == 0 || i + cp_length > length)
+            return i;
+
+        uint32_t codepoint = 0;
+        for (size_t j = 0; j < cp_length; j++)
+            codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
+        if ( ! gp_valid_codepoint(codepoint))
+            return i;
+
+        i += cp_length;
+    }
+    return GP_NOT_FOUND;
+}
+
+static size_t gp_str_find_valid(
+    const void* _haystack,
+    const size_t start,
+    const size_t length)
+{
+    const char* haystack = _haystack;
+    for (size_t i = start; i < length; i++)
+    {
+        size_t cp_length = gp_bytes_codepoint_length(haystack + i);
+        if (cp_length == 1)
+            return i;
+        if (cp_length == 0)
+            continue;
+
+        if (cp_length + i < length) {
+            uint32_t codepoint = 0;
+            for (size_t j = 0; j < cp_length; j++)
+                codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
+            if (gp_valid_codepoint(codepoint))
+                return i;
+        } // else maybe there's ascii in last bytes so continue
+    }
+    return length;
+}
+
 void gp_str_to_valid(
     GPString* str,
     const char* replacement)
@@ -484,9 +696,9 @@ void gp_str_to_valid(
     const size_t replacement_length = strlen(replacement);
 
     size_t start = 0;
-    while ((start = gp_bytes_find_invalid(*str, start, length)) != GP_NOT_FOUND)
+    while ((start = gp_str_find_invalid(*str, start, length)) != GP_NOT_FOUND)
     {
-        const size_t end = gp_bytes_find_valid(*str, start, length);
+        const size_t end = gp_str_find_valid(*str, start, length);
         gp_str_reserve(str,
             gp_str_length(*str) + replacement_length - (end - start));
 

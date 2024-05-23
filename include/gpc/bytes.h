@@ -80,13 +80,10 @@ size_t gp_bytes_replace_all(
 #define/* size_t */gp_bytes_n_println(bytes_out, n, ...) \
     GP_BYTES_PRINTLN(bytes_out, n, __VA_ARGS__)
 
-#define GP_WHITESPACE  " \t\n\v\f\r" \
-    "\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006" \
-    "\u2007\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\xC2\x85"
 #define GP_ASCII_WHITESPACE " \t\n\v\f\r"
 
-// Flags: 'l' left, 'r' right, 'a' ASCII char set only. Separate flags with |.
-// Trims whitespace if char_set is NULL.
+// Flags: 'l' left, 'r' right, and 'l' | 'r' for both. Trims whitespace if
+// char_set is NULL.
 size_t gp_bytes_trim(
     void*restrict       bytes,
     size_t              bytes_size,
@@ -95,17 +92,17 @@ size_t gp_bytes_trim(
     int                 flags) GP_NONNULL_ARGS(1);
 
 size_t gp_bytes_to_upper(
-    void*restrict bytes,
-    size_t        bytes_size) GP_NONNULL_ARGS();
+    void*  bytes,
+    size_t bytes_size) GP_NONNULL_ARGS();
 
 size_t gp_bytes_to_lower(
-    void*restrict bytes,
-    size_t        bytes_size) GP_NONNULL_ARGS();
+    void*  bytes,
+    size_t bytes_size) GP_NONNULL_ARGS();
 
 size_t gp_bytes_to_valid(
-    void*restrict bytes,
-    size_t        bytes_size,
-    const char*   replacement) GP_NONNULL_ARGS();
+    void*restrict       bytes,
+    size_t              bytes_size,
+    const char*restrict replacement) GP_NONNULL_ARGS();
 
 // ----------------------------------------------------------------------------
 // Bytes examination
@@ -137,26 +134,25 @@ bool gp_bytes_equal(
     const void* s2,
     size_t      s2_size) GP_NONNULL_ARGS();
 
-// Locale dependent!
 bool gp_bytes_equal_case(
     const void* s1,
     size_t      s1_size,
     const void* s2,
     size_t      s2_size) GP_NONNULL_ARGS();
 
-size_t gp_bytes_codepoint_count(
-    const void* bytes,
-    size_t      bytes_size) GP_NONNULL_ARGS();
-
 bool gp_bytes_is_valid(
     const void* bytes,
     size_t bytes_length) GP_NONNULL_ARGS();
 
-size_t gp_bytes_codepoint_length(
-    const void* min_4_bytes) GP_NONNULL_ARGS();
 
 // ----------------------------------------------------------------------------
-// Printing
+//
+//          END OF API REFERENCE
+//
+//          Code below is for internal usage and may change without notice.
+//
+// ----------------------------------------------------------------------------
+
 
 typedef struct gp_printable
 {
