@@ -2,10 +2,6 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#ifdef __GNUC__
-#define _GNU_SOURCE // memmem()
-#endif
-
 #include <gpc/bytes.h>
 #include <gpc/utils.h>
 #include <gpc/overload.h>
@@ -23,7 +19,7 @@
 static void* gp_memmem(
     const void* haystack, const size_t hlen, const void* needle, const size_t nlen)
 {
-    #if defined(__GNUC__) && defined(__linux__)
+    #if defined(_GNU_SOURCE) && defined(__linux__)
     return memmem(haystack, hlen, needle, nlen);
     #endif
     if (hlen == 0 || nlen == 0)

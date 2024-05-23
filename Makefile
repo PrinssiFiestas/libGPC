@@ -6,7 +6,7 @@ CC = gcc
 CFLAGS  = -Wall -Wextra -Werror
 CFLAGS += -Wno-missing-field-initializers -Wno-comment
 CFLAGS += -Iinclude -lm
-#CFLAGS += -D_GNU_SOURCE # memmem(), stat64() # TODO Uncomment after testing
+CFLAGS += -D_GNU_SOURCE # memmem(), stat64()
 
 NPROC = $(shell echo `nproc`)
 THREAD_COUNT = $(if $(NPROC),$(NPROC),4)
