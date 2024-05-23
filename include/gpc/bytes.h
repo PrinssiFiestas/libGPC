@@ -3,7 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 /**@file bytes.h
- * Guts of string and array.
+ * Unsafe and ASCII only, but fast strings.
  */
 
 #ifndef GP_BYTES_INCLUDED
@@ -94,14 +94,10 @@ size_t gp_bytes_trim(
     const char*restrict optional_char_set,
     int                 flags) GP_NONNULL_ARGS(1);
 
-// Only converts Unicode characters with 1:1 mapping. Result is locale
-// dependent.
 size_t gp_bytes_to_upper(
     void*restrict bytes,
     size_t        bytes_size) GP_NONNULL_ARGS();
 
-// Only converts Unicode characters with 1:1 mapping. Result is locale
-// dependent.
 size_t gp_bytes_to_lower(
     void*restrict bytes,
     size_t        bytes_size) GP_NONNULL_ARGS();
@@ -158,12 +154,6 @@ bool gp_bytes_is_valid(
 
 size_t gp_bytes_codepoint_length(
     const void* min_4_bytes) GP_NONNULL_ARGS();
-
-int gp_bytes_case_compare(
-    const void* s1,
-    size_t      s1_length,
-    const void* s2,
-    size_t      s2_length) GP_NONNULL_ARGS();
 
 // ----------------------------------------------------------------------------
 // Printing

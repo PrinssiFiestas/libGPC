@@ -390,7 +390,7 @@ int main(void)
             {
                 GPString str = gp_str_on_stack(NULL, 128, "yaşar bayrı");
                 gp_str_to_upper(&str);
-                gp_expect(gp_str_equal(str, "YAŞAR BAYRI", strlen("YAŞAR BAYRI")), (str));
+                gp_expect(gp_str_equal(str, "YAŞAR BAYRI", strlen("YAŞAR BAYRI")), str);
                 gp_str_to_lower(&str);
                 gp_expect(gp_str_equal(str, "yaşar bayrı", strlen("yaşar bayrı")));
             }

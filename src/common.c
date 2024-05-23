@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <wchar.h>
 
-extern inline void gp_arena_dealloc(const GPAllocator*_, void*__);
+extern inline void gp_arena_dealloc(const GPAllocator*, void*);
 
 extern inline size_t gp_max_digits_in  (const GPType T);
 extern inline size_t gp_count_fmt_specs(const char* fmt);
@@ -215,39 +215,5 @@ size_t gp_bytes_find_valid(
         } // else maybe there's ascii in last bytes so continue
     }
     return length;
-}
-
-int gp_bytes_case_compare_alc(
-    const void*_s1,
-    const size_t s1_length,
-    const void*_s2,
-    const size_t s2_length,
-    const GPAllocator* alc)
-{
-    const char* s1 = (const char*)_s1;
-    const char* s2 = (const char*)_s2;
-
-    size_t buf1_cap  = 1 << 10;
-    size_t buf2_cap  = 1 << 10;
-    wchar_t stack_buf1[1 << 10];
-    wchar_t stack_buf2[1 << 10];
-    wchar_t* buf1 = stack_buf1;
-    wchar_t* buf2 = stack_buf2;
-    if (s1_length + 1 >= buf1_cap) {
-        buf1_cap = s1_length + 1;
-        buf1 = gp_mem_alloc(alc, buf1_cap * sizeof(wchar_t));
-    } if (s2_length + 1 >= buf2_cap) {
-        buf2_cap = s2_length + 1;
-        buf2 = gp_mem_alloc(alc, buf2_cap * sizeof(wchar_t));
-    }
-    mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0});
-    mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0});
-
-    int result = wcscoll(buf1, buf2);
-    if (buf1 != stack_buf1)
-        gp_mem_dealloc(alc, buf1);
-    if (buf2 != stack_buf2)
-        gp_mem_dealloc(alc, buf2);
-    return result;
 }
 

@@ -9,7 +9,7 @@
 #include <printf/conversions.h>
 #include "pfstring.h"
 #include "common.h"
-#include <stdlib.h> // malloc() TODO use allocator instead
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <wchar.h>
@@ -533,46 +533,6 @@ size_t gp_bytes_trim(
     return length;
 }
 
-static size_t gp_bytes_to_something(
-    void*restrict str,
-    size_t length,
-    wint_t(*const towsomething)(wint_t))
-{
-    size_t buf_cap  = 1 << 10;
-    wchar_t stack_buf[1 << 10];
-    wchar_t* buf = stack_buf;
-    if (length + 1 >= buf_cap) {
-        buf_cap = length + 1;
-        buf = malloc(buf_cap * sizeof(wchar_t)); // TODO use allocator
-    }
-    const char* src = str;
-    size_t buf_length = mbsrtowcs(buf,
-        &src, buf_cap, &(mbstate_t){0});
-    for (size_t i = 0; i < buf_length; i++)
-        buf[i] = towsomething(buf[i]);
-
-    length = wcsrtombs(str,
-        (const wchar_t**)&buf, sizeof(buf[0]) * buf_length, &(mbstate_t){0});
-
-    if (buf != stack_buf)
-        free(buf);
-    return length;
-}
-
-size_t gp_bytes_to_upper(
-    void*restrict str,
-    const size_t str_length)
-{
-    return gp_bytes_to_something(str, str_length, towupper);
-}
-
-size_t gp_bytes_to_lower(
-    void*restrict str,
-    size_t str_length)
-{
-    return gp_bytes_to_something(str, str_length, towlower);
-}
-
 size_t gp_bytes_to_valid(
     void*restrict str,
     size_t length,
@@ -596,11 +556,3 @@ size_t gp_bytes_to_valid(
     return length;
 }
 
-int gp_bytes_case_compare(
-    const void*  s1,
-    const size_t s1_length,
-    const void*  s2,
-    const size_t s2_length)
-{
-    return gp_bytes_case_compare_alc(s1, s1_length, s2, s2_length, &gp_heap);
-}

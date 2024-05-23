@@ -437,34 +437,31 @@ void gp_str_trim(
 
 static void gp_str_to_something(
     GPString* str,
-    wint_t(*towsomething)(wint_t))
+    wint_t(*const towsomething)(wint_t))
 {
-    // Worst case: all single-byte characters map to two-byte characters e.g.
-    // I to ı in Turkish locale. TODO measure wcsrtombs() performance to see if
-    // it's worth to call it twice, first to calculate length, second to do the
-    // actual conversion.
-    gp_str_reserve(str, gp_str_length(*str) * 2);
-
     size_t length = gp_str_length(*str);
-    size_t buf_cap  = 1 << 10;
-    wchar_t stack_buf[1 << 10];
+
+    wchar_t  stack_buf[1 << 10];
+    size_t   buf_cap = sizeof stack_buf / sizeof*stack_buf;
     wchar_t* buf = stack_buf;
-    if (length + 1 >= buf_cap) {
-        buf_cap = length + 1;
-        buf = gp_mem_alloc(gp_str_allocator(*str), buf_cap * sizeof(wchar_t));
+    if (length + sizeof"" > buf_cap) {
+        buf_cap = length + sizeof"";
+        buf = gp_mem_alloc(&gp_heap, buf_cap * sizeof*buf);
     }
-    const char* src = (char*)*str;
-    size_t buf_length = mbsrtowcs(buf,
-        &src, buf_cap, &(mbstate_t){0});
+    const char* src = gp_cstr(*str);
+    size_t buf_length = mbsrtowcs(buf, &src, buf_cap, &(mbstate_t){0});
+
     for (size_t i = 0; i < buf_length; i++)
         buf[i] = towsomething(buf[i]);
 
-    length = wcsrtombs((char*)*str,
-        (const wchar_t**)&buf, sizeof(buf[0]) * buf_length, &(mbstate_t){0});
+    const wchar_t* pbuf = (const wchar_t*)buf;
+    gp_str_reserve(str, wcsrtombs(NULL, &pbuf, 0, &(mbstate_t){0}));
+
+    gp_str_header(*str)->length = wcsrtombs((char*)*str,
+        &pbuf, sizeof(buf[0]) * buf_length, &(mbstate_t){0});
 
     if (buf != stack_buf)
-        gp_mem_dealloc(gp_str_allocator(*str), buf);
-    gp_str_header(*str)->length = length;
+        gp_mem_dealloc(&gp_heap, buf);
 }
 
 void gp_str_to_upper(
@@ -507,13 +504,34 @@ void gp_str_to_valid(
 }
 
 int gp_str_case_compare(
-    const GPString s1,
-    const GPString s2)
+    const GPString _s1,
+    const GPString _s2)
 {
-    const GPAllocator* alc = gp_str_allocator(s1) != NULL ?
-        gp_str_allocator(s1) : gp_str_allocator(s2);
-    return gp_bytes_case_compare_alc(
-        s1, gp_str_length(s1), s2, gp_str_length(s2), alc);
+    const char* s1 = (const char*)_s1;
+    const char* s2 = (const char*)_s2;
+
+    wchar_t stack_buf1[1 << 10];
+    wchar_t stack_buf2[sizeof stack_buf1 / sizeof*stack_buf1];
+    size_t buf1_cap  = sizeof stack_buf1 / sizeof*stack_buf1;
+    size_t buf2_cap  = sizeof stack_buf1 / sizeof*stack_buf1;
+    wchar_t* buf1 = stack_buf1;
+    wchar_t* buf2 = stack_buf2;
+    if (gp_str_length(_s1) + 1 >= buf1_cap) {
+        buf1_cap = gp_str_length(_s1) + 1;
+        buf1 = gp_mem_alloc(&gp_heap, buf1_cap * sizeof(wchar_t));
+    } if (gp_str_length(_s2) + 1 >= buf2_cap) {
+        buf2_cap = gp_str_length(_s2) + 1;
+        buf2 = gp_mem_alloc(&gp_heap, buf2_cap * sizeof(wchar_t));
+    }
+    mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0});
+    mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0});
+
+    int result = wcscoll(buf1, buf2);
+    if (buf1 != stack_buf1)
+        gp_mem_dealloc(&gp_heap, buf1);
+    if (buf2 != stack_buf2)
+        gp_mem_dealloc(&gp_heap, buf2);
+    return result;
 }
 
 int gp_str_from_path(
