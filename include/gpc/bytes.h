@@ -58,7 +58,6 @@ size_t gp_bytes_replace(
     size_t*             optional_in_start_out_first_occurrence_position)
     GP_NONNULL_ARGS(1, 3, 5);
 
-// Returns number of replacements made.
 size_t gp_bytes_replace_all(
     void*restrict       haystack,
     size_t              haystack_size,
