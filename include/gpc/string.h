@@ -124,13 +124,9 @@ size_t gp_str_replace_all(
     const void*restrict replacement,
     size_t              replacement_length) GP_NONNULL_ARGS();
 
-// The required buffer size is not calculated precicely to increase preformance.
-// This means that sometimes may allocate needlessly.
 #define/* size_t */gp_str_print(str_ptr_out, ...) \
     GP_STR_PRINT(str_ptr_out, __VA_ARGS__)
 
-// Does not allocate but limits the amount of printed bytes to n. If n is 0
-// str_ptr_out may be NULL.
 #define/* size_t */gp_str_n_print(str_ptr_out, n, ...) \
     GP_STR_N_PRINT(str_ptr_out, n, __VA_ARGS__)
 
