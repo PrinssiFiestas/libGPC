@@ -478,6 +478,7 @@ size_t gp_str_n_print_internal(
     pf_va_list args;
     va_copy(args.list, _args);
 
+    gp_str_reserve(out, n);
     gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
@@ -548,6 +549,7 @@ size_t gp_str_n_println_internal(
     pf_va_list args;
     va_copy(args.list, _args);
 
+    gp_str_reserve(out, n);
     gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
