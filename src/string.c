@@ -202,6 +202,28 @@ size_t gp_str_codepoint_count(
     return gp_bytes_codepoint_count(str, gp_str_length(str));
 }
 
+// https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
+static bool gp_valid_codepoint(
+    const uint32_t c)
+{
+    if (c <= 0x7Fu)
+        return true;
+
+    if (0xC280u <= c && c <= 0xDFBFu)
+       return ((c & 0xE0C0u) == 0xC080u);
+
+    if (0xEDA080u <= c && c <= 0xEDBFBFu)
+       return 0; // Reject UTF-16 surrogates
+
+    if (0xE0A080u <= c && c <= 0xEFBFBFu)
+       return ((c & 0xF0C0C0u) == 0xE08080u);
+
+    if (0xF0908080u <= c && c <= 0xF48FBFBFu)
+       return ((c & 0xF8C0C0C0u) == 0xF0808080u);
+
+    return false;
+}
+
 bool gp_str_is_valid(
     GPString _str)
 {
@@ -573,8 +595,8 @@ void gp_str_trim(
         while (true)
         {
             char codepoint[8] = "";
-            size_t size = gp_bytes_codepoint_length(str + prefix_length);
-            memcpy(codepoint, str + prefix_length, size);
+            size_t size = gp_bytes_codepoint_length(*str + prefix_length);
+            memcpy(codepoint, *str + prefix_length, size);
             if (strstr(char_set, codepoint) == NULL)
                 break;
 
@@ -582,15 +604,15 @@ void gp_str_trim(
         }
         length -= prefix_length;
 
-        memmove(str, str + prefix_length, length);
+        memmove(*str, *str + prefix_length, length);
     }
     if (right) while (length > 0)
     {
         char codepoint[8] = "";
         size_t i = length - 1;
         size_t size;
-        while ((size = gp_bytes_codepoint_length(str + i)) == 0 && --i != 0);
-        memcpy(codepoint, str + i, size);
+        while ((size = gp_bytes_codepoint_length(*str + i)) == 0 && --i != 0);
+        memcpy(codepoint, *str + i, size);
         if (strstr(char_set, codepoint) == NULL)
             break;
 

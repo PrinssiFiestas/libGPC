@@ -147,25 +147,3 @@ size_t gp_bytes_print_objects(
     return length;
 }
 
-// https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
-bool gp_valid_codepoint(
-    const uint32_t c)
-{
-  if (c <= 0x7Fu)
-      return true;
-
-  if (0xC280u <= c && c <= 0xDFBFu)
-     return ((c & 0xE0C0u) == 0xC080u);
-
-  if (0xEDA080u <= c && c <= 0xEDBFBFu)
-     return 0; // Reject UTF-16 surrogates
-
-  if (0xE0A080u <= c && c <= 0xEFBFBFu)
-     return ((c & 0xF0C0C0u) == 0xE08080u);
-
-  if (0xF0908080u <= c && c <= 0xF48FBFBFu)
-     return ((c & 0xF8C0C0C0u) == 0xF0808080u);
-
-  return false;
-}
-

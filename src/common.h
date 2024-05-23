@@ -68,7 +68,4 @@ size_t gp_bytes_print_objects(
     size_t*const i,
     GPPrintable obj);
 
-bool gp_valid_codepoint(
-    const uint32_t c);
-
 #endif // GP_PRINT_COMMON_INCLUDED
