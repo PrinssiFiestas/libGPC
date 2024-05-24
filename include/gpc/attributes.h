@@ -20,7 +20,7 @@
 // Nonnull
 
 #ifdef __GNUC__
-#define GP_NONNULL_ARGS(...) __attribute__((nonnull __VA_OPT__((__VA_ARGS__))))
+#define GP_NONNULL_ARGS(...) __attribute__((nonnull (__VA_ARGS__)))
 #define GP_NONNULL_RETURN    __attribute__((returns_nonnull))
 #define GP_NONNULL_ARGS_AND_RETURN \
     __attribute__((nonnull)) __attribute__((returns_nonnull))

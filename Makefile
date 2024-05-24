@@ -4,9 +4,12 @@
 
 CC = gcc
 CFLAGS  = -Wall -Wextra -Werror
-CFLAGS += -Wno-missing-field-initializers -Wno-comment
-CFLAGS += -Iinclude -lm -lpthread
+CFLAGS += -Wno-missing-field-initializers -Wno-comment -Wno-missing-braces
+CFLAGS += -Iinclude
 CFLAGS += -D_GNU_SOURCE # memmem(), stat64()
+ifeq ($(CC), gcc)
+CFLAGS += -lm -lpthread
+endif
 DEBUG_CFLAGS   = -ggdb3
 RELEASE_CFLAGS = -O3 -flto -DNDEBUG
 
@@ -18,7 +21,12 @@ ifeq ($(OS), Windows_NT)
 	EXE_EXT = .exe
 else
 	EXE_EXT =
-	DEBUG_CFLAGS += -static-libasan -fsanitize=address -fsanitize=leak -fsanitize=undefined
+	DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
+	ifeq ($(CC), gcc)
+		DEBUG_CFLAGS += -static-libasan
+	else # clang
+		DEBUG_CFLAGS += -static-libsan
+	endif
 endif
 
 SRCS       = $(wildcard src/*.c)
@@ -28,7 +36,7 @@ DEBUG_OBJS = $(patsubst src/%.c, build/%d.o, $(wildcard src/*.c))
 TESTS         = $(patsubst tests/test_%.c, build/test_%d$(EXE_EXT), $(wildcard tests/test_*.c))
 RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(wildcard tests/test_*.c))
 
-.PHONY: all release debug tests build_tests run_tests analyze clean
+.PHONY: all release debug tests build_tests run_tests release_tests build_release_tests run_release_tests analyze clean
 
 .PRECIOUS: $(TESTS)
 
