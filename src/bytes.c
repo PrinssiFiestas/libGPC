@@ -445,7 +445,7 @@ static size_t gp_bytes_find_invalid(
         if (haystack[i] >= 0x80)
             return i;
     }
-    return length;
+    return GP_NOT_FOUND;
 }
 
 static size_t gp_bytes_find_valid(

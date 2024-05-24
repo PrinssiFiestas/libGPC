@@ -38,4 +38,37 @@ int main(void)
             gp_expect(ret == strlen("blah blah blah"));
         }
     }
+
+    gp_suite("To X");
+    {
+        char str[] = "hellö";
+        size_t length = strlen(str);
+
+        gp_test("To upper");
+        {
+            gp_bytes_to_upper(str, length);
+            gp_expect(gp_bytes_equal(str, length, "HELLö", length));
+        }
+
+        gp_test("To lower");
+        {
+            gp_bytes_to_lower(str, length);
+            gp_expect(gp_bytes_equal(str, length, "hellö", length));
+        }
+
+        gp_test("Equal case");
+        {
+            gp_expect(gp_bytes_equal_case("heLlo", 5, "HEllo", 5));
+        }
+
+        gp_test("To valid ASCII");
+        {
+            size_t non_ascii_pos;
+            gp_expect( ! gp_bytes_is_valid(str, length, &non_ascii_pos));
+            gp_expect(non_ascii_pos == (size_t)(strstr(str, "ö") - str));
+
+            length = gp_bytes_to_valid(str, length, "X");
+            gp_expect(gp_bytes_equal(str, length, "hellX", strlen("hellX")));
+        }
+    }
 }
