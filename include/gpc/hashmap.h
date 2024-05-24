@@ -63,7 +63,7 @@ typedef union gp_uint128
         uint64_t lo;
     } big_endian;
 
-    #if __GNUC__
+    #if __GNUC__ && __SIZEOF_INT128__
     __uint128_t u128;
     #endif
 } GPUint128;

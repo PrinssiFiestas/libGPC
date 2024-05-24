@@ -306,8 +306,9 @@ int main(void)
         {
             GPString str = gp_str_on_stack(NULL, 128, "");
             char buf[128];
+            uintptr_t _buf = (uintptr_t)buf; // shut up -Wrestrict
             gp_str_print(&str, (void*)buf);
-            sprintf(buf, "%p", buf);
+            sprintf(buf, "%p", (void*)_buf);
             gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
 
             gp_str_print(&str, NULL);

@@ -70,9 +70,10 @@ const GPAllocator gp_crash_on_alloc = {
 // first object is in &node + 1;
 typedef struct gp_arena_node
 {
-    size_t capacity;
+    uintptr_t capacity;
     void* position;
     struct gp_arena_node* tail;
+    void* _padding; // fix aligment
 } GPArenaNode;
 
 static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)

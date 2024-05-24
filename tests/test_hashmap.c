@@ -54,7 +54,7 @@ int main(void)
     // -------------------------------------------
     // Internal tests
 
-    #if __GNUC__
+    #if __GNUC__ && __SIZEOF_INT128__
     gp_suite("Uint128");
     {
         gp_test("Shift key");

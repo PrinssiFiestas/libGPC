@@ -10,7 +10,7 @@ const union gp_endianness_detector GP_INTEGER = {.u16 = 1 };
 
 extern inline uint64_t* gp_u128_lo(const GPUint128*t);
 extern inline uint64_t* gp_u128_hi(const GPUint128*t);
-#if !__GNUC__ // unused static function
+#if !(__GNUC__ && __SIZEOF_INT128__) // unused static function
 static void gp_mult64to128(
     uint64_t u, uint64_t v, uint64_t* h, uint64_t* l)
 {
@@ -35,7 +35,7 @@ static void gp_mult64to128(
 #endif
 static void gp_mult128(const GPUint128 N, const GPUint128 M, GPUint128*const Ans)
 {
-    #if __GNUC__
+    #if __GNUC__ && __SIZEOF_INT128__
     Ans->u128 = N.u128 * M.u128;
     #else
     gp_mult64to128(*gp_u128_lo(&N), *gp_u128_lo(&M), gp_u128_hi(Ans), gp_u128_lo(Ans));
@@ -163,7 +163,7 @@ static inline size_t gp_next_length(const size_t length)
 }
 static inline GPUint128 gp_shift_key(const GPUint128 key, const size_t length)
 {
-    #if __GNUC__
+    #if __GNUC__ && __SIZEOF_INT128__
     if      (sizeof length == sizeof(unsigned))
         return (GPUint128){.u128 =
             key.u128 >> (sizeof(int)  * CHAR_BIT -__builtin_clz  (length) - 1)};

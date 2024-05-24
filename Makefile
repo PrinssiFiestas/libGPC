@@ -5,7 +5,7 @@
 CC = gcc
 CFLAGS  = -Wall -Wextra -Werror
 CFLAGS += -Wno-missing-field-initializers -Wno-comment
-CFLAGS += -Iinclude -lm
+CFLAGS += -Iinclude -lm -lpthread
 CFLAGS += -D_GNU_SOURCE # memmem(), stat64()
 DEBUG_CFLAGS   = -ggdb3
 RELEASE_CFLAGS = -O3 -flto -DNDEBUG
@@ -18,7 +18,7 @@ ifeq ($(OS), Windows_NT)
 	EXE_EXT = .exe
 else
 	EXE_EXT =
-	DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
+	DEBUG_CFLAGS += -static-libasan -fsanitize=address -fsanitize=leak -fsanitize=undefined
 endif
 
 SRCS       = $(wildcard src/*.c)
