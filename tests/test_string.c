@@ -443,7 +443,7 @@ int main(void)
             for (size_t i = 0; i < sizeof(goodsequences)/sizeof(goodsequences[0]); i++)
             {
                 gp_str_copy(&str, goodsequences[i], strlen(goodsequences[i]));
-                gp_expect(gp_str_is_valid(str), i);
+                gp_expect(gp_str_is_valid(str, NULL), i);
             }
         }
         char *badsequences[] = {
@@ -481,7 +481,7 @@ int main(void)
             for (size_t i = 0; i < sizeof(badsequences)/sizeof(badsequences[0]); i++)
             {
                 gp_str_copy(&str, badsequences[i], strlen(badsequences[i]));
-                gp_expect( ! gp_str_is_valid(str), i);
+                gp_expect( ! gp_str_is_valid(str, NULL), i);
             }
         }
 
