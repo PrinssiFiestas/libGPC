@@ -141,7 +141,8 @@ bool gp_bytes_equal_case(
 
 bool gp_bytes_is_valid(
     const void* bytes,
-    size_t bytes_length) GP_NONNULL_ARGS();
+    size_t      bytes_size,
+    size_t*     optional_invalid_position) GP_NONNULL_ARGS(1);
 
 
 // ----------------------------------------------------------------------------

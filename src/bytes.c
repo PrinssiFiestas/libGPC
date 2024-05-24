@@ -147,27 +147,34 @@ bool gp_bytes_equal_case(
 
 bool gp_bytes_is_valid(
     const void* _str,
-    const size_t n)
+    const size_t n,
+    size_t* invalid_index)
 {
     const uint8_t* str = _str;
     const size_t align_offset = (uintptr_t)str     % 8;
     const size_t remaining    = (n - align_offset) % 8;
     size_t i = 0;
 
-    for (size_t len = gp_min(align_offset, n); i < len; i++)
-        if (str[i] & 0x80)
+    for (size_t len = gp_min(align_offset, n); i < len; i++) {
+        if (str[i] & 0x80) {
+            if (invalid_index != NULL)
+                *invalid_index = i;
             return false;
-
+        }
+    }
     for (; i < n - remaining; i += 8) {
         uint64_t x;
         memcpy(&x, str + i, sizeof x);
-        if (x & 0x8080808080808080)
-            return false;
+        if (x & 0x8080808080808080) // invalid detected
+            break; // find the index for the invalid in the next loop
     }
-    for (; i < n; i++)
-        if (str[i] & 0x80)
+    for (; i < n; i++) {
+        if (str[i] & 0x80) {
+            if (invalid_index != NULL)
+                *invalid_index = i;
             return false;
-
+        }
+    }
     return true;
 }
 

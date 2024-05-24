@@ -225,22 +225,27 @@ static bool gp_valid_codepoint(
 }
 
 bool gp_str_is_valid(
-    GPString _str)
+    GPString _str,
+    size_t* invalid_index)
 {
     const char* str = (const char*)_str;
     const size_t length = gp_str_length(_str);
     for (size_t i = 0; i < length;)
     {
         size_t cp_length = gp_bytes_codepoint_length(str + i);
-        if (cp_length == 0 || i + cp_length > length)
+        if (cp_length == 0 || i + cp_length > length) {
+            if (invalid_index != NULL)
+                *invalid_index = i;
             return false;
-
+        }
         uint32_t codepoint = 0;
         for (size_t j = 0; j < cp_length; j++)
             codepoint = codepoint << 8 | (uint8_t)str[i + j];
-        if ( ! gp_valid_codepoint(codepoint))
+        if ( ! gp_valid_codepoint(codepoint)) {
+            if (invalid_index != NULL)
+                *invalid_index = i;
             return false;
-
+        }
         i += cp_length;
     }
     return true;
@@ -750,6 +755,17 @@ int gp_str_case_compare(
     const char* s1 = (const char*)_s1;
     const char* s2 = (const char*)_s2;
 
+    const GPAllocator* allocator = gp_str_allocator(_s1);
+    if (allocator == NULL)
+        allocator = gp_str_allocator(_s2);
+    if (allocator == NULL)
+        allocator = &gp_heap;
+
+    void(*const dealloc)(const GPAllocator*, void* block) =
+        allocator->dealloc == gp_arena_dealloc ?
+            (void(*)(const GPAllocator*, void*))gp_arena_rewind
+          : gp_mem_dealloc;
+
     wchar_t stack_buf1[1 << 10];
     wchar_t stack_buf2[sizeof stack_buf1 / sizeof*stack_buf1];
     size_t buf1_cap  = sizeof stack_buf1 / sizeof*stack_buf1;
@@ -758,19 +774,19 @@ int gp_str_case_compare(
     wchar_t* buf2 = stack_buf2;
     if (gp_str_length(_s1) + 1 >= buf1_cap) {
         buf1_cap = gp_str_length(_s1) + 1;
-        buf1 = gp_mem_alloc(&gp_heap, buf1_cap * sizeof(wchar_t));
+        buf1 = gp_mem_alloc(allocator, buf1_cap * sizeof(wchar_t));
     } if (gp_str_length(_s2) + 1 >= buf2_cap) {
         buf2_cap = gp_str_length(_s2) + 1;
-        buf2 = gp_mem_alloc(&gp_heap, buf2_cap * sizeof(wchar_t));
+        buf2 = gp_mem_alloc(allocator, buf2_cap * sizeof(wchar_t));
     }
     mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0});
     mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0});
 
     int result = wcscoll(buf1, buf2);
     if (buf1 != stack_buf1)
-        gp_mem_dealloc(&gp_heap, buf1);
+        dealloc(allocator, buf1);
     if (buf2 != stack_buf2)
-        gp_mem_dealloc(&gp_heap, buf2);
+        dealloc(allocator, buf2);
     return result;
 }
 

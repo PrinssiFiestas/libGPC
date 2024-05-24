@@ -204,7 +204,8 @@ size_t gp_str_codepoint_count(
     GPString str) GP_NONNULL_ARGS();
 
 bool gp_str_is_valid(
-    GPString str) GP_NONNULL_ARGS();
+    GPString str,
+    size_t*  optional_invalid_position) GP_NONNULL_ARGS(1);
 
 size_t gp_str_codepoint_length(
     GPString str) GP_NONNULL_ARGS();
