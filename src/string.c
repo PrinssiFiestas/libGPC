@@ -814,7 +814,10 @@ int gp_str_from_path(
         return -1;
 
     gp_str_reserve(str, s.st_size);
-    fread(*str, sizeof**str, s.st_size, f);
+    if (fread(*str, sizeof**str, s.st_size, f) != (size_t)s.st_size) {
+        fclose(f);
+        return -1;
+    }
     gp_str_header(*str)->length = s.st_size;
 
     fclose(f);

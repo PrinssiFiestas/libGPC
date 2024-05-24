@@ -67,8 +67,10 @@ int main(void)
                 GPArrayHeader header;
                 int array[2048];
             } array_mem; // No init!
-            array_mem.header.capacity  = 2048;
-            array_mem.header.allocator = &gp_heap; // optional if 2048 is not exceeded
+            array_mem.header = (GPArrayHeader) {
+                .capacity  = 2048,
+                .allocator = &gp_heap // optional if 2048 is not exceeded
+            };
             GPArray(int) arr           = array_mem.array;
 
             const int carr[] = { 1, 2, 3 };
