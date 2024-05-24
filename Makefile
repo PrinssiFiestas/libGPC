@@ -19,6 +19,9 @@ MAKEFLAGS += -j$(THREAD_COUNT)
 
 ifeq ($(OS), Windows_NT)
 	EXE_EXT = .exe
+	ifeq ($(CC), clang)
+		RELEASE_CFLAGS = -O3 -DNDEBUG
+	endif
 else
 	EXE_EXT =
 	DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
