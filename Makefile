@@ -9,9 +9,6 @@ CFLAGS += -Iinclude -lm
 CFLAGS += -D_GNU_SOURCE # memmem(), stat64()
 DEBUG_CFLAGS   = -ggdb3
 RELEASE_CFLAGS = -O3 -flto -DNDEBUG
-ifneq (&(OS), Windows_NT)
-DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
-endif
 
 NPROC = $(shell echo `nproc`)
 THREAD_COUNT = $(if $(NPROC),$(NPROC),4)
@@ -21,6 +18,7 @@ ifeq ($(OS), Windows_NT)
 	EXE_EXT = .exe
 else
 	EXE_EXT =
+	DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 endif
 
 SRCS       = $(wildcard src/*.c)
