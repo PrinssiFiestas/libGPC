@@ -54,16 +54,6 @@ static inline void* gp_crashing_alloc(const GPAllocator* unused, size_t unused_s
     return "";
 }
 
-static void gp_no_op_dealloc(const GPAllocator* unused, void* block)
-{
-    (void)unused; (void)block;
-}
-
-const GPAllocator gp_crash_on_alloc = {
-    .alloc   = gp_crashing_alloc,
-    .dealloc = gp_no_op_dealloc
-};
-
 // ----------------------------------------------------------------------------
 
 // Instances of these live in the beginning of the arenas memory block so the
@@ -102,19 +92,18 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
     return block;
 }
 
-GPArena gp_arena_new(const size_t capacity, const double growth_coefficient)
+GPArena gp_arena_new(const size_t capacity, const double coeff)
 {
     const size_t cap = gp_round_to_aligned(capacity);
     GPArenaNode* node = gp_mem_alloc(&gp_heap, sizeof(GPArenaNode) + cap);
     node->capacity = cap;
     node->position = node + 1;
     node->tail     = NULL;
-    GPArena arena = {
-        { gp_arena_alloc, gp_arena_dealloc },
-        growth_coefficient,
-        node
+    return (GPArena) {
+        .allocator          = { gp_arena_alloc, gp_arena_dealloc },
+        .growth_coefficient = coeff,
+        .head               = node
     };
-    return arena;
 }
 
 static bool gp_in_this_node(GPArenaNode* node, void* _pos)
@@ -323,7 +312,7 @@ GPAllocator* gp_begin(const size_t _size)
         previous = NULL;
 
     GPScope* scope = gp_arena_alloc((GPAllocator*)scope_factory, sizeof*scope);
-    *(GPArena*)scope = gp_arena_new(size, 1.0);
+    *(GPArena*)scope = gp_arena_new(size, 1.);
     scope->arena.allocator.alloc = gp_scope_alloc;
     scope->parent = previous;
     scope->defer_stack = NULL;
@@ -333,6 +322,8 @@ GPAllocator* gp_begin(const size_t _size)
 
 void gp_end(GPAllocator*_scope)
 {
+    if (_scope == NULL)
+        return;
     GPScope* scope = (GPScope*)_scope;
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
     gp_end_scopes(gp_last_scope_of(scope_factory), scope);

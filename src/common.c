@@ -10,8 +10,7 @@
 #include <stdint.h>
 #include <wchar.h>
 
-extern inline void gp_arena_dealloc(const GPAllocator*, void*);
-
+extern inline void   gp_arena_dealloc(const GPAllocator*, void*);
 extern inline size_t gp_max_digits_in  (const GPType T);
 extern inline size_t gp_count_fmt_specs(const char* fmt);
 

@@ -755,38 +755,34 @@ int gp_str_case_compare(
     const char* s1 = (const char*)_s1;
     const char* s2 = (const char*)_s2;
 
-    const GPAllocator* allocator = gp_str_allocator(_s1);
-    if (allocator == NULL)
-        allocator = gp_str_allocator(_s2);
-    if (allocator == NULL)
-        allocator = &gp_heap;
-
-    void(*const dealloc)(const GPAllocator*, void* block) =
-        allocator->dealloc == gp_arena_dealloc ?
-            (void(*)(const GPAllocator*, void*))gp_arena_rewind
-          : gp_mem_dealloc;
-
     wchar_t stack_buf1[1 << 10];
     wchar_t stack_buf2[sizeof stack_buf1 / sizeof*stack_buf1];
-    size_t buf1_cap  = sizeof stack_buf1 / sizeof*stack_buf1;
-    size_t buf2_cap  = sizeof stack_buf1 / sizeof*stack_buf1;
-    wchar_t* buf1 = stack_buf1;
-    wchar_t* buf2 = stack_buf2;
+    size_t  buf1_cap = sizeof stack_buf1 / sizeof*stack_buf1;
+    size_t  buf2_cap = buf1_cap;
+    wchar_t*buf1     = stack_buf1;
+    wchar_t*buf2     = stack_buf2;
+
+    GPArena arena;
+    const GPAllocator* scope = NULL;
+    const size_t max_length = gp_max(gp_str_length(_s1), gp_str_length(_s2));
+    if (max_length + 1 >= buf1_cap)
+    {
+        arena = gp_arena_new(2 * max_length * sizeof*buf1 +/*internals*/64, 0.);
+        scope = (const GPAllocator*)&arena;
+    }
     if (gp_str_length(_s1) + 1 >= buf1_cap) {
         buf1_cap = gp_str_length(_s1) + 1;
-        buf1 = gp_mem_alloc(allocator, buf1_cap * sizeof(wchar_t));
-    } if (gp_str_length(_s2) + 1 >= buf2_cap) {
+        buf1 = gp_mem_alloc(scope, buf1_cap * sizeof(wchar_t));
+    }
+    if (gp_str_length(_s2) + 1 >= buf2_cap) {
         buf2_cap = gp_str_length(_s2) + 1;
-        buf2 = gp_mem_alloc(allocator, buf2_cap * sizeof(wchar_t));
+        buf2 = gp_mem_alloc(scope, buf2_cap * sizeof(wchar_t));
     }
     mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0});
     mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0});
 
     int result = wcscoll(buf1, buf2);
-    if (buf1 != stack_buf1)
-        dealloc(allocator, buf1);
-    if (buf2 != stack_buf2)
-        dealloc(allocator, buf2);
+    gp_arena_delete((GPArena*)scope);
     return result;
 }
 

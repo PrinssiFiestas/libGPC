@@ -96,16 +96,13 @@ const
 /** malloc() based allocator. */
 GPAllocator gp_heap;
 
-/** Tries to set breakpoint and crashes on allocations. */
-extern const GPAllocator gp_crash_on_alloc;
-
 // ----------------------------------------------------------------------------
 // Arena allocator
 
 //
 typedef struct gp_arena GPArena;
 GPArena gp_arena_new(size_t capacity, double growth_coefficient) GP_NODISCARD;
-void gp_arena_delete(GPArena*);
+void gp_arena_delete(GPArena* optional);
 void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS(1);
 
 // ----------------------------------------------------------------------------
@@ -113,7 +110,7 @@ void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS(1);
 
 //
 GPAllocator* gp_begin     (size_t size)  GP_NONNULL_RETURN GP_NODISCARD;
-void         gp_end       (GPAllocator*) GP_NONNULL_ARGS();
+void         gp_end       (GPAllocator* optional);
 GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
 void         gp_defer     (GPAllocator* scope, void (*f)(void* arg), void* arg)
     GP_NONNULL_ARGS(1, 2);
