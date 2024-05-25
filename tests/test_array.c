@@ -36,7 +36,7 @@ int main(void)
         gp_test("Arrays on stack");
         {
             // Create array that can hold 4 elements
-            GPArray(int) arr = gp_arr_on_stack(&gp_heap, 4, int);
+            GPArray(int) arr = gp_arr_on_stack(gp_heap, 4, int);
             gp_expect(gp_arr_allocation(arr) == NULL,
                 "Stack allocated arrays should not have a allocation.");
 
@@ -69,7 +69,7 @@ int main(void)
             } array_mem; // No init!
             array_mem.header = (GPArrayHeader) {
                 .capacity  = 2048,
-                .allocator = &gp_heap // optional if 2048 is not exceeded
+                .allocator = gp_heap // optional if 2048 is not exceeded
             };
             GPArray(int) arr           = array_mem.array;
 

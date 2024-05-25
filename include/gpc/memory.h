@@ -89,12 +89,13 @@ void* gp_mem_realloc(
 // ----------------------------------------------------------------------------
 // Heap allocator
 
-extern
 #ifdef NDEBUG
-const
-#endif // else heap allocator can be overridden for debugging
 /** malloc() based allocator. */
-GPAllocator gp_heap;
+extern const GPAllocator*const gp_heap;
+#else // heap allocator can be overridden for debugging
+/** malloc() based allocator. */
+extern const GPAllocator*      gp_heap;
+#endif
 
 // ----------------------------------------------------------------------------
 // Arena allocator

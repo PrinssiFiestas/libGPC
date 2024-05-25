@@ -11,7 +11,7 @@ int main(void)
     gp_suite("Hash map");
     {
         GPHashMap* map = gp_hash_map_new(
-            &gp_heap, &(GPMapInitializer){ sizeof(int) });
+            gp_heap, &(GPMapInitializer){ sizeof(int) });
 
         const char* key = "This is my key!";
         gp_expect(gp_hash_map_get(map, key, strlen(key)) == NULL,
@@ -30,7 +30,7 @@ int main(void)
     gp_suite("Non-hashed map");
     {
         GPMapInitializer init = {.destructor = free };
-        GPMap* map = gp_map_new(&gp_heap, &init);
+        GPMap* map = gp_map_new(gp_heap, &init);
 
         int* elem_25 = malloc(sizeof(int));
         int* elem_67 = malloc(sizeof(int));

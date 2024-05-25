@@ -35,13 +35,15 @@ static void gp_heap_dealloc(const GPAllocator* unused, void* block)
     free(block);
 }
 
-#ifdef NDEBUG
-const
-#endif
-GPAllocator gp_heap = {
+static const GPAllocator gp_mallocator = {
     .alloc   = gp_heap_alloc,
     .dealloc = gp_heap_dealloc
 };
+#ifdef NDEBUG
+const GPAllocator*const gp_heap = &gp_mallocator;
+#else
+const GPAllocator*      gp_heap = &gp_mallocator;
+#endif
 
 #ifdef __GNUC__
 __attribute__((always_inline))
@@ -76,7 +78,7 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
     if ((uint8_t*)block + size > (uint8_t*)(head + 1) + head->capacity)
     { // out of memory, create new arena
         const size_t new_cap = arena->growth_coefficient * head->capacity;
-        GPArenaNode* new_node = gp_mem_alloc(&gp_heap,
+        GPArenaNode* new_node = gp_mem_alloc(gp_heap,
             sizeof(GPArenaNode) + gp_max(new_cap, size));
         new_node->capacity = new_cap;
         new_node->tail     = head;
@@ -95,7 +97,7 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
 GPArena gp_arena_new(const size_t capacity, const double coeff)
 {
     const size_t cap = gp_round_to_aligned(capacity);
-    GPArenaNode* node = gp_mem_alloc(&gp_heap, sizeof(GPArenaNode) + cap);
+    GPArenaNode* node = gp_mem_alloc(gp_heap, sizeof(GPArenaNode) + cap);
     node->capacity = cap;
     node->position = node + 1;
     node->tail     = NULL;
@@ -117,7 +119,7 @@ static void gp_arena_node_delete(GPArena* arena)
 {
     GPArenaNode* old_head = arena->head;
     arena->head = arena->head->tail;
-    gp_mem_dealloc(&gp_heap, old_head);
+    gp_mem_dealloc(gp_heap, old_head);
 }
 
 void gp_arena_rewind(GPArena* arena, void* new_pos)
@@ -140,7 +142,7 @@ void gp_arena_delete(GPArena* arena)
     while (arena->head != NULL) {
         GPArenaNode* old_head = arena->head;
         arena->head = arena->head->tail;
-        gp_mem_dealloc(&gp_heap, old_head);
+        gp_mem_dealloc(gp_heap, old_head);
     }
 }
 
@@ -236,13 +238,15 @@ static void gp_delete_scope_factory(void*_factory)
     if (remaining != (GPScope*)factory)
         gp_end_scopes(remaining, NULL);
 
-    gp_mem_dealloc(&gp_heap, factory->head);
+    gp_mem_dealloc(gp_heap, factory->head);
 }
 
 // Make Valgrind shut up.
 static void gp_delete_main_thread_scope_factory(void)
 {
-    gp_delete_scope_factory(gp_thread_local_get(gp_scope_factory_key));
+    GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
+    if (scope_factory != NULL)
+        gp_delete_scope_factory(scope_factory);
 }
 static void gp_make_scope_factory_key(void)
 {

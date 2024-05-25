@@ -643,7 +643,7 @@ static void gp_str_to_something(
     wchar_t* buf = stack_buf;
     if (length + sizeof"" > buf_cap) {
         buf_cap = length + sizeof"";
-        buf = gp_mem_alloc(&gp_heap, buf_cap * sizeof*buf);
+        buf = gp_mem_alloc(gp_heap, buf_cap * sizeof*buf);
     }
     const char* src = gp_cstr(*str);
     size_t buf_length = mbsrtowcs(buf, &src, buf_cap, &(mbstate_t){0});
@@ -658,7 +658,7 @@ static void gp_str_to_something(
         &pbuf, sizeof(buf[0]) * buf_length, &(mbstate_t){0});
 
     if (buf != stack_buf)
-        gp_mem_dealloc(&gp_heap, buf);
+        gp_mem_dealloc(gp_heap, buf);
 }
 
 void gp_str_to_upper(

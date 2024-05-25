@@ -41,7 +41,7 @@ int main(void)
 
             gp_str_delete(str); // safe but pointless
 
-            str = gp_str_on_stack(&gp_heap, 1, "");
+            str = gp_str_on_stack(gp_heap, 1, "");
             const char* cstr = "Allocator provided, extending is safe!";
             gp_str_copy(&str, cstr, strlen(cstr));
             gp_expect(gp_arr_allocation(str),
@@ -52,7 +52,7 @@ int main(void)
         gp_test("Reserve");
         {
             size_t old_capacity;
-            GPString str = gp_str_on_stack(&gp_heap, 1, "");
+            GPString str = gp_str_on_stack(gp_heap, 1, "");
             old_capacity = gp_arr_capacity(str);
 
             gp_str_reserve(&str, 12);
@@ -63,7 +63,7 @@ int main(void)
 
         gp_test("somewhere else than stack");
         {
-            GPString str = gp_str_new(&gp_heap, 1);
+            GPString str = gp_str_new(gp_heap, 1);
             gp_expect(gp_arr_allocation(str) != NULL);
 
             gp_str_repeat(&str, gp_arr_capacity(str), "X", strlen("X"));
@@ -233,7 +233,7 @@ int main(void)
     {
         gp_test("Numbers");
         {
-            GPString str = gp_str_on_stack(&gp_heap, 1, "");
+            GPString str = gp_str_on_stack(gp_heap, 1, "");
             gp_str_print(&str, 1, " divided by ", 3, " is ", 1./3.);
             char buf[128];
             sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
@@ -428,7 +428,7 @@ int main(void)
 
     gp_suite("Validate");
     {
-        GPString str = gp_str_new(&gp_heap, 32);
+        GPString str = gp_str_new(gp_heap, 32);
 
         gp_test("Valids");
         {
@@ -536,7 +536,7 @@ int main(void)
 
         gp_test("Reading");
         {
-            GPString str = gp_str_on_stack(&gp_heap, 1, "");
+            GPString str = gp_str_on_stack(gp_heap, 1, "");
             gp_expect(gp_str_from_path(&str, "gp_test_str_file.txt") == 0);
             gp_expect(gp_str_equal(str, "blah blah", strlen("blah blah")));
             gp_str_delete(str);
@@ -544,7 +544,7 @@ int main(void)
 
         gp_test("Non existent");
         {
-            GPString str = gp_str_on_stack(&gp_heap, 1, "");
+            GPString str = gp_str_on_stack(gp_heap, 1, "");
             gp_expect(gp_str_from_path(&str, "NON_EXISTENT.txt") != 0);
             gp_str_delete(str);
         }
