@@ -64,7 +64,7 @@ inline void gp_mem_dealloc(
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
 void* gp_mem_realloc(
     const GPAllocator* allocator,
-    void*  old_block,
+    void*  optional_old_block,
     size_t old_size,
     size_t new_size);
 
@@ -74,15 +74,13 @@ void* gp_mem_realloc(
 #define gp_alloc_zeroes(allocator, type, count) \
     gp_mem_alloc_zeroes((GPAllocator*)(allocator), (count) * sizeof(type))
 
-#define gp_dealloc(allocator, block) ( \
-    gp_mem_dealloc((GPAllocator*)(allocator), (block)), \
-    (void*) #block" deallocated at "__FILE__" line "GP_MEM_STRFY(__LINE__) \
-)
+#define gp_dealloc(allocator, optional_block) \
+    gp_mem_dealloc((GPAllocator*)(allocator), (optional_block))
 
-#define gp_realloc(allocator, block, old_capacity, new_capacity) \
+#define gp_realloc(allocator, optional_block, old_capacity, new_capacity) \
     gp_mem_realloc( \
-        allocator, \
-        block, \
+        (GPAllocator*)(allocator), \
+        optional_block, \
         old_capacity, \
         new_capacity)
 
@@ -124,8 +122,9 @@ void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 extern const GPAllocator*const gp_heap;
 #else // heap allocator can be overridden for debugging
 /** malloc() based allocator. */
-extern const GPAllocator*      gp_heap;
+extern const GPAllocator* gp_heap;
 #endif
+
 
 // ----------------------------------------------------------------------------
 //
