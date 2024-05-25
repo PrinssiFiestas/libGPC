@@ -39,11 +39,25 @@ DEBUG_OBJS = $(patsubst src/%.c, build/%d.o, $(wildcard src/*.c))
 TESTS         = $(patsubst tests/test_%.c, build/test_%d$(EXE_EXT), $(wildcard tests/test_*.c))
 RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(wildcard tests/test_*.c))
 
-.PHONY: all release debug tests build_tests run_tests release_tests build_release_tests run_release_tests analyze clean
+.PHONY: all release debug install tests build_tests run_tests release_tests build_release_tests run_release_tests analyze clean
 
 .PRECIOUS: $(TESTS)
 
-all: release
+all: release debug build/gprun$(EXE_EXT)
+
+build/gprun$(EXE_EXT): src/gprun.c_
+	$(CC) -xc $(DEBUG_CFLAGS) $? -o $@
+
+/etc/gdb/gpstring.py:
+	cp tools/gpstring.py /etc/gdb/
+	$(file >> /etc/gdb/gdbinit, source /etc/gdb/gpstring.py)
+
+install: all /etc/gdb/gpstring.py
+install:
+	cp -r include/gpc  /usr/local/include/
+	cp build/libgpc.a  /usr/local/lib/
+	cp build/libgpcd.a /usr/local/lib/
+	cp build/gprun     /usr/local/bin/
 
 release: CFLAGS += $(RELEASE_CFLAGS)
 release: build/libgpc.a

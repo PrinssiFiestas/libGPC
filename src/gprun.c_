@@ -136,7 +136,12 @@ int main(int argc, char* argv[])
                 push((char[]){"-fsanitize=address"});
                 push((char[]){"-fsanitize=undefined"});
             #endif
+            push((char[]){"-lgpcd"});
+        } else {
+            push((char[]){"-lgpc"});
         }
+        push((char[]){"-lm"});
+        push((char[]){"-lpthread"});
         cc_argv.argv[cc_argv.argc] = NULL;
     }
 
