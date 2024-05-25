@@ -124,12 +124,6 @@ static void gp_arena_node_delete(GPArena* arena)
 
 void gp_arena_rewind(GPArena* arena, void* new_pos)
 {
-    if (new_pos == NULL) { // clear arena
-        while (arena->head->tail != NULL)
-            gp_arena_node_delete(arena);
-        arena->head->position = arena->head + 1;
-        return;
-    }
     while ( ! gp_in_this_node(arena->head, new_pos))
         gp_arena_node_delete(arena);
     arena->head->position = new_pos;

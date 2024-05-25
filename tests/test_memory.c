@@ -18,39 +18,42 @@ static bool is_free(void*_ptr)
     return true;
 }
 
-void* test1(void*_)
+static void deferred_dealloc(void* p)
+{
+    gp_mem_dealloc(gp_heap, p);
+}
+
+static void* test0(void*_)
 {
     (void)_;
-    void* ps[8] = {}; // Dummy objects
+    void* ps[8] = {0}; // Dummy objects
     gp_suite("Scope allocator");
     { // The scopes created by the scope allocator are not in any way tied to
       // the C scoping operator {}. Here we use them just to empahize that
       // scopes are nonetheless lexical.
         gp_test("Basic usage");
         {
-            // Use tiny 1 byte scopes to first: demostrate that the arenas can
-            // hold objects that do not fit in them, and second: force all
-            // pointers to point into their own memory space so the testing
-            // allocator can mark them as freed. Normally you would use larger
+            // Use tiny 1 byte scopes to demostrate that the arenas can hold
+            // objects that do not fit in them. Normally you would use larger
             // values or 0 for some default value.
             GPAllocator* scope = gp_begin(1);
-            ps[0] = gp_mem_alloc(scope, 8);
+            ps[0] = gp_mem_alloc(scope, 64);
             {
                 GPAllocator* scope = gp_begin(1);
-                ps[1] = gp_mem_alloc(scope, 8);
+                ps[1] = gp_mem_alloc(scope, 64);
                 {
                     GPAllocator* scope = gp_begin(1);
-                    ps[2] = gp_mem_alloc(scope, 8);
+                    ps[2] = gp_mem_alloc(scope, 64);
                     // whoops, forgot to end_scope()
                 }
                 {
                     GPAllocator* scope = gp_begin(1);
-                    ps[3] = gp_mem_alloc(scope, 8);
+                    ps[3] = gp_mem_alloc(scope, 64);
                     gp_end(scope);
                 }
                 {
                     GPAllocator* scope = gp_begin(1);
-                    ps[4] = gp_mem_alloc(scope, 8);
+                    ps[4] = gp_mem_alloc(scope, 64);
                     // Sanity check
                     gp_expect( ! is_free(ps[0]));
                     gp_expect( ! is_free(ps[1]));
@@ -59,34 +62,95 @@ void* test1(void*_)
                     gp_expect( ! is_free(ps[4]));
                     // whoops, forgot to end_scope()
                 }
-                gp_end(scope);
+                gp_end(scope); // this also ends the forgotten inner scopes.
             }
             // We can allocate as much as we like, gp_end(scope) will free all.
-            ps[5] = gp_mem_alloc(scope, 8);
-            ps[6] = gp_mem_alloc(scope, 8);
-            ps[7] = gp_mem_alloc(scope, 8);
+            ps[5] = gp_mem_alloc(scope, 64);
+            ps[6] = gp_mem_alloc(scope, 64);
+            ps[7] = gp_mem_alloc(scope, 64);
 
-            gp_end(scope); // this also ends the forgotten inner scopes.
+            gp_end(scope);
 
             for (size_t i = 0; i < sizeof ps / sizeof*ps; i++)
                 gp_expect(is_free(ps[i]));
         }
-        // TODO how ignoring scopes being lexically scoped will fail and mention GPArena
+
+        gp_test("Defer");
+        {
+            GPAllocator* scope = gp_begin(0);
+            void* p1 = gp_mem_alloc(gp_heap, 64);
+            gp_defer(scope, deferred_dealloc, p1);
+            void* p2 = gp_mem_alloc(gp_heap, 64);
+            gp_defer(scope, deferred_dealloc, p2);
+
+            gp_expect( ! is_free(p1));
+            gp_expect( ! is_free(p2));
+
+            gp_end(scope);
+
+            gp_expect(is_free(p1));
+            gp_expect(is_free(p2));
+        }
     }
+    gp_suite(NULL);
     return NULL;
 }
 
-void* test2(void*_)
+static void* test1_ps[4] = {0};
+
+static void* test1(void*_)
 {
     (void)_;
-    gp_suite("Thread cleaning it's scopes");
+    GPAllocator* scope0 = gp_begin(0);
+    GPAllocator* scope1 = gp_begin(0);
+    GPAllocator* scope2 = gp_begin(0);
+    GPAllocator* scope3 = gp_begin(0);
+    test1_ps[0] = gp_mem_alloc(scope0, 8);
+    test1_ps[1] = gp_mem_alloc(scope1, 8);
+    test1_ps[2] = gp_mem_alloc(scope2, 8);
+    test1_ps[3] = gp_mem_alloc(scope3, 8);
     return NULL;
-}
+} // All scopes will be cleaned when this thread terminates
 
-void* test3(void*_)
+static void* test2(void*_)
 {
     (void)_;
     gp_suite("Arena allocator");
+    {
+        gp_test("Basic usage");
+        {
+            // Using a tiny arena forces it to allocate each objects separately.
+            // This allows the testing allocator to mark freed objects on
+            // rewind.
+            GPArena arena = gp_arena_new(1, 1.0);
+            void* ps[4] = {0};
+            for (size_t i = 0; i < 4; i++) {
+                ps[i] = gp_mem_alloc((GPAllocator*)&arena, 64);
+                strcpy(ps[i], &"abcd"[i]);
+            }
+            // Sanity test
+            for (size_t i = 0; i < 4; i++)
+                gp_assert( ! is_free(ps[i]));
+
+            gp_arena_rewind(&arena, ps[2]);
+            gp_expect( ! is_free(ps[0]));
+            gp_expect( ! is_free(ps[1]));
+            gp_expect( ! is_free(ps[2]), "Not from heap, but from arena!");
+            gp_expect(   is_free(ps[3]));
+
+            void* overwriting_pointer = gp_mem_alloc((GPAllocator*)&arena, 16);
+            strcpy(overwriting_pointer, "XXXX");
+            gp_expect(strcmp(ps[2], "XXXX") == 0,
+                "ps[2] should be considered as freed dispite not freed from the "
+                "heap! Here it got overwritten since the arena reused it's "
+                "memory.");
+
+            gp_arena_delete(&arena);
+
+            gp_expect(is_free(ps[0]));
+            gp_expect(is_free(ps[1]));
+        }
+    }
     return NULL;
 }
 
@@ -102,13 +166,19 @@ int main(void)
     gp_heap = new_test_allocator();
 
     pthread_t tests[3];
-    pthread_create(&tests[0], NULL, test1, NULL);
-    //pthread_create(&tests[1], NULL, test2, NULL);
-    //pthread_create(&tests[2], NULL, test3, NULL);
+    pthread_create(&tests[0], NULL, test0, NULL);
+    pthread_create(&tests[1], NULL, test1, NULL);
+    pthread_create(&tests[2], NULL, test2, NULL);
 
     pthread_join(tests[0], NULL);
-    // pthread_join(tests[1], NULL);
-    // pthread_join(tests[2], NULL);
+    pthread_join(tests[1], NULL);
+    pthread_join(tests[2], NULL);
+
+    gp_test("Thread cleaning it's scopes");
+    {
+        for (size_t i = 0; i < sizeof test1_ps / sizeof*test1_ps; i++)
+            gp_expect(is_free(test1_ps[i]));
+    }
 
     // Make Valgrind shut up.
     delete_test_allocator(gp_heap);
@@ -225,145 +295,3 @@ void delete_test_allocator(const GPAllocator* allocator)
 
 #endif // NDEBUG
 
-#if 0 // -------------- OLD -------------------------
-
-// #include <threads.h>
-
-// Not many assertions here, address sanitizer does half of the work, manual
-// debugging does the other half.
-// TODO override heap allocator for proper tests.
-
-int foo(void*_)
-{
-    (void)_;
-    GPAllocator* scope = gp_begin(0);
-    {
-        GPAllocator* scope = gp_begin(0);
-        {
-            GPAllocator* scope = gp_begin(0);
-            {
-                GPAllocator* scope = gp_begin(0);
-                gp_end(scope);
-            }
-            gp_end(scope);
-        }
-        gp_end(scope);
-    }
-    gp_end(scope);
-
-    return 0;
-}
-
-void to_defer(void* x)
-{
-    printf("%i\n", (int)(intptr_t)x);
-}
-
-int bar(void*_)
-{
-    (void)_;
-    GPAllocator* scope = gp_begin(0);
-    gp_defer(scope, to_defer, (void*)-1);
-    gp_defer(scope, to_defer, (void*) 0);
-    gp_defer(scope, to_defer, (void*) 1);
-    gp_defer(scope, to_defer, (void*)-1);
-    {
-        GPAllocator* scope = gp_begin(0);
-        gp_defer(scope, to_defer, (void*)123);
-    }
-    gp_defer(scope, to_defer, (void*) 0);
-    gp_defer(scope, to_defer, (void*) 1);
-    gp_defer(scope, to_defer, (void*)-1);
-    gp_defer(scope, to_defer, (void*) 0);
-    gp_defer(scope, to_defer, (void*) 1);
-
-    // Whoops, forgot to gp_end(). No worries, threads clean up their scopes.
-    return 0;
-}
-
-int main(void)
-{
-    gp_test("Memory");
-
-    GPArena _arena = gp_arena_new(16, 2.);
-    void* arena = &_arena; // get rid of ugly casts
-    char* short_str = gp_alloc(arena, *short_str, strlen("Hi") + 1);
-    strcpy(short_str, "Hi");
-
-    char* my_name = gp_alloc(arena, *my_name, strlen("my name") + 1);
-    strcpy(my_name, "my name");
-    char* is_lore = gp_alloc(arena, *is_lore, strlen("is Lore") + 1);
-    strcpy(is_lore, "is Lore");
-
-    const char* long_str_init =
-        "This is a very long stirng that should not fit to small memory blocks."
-        " In that case, the allocator just reserves a dedicated block just for "
-        "this string.";
-    char* long_str = gp_alloc(arena, *long_str, strlen(long_str_init) + 1);
-    strcpy(long_str, long_str_init);
-
-    char* very_long_str = gp_alloc(arena, char/*this works too*/, 8 * strlen(long_str) + 1);
-    very_long_str[0] = '\0';
-    for (size_t i = 0; i < 8; i++)
-        strcat(very_long_str, long_str);
-
-    gp_arena_rewind(arena, is_lore);
-    // long_str[0] = '\0'; // use after free
-    is_lore[strlen(is_lore) - 1] = 'E'; // not freed from heap, but arena freed!
-    gp_expect(_arena.head->position == is_lore);
-
-    char* overwrite = gp_alloc(arena, *overwrite, strlen("IS LORE") + 1);
-    strcpy(overwrite, "IS LORE");
-    gp_expect(strcmp(is_lore, "IS LORE") == 0,
-        "is_lore is freed so it should've been overwritten.");
-
-    gp_arena_rewind(arena, NULL);
-    gp_expect(_arena.head->position == short_str,
-        "short_str was the first allocation.");
-    gp_arena_delete(arena);
-
-    // ------------------------------------------------------------------------
-    // Scope allocator
-
-    // thrd_t t;
-    // thrd_create(&t, foo, NULL);
-
-    char* s0 = NULL;
-    char* s1 = NULL;
-    char* s2 = NULL;
-    {
-        GPAllocator* scope0 = gp_begin(0);
-        s0 = gp_alloc(scope0, *s0, 32);
-        strcpy(s0, "outer");
-        {
-            GPAllocator* scope1 = gp_begin(0);
-            s1 = gp_alloc(scope1, *s1, 32);
-            strcpy(s1, "mid");
-            {
-                GPAllocator* scope2 = gp_begin(0);
-                s2 = gp_alloc(scope2, *s2, 32);
-                strcpy(s2, "inner");
-                puts(s0);
-                puts(s1);
-                puts(s2);
-                gp_end(scope2); // gp_end(scope1) and gp_end(scop0) frees this too
-            }
-            puts(s0);
-            puts(s1);
-            // puts(s2); // freed!
-            gp_end(scope1); // gp_end(scope0) frees this too
-        }
-        puts(s0);
-        // puts(s1); // freed!
-        gp_end(scope0);
-    }
-    // puts(s0); // freed!
-    // puts(s1); // freed!
-    // puts(s2); // freed!
-
-    // thrd_join(t, NULL);
-
-    // thrd_create(&t, bar, NULL);
-    // thrd_join(t, NULL);
-}
-#endif

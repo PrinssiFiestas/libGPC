@@ -87,6 +87,36 @@ void* gp_mem_realloc(
         new_capacity)
 
 // ----------------------------------------------------------------------------
+// Scope allocator
+
+// Create thread local scope.
+GPAllocator* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
+
+// End scope and any inner scopes that have not been ended.
+void gp_end(GPAllocator* optional_scope);
+
+// Deferred functions are called in Last In First Out order in gp_end().
+void gp_defer(GPAllocator* scope, void (*f)(void* arg), void* arg)
+    GP_NONNULL_ARGS(1, 2);
+
+// Get lastly created scope in callbacks. You should prefer to just pass scopes
+// as arguments when possible.
+GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
+
+// ----------------------------------------------------------------------------
+// Arena allocator
+
+// Arena that does not run out of memory. This is achieved by creating new
+// arenas when old one gets full.
+typedef struct gp_arena GPArena;
+
+// growth_coefficient determines how large each subsequent arena in arena list
+// is relative to previous arena when the previous arena gets full.
+GPArena gp_arena_new(size_t capacity, double growth_coefficient) GP_NODISCARD;
+void gp_arena_delete(GPArena* optional);
+void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
+
+// ----------------------------------------------------------------------------
 // Heap allocator
 
 #ifdef NDEBUG
@@ -96,25 +126,6 @@ extern const GPAllocator*const gp_heap;
 /** malloc() based allocator. */
 extern const GPAllocator*      gp_heap;
 #endif
-
-// ----------------------------------------------------------------------------
-// Arena allocator
-
-//
-typedef struct gp_arena GPArena;
-GPArena gp_arena_new(size_t capacity, double growth_coefficient) GP_NODISCARD;
-void gp_arena_delete(GPArena* optional);
-void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS(1);
-
-// ----------------------------------------------------------------------------
-// Scope allocator
-
-//
-GPAllocator* gp_begin     (size_t size)  GP_NONNULL_RETURN GP_NODISCARD;
-void         gp_end       (GPAllocator* optional);
-GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
-void         gp_defer     (GPAllocator* scope, void (*f)(void* arg), void* arg)
-    GP_NONNULL_ARGS(1, 2);
 
 // ----------------------------------------------------------------------------
 //
