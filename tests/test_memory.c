@@ -10,6 +10,16 @@
 int main(void) { return 0; }
 #else
 
+// Testing allocator. Does not free but marks memory as freed instead.
+// Check below main() for definitions and how to write custom allocators.
+const GPAllocator* new_test_allocator(void);
+void delete_test_allocator(void);
+
+void override_heap_allocator(void)
+{ // gp_heap can only be overridden if NDEBUG is not defined
+    gp_heap = new_test_allocator();
+}
+
 static bool is_free(void*_ptr)
 {
     uint8_t* ptr = _ptr;
@@ -27,10 +37,11 @@ static void* test0(void*_)
 {
     (void)_;
     void* ps[8] = {0}; // Dummy objects
+
     gp_suite("Scope allocator");
     { // The scopes created by the scope allocator are not in any way tied to
       // the C scoping operator {}. Here we use them just to empahize that
-      // scopes are nonetheless lexical.
+      // scopes are lexical.
         gp_test("Basic usage");
         {
             // Use tiny 1 byte scopes to demostrate that the arenas can hold
@@ -78,6 +89,7 @@ static void* test0(void*_)
         gp_test("Defer");
         {
             GPAllocator* scope = gp_begin(0);
+
             void* p1 = gp_mem_alloc(gp_heap, 64);
             gp_defer(scope, deferred_dealloc, p1);
             void* p2 = gp_mem_alloc(gp_heap, 64);
@@ -110,7 +122,7 @@ static void* test1(void*_)
     test1_ps[2] = gp_mem_alloc(scope2, 8);
     test1_ps[3] = gp_mem_alloc(scope3, 8);
     return NULL;
-} // All scopes will be cleaned when this thread terminates
+} // All scopes will be cleaned when threads terminate
 
 static void* test2(void*_)
 {
@@ -154,16 +166,9 @@ static void* test2(void*_)
     return NULL;
 }
 
-// Testing allocator
-// Check the code below main() for definitions and how to write a custom allocator.
-const GPAllocator* new_test_allocator(void);
-void delete_test_allocator(const GPAllocator*);
-
 int main(void)
 {
-    // Override malloc() based allocator for testing purposes. This affects all
-    // heap allocations in the library and is only possible if NDEBUG is defined.
-    gp_heap = new_test_allocator();
+    override_heap_allocator();
 
     pthread_t tests[3];
     pthread_create(&tests[0], NULL, test0, NULL);
@@ -181,7 +186,7 @@ int main(void)
     }
 
     // Make Valgrind shut up.
-    delete_test_allocator(gp_heap);
+    delete_test_allocator();
 }
 
 // ----------------------------------------------------------------------------
@@ -288,9 +293,9 @@ static void private_delete_test_allocator(TestAllocator* allocator)
     free((void*)allocator);
 }
 
-void delete_test_allocator(const GPAllocator* allocator)
+void delete_test_allocator()
 {
-    private_delete_test_allocator((TestAllocator*)allocator);
+    private_delete_test_allocator((TestAllocator*)gp_heap);
 }
 
 #endif // NDEBUG
