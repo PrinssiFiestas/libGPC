@@ -45,17 +45,6 @@ const GPAllocator*const gp_heap = &gp_mallocator;
 const GPAllocator*      gp_heap = &gp_mallocator;
 #endif
 
-#ifdef __GNUC__
-__attribute__((always_inline))
-#endif
-static inline void* gp_crashing_alloc(const GPAllocator* unused, size_t unused_size)
-{
-    (void)unused; (void)unused_size;
-    GP_BREAKPOINT;
-    abort();
-    return "";
-}
-
 // ----------------------------------------------------------------------------
 
 // Instances of these live in the beginning of the arenas memory block so the
