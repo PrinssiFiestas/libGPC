@@ -62,10 +62,8 @@ static inline void* gp_crashing_alloc(const GPAllocator* unused, size_t unused_s
 // first object is in &node + 1;
 typedef struct gp_arena_node
 {
-    uintptr_t capacity;
     void* position;
     struct gp_arena_node* tail;
-    void* _padding; // fix aligment
 } GPArenaNode;
 
 static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
@@ -75,12 +73,11 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
     GPArenaNode* head = arena->head;
 
     void* block = head->position;
-    if ((uint8_t*)block + size > (uint8_t*)(head + 1) + head->capacity)
+    if ((uint8_t*)block + size > (uint8_t*)(head + 1) + arena->capacity)
     { // out of memory, create new arena
-        const size_t new_cap = arena->growth_coefficient * head->capacity;
+        const size_t new_cap = arena->capacity;
         GPArenaNode* new_node = gp_mem_alloc(gp_heap,
             sizeof(GPArenaNode) + gp_max(new_cap, size));
-        new_node->capacity = new_cap;
         new_node->tail     = head;
 
         block = new_node->position = new_node + 1;
@@ -94,25 +91,24 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
     return block;
 }
 
-GPArena gp_arena_new(const size_t capacity, const double coeff)
+GPArena gp_arena_new(const size_t capacity)
 {
     const size_t cap = gp_round_to_aligned(capacity);
     GPArenaNode* node = gp_mem_alloc(gp_heap, sizeof(GPArenaNode) + cap);
-    node->capacity = cap;
     node->position = node + 1;
     node->tail     = NULL;
     return (GPArena) {
-        .allocator          = { gp_arena_alloc, gp_arena_dealloc },
-        .growth_coefficient = coeff,
-        .head               = node
+        .allocator = { gp_arena_alloc, gp_arena_dealloc },
+        .head      = node,
+        .capacity  = cap
     };
 }
 
-static bool gp_in_this_node(GPArenaNode* node, void* _pos)
+static bool gp_in_this_node(GPArenaNode* node, const size_t capacity, void* _pos)
 {
     uint8_t* pos = _pos;
     uint8_t* block_start = (uint8_t*)(node + 1);
-    return block_start <= pos && pos <= block_start + node->capacity;
+    return block_start <= pos && pos <= block_start + capacity;
 }
 
 static void gp_arena_node_delete(GPArena* arena)
@@ -124,7 +120,7 @@ static void gp_arena_node_delete(GPArena* arena)
 
 void gp_arena_rewind(GPArena* arena, void* new_pos)
 {
-    while ( ! gp_in_this_node(arena->head, new_pos))
+    while ( ! gp_in_this_node(arena->head, arena->capacity, new_pos))
         gp_arena_node_delete(arena);
     arena->head->position = new_pos;
 }
@@ -289,13 +285,13 @@ GPAllocator* gp_begin(const size_t _size)
     {
         const size_t nested_scopes = 64; // before reallocation
         GPArena scope_factory_data = gp_arena_new(
-            (nested_scopes + 1/*self*/) * gp_round_to_aligned(sizeof(GPScope)), 1.);
+            (nested_scopes + 1/*self*/) * gp_round_to_aligned(sizeof(GPScope)));
 
         // Extend lifetime
         GPArena* scope_factory_mem = gp_arena_alloc(
             (GPAllocator*)&scope_factory_data,
             sizeof(GPScope)); // gets rounded in gp_arena_alloc()
-        *scope_factory_mem = scope_factory_data;
+        memcpy(scope_factory_mem, &scope_factory_data, sizeof*scope_factory_mem);
 
         scope_factory = scope_factory_mem;
         gp_thread_local_set(gp_scope_factory_key, scope_factory);
@@ -310,7 +306,7 @@ GPAllocator* gp_begin(const size_t _size)
         previous = NULL;
 
     GPScope* scope = gp_arena_alloc((GPAllocator*)scope_factory, sizeof*scope);
-    *(GPArena*)scope = gp_arena_new(size, 1.);
+    *(GPArena*)scope = gp_arena_new(size);
     scope->arena.allocator.alloc = gp_scope_alloc;
     scope->parent = previous;
     scope->defer_stack = NULL;

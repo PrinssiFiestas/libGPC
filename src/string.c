@@ -767,7 +767,7 @@ int gp_str_case_compare(
     const size_t max_length = gp_max(gp_str_length(_s1), gp_str_length(_s2));
     if (max_length + 1 >= buf1_cap)
     {
-        arena = gp_arena_new(2 * max_length * sizeof*buf1 +/*internals*/64, 0.);
+        arena = gp_arena_new(2 * max_length * sizeof*buf1 +/*internals*/64);
         scope = (const GPAllocator*)&arena;
     }
     if (gp_str_length(_s1) + 1 >= buf1_cap) {

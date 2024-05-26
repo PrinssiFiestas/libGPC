@@ -110,7 +110,7 @@ typedef struct gp_arena GPArena;
 
 // growth_coefficient determines how large each subsequent arena in arena list
 // is relative to previous arena when the previous arena gets full.
-GPArena gp_arena_new(size_t capacity, double growth_coefficient) GP_NODISCARD;
+GPArena gp_arena_new(size_t capacity) GP_NODISCARD;
 void gp_arena_delete(GPArena* optional);
 void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 
@@ -138,10 +138,8 @@ extern const GPAllocator* gp_heap;
 struct gp_arena
 {
     GPAllocator allocator;
-    double growth_coefficient;
     struct gp_arena_node* head; // also contains arenas memory block
+    size_t capacity;
 };
-
-#define GP_MEM_STRFY(A) #A
 
 #endif // GP_MEMORY_INCLUDED
