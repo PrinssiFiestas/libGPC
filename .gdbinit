@@ -1,1 +1,1 @@
-source tools/prettystring.py
+source tools/gpstring.py

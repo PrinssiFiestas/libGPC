@@ -1,1 +1,0 @@
-source gpstring.py
