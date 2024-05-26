@@ -59,10 +59,10 @@ GPArray(void) gp_arr_new(
 // Passing arrays on stack is safe too.
 void gp_arr_delete(GPArray(void) optional);
 
-size_t             gp_arr_length    (const void*) GP_NONNULL_ARGS();
-size_t             gp_arr_capacity  (const void*) GP_NONNULL_ARGS();
-void*              gp_arr_allocation(const void*) GP_NONNULL_ARGS();
-const GPAllocator* gp_arr_allocator (const void*) GP_NONNULL_ARGS();
+size_t             gp_arr_length    (const GPArray(void)) GP_NONNULL_ARGS();
+size_t             gp_arr_capacity  (const GPArray(void)) GP_NONNULL_ARGS();
+void*              gp_arr_allocation(const GPArray(void)) GP_NONNULL_ARGS();
+const GPAllocator* gp_arr_allocator (const GPArray(void)) GP_NONNULL_ARGS();
 
 GPArray(void) gp_arr_reserve(
     size_t        element_size,
