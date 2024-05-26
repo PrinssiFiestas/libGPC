@@ -21,14 +21,15 @@
 
 GPString gp_str_new(
     const GPAllocator* allocator,
-    size_t capacity)
+    size_t capacity,
+    const char* init)
 {
     GPStringHeader* me = gp_mem_alloc(allocator, sizeof*me + capacity + sizeof"");
     *me = (GPStringHeader) {
         .capacity   = capacity,
         .allocator  = allocator,
         .allocation = me };
-    return (GPString)(me + 1);
+    return memcpy(me + 1, init, strlen(init));
 }
 
 void gp_str_delete(GPString me)

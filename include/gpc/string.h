@@ -40,8 +40,9 @@ typedef struct gp_string_header
 typedef GPChar* GPString;
 
 GPString gp_str_new(
-    const GPAllocator*,
-    size_t capacity) GP_NONNULL_ARGS_AND_RETURN;
+    const       GPAllocator*,
+    size_t      capacity,
+    const char* init) GP_NONNULL_ARGS_AND_RETURN;
 
 #define/* GPString */gp_str_on_stack( \
     optional_allocator_ptr, \

@@ -2,6 +2,16 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
 
+// This library is modified to suit the needs of libGPC. Most notably
+// pf_snprintf() does not null-terminate if n is exceeded and custom formats are
+// added.
+//
+// Use %S for GPString
+//
+// Use B (byte 8 bits), W (word 16 bits), D (double word 32 bits), and
+// Q (quad word 64 bits) as length specifier for fixed width integers.
+// Example: "%Wi" for int16_t and "%Qx" for uint64_t in hex.
+
 #ifndef PRINTF_H_INCLUDED
 #define PRINTF_H_INCLUDED 1
 
@@ -16,7 +26,7 @@ int pf_vfprintf(
 int pf_vsprintf(
     char buf[restrict static 1], const char fmt[restrict static 1], va_list args);
 int pf_vsnprintf(
-    char* restrict buf, size_t, const char fmt[restrict static 1], va_list args);
+    char* restrict buf, size_t n, const char fmt[restrict static 1], va_list args);
 
 __attribute__((format (printf, 1, 2)))
 int pf_printf(
@@ -31,7 +41,7 @@ int pf_sprintf(char buf[restrict static 1], const char fmt[restrict static 1], .
 
 __attribute__((format (printf, 3, 4)))
 int pf_snprintf(
-    char* restrict buf, size_t, const char fmt[restrict static 1], ...);
+    char* restrict buf, size_t n, const char fmt[restrict static 1], ...);
 
 // Functions taking va_list may or may not consume an argument from the list due
 // to va_list being implementation defined. This limits their applications so
