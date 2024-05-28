@@ -5,9 +5,9 @@
 #ifndef GPC_ARRAY_H
 #define GPC_ARRAY_H
 
-#include <gpc/memory.h>
-#include <gpc/attributes.h>
-#include <gpc/overload.h>
+#include "memory.h"
+#include "attributes.h"
+#include "overload.h"
 #include <stdint.h>
 
 // ----------------------------------------------------------------------------

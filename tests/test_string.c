@@ -530,22 +530,21 @@ int main(void)
 
     gp_suite("Read file");
     {
-        FILE* file = fopen("gp_test_str_file.txt", "w");
-        fwrite("blah blah", 1, strlen("blah blah"), file);
-        fclose(file);
-
-        gp_test("Reading");
+        gp_test("Reading and writing");
         {
-            GPString str = gp_str_on_stack(gp_heap, 1, "");
-            gp_expect(gp_str_from_path(&str, "gp_test_str_file.txt") == 0);
-            gp_expect(gp_str_equal(str, "blah blah", strlen("blah blah")));
-            gp_str_delete(str);
+            GPString str = gp_str_on_stack(NULL, 36, "blah blah blah");
+            gp_assert(gp_str_file(&str, "gp_test_str_file.txt", "write") == 0);
+            gp_str_copy(&str, "XXXX XXXX XXXX", strlen("XXXX XXXX XXXX")); // corrupt memory
+            gp_str_copy(&str, "", 0); // empty string
+            gp_assert(gp_str_file(&str, "gp_test_str_file.txt", "read") == 0);
+            gp_expect(gp_str_equal(str, "blah blah blah", strlen("blah blah blah")));
         }
 
         gp_test("Non existent");
         {
             GPString str = gp_str_on_stack(gp_heap, 1, "");
-            gp_expect(gp_str_from_path(&str, "NON_EXISTENT.txt") != 0);
+            // Only first char in mode is checked so "r" is fine too
+            gp_expect(gp_str_file(&str, "NON_EXISTENT.txt", "r") != 0);
             gp_str_delete(str);
         }
 

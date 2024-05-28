@@ -9,17 +9,14 @@
 #ifndef GP_STRING_INCLUDED
 #define GP_STRING_INCLUDED
 
-#include <gpc/memory.h>
-#include <gpc/bytes.h>
+#include "memory.h"
+#include "bytes.h"
 #include "attributes.h"
 #include "overload.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <limits.h>
 #include <stdint.h>
-#if __GNUC__ && ! _WIN32
-#include <alloca.h>
-#endif
 
 // ----------------------------------------------------------------------------
 //
@@ -162,12 +159,18 @@ void gp_str_to_valid(
     GPString*   str,
     const char* replacement) GP_NONNULL_ARGS();
 
+// Opens file in file_path, performs a file operation, and closes it. If
+// operation[0] == 'r', reads the whole file and stores to str. If
+// operation[0] == 'w', writes full contents of str to the file. If
+// operation[0] == 'a', appends fulll contents of str to the file. Any other
+// character is undefined.
 // Returns 0 on success.
 // Returns -1 if file operations fail. Check errno for the specific error.
 // Returns  1 if file size > SIZE_MAX in 32-bit systems.
-int gp_str_from_path(
+int gp_str_file(
     GPString*   str,
-    const char* file_path) GP_NONNULL_ARGS() GP_NODISCARD;
+    const char* file_path,
+    const char* operation) GP_NONNULL_ARGS() GP_NODISCARD;
 
 // ----------------------------------------------------------------------------
 // String examination

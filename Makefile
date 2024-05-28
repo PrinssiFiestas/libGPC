@@ -45,7 +45,7 @@ RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(wildcard t
 
 all: release debug build/gprun$(EXE_EXT)
 
-build/gprun$(EXE_EXT): src/gprun.c_
+build/gprun$(EXE_EXT): tools/gprun.c
 	$(CC) -xc $(DEBUG_CFLAGS) $? -o $@
 
 /etc/gdb/gpstring.py:

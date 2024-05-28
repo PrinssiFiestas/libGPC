@@ -14,7 +14,6 @@
 #include <wchar.h>
 #include <wctype.h>
 #include <printf/printf.h>
-#include <printf/conversions.h>
 #include "pfstring.h"
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -787,36 +786,54 @@ int gp_str_case_compare(
     return result;
 }
 
-int gp_str_from_path(
+int gp_str_file(
     GPString*   str,
-    const char* file_path)
+    const char* file_path,
+    const char* operation)
 {
-    #if _WIN32
-    struct __stat64 s;
-    if (_stat64(file_path, &s) != 0)
-    #elif _GNU_SOURCE
-    struct stat64 s;
-    if (stat64(file_path, &s) != 0)
-    #else
-    struct stat s;
-    if (stat(file_path, &s) != 0)
-    #endif
-        return -1;
+    switch (operation[0])
+    {
+        case 'r':
+        {
+            #if _WIN32
+            struct __stat64 s;
+            if (_stat64(file_path, &s) != 0)
+            #elif _GNU_SOURCE
+            struct stat64 s;
+            if (stat64(file_path, &s) != 0)
+            #else
+            struct stat s;
+            if (stat(file_path, &s) != 0)
+            #endif
+                return -1;
 
-    if ((uint64_t)s.st_size > SIZE_MAX)
-        return 1;
+            if ((uint64_t)s.st_size > SIZE_MAX)
+                return 1;
 
-    FILE* f = fopen(file_path, "r");
-    if (f == NULL)
-        return -1;
+            FILE* f = fopen(file_path, "r");
+            if (f == NULL)
+                return -1;
 
-    gp_str_reserve(str, s.st_size);
-    if (fread(*str, sizeof**str, s.st_size, f) != (size_t)s.st_size) {
-        fclose(f);
-        return -1;
+            gp_str_reserve(str, s.st_size);
+            if (fread(*str, sizeof**str, s.st_size, f) != (size_t)s.st_size) {
+                fclose(f);
+                return -1;
+            }
+            gp_str_header(*str)->length = s.st_size;
+
+            fclose(f);
+        } break;
+
+        default:
+        {
+            const char mode[2] = { operation[0], '\0' };
+            FILE* f = fopen(file_path, mode);
+            if (f == NULL)
+                return -1;
+            if (fwrite(*str, sizeof**str, gp_str_length(*str), f) != gp_str_length(*str))
+                return -1;
+            fclose(f);
+        }
     }
-    gp_str_header(*str)->length = s.st_size;
-
-    fclose(f);
     return 0;
 }

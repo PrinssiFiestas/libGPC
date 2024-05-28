@@ -14,6 +14,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+// ----------------------------------------------------------------------------
+//
+//          API REFERENCE
+//
+// ----------------------------------------------------------------------------
+
 size_t gp_bytes_slice(
     void*restrict       dest,
     const void*restrict optional_src, // mutates dest if NULL

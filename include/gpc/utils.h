@@ -2,10 +2,6 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// License for random functions
-// (c) 2014 M.E. O'Neill / pcg-random.org
-// Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
-
 /**
  * @file string.h
  * @brief General purpose utilities

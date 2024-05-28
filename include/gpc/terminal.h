@@ -2,8 +2,14 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#ifndef GPTERMINAL_INCLUDED
-#define GPTERMINAL_INCLUDED
+#ifndef GP_TERMINAL_INCLUDED
+#define GP_TERMINAL_INCLUDED
+
+// ----------------------------------------------------------------------------
+//
+//          API REFERENCE
+//
+// ----------------------------------------------------------------------------
 
 // Use these macros to print coloured output to terminals that support ANSI
 // escape codes. Printing any of these strings changes the output color.
@@ -108,4 +114,4 @@
 // Moves cursor to row N column M
 #define GP_CURSOR_POSITION(N, M)   "\033[" #N ";" #M "H"
 
-#endif // GPTERMINAL_INCLUDED
+#endif // GP_TERMINAL_INCLUDED
