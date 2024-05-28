@@ -9,6 +9,32 @@
 
 extern inline int gp_stat(GPStat* s, const char* path);
 
+bool gp_file_read_line(GPString* out, FILE* in)
+{
+    int c = fgetc(in);
+    if (c == EOF)
+        return false;
+
+    (*out)[0].c = c;
+    ((GPStringHeader*)*out - 1)->length = 1;
+
+    while (true)
+    {
+        while (gp_str_length(*out) < gp_str_capacity(*out))
+        {
+            c = fgetc(in);
+            if (c == EOF)
+                goto end;
+            (*out)[((GPStringHeader*)*out - 1)->length++].c = c;
+            if (c == '\n')
+                goto end;
+        }
+        gp_str_reserve(out, gp_str_capacity(*out) + 1); // doubles cap
+    }
+    end:
+    return true;
+}
+
 static size_t gp_print_va_arg(
     FILE* out,
     pf_va_list*restrict const args,

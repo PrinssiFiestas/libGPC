@@ -19,6 +19,26 @@
 //
 // ----------------------------------------------------------------------------
 
+#define/* size_t */gp_print(...) \
+    GP_FILE_PRINT(stdout, __VA_ARGS__)
+
+#define/* size_t */gp_println(...) \
+    GP_FILE_PRINTLN(stdout, __VA_ARGS__)
+
+#define/* size_t */gp_file_print(FILE_ptr, ...) \
+    GP_FILE_PRINT(FILE_ptr, __VA_ARGS__)
+
+#define/* size_t */gp_file_println(FILE_ptr, ...) \
+    GP_FILE_PRINTLN(FILE_ptr, __VA_ARGS__)
+
+typedef struct gp_char* GPString;
+
+bool gp_file_read_line(
+    GPString* dest,
+    FILE*     in) GP_NONNULL_ARGS();
+
+// Portability wrappers for stat
+
 #if _WIN32
 typedef struct __stat64 GPStat;
 #elif _GNU_SOURCE
@@ -38,18 +58,6 @@ inline int gp_stat(GPStat* s, const char* path)
     return stat(path, s);
     #endif
 }
-
-#define/* size_t */gp_print(...) \
-    GP_FILE_PRINT(stdout, __VA_ARGS__)
-
-#define/* size_t */gp_println(...) \
-    GP_FILE_PRINTLN(stdout, __VA_ARGS__)
-
-#define/* size_t */gp_file_print(FILE_ptr, ...) \
-    GP_FILE_PRINT(FILE_ptr, __VA_ARGS__)
-
-#define/* size_t */gp_file_println(FILE_ptr, ...) \
-    GP_FILE_PRINTLN(FILE_ptr, __VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 //
