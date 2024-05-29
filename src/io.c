@@ -35,6 +35,45 @@ bool gp_file_read_line(GPString* out, FILE* in)
     return true;
 }
 
+bool gp_file_read_until(
+    GPString*   out,
+    FILE*       in,
+    const char* delimiter)
+{
+    int c = fgetc(in);
+    if (c == EOF)
+        return false;
+
+    (*out)[0].c = c;
+    ((GPStringHeader*)*out - 1)->length = 1;
+
+    const char* match = delimiter;
+    while (true)
+    {
+        while (gp_str_length(*out) < gp_str_capacity(*out))
+        {
+            if (*match == '\0')
+                goto end;
+            c = fgetc(in);
+            if (c == EOF)
+                goto end;
+            (*out)[((GPStringHeader*)*out - 1)->length++].c = c;
+            if (c == *match)
+                match++;
+            else
+                match = delimiter;
+        }
+        gp_str_reserve(out, gp_str_capacity(*out) + 1); // doubles cap
+    }
+    end:
+    return true;
+}
+
+bool gp_file_read_strip(
+    GPString*   dest,
+    FILE*       in,
+    const char* optional_utf8_char_set) GP_NONNULL_ARGS(1, 2);
+
 static size_t gp_print_va_arg(
     FILE* out,
     pf_va_list*restrict const args,

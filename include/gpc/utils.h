@@ -53,9 +53,9 @@ size_t   gp_next_power_of_2   (size_t);
 uint32_t gp_next_power_of_2_32(uint32_t);
 uint64_t gp_next_power_of_2_64(uint64_t);
 
-inline uintptr_t gp_round_to_aligned(const uintptr_t x)
+inline uintptr_t gp_round_to_aligned(const uintptr_t x,const uintptr_t boundary)
 {
-    return x + (GP_ALLOC_ALIGNMENT - 1) - ((x - 1) % GP_ALLOC_ALIGNMENT);
+    return x + (boundary - 1) - ((x - 1) % boundary);
 }
 
 #define gp_min(x, y) gp_generic_min(x, y)

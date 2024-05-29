@@ -8,7 +8,7 @@
 #include <gpc/utils.h>
 #include "pcg_basic.h"
 
-extern inline uintptr_t gp_round_to_aligned(uintptr_t);
+extern inline uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary);
 extern inline bool gp_fapproxf(float x, float y, float max_relative_diff);
 extern inline bool gp_fapprox(double x, double y, double max_relative_diff);
 extern inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff);

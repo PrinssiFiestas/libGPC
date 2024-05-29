@@ -106,10 +106,15 @@ GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
 
 // Arena that does not run out of memory. This is achieved by creating new
 // arenas when old one gets full.
-typedef struct gp_arena GPArena;
+typedef struct gp_arena
+{
+    GPAllocator allocator;
+    double growth_coefficient;  // default is 2.
+    size_t max_size;
+    size_t alignment;
+    struct gp_arena_node* head; // private!
+} GPArena;
 
-// growth_coefficient determines how large each subsequent arena in arena list
-// is relative to previous arena when the previous arena gets full.
 GPArena gp_arena_new(size_t capacity) GP_NODISCARD;
 void gp_arena_delete(GPArena* optional);
 void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
@@ -135,11 +140,4 @@ extern const GPAllocator* gp_heap;
 // ----------------------------------------------------------------------------
 
 //
-struct gp_arena
-{
-    GPAllocator allocator;
-    struct gp_arena_node* head; // also contains arenas memory block
-    size_t capacity;
-};
-
 #endif // GP_MEMORY_INCLUDED

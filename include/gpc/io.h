@@ -37,6 +37,16 @@ bool gp_file_read_line(
     GPString* dest,
     FILE*     in) GP_NONNULL_ARGS();
 
+bool gp_file_read_until(
+    GPString*   dest,
+    FILE*       in,
+    const char* delimiter) GP_NONNULL_ARGS();
+
+bool gp_file_read_strip(
+    GPString*   dest,
+    FILE*       in,
+    const char* optional_utf8_char_set) GP_NONNULL_ARGS(1, 2);
+
 // Portability wrappers for stat
 
 #if _WIN32

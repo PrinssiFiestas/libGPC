@@ -229,7 +229,7 @@ const GPAllocator* new_test_allocator(void)
     gp_assert(allocator != NULL);
     *allocator = (TestAllocator) {
         .allocator  = {.alloc = test_alloc, .dealloc = test_dealloc },
-        .free_block = (uint8_t*)allocator + gp_round_to_aligned(sizeof*allocator)
+        .free_block = (uint8_t*)allocator + gp_round_to_aligned(sizeof*allocator, GP_ALLOC_ALIGNMENT)
     };
     return (const GPAllocator*)allocator;
 }
@@ -255,14 +255,14 @@ static void* test_alloc(const GPAllocator*_allocator, size_t size)
 
     // Remember aligment!
     allocator->free_block = (uint8_t*)block
-      + gp_round_to_aligned(sizeof size)
-      + gp_round_to_aligned(size);
+      + gp_round_to_aligned(sizeof size, GP_ALLOC_ALIGNMENT)
+      + gp_round_to_aligned(size,        GP_ALLOC_ALIGNMENT);
 
     pthread_mutex_unlock(&test_allocator_mutex);
 
     // block points to its size. We don't want to return that but return the
     // memory right next to it instead.
-    return (uint8_t*)block + gp_round_to_aligned(sizeof size);
+    return (uint8_t*)block + gp_round_to_aligned(sizeof size, GP_ALLOC_ALIGNMENT);
 }
 
 // Not actually deallocates, but marks pointer as free for testing purposes.
@@ -276,13 +276,14 @@ static void test_dealloc(const GPAllocator* allocator, void*_block)
     uint8_t* block = _block;
 
     size_t block_size;
-    memcpy(&block_size, block - gp_round_to_aligned(sizeof block_size), sizeof block_size);
+    memcpy(&block_size, block - gp_round_to_aligned(sizeof block_size, GP_ALLOC_ALIGNMENT), sizeof block_size);
 
     // Mark the block as free.
     memset(
-        block - gp_round_to_aligned(sizeof block_size),
+        block - gp_round_to_aligned(sizeof block_size, GP_ALLOC_ALIGNMENT),
         0xFF,
-        gp_round_to_aligned(sizeof block_size) + gp_round_to_aligned(block_size));
+        gp_round_to_aligned(sizeof block_size, GP_ALLOC_ALIGNMENT)
+          + gp_round_to_aligned(block_size, GP_ALLOC_ALIGNMENT));
 
     pthread_mutex_unlock(&test_allocator_mutex);
 }
