@@ -29,13 +29,6 @@ int main(void)
         }
     }
 
-    gp_suite("mem_eq sanity check");
-    {
-        const size_t size = sizeof "blah";
-        gp_test("if memories are equal");
-            gp_expect(gp_mem_equal("blah", "blah", size, size));
-    }
-
     gp_suite("Bounds checking");
     {
         gp_test("Basic tests");

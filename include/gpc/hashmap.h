@@ -84,52 +84,60 @@ inline uint64_t* gp_u128_hi(const GPUint128* u)
 // ------------------
 // Hash map
 
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
 GPHashMap* gp_hash_map_new(
     const GPAllocator*,
-    const GPMapInitializer* optional) GP_NONNULL_ARGS(1) GP_NONNULL_RETURN;
+    const GPMapInitializer* optional);
 
 void gp_hash_map_delete(GPHashMap*);
 
+GP_NONNULL_ARGS()
 void gp_hash_map_set(
     GPHashMap*,
     const void* key,
     size_t      key_size,
-    const void* value) GP_NONNULL_ARGS();
+    const void* value);
 
 // Returns NULL if not found
+GP_NONNULL_ARGS()
 void* gp_hash_map_get(
     GPHashMap*,
     const void* key,
-    size_t      key_size) GP_NONNULL_ARGS();
+    size_t      key_size);
 
+GP_NONNULL_ARGS()
 bool gp_hash_map_remove(
     GPHashMap*,
     const void* key,
-    size_t      key_size) GP_NONNULL_ARGS();
+    size_t      key_size);
 
 // ------------------
 // Non-hashed map
 
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
 GPMap* gp_map_new(
     const GPAllocator*,
-    const GPMapInitializer* optional) GP_NONNULL_ARGS(1) GP_NONNULL_RETURN;
+    const GPMapInitializer* optional);
 
-void gp_map_delete(GPMap*);
+void gp_map_delete(GPMap* optional);
 
+GP_NONNULL_ARGS()
 void gp_map_set(
     GPMap*,
     GPUint128   key,
-    const void* value) GP_NONNULL_ARGS();
+    const void* value);
 
 // Returns NULL if not found
+GP_NONNULL_ARGS()
 void* gp_map_get(
     GPMap*,
-    GPUint128 key) GP_NONNULL_ARGS();
+    GPUint128 key);
 
 // Returns false if not found
+GP_NONNULL_ARGS()
 bool gp_map_remove(
     GPMap*,
-    GPUint128 key) GP_NONNULL_ARGS();
+    GPUint128 key);
 
 // ------------------
 // Hashing

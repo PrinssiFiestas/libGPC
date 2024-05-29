@@ -71,30 +71,17 @@ inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff){
     return fabsl(x - y) <= max_rel_diff * fmaxl(x, y);
 }
 
-/** Compare raw memory. */
-inline bool gp_mem_equal(
-    const void* lhs,
-    const void* rhs,
-    size_t lhs_size,
-    size_t rhs_size)
-{
-    if (lhs_size != rhs_size)
-        return false;
-    int memcmp(const void*, const void*, size_t);
-    return memcmp(lhs, rhs, lhs_size) == 0;
-}
-
 #define GP_BREAKPOINT            GP_BREAKPOINT_INTERNAL
 
 // ----------------------------------------------------------------------------
-// Random functions. Only work for 64 bit platforms for now. // TODO
+// Random functions. Only work for 64 bit platforms for now.
 
 typedef struct gp_random_state GPRandomState;
 
 GPRandomState gp_new_random_state(uint64_t seed);
-uint32_t gp_random      (GPRandomState*);
-double   gp_frandom     (GPRandomState*);
-int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max);
+uint32_t gp_random      (GPRandomState*) GP_NONNULL_ARGS();
+double   gp_frandom     (GPRandomState*) GP_NONNULL_ARGS();
+int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_ARGS();
 
 // ----------------------------------------------------------------------------
 //
