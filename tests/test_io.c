@@ -65,6 +65,19 @@ int main(void)
             }
             fclose(f);
         }
+
+        // gp_test("Read word");
+        // {
+        //     FILE* f;
+        //     gp_assert(f = fmpfile());
+        //     f_contents = "Here\t is some" GP_WHITESPACE "words. Yeah.";
+        //     GPString str = gp_str_on_stack(arena, 1, "");
+        //     while (gp_file_read_strip(&str, f, NULL)) // NULL defaults to GP_WHITESPACE
+        //     {
+        //
+        //     }
+        //     fclose(f);
+        // }
     }
 
     gp_suite("Printing");

@@ -19,6 +19,13 @@
 //
 // ----------------------------------------------------------------------------
 
+// To be passed to scope allocators defer().
+inline void gp_file_close(void* optional_file)
+{
+    if (optional_file != NULL)
+        fclose(optional_file);
+}
+
 #define/* size_t */gp_print(...) \
     GP_FILE_PRINT(stdout, __VA_ARGS__)
 

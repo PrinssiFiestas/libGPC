@@ -17,6 +17,7 @@
 #include <stddef.h>
 #include <limits.h>
 #include <stdint.h>
+#include <wctype.h>
 
 // ----------------------------------------------------------------------------
 //
@@ -188,6 +189,18 @@ size_t gp_str_find_last(
     const void* needle,
     size_t      needle_size) GP_NONNULL_ARGS();
 
+GP_NONNULL_ARGS()
+size_t gp_str_find_first_of(
+    GPString    haystack,
+    const char* utf8_char_set,
+    size_t      start);
+
+GP_NONNULL_ARGS()
+size_t gp_str_find_first_not_of(
+    GPString    haystack,
+    const char* utf8_char_set,
+    size_t      start);
+
 size_t gp_str_count(
     GPString    haystack,
     const void* needle,
@@ -211,8 +224,15 @@ bool gp_str_is_valid(
     GPString str,
     size_t*  optional_invalid_position) GP_NONNULL_ARGS(1);
 
-size_t gp_str_codepoint_length(
-    GPString str) GP_NONNULL_ARGS();
+// Only reads the first byte from str
+size_t gp_char_codepoint_length(
+    const void* str) GP_NONNULL_ARGS();
+
+// Locale dependent!
+GP_NONNULL_ARGS()
+bool gp_char_classify(
+    const void* str,
+    int (*classifier)(wint_t c));
 
 
 // ----------------------------------------------------------------------------

@@ -7,6 +7,7 @@
 #include <printf/printf.h>
 #include "common.h"
 
+extern inline void gp_file_close(void* optional_file);
 extern inline int gp_stat(GPStat* s, const char* path);
 
 bool gp_file_read_line(GPString* out, FILE* in)
@@ -70,9 +71,43 @@ bool gp_file_read_until(
 }
 
 bool gp_file_read_strip(
-    GPString*   dest,
+    GPString*   out,
     FILE*       in,
-    const char* optional_utf8_char_set) GP_NONNULL_ARGS(1, 2);
+    const char* char_set)
+{
+    while (true) // strip left
+    {
+        int c = fgetc(in);
+        if (c == EOF)
+            return false;
+        char codepoint[8] = {c};
+        size_t codepoint_length = gp_char_codepoint_length(codepoint);
+        for (size_t i = 1; i < codepoint_length; i++) {
+            if ((c = fgetc(in)) == EOF)
+                return false;
+            codepoint[i] = c;
+        }
+        if (strstr(char_set, codepoint) != NULL)
+            break;
+    }
+    while (true) // write until codepoint found in char set
+    {
+        int c = fgetc(in);
+        if (c == EOF)
+            return false;
+        char codepoint[8] = {c};
+        size_t codepoint_length = gp_char_codepoint_length(codepoint);
+        for (size_t i = 1; i < codepoint_length; i++) {
+            if ((c = fgetc(in)) == EOF)
+                return false;
+            codepoint[i] = c;
+        }
+        if (strstr(char_set, codepoint) == NULL)
+            break;
+        gp_str_append(out, codepoint, codepoint_length);
+    }
+    return true;
+}
 
 static size_t gp_print_va_arg(
     FILE* out,

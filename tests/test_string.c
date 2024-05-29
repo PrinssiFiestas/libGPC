@@ -128,20 +128,52 @@ int main(void)
         }
     }
 
+    gp_suite("UTF-8 examination");
+    {
+        gp_test("Character classification");
+        {
+            if (setlocale(LC_ALL, "C.utf8") != NULL)
+            { // Note that GP_WHITESPACE includes characters defined by unicode
+              // while iswspace() includes characters defined by locale which
+              // may differ slightly.
+                gp_expect(gp_char_classify(" ",      iswspace));
+                gp_expect(gp_char_classify("\t",     iswspace));
+                gp_expect(gp_char_classify("\n",     iswspace));
+                gp_expect(gp_char_classify("\u2008", iswspace));
+                gp_expect( ! gp_char_classify("X",   iswspace));
+                gp_expect( ! gp_char_classify("Ä",   iswspace));
+            }
+        }
+
+        gp_test("Find first of");
+        {
+            const GPString str = gp_str_on_stack(NULL, 16, "blörö");
+            gp_expect(gp_str_find_first_of(str, "yö", 0) == 2);
+            gp_expect(gp_str_find_first_of(str, "aä", 0) == GP_NOT_FOUND);
+        }
+
+        gp_test("Find first not of");
+        {
+            const GPString str = gp_str_on_stack(NULL, 16, "blörö");
+            gp_expect(gp_str_find_first_not_of(str, "blö", 0)   == strlen("blö"));
+            gp_expect(gp_str_find_first_not_of(str, "blörö", 0) == GP_NOT_FOUND);
+        }
+    }
+
     gp_suite("UTF-8 indices");
     {
         gp_test("Valid index");
         {
             GPString str = gp_str_on_stack(NULL, 8, "\u1153");
-            gp_expect(   gp_str_codepoint_length(str));
+            gp_expect(   gp_char_codepoint_length(str));
             gp_str_slice(&str, NULL, 1, gp_arr_length(str));
-            gp_expect( ! gp_str_codepoint_length(str));
+            gp_expect( ! gp_char_codepoint_length(str));
         }
 
         gp_test("Codepoint size");
         {
             GPString str = gp_str_on_stack(NULL, 8, "\u1153");
-            gp_expect(gp_str_codepoint_length(str) == strlen("\u1153"));
+            gp_expect(gp_char_codepoint_length(str) == strlen("\u1153"));
         }
 
         gp_test("Codepoint count");

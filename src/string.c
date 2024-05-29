@@ -64,6 +64,32 @@ size_t gp_str_find_last(
     return gp_bytes_find_last(haystack, gp_str_length(haystack), needle, needle_length);
 }
 
+size_t gp_str_find_first_of(
+    const GPString haystack,
+    const char*const char_set,
+    const size_t start)
+{
+    for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
+        cplen = gp_char_codepoint_length(haystack + i);
+        if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) != NULL)
+            return i;
+    }
+    return GP_NOT_FOUND;
+}
+
+size_t gp_str_find_first_not_of(
+    const GPString haystack,
+    const char*const char_set,
+    const size_t start)
+{
+    for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
+        cplen = gp_char_codepoint_length(haystack + i);
+        if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) == NULL)
+            return i;
+    }
+    return GP_NOT_FOUND;
+}
+
 size_t gp_str_count(
     GPString haystack,
     const void* needle,
@@ -137,15 +163,6 @@ static size_t gp_bytes_codepoint_count(
     return count;
 }
 
-static size_t gp_bytes_codepoint_length(
-    const void* str)
-{
-    static const size_t sizes[] = {
-        1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
-        0,0,0,0,0,0,0,0, 2,2,2,2,3,3,4,0 };
-    return sizes[*(uint8_t*)str >> 3];
-}
-
 bool gp_str_equal_case(
     GPString    s1,
     const void* s2,
@@ -172,8 +189,8 @@ bool gp_str_equal_case(
         else if (sizeof(wchar_t) < sizeof(uint32_t) &&
                  wc1_length == (size_t)-2) // char wider than sizeof(wchar_t)
         {                                  // so just compare raw bytes
-            size_t s1_codepoint_size = gp_bytes_codepoint_length(s1);
-            size_t s2_codepoint_size = gp_bytes_codepoint_length(s2);
+            size_t s1_codepoint_size = gp_char_codepoint_length(s1);
+            size_t s2_codepoint_size = gp_char_codepoint_length(s2);
             if (s1_codepoint_size != s2_codepoint_size ||
                 memcmp(s1, s2, s1_codepoint_size) != 0)
             {
@@ -232,7 +249,7 @@ bool gp_str_is_valid(
     const size_t length = gp_str_length(_str);
     for (size_t i = 0; i < length;)
     {
-        size_t cp_length = gp_bytes_codepoint_length(str + i);
+        size_t cp_length = gp_char_codepoint_length(str + i);
         if (cp_length == 0 || i + cp_length > length) {
             if (invalid_index != NULL)
                 *invalid_index = i;
@@ -251,10 +268,25 @@ bool gp_str_is_valid(
     return true;
 }
 
-size_t gp_str_codepoint_length(
-    GPString str)
+size_t gp_char_codepoint_length(
+    const void*const str)
 {
-    return gp_bytes_codepoint_length(str);
+    static const size_t sizes[] = {
+        1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+        0,0,0,0,0,0,0,0, 2,2,2,2,3,3,4,0 };
+    return sizes[*(uint8_t*)str >> 3];
+}
+
+bool gp_char_classify(
+    const void*const str,
+    int (*const classifier)(wint_t c))
+{
+    const size_t codepoint_length = gp_char_codepoint_length(str);
+    if (codepoint_length == 0)
+        return false;
+    wchar_t wc;
+    mbrtowc(&wc, str, codepoint_length, &(mbstate_t){0});
+    return classifier(wc);
 }
 
 const char* gp_cstr(GPString str)
@@ -606,7 +638,7 @@ void gp_str_trim(
         while (true)
         {
             char codepoint[8] = "";
-            size_t size = gp_bytes_codepoint_length(*str + prefix_length);
+            size_t size = gp_char_codepoint_length(*str + prefix_length);
             memcpy(codepoint, *str + prefix_length, size);
             if (strstr(char_set, codepoint) == NULL)
                 break;
@@ -622,7 +654,7 @@ void gp_str_trim(
         char codepoint[8] = "";
         size_t i = length - 1;
         size_t size;
-        while ((size = gp_bytes_codepoint_length(*str + i)) == 0 && --i != 0);
+        while ((size = gp_char_codepoint_length(*str + i)) == 0 && --i != 0);
         memcpy(codepoint, *str + i, size);
         if (strstr(char_set, codepoint) == NULL)
             break;
@@ -681,7 +713,7 @@ static size_t gp_str_find_invalid(
     const char* haystack = _haystack;
     for (size_t i = start; i < length;)
     {
-        size_t cp_length = gp_bytes_codepoint_length(haystack + i);
+        size_t cp_length = gp_char_codepoint_length(haystack + i);
         if (cp_length == 0 || i + cp_length > length)
             return i;
 
@@ -704,7 +736,7 @@ static size_t gp_str_find_valid(
     const char* haystack = _haystack;
     for (size_t i = start; i < length; i++)
     {
-        size_t cp_length = gp_bytes_codepoint_length(haystack + i);
+        size_t cp_length = gp_char_codepoint_length(haystack + i);
         if (cp_length == 1)
             return i;
         if (cp_length == 0)
