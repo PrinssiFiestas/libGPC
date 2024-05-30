@@ -203,6 +203,7 @@ void gp_fail_internal(
         {
             const char* fmt = va_arg(args.list, char*);
             size_t fmt_spec_count = 0;
+            size_t asterisk_count = 0;
             char* fmt_spec = NULL;
             const char* l_braces = "([{<";
             const char* r_braces = ")]}>";
@@ -215,6 +216,9 @@ void gp_fail_internal(
                 } else {
                     fmt_spec_count++;
                     fmt_spec = strpbrk(c, "csdioxXufFeEgGp");
+                    for (const char* _c = c; _c < fmt_spec; _c++) if (*_c == '*')
+                        asterisk_count++;
+
                     if (fmt_spec == NULL) {
                         fprintf(stderr, "Invalid format specifier \"%s\".", fmt);
                         continue;
@@ -227,7 +231,7 @@ void gp_fail_internal(
                 fprintf(stderr, "%s\n", fmt);
                 continue;
             }
-            else if (fmt_spec_count == 1)
+            else if (fmt_spec_count == 1 && asterisk_count == 0)
             {
                 fprintf(stderr,
                     GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ",
@@ -255,9 +259,25 @@ void gp_fail_internal(
                         printed++;
                     }
                 }
-                for (size_t j = 0; j < fmt_spec_count - 1; j++)
+                const char* _fmt = fmt; // must detect and skip asterisks
+                for (size_t j = 0; j < fmt_spec_count + asterisk_count - 1;)
+                {
+                    while (true) {
+                        _fmt = strchr(_fmt, '%');
+                        if (_fmt[1] != '%')
+                            break;
+                    }
+                    const char* spec = strpbrk(_fmt, "csdioxXufFeEgGp");
+                    for (const char* _c = _fmt; _c < spec; _c++) if (*_c == '*')
+                        j++;
+                    if (j >= fmt_spec_count + asterisk_count - 1)
+                        break;
                     printed += fprintf(stderr,"%s, ",objs[i + 1 + j].identifier);
-                printed += fprintf(stderr, "%s", objs[i + fmt_spec_count].identifier);
+                    j++;
+                    _fmt++;
+                }
+                printed += fprintf(stderr,
+                    "%s", objs[i + fmt_spec_count + asterisk_count].identifier);
 
                 if (brace != NULL) {
                     if (fmt[1] == ' ') {
@@ -272,7 +292,7 @@ void gp_fail_internal(
                 printed += strlen(" = ");
             }
 
-            size_t required_capacity = pf_vsnprintf(NULL, 0, fmt, args.list)+1;
+            size_t required_capacity = pf_vsnprintf(NULL, 0, fmt, args.list) + 1;
             if (required_capacity >= buf_capacity) {
                 buf = realloc(
                     buf, buf_capacity = gp_next_power_of_2(required_capacity));
@@ -285,7 +305,7 @@ void gp_fail_internal(
 
             fprintf(stderr, GP_RESET_TERMINAL "\n");
 
-            i += fmt_spec_count;
+            i += fmt_spec_count + asterisk_count;
             continue;
         } // end if string literal
 

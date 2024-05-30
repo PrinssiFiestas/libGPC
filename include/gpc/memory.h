@@ -10,7 +10,7 @@
 #ifndef GP_MEMORY_INCLUDED
 #define GP_MEMORY_INCLUDED
 
-#include "attributes.h"
+#include "attributes.h" // TODO <gpc/attributes> after testing single header generator
 #include <stddef.h>
 
 // ----------------------------------------------------------------------------

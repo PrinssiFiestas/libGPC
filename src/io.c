@@ -25,7 +25,6 @@ bool gp_file_read_line(GPString* out, FILE* in)
         {
             if (c == '\n')
                 goto end;
-
             c = fgetc(in);
             if (c == EOF)
                 goto end;

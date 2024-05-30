@@ -163,6 +163,8 @@ _Generic(X, \
 #define GP_BREAKPOINT_INTERNAL __debugbreak()
 #elif defined(SIGTRAP)
 #define GP_BREAKPOINT_INTERNAL raise(SIGTRAP)
+#elif (__GNUC__ && __i386__) || (__GNUC__ && __x86_64__)
+#define GP_BREAKPOINT_INTERNAL __asm__("int $3")
 #else // no breakpoints for you
 #define GP_BREAKPOINT_INTERNAL
 #endif // breakpoint

@@ -10,14 +10,19 @@
 #ifndef GP_ASSERT_INCLUDED
 #define GP_ASSERT_INCLUDED 1
 
-#include "bytes.h"
-#include "overload.h"
-#include "attributes.h"
+#include <gpc/utils.h>
+#include <gpc/bytes.h>
+#include <gpc/overload.h>
+#include <gpc/attributes.h>
 #include <stdbool.h>
 
 #ifndef GP_USER_ASSERT_EXIT
-void exit(int status);
-#define GP_USER_ASSERT_EXIT (exit)
+static inline void gp_assert_exit(int status) {
+    GP_BREAKPOINT;
+    void exit(int status);
+    exit(status);
+}
+#define GP_USER_ASSERT_EXIT (gp_assert_exit)
 #endif
 
 // ----------------------------------------------------------------------------

@@ -4,16 +4,15 @@
 
 // First write everything before any #includes from every source file to an
 // #ifdef X_IMPLEMENTATION block that comes before everything else. This makes
-// sure that things like #define STB_Y_IMPLEMENTATION and #define _GNU_SOURCE
+// sure that things like #define Y_IMPLEMENTATION and #define _GNU_SOURCE
 // come before any header. Then start inlining every local #include.
 //
-// If there is any header files left after inlining, those have to be written
-// next. These could be header files that only contain static inline functions
-// or macros or whatever that may be part of the library, but not used by the
-// library.
+// Header files have to be written next. Every time an #include directive
+// references a local header file, it has to be inlined recursively.
 //
 // After all header files have been written, write the rest from all of the
-// source files in an #ifdef X_IMPLEMENTATION block.
+// source files in an #ifdef X_IMPLEMENTATION block. #include directives
+// referring to local headers have to be filtered out or inlined if not already.
 
 #include <gpc/string.h>
 #include <gpc/io.h>
@@ -23,26 +22,26 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
-
-#if !_MSC_VER
 #include <dirent.h>
-#else
+#include <locale.h>
+
+#if _WIN32
 #define stat _stat
-// TODO use this on MSVC
-// https://github.com/tronkko/dirent/blob/master/include/dirent.h
 #endif
 
-static FILE* out = NULL;
-static const char* out_name = "gpc.h";
-static GPArena garena;
-static const GPAllocator*const gmem = (GPAllocator*)&garena;
+static FILE*                   out            = NULL;
+static const char*             out_name       = "gpc.h";
+static GPString                implementation = NULL;
+static GPArena                 garena         = {0};
+static const GPAllocator*const gmem           = (GPAllocator*)&garena;
+static GPString                line           = NULL;
 
 typedef struct file
 {
-    char* name;
+    char*  name;
     size_t name_length;
-    FILE* fp;
-    bool is_inlined;
+    char*  include_dir; // NULL for src/
+    FILE*  fp;
 } File;
 
 static GPArray(char*)include_paths;
@@ -56,6 +55,7 @@ do { \
     if ( ! gp_expect(__VA_ARGS__)) { \
         fclose(out); \
         remove(out_name); \
+        GP_BREAKPOINT; \
         exit(EXIT_FAILURE); \
     } \
 } while(0)
@@ -68,8 +68,17 @@ static void init_globals(void)
     gp_assert(out = fopen(out_name, "w"), strerror(errno));
 
     include_paths = gp_arr_new(gmem, sizeof*include_paths, 16);
-    headers = gp_arr_new(gmem, sizeof*headers, 64);
-    sources = gp_arr_new(gmem, sizeof*headers, 64);
+    headers       = gp_arr_new(gmem, sizeof*headers, 64);
+    sources       = gp_arr_new(gmem, sizeof*headers, 64);
+    line          = gp_str_new(gmem, 1024, "");
+
+    implementation = gp_str_new(gmem, 16, "");
+    { // e.g. gpc.h -> GPC_IMPLEMENTATION
+        gp_str_copy(&implementation, out_name, strlen(out_name));
+        gp_str_slice(&implementation, NULL, 0, gp_str_find(implementation, ".", strlen("."), 0));
+        gp_str_to_upper(&implementation);
+        gp_str_append(&implementation, "_IMPLEMENTATION", strlen("_IMPLEMENTATION"));
+    }
 
     DIR* dir;
     Assert(dir = opendir("include/"), strerror(errno));
@@ -107,6 +116,7 @@ static void init_globals(void)
             File header = {
                 .name = strcpy(gp_mem_alloc(gmem, strlen(entry->d_name) + sizeof""), entry->d_name),
                 .name_length = strlen(entry->d_name),
+                .include_dir = include_paths[i],
                 .fp          = fopen(gp_cstr(full_path), "r")
             };
             Assert(header.fp != NULL, strerror(errno));
@@ -123,7 +133,7 @@ static void init_globals(void)
         if (entry->d_name[0] == '.') // ignore ".", "..", and hidden files
             continue;
         const char* file_extension = strchr(entry->d_name, '.');
-        if (file_extension[1] != 'c' && file_extension[1] != 'C')
+        if (file_extension[1] != 'c' && file_extension[1] != 'h')
             continue;
 
         gp_str_slice(&full_path, NULL, 0, strlen("src/"));
@@ -136,7 +146,10 @@ static void init_globals(void)
         };
         Assert(source.fp != NULL, strerror(errno));
 
-        sources = gp_arr_push(sizeof*sources, sources, &source);
+        if (file_extension[1] == 'c')
+            sources = gp_arr_push(sizeof*sources, sources, &source);
+        else
+            headers = gp_arr_push(sizeof*headers, headers, &source);
     }
     closedir(dir);
 }
@@ -149,37 +162,211 @@ static void write_license(void)
     struct dirent* entry;
     while ((entry = readdir(dir)) != NULL)
     {
-        if ((path = strstr(entry->d_name, "license")) ||
-            (path = strstr(entry->d_name, "LICENSE")) ||
-            (path = strstr(entry->d_name, "License")))
+        if ((path = strstr(entry->d_name, "license")) != NULL ||
+            (path = strstr(entry->d_name, "LICENSE")) != NULL ||
+            (path = strstr(entry->d_name, "License")) != NULL)
             break;
     }
-
-    if (path != NULL)
+    if (path == entry->d_name)
     {
         FILE* license;
         Assert(license = fopen(path, "r"), strerror(errno));
-        GPString line = gp_str_on_stack(gmem, 128, "");
         gp_file_println(out, "/*");
 
         while (gp_file_read_line(&line, license))
             gp_file_print(out, " * ", line);
 
-        gp_file_println(out, "\n */\n\n");
+        gp_file_println(out, "\n */\n");
         fclose(license);
-        if (gp_str_allocation(line)) // pedantic free
-            gp_arena_rewind(&garena, gp_str_allocation(line));
     }
     closedir(dir);
+}
+
+static bool no_match(const GPString line, const size_t i)
+{
+    return i == GP_NOT_FOUND || line[i].c == '\n' ||
+        (line[i].c == '/' && line[i + 1].c == '/');
+}
+
+static size_t find_multiline_comment_end(
+    const GPString line, const size_t start, bool* is_in_multiline_comment)
+{
+    Assert(*is_in_multiline_comment);
+    if (start == GP_NOT_FOUND)
+        return GP_NOT_FOUND;
+
+    const size_t pos = gp_str_find(line, "*/", strlen("*/"), start);
+    if (pos != GP_NOT_FOUND) {
+        *is_in_multiline_comment = false;
+        return pos + strlen("*/");
+    }
+    return GP_NOT_FOUND;
+}
+
+static size_t find_include_end(GPString, size_t, bool*);
+
+// #include "blah.h"
+// Returns ^ that index
+static size_t find_include_directive(
+    const GPString line, const size_t i, bool* is_in_multiline_comment)
+{
+    if (no_match(line, i))
+        return GP_NOT_FOUND;
+
+    if (*is_in_multiline_comment)
+        return find_include_directive(
+            line,
+            find_multiline_comment_end(line, i, is_in_multiline_comment),
+            is_in_multiline_comment);
+
+    if (line[i].c == '#')
+        return find_include_end(line, i + 1, is_in_multiline_comment);
+
+    if (line[i].c == '/' && line[i + 1].c == '*') {
+        *is_in_multiline_comment = true;
+        return find_include_directive(line, i + strlen("/*"), is_in_multiline_comment);
+    }
+    if (line[i].c != ' ' && line[i].c != '\t')
+        return GP_NOT_FOUND;
+
+    return find_include_directive(line, i + 1, is_in_multiline_comment);
+}
+
+static size_t find_include_end(
+    const GPString line, const size_t i, bool* is_in_multiline_comment)
+{
+    if (no_match(line, i))
+        return GP_NOT_FOUND;
+
+    if (*is_in_multiline_comment)
+        return find_include_end(
+            line,
+            find_multiline_comment_end(line, i, is_in_multiline_comment),
+            is_in_multiline_comment);
+
+    if (memcmp(line + i, "include", strlen("include")) == 0)
+        return i + strlen("include");
+
+    if (line[i].c == '/' && line[i + 1].c == '*') {
+        *is_in_multiline_comment = true;
+        return find_include_end(line, i + strlen("/*"), is_in_multiline_comment);
+    }
+    if (line[i].c != ' ' && line[i].c != '\t')
+        return GP_NOT_FOUND;
+
+    return find_include_end(line, i + 1, is_in_multiline_comment);
+}
+
+static void write_sources_until_include(void)
+{
+    gp_file_println(out, "#ifdef", implementation, "\n");
+    for (File* source = sources; source < sources + gp_arr_length(sources); source++)
+    {
+        gp_file_println(out, "/* * * * * * *\n *", source->name, "\n */\n");
+
+        bool is_in_multiline_comment = false;
+        while (true)
+        {
+            fpos_t line_start;
+            Assert(fgetpos(source->fp, &line_start) == 0, strerror(errno));
+            if ( ! gp_file_read_line(&line, source->fp))
+                break;
+
+            if (find_include_directive(line, 0, &is_in_multiline_comment) != GP_NOT_FOUND)
+            {
+                Assert(fsetpos(source->fp, &line_start) == 0, strerror(errno));
+                break;
+            }
+            gp_file_print(out, line);
+        }
+    }
+    gp_file_println(out, "\n#endif /*", implementation, "*/\n\n");
+}
+
+static size_t find_header(const char* name, const size_t name_length, const char* include_dir)
+{
+    size_t i = 0;
+    for (;; i++)
+    {
+        Assert(i < gp_arr_length(headers), "%.*s", name_length, name, "not found.");
+        if (headers[i].include_dir == include_dir &&
+            headers[i].name_length == name_length &&
+            memcmp(name, headers[i].name, name_length) == 0)
+            break;
+    }
+    return i;
+}
+
+static size_t find_header_index(
+    const GPString line, const char* include_dir, bool* is_in_multiline_comment)
+{
+    const size_t include_end = find_include_directive(line, 0, is_in_multiline_comment);
+    if (include_end == GP_NOT_FOUND)
+        return GP_NOT_FOUND;
+
+    size_t i = include_end;
+    while (true)
+    {
+        if ((line[i].c == '/' && line[i + 1].c == '*') ||
+            *is_in_multiline_comment)
+        {
+            *is_in_multiline_comment = true;
+            i = find_multiline_comment_end(line, i, is_in_multiline_comment);
+        }
+        else if (line[i].c == '"' || line[i].c == '<')
+        {
+            if (line[i++].c == '<')
+                i += strlen(include_dir);
+
+            return find_header(
+                (char*)line + i,
+                gp_str_find_first_of(line, "\">", i) - i,
+                include_dir);
+        }
+        else
+            i++;
+        Assert(i < gp_str_length(line), "Parsing error:", line);
+    }
+}
+
+static void write_file(GPArray(File) files, const size_t index)
+{
+    File* file = files + index;
+    if (file->fp == NULL)
+        return;
+
+    bool is_in_multiline_comment = false;
+    while (gp_file_read_line(&line, file->fp))
+    {
+        const size_t i = find_header_index(line, file->include_dir, &is_in_multiline_comment);
+        if (i == GP_NOT_FOUND)
+            gp_print(out, line);
+        else
+            write_file(headers, i);
+    }
+    fclose(file->fp);
+    file->fp = NULL;
+}
+
+static void write_files(GPArray(File) files)
+{
+    for (size_t i = 0; i < gp_arr_length(files); i++)
+        write_file(files, i);
 }
 
 int main(void)
 {
     init_globals();
+    Assert(setlocale(LC_ALL, "C.utf8"));
     write_license();
     fputs("/*\n"
         " * This file has been generated. The original code may have gone trough heavy\n"
         " * restructuring, so some parts of this file might be confusing to read.\n"
-        " */\n\n\n",
+        " */\n\n",
         out);
+    write_sources_until_include();
+    write_files(headers);
+    gp_file_println(out, "#ifdef", implementation, "\n");
+    write_files(sources);
+    gp_file_println(out, "\n#endif /*", implementation, "*/\n\n");
 }

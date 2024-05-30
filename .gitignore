@@ -7,5 +7,8 @@ TODO.md
 .vscode
 *debuglog
 
+# Temporary executable
+a.out
+
 # TODO
 gpc.h

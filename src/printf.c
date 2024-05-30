@@ -472,7 +472,8 @@ int pf_vsnprintf_consuming(
 
     // Write what's left in format string
     pf_concat(&out, format, strlen(format));
-
+    if (out.length < out.capacity)
+        out.data[out.length] = '\0';
     return out.length;
 }
 
