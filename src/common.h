@@ -43,10 +43,14 @@ inline size_t gp_count_fmt_specs(const char* fmt)
     size_t i = 0;
     for (; (fmt = strchr(fmt, '%')) != NULL; fmt++)
     {
-        if (fmt[1] == '%')
+        if (fmt[1] == '%') {
             fmt++;
-        else // consuming more args
+        } else  { // consuming more args
+            const char* fmt_spec = strpbrk(fmt, "csSdioxXufFeEgGp");
+            for (const char* c = fmt; c < fmt_spec; c++) if (*c == '*')
+                i++; // consume asterisks as well
             i++;
+        }
     }
     return i;
 }

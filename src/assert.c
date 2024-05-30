@@ -215,7 +215,7 @@ void gp_fail_internal(
                     c++;
                 } else {
                     fmt_spec_count++;
-                    fmt_spec = strpbrk(c, "csdioxXufFeEgGp");
+                    fmt_spec = strpbrk(c, "csSdioxXufFeEgGp");
                     for (const char* _c = c; _c < fmt_spec; _c++) if (*_c == '*')
                         asterisk_count++;
 
@@ -240,7 +240,7 @@ void gp_fail_internal(
                 // Color and opening quote if string or char
                 if (*fmt_spec == 'c') // character
                     fprintf(stderr, GP_YELLOW);
-                else if (*fmt_spec == 's') // string
+                else if (*fmt_spec == 's' || *fmt_spec == 'S') // string
                     fprintf(stderr, GP_BRIGHT_RED);
                 else if (strchr("dibBouxX", *fmt_spec)) // integer
                     fprintf(stderr, GP_BRIGHT_BLUE);

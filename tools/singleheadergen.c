@@ -18,6 +18,7 @@
 #include <gpc/io.h>
 #include <gpc/array.h>
 #include <gpc/assert.h>
+#include <gpc/terminal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -288,7 +289,16 @@ static size_t find_header(const char* name, const size_t name_length, const char
     size_t i = 0;
     for (;; i++)
     {
-        Assert(i < gp_arr_length(headers), "%.*s", name_length, name, "not found.");
+        if (i >= gp_arr_length(headers)) {
+            gp_file_print(stderr, GP_RED "[ERROR]" GP_RESET_TERMINAL "\n",
+                "Could not inline #include ");
+            if (include_dir == NULL)
+                gp_file_print(stderr, "\"%.*s", name_length, name, "\"\n");
+            else
+                gp_file_print(stderr, "<%.*s", name_length, name, ">\n");
+            gp_file_println(stderr, "File %.*s ", name_length, name, "not found.");
+            exit(EXIT_FAILURE);
+        }
         if (headers[i].include_dir == include_dir &&
             headers[i].name_length == name_length &&
             memcmp(name, headers[i].name, name_length) == 0)
@@ -315,8 +325,11 @@ static size_t find_header_index(
         }
         else if (line[i].c == '"' || line[i].c == '<')
         {
-            if (line[i++].c == '<')
+            if (line[i++].c == '<') {
+                if (include_dir == NULL || memcmp(line + i, include_dir, strlen(include_dir)) != 0)
+                    return GP_NOT_FOUND;
                 i += strlen(include_dir);
+            }
 
             return find_header(
                 (char*)line + i,
