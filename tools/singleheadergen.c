@@ -112,7 +112,6 @@ static void init_globals(void)
 
             gp_str_slice(&full_path, NULL, 0, strlen("include/") + strlen(include_paths[i]));
             gp_str_append(&full_path, entry->d_name, strlen(entry->d_name));
-            gp_println(full_path);
 
             File header = {
                 .name = strcpy(gp_mem_alloc(gmem, strlen(entry->d_name) + sizeof""), entry->d_name),
@@ -139,7 +138,6 @@ static void init_globals(void)
 
         gp_str_slice(&full_path, NULL, 0, strlen("src/"));
         gp_str_append(&full_path, entry->d_name, strlen(entry->d_name));
-        gp_println(full_path);
         File source = {
             .name = strcpy(gp_mem_alloc(gmem, strlen(entry->d_name) + sizeof""), entry->d_name),
             .name_length = strlen(entry->d_name),
@@ -281,25 +279,28 @@ static void write_sources_until_include(void)
             gp_file_print(out, line);
         }
     }
-    gp_file_println(out, "\n#endif /*", implementation, "*/\n\n");
+    gp_file_println(out, "\n#endif /*", implementation, "*/\n");
 }
 
-static size_t find_header(const char* name, const size_t name_length, const char* include_dir)
+static size_t find_header(
+    const char* name, const size_t name_length, const char* include_dir, const File* file)
 {
     size_t i = 0;
     for (;; i++)
     {
         if (i >= gp_arr_length(headers)) {
-            gp_file_print(stderr, GP_RED "[ERROR]" GP_RESET_TERMINAL "\n",
-                "Could not inline #include ");
-            if (include_dir == NULL)
-                gp_file_print(stderr, "\"%.*s", name_length, name, "\"\n");
+            gp_file_print(stderr, GP_YELLOW "[WARNING]" GP_RESET_TERMINAL,
+                " Could not inline\n" GP_BRIGHT_CYAN "#include ");
+            if (file->include_dir == NULL)
+                gp_file_print(stderr, "\"%.*s", name_length, name, "\"");
             else
-                gp_file_print(stderr, "<%.*s", name_length, name, ">\n");
-            gp_file_println(stderr, "File %.*s ", name_length, name, "not found.");
-            exit(EXIT_FAILURE);
+                gp_file_print(stderr, "<%.*s", name_length, name, ">");
+            gp_file_println(stderr, GP_RESET_TERMINAL);
+            gp_file_println(stderr, "in %.*s", file->name_length, file->name);
+            gp_file_println(stderr, "File %.*s", name_length, name, "not found.");
+            return GP_NOT_FOUND;
         }
-        if (headers[i].include_dir == include_dir &&
+        if (headers[i].include_dir == file->include_dir &&
             headers[i].name_length == name_length &&
             memcmp(name, headers[i].name, name_length) == 0)
             break;
@@ -307,8 +308,50 @@ static size_t find_header(const char* name, const size_t name_length, const char
     return i;
 }
 
+static size_t find_header_from_include_paths(
+    const char* name, size_t name_length, const File* file)
+{
+    const size_t slash = gp_bytes_find(name, name_length, "/", strlen("/"), 0);
+    if (slash == GP_NOT_FOUND)
+        return GP_NOT_FOUND;
+    const size_t path_length = slash + strlen("/");
+
+    size_t _i;
+    for (_i = 0; _i < gp_arr_length(include_paths); _i++)
+    {
+        if (gp_bytes_equal(name, path_length, include_paths[_i], strlen(include_paths[_i])))
+            break;
+    }
+    if (_i >= gp_arr_length(include_paths))
+        return GP_NOT_FOUND;
+
+    name        += strlen(include_paths[_i]);
+    name_length -= strlen(include_paths[_i]);
+
+    size_t i = 0;
+    for (;; i++)
+    {
+        if (i >= gp_arr_length(headers)) { // TODO fix this error hadnling
+            gp_file_print(stderr, GP_YELLOW "[WARNING]" GP_RESET_TERMINAL,
+                " Could not inline\n" GP_BRIGHT_CYAN "#include ");
+            if (file->include_dir == NULL)
+                gp_file_print(stderr, "\"%.*s", name_length, name, "\"");
+            else
+                gp_file_print(stderr, "<%.*s", name_length, name, ">");
+            gp_file_println(stderr, GP_RESET_TERMINAL);
+            gp_file_println(stderr, "in %.*s", file->name_length, file->name);
+            gp_file_println(stderr, "File %.*s", name_length, name, "not found.");
+            return GP_NOT_FOUND;
+        }
+        if (headers[i].include_dir == include_paths[_i] &&
+            gp_bytes_equal(headers[i].name, headers[i].name_length, name, name_length))
+            break;
+    }
+    return i;
+}
+
 static size_t find_header_index(
-    const GPString line, const char* include_dir, bool* is_in_multiline_comment)
+    const GPString line, File* file, bool* is_in_multiline_comment)
 {
     const size_t include_end = find_include_directive(line, 0, is_in_multiline_comment);
     if (include_end == GP_NOT_FOUND)
@@ -326,18 +369,30 @@ static size_t find_header_index(
         else if (line[i].c == '"' || line[i].c == '<')
         {
             if (line[i++].c == '<') {
-                if (include_dir == NULL || memcmp(line + i, include_dir, strlen(include_dir)) != 0)
+                // if (file->include_dir == NULL ||
+                //     memcmp(line + i, file->include_dir, strlen(file->include_dir)) != 0)
+                //     return GP_NOT_FOUND;
+                // i += strlen(file->include_dir);
+                if (file->include_dir == NULL)
+                    return find_header_from_include_paths(
+                        (char*)line + i,
+                        gp_str_find_first_of(line, ">", i) - i,
+                        file);
+                else if (memcmp(line + i, file->include_dir, strlen(file->include_dir)) != 0)
                     return GP_NOT_FOUND;
-                i += strlen(include_dir);
+
+                i += strlen(file->include_dir);
             }
 
             return find_header(
                 (char*)line + i,
                 gp_str_find_first_of(line, "\">", i) - i,
-                include_dir);
+                file->include_dir,
+                file);
         }
-        else
+        else {
             i++;
+        }
         Assert(i < gp_str_length(line), "Parsing error:", line);
     }
 }
@@ -348,15 +403,21 @@ static void write_file(GPArray(File) files, const size_t index)
     if (file->fp == NULL)
         return;
 
+    gp_println("Writing %.*s", file->name_length, file->name);
+
+    gp_file_println(out,
+        "/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */\n");
+
     bool is_in_multiline_comment = false;
     while (gp_file_read_line(&line, file->fp))
     {
-        const size_t i = find_header_index(line, file->include_dir, &is_in_multiline_comment);
+        const size_t i = find_header_index(line, file, &is_in_multiline_comment);
         if (i == GP_NOT_FOUND)
-            gp_print(out, line);
+            gp_file_print(out, line);
         else
             write_file(headers, i);
     }
+    gp_file_println(out, "");
     fclose(file->fp);
     file->fp = NULL;
 }
@@ -379,7 +440,14 @@ int main(void)
         out);
     write_sources_until_include();
     write_files(headers);
-    gp_file_println(out, "#ifdef", implementation, "\n");
+    gp_file_println(out,
+        "/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
+        " *\n"
+        " */\n",
+        "        #ifdef", implementation, "\n"
+        "/*\n"
+        " *\n"
+        " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */\n");
     write_files(sources);
     gp_file_println(out, "\n#endif /*", implementation, "*/\n\n");
 }

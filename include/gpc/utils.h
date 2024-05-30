@@ -74,7 +74,7 @@ inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff){
 #define GP_BREAKPOINT            GP_BREAKPOINT_INTERNAL
 
 // ----------------------------------------------------------------------------
-// Random functions. Only work for 64 bit platforms for now.
+// Random functions
 
 typedef struct gp_random_state GPRandomState;
 
