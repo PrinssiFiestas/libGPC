@@ -23,12 +23,13 @@ bool gp_file_read_line(GPString* out, FILE* in)
     {
         while (gp_str_length(*out) < gp_str_capacity(*out))
         {
+            if (c == '\n')
+                goto end;
+
             c = fgetc(in);
             if (c == EOF)
                 goto end;
             (*out)[((GPStringHeader*)*out - 1)->length++].c = c;
-            if (c == '\n')
-                goto end;
         }
         gp_str_reserve(out, gp_str_capacity(*out) + 1); // doubles cap
     }

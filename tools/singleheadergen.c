@@ -35,7 +35,7 @@
 static FILE* out = NULL;
 static const char* out_name = "gpc.h";
 static GPArena garena;
-static const GPAllocator* gmem = (GPAllocator*)&garena;
+static const GPAllocator*const gmem = (GPAllocator*)&garena;
 
 typedef struct file
 {
@@ -165,7 +165,7 @@ static void write_license(void)
         while (gp_file_read_line(&line, license))
             gp_file_print(out, " * ", line);
 
-        gp_file_println(out, "*/\n");
+        gp_file_println(out, "\n */\n\n");
         fclose(license);
         if (gp_str_allocation(line)) // pedantic free
             gp_arena_rewind(&garena, gp_str_allocation(line));
@@ -177,4 +177,9 @@ int main(void)
 {
     init_globals();
     write_license();
+    fputs("/*\n"
+        " * This file has been generated. The original code may have gone trough heavy\n"
+        " * restructuring, so some parts of this file might be confusing to read.\n"
+        " */\n\n\n",
+        out);
 }
