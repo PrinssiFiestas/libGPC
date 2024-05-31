@@ -83,11 +83,11 @@ int main(void)
 
         gp_test("Find");
         {
-            pos = gp_str_find(haystack, needle, strlen(needle), 0);
+            pos = gp_str_find_first(haystack, needle, strlen(needle), 0);
             gp_expect(pos == 3);
-            pos = gp_str_find(haystack, needle, strlen(needle), 4);
+            pos = gp_str_find_first(haystack, needle, strlen(needle), 4);
             gp_expect(pos == 6);
-            pos = gp_str_find(haystack, needle2, strlen(needle2), 0);
+            pos = gp_str_find_first(haystack, needle2, strlen(needle2), 0);
             gp_expect(pos == GP_NOT_FOUND);
         }
         gp_test("Find last");

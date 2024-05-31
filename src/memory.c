@@ -66,10 +66,12 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
     void* block = head->position;
     if ((uint8_t*)block + size > (uint8_t*)(head + 1) + arena->head->capacity)
     { // out of memory, create new arena
-        const size_t new_cap = arena->growth_coefficient * arena->head->capacity;
+        const size_t new_cap = gp_round_to_aligned(
+            arena->growth_coefficient * arena->head->capacity, arena->alignment);
         GPArenaNode* new_node = gp_mem_alloc(gp_heap,
             sizeof(GPArenaNode) + gp_max(new_cap, size));
         new_node->tail     = head;
+        new_node->capacity = new_cap;
 
         block = new_node->position = new_node + 1;
         new_node->position = (uint8_t*)(new_node->position) + size;
@@ -79,6 +81,14 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
     {
         head->position = (uint8_t*)block + size;
     }
+    return block;
+}
+
+static void* gp_arena_shared_alloc(const GPAllocator* allocator, const size_t size)
+{
+    gp_mutex_lock((GPMutex*)((GPArena*)allocator + 1));
+    void* block = gp_arena_alloc(allocator, size);
+    gp_mutex_unlock((GPMutex*)((GPArena*)allocator + 1));
     return block;
 }
 
@@ -92,11 +102,23 @@ GPArena gp_arena_new(const size_t capacity)
     node->tail     = NULL;
     node->capacity = cap;
     return (GPArena) {
-        .allocator = { gp_arena_alloc, gp_arena_dealloc },
-        .max_size  = 1 << 15,
-        .alignment = GP_ALLOC_ALIGNMENT,
-        .head      = node,
+        .allocator          = { gp_arena_alloc, gp_arena_dealloc },
+        .growth_coefficient = 2.,
+        .max_size           = 1 << 15,
+        .alignment          = GP_ALLOC_ALIGNMENT,
+        .head               = node,
     };
+}
+
+GPArena* gp_arena_new_shared(const size_t capacity)
+{
+    GPArena arena_data = gp_arena_new(capacity + sizeof arena_data + sizeof(GPMutex));
+    GPArena*arena = gp_mem_alloc(gp_heap, sizeof*arena + sizeof(GPMutex));
+    arena_data.allocator.alloc = gp_arena_shared_alloc;
+    *arena = arena_data;
+    GPMutex* mutex = (GPMutex*)(arena + 1);
+    gp_mutex_init(mutex);
+    return arena;
 }
 
 static bool gp_in_this_node(GPArenaNode* node, void* _pos)
@@ -129,6 +151,8 @@ void gp_arena_delete(GPArena* arena)
         arena->head = arena->head->tail;
         gp_mem_dealloc(gp_heap, old_head);
     }
+    if (arena->allocator.alloc == gp_arena_shared_alloc)
+        gp_mem_dealloc(gp_heap, arena);
 }
 
 // ----------------------------------------------------------------------------

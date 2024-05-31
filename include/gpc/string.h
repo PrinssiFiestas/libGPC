@@ -60,8 +60,8 @@ GPString gp_str_new(
 // undesirable, arrays can be created on stack manually. Capacity should be
 // initialized to be actual capacity -1 for null termination.
 /*
-    struct optional_name{ GPStringHeader header; GPChar data[2048]; }my_str_mem;
-    my_str_mem.header = (GPStringHeader) {.capacity = 2048 - sizeof"" };
+    struct optional_name{GPStringHeader header; GPChar data[2048];} my_str_mem;
+    my_str_mem.header = (GPStringHeader) {.capacity = 2048 - sizeof""};
     GPString my_string = my_str_mem.data;
 */
 
@@ -72,13 +72,15 @@ const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
 size_t             gp_str_length    (GPString) GP_NONNULL_ARGS();
 size_t             gp_str_capacity  (GPString) GP_NONNULL_ARGS();
-void*              gp_str_allocation(GPString) GP_NONNULL_ARGS();
 const GPAllocator* gp_str_allocator (GPString) GP_NONNULL_ARGS();
+
+// Pass this to gp_mem_dealloc() if allocated
+void*              gp_str_allocation(GPString) GP_NONNULL_ARGS();
 
 GP_NONNULL_ARGS()
 void gp_str_reserve(
     GPString* str,
-    size_t       capacity);
+    size_t    capacity);
 
 GP_NONNULL_ARGS()
 void gp_str_copy(
@@ -97,8 +99,8 @@ GP_NONNULL_ARGS(1)
 void gp_str_slice(
     GPString*           dest,
     const void*restrict optional_src, // mutates dest if NULL
-    size_t              src_start,
-    size_t              src_end);
+    size_t              start,
+    size_t              end);
 
 GP_NONNULL_ARGS()
 void gp_str_append(
@@ -178,7 +180,7 @@ void gp_str_to_valid(
 // operation[0] == 'w', writes full contents of str to the file. If
 // operation[0] == 'a', appends fulll contents of str to the file. Any other
 // character is undefined.
-// Returns 0 on success.
+// Returns  0 on success.
 // Returns -1 if file operations fail. Check errno for the specific error.
 // Returns  1 if file size > SIZE_MAX in 32-bit systems.
 GP_NONNULL_ARGS() GP_NODISCARD
@@ -193,7 +195,7 @@ int gp_str_file(
 #define GP_NOT_FOUND ((size_t)-1)
 
 GP_NONNULL_ARGS()
-size_t gp_str_find(
+size_t gp_str_find_first(
     GPString    haystack,
     const void* needle,
     size_t      needle_size,

@@ -94,8 +94,8 @@ GPAllocator* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
 void gp_end(GPAllocator* optional_scope);
 
 // Deferred functions are called in Last In First Out order in gp_end().
-void gp_defer(GPAllocator* scope, void (*f)(void* arg), void* arg)
-    GP_NONNULL_ARGS(1, 2);
+GP_NONNULL_ARGS(1, 2)
+void gp_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
 
 // Get lastly created scope in callbacks. You should prefer to just pass scopes
 // as arguments when possible.
@@ -109,13 +109,14 @@ GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
 typedef struct gp_arena
 {
     GPAllocator allocator;
-    double growth_coefficient;  // default is 2.
+    double growth_coefficient;
     size_t max_size;
     size_t alignment;
     struct gp_arena_node* head; // private!
 } GPArena;
 
-GPArena gp_arena_new(size_t capacity) GP_NODISCARD;
+GPArena  gp_arena_new(size_t capacity) GP_NODISCARD;
+GPArena* gp_arena_new_shared(size_t capacity) GP_NODISCARD; // for threading
 void gp_arena_delete(GPArena* optional);
 void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 

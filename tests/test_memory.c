@@ -33,7 +33,7 @@ static void deferred_dealloc(void* p)
     gp_mem_dealloc(gp_heap, p);
 }
 
-static void* test0(void*_)
+void* test0(void*_)
 {
     (void)_;
     void* ps[8] = {0}; // Dummy objects
@@ -108,9 +108,9 @@ static void* test0(void*_)
     return NULL;
 }
 
-static void* test1_ps[4] = {0};
+void* test1_ps[4] = {0};
 
-static void* test1(void*_)
+void* test1(void*_)
 {
     (void)_;
     GPAllocator* scope0 = gp_begin(0);
@@ -124,7 +124,7 @@ static void* test1(void*_)
     return NULL;
 } // All scopes will be cleaned when threads terminate
 
-static void* test2(void*_)
+void* test2(void*_)
 {
     (void)_;
     gp_suite("Arena allocator");
@@ -135,6 +135,7 @@ static void* test2(void*_)
             // This allows the testing allocator to mark freed objects on
             // rewind.
             GPArena arena = gp_arena_new(1);
+            arena.growth_coefficient = 1.;
             void* ps[4] = {0};
             for (size_t i = 0; i < 4; i++) {
                 ps[i] = gp_mem_alloc((GPAllocator*)&arena, 64);
@@ -150,17 +151,32 @@ static void* test2(void*_)
             gp_expect( ! is_free(ps[2]), "Not from heap, but from arena!");
             gp_expect(   is_free(ps[3]));
 
-            void* overwriting_pointer = gp_mem_alloc((GPAllocator*)&arena, 16);
-            strcpy(overwriting_pointer, "XXXX");
-            gp_expect(strcmp(ps[2], "XXXX") == 0,
+            void* overwriting_pointer = gp_mem_alloc((GPAllocator*)&arena, 4);
+            strcpy(overwriting_pointer, "XXX");
+            gp_assert(strcmp(ps[2], "XXX") == 0,
                 "ps[2] should be considered as freed dispite not freed from the "
                 "heap! Here it got overwritten since the arena reused it's "
-                "memory.");
+                "memory.", (char*)ps[2]);
 
             gp_arena_delete(&arena);
 
             gp_expect(is_free(ps[0]));
             gp_expect(is_free(ps[1]));
+        }
+    }
+    return NULL;
+}
+
+void* test_shared(void* shared_arena)
+{
+    (void)shared_arena;
+    gp_test("Shared arena");
+    {
+        for (size_t i = 0; i < 1024; i++)
+        {
+            char* str = gp_mem_alloc(shared_arena, 32);
+            strcpy(str, "Thread safe!");
+            gp_assert(strcmp(str, "Thread safe!") == 0);
         }
     }
     return NULL;
@@ -184,6 +200,13 @@ int main(void)
         for (size_t i = 0; i < sizeof test1_ps / sizeof*test1_ps; i++)
             gp_expect(is_free(test1_ps[i]));
     }
+
+    GPArena* shared_arena = gp_arena_new_shared(0);
+    for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
+        pthread_create(&tests[i], NULL, test_shared, shared_arena);
+    for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
+        pthread_join(tests[i], NULL);
+    gp_arena_delete(shared_arena);
 
     // Make Valgrind shut up.
     delete_test_allocator();
@@ -224,8 +247,7 @@ typedef struct test_allocator
 // functionality while also removing the need for ugly upcasts from user.
 const GPAllocator* new_test_allocator(void)
 {
-    // Create an arena with capacity of 100 KB
-    TestAllocator* allocator = calloc(100, 1 << 10);
+    TestAllocator* allocator = malloc(1000 * (1 << 10));
     gp_assert(allocator != NULL);
     *allocator = (TestAllocator) {
         .allocator  = {.alloc = test_alloc, .dealloc = test_dealloc },

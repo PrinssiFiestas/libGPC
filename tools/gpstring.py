@@ -20,4 +20,10 @@ def str_lookup_function(val):
         return StringPrinter(val)
     return None
 
+def const_str_lookup_function(val):
+    if str(val.type) == "const GPString":
+        return StringPrinter(val)
+    return None
+
 gdb.pretty_printers.append(str_lookup_function)
+gdb.pretty_printers.append(const_str_lookup_function)

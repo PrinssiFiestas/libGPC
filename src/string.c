@@ -47,7 +47,7 @@ size_t             gp_str_capacity  (GPString s) { return gp_str_header(s)->capa
 void*              gp_str_allocation(GPString s) { return gp_str_header(s)->allocation;}
 const GPAllocator* gp_str_allocator (GPString s) { return gp_str_header(s)->allocator; }
 
-size_t gp_str_find(
+size_t gp_str_find_first(
     GPString    haystack,
     const void* needle,
     size_t      needle_size,
@@ -374,7 +374,7 @@ size_t gp_str_replace(
     const size_t replacement_length,
     size_t start)
 {
-    if ((start = gp_str_find(*haystack, needle, needle_length, start)) == GP_NOT_FOUND)
+    if ((start = gp_str_find_first(*haystack, needle, needle_length, start)) == GP_NOT_FOUND)
         return GP_NOT_FOUND;
 
     gp_str_reserve(haystack,
@@ -401,7 +401,7 @@ size_t gp_str_replace_all(
 {
     size_t start = 0;
     size_t replacement_count = 0;
-    while ((start = gp_str_find(*haystack, needle, needle_length, start)) != GP_NOT_FOUND)
+    while ((start = gp_str_find_first(*haystack, needle, needle_length, start)) != GP_NOT_FOUND)
     {
         gp_str_reserve(haystack,
             gp_str_length(*haystack) + replacement_length - needle_length);

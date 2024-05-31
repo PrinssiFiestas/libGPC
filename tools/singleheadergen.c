@@ -5,7 +5,7 @@
 // First write everything before any #includes from every source file to an
 // #ifdef X_IMPLEMENTATION block that comes before everything else. This makes
 // sure that things like #define Y_IMPLEMENTATION and #define _GNU_SOURCE
-// come before any header. Then start inlining every local #include.
+// come before any header.
 //
 // Header files have to be written next. Every time an #include directive
 // references a local header file, it has to be inlined recursively.
@@ -73,10 +73,10 @@ static void init_globals(void)
     sources       = gp_arr_new(gmem, sizeof*headers, 64);
     line          = gp_str_new(gmem, 1024, "");
 
-    implementation = gp_str_new(gmem, 16, "");
+    implementation = gp_str_new(gmem, 32, "");
     { // e.g. gpc.h -> GPC_IMPLEMENTATION
         gp_str_copy(&implementation, out_name, strlen(out_name));
-        gp_str_slice(&implementation, NULL, 0, gp_str_find(implementation, ".", strlen("."), 0));
+        gp_str_slice(&implementation, NULL, 0, gp_str_find_first(implementation, ".", strlen("."), 0));
         gp_str_to_upper(&implementation);
         gp_str_append(&implementation, "_IMPLEMENTATION", strlen("_IMPLEMENTATION"));
     }
@@ -194,7 +194,7 @@ static size_t find_multiline_comment_end(
     if (start == GP_NOT_FOUND)
         return GP_NOT_FOUND;
 
-    const size_t pos = gp_str_find(line, "*/", strlen("*/"), start);
+    const size_t pos = gp_str_find_first(line, "*/", strlen("*/"), start);
     if (pos != GP_NOT_FOUND) {
         *is_in_multiline_comment = false;
         return pos + strlen("*/");
@@ -369,10 +369,6 @@ static size_t find_header_index(
         else if (line[i].c == '"' || line[i].c == '<')
         {
             if (line[i++].c == '<') {
-                // if (file->include_dir == NULL ||
-                //     memcmp(line + i, file->include_dir, strlen(file->include_dir)) != 0)
-                //     return GP_NOT_FOUND;
-                // i += strlen(file->include_dir);
                 if (file->include_dir == NULL)
                     return find_header_from_include_paths(
                         (char*)line + i,
@@ -402,8 +398,6 @@ static void write_file(GPArray(File) files, const size_t index)
     File* file = files + index;
     if (file->fp == NULL)
         return;
-
-    gp_println("Writing %.*s", file->name_length, file->name);
 
     gp_file_println(out,
         "/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */\n");

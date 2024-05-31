@@ -7,6 +7,8 @@
 #ifndef GP_THREAD_INCLUDED
 #define GP_THREAD_INCLUDED
 
+#include <stdbool.h>
+
 #if __STDC_VERSION__ >= 201112L && !defined(__MINGW32__)
 #include <threads.h>
 #include <stdatomic.h>
@@ -36,6 +38,36 @@
     !defined(__MINGW32__)       && \
     !defined(__STDC_NO_THREADS__)
 
+// ----------------------------------------------------------------------------
+// Mutual exclusion
+
+typedef mtx_t GPMutex;
+
+static inline bool gp_mutex_init(GPMutex* mutex)
+{
+    return mtx_init(mutex, mtx_plain) == thrd_success;
+}
+static inline bool gp_mutex_lock(GPMutex* mutex)
+{
+    return mtx_lock(mutex) == thrd_success;
+}
+static inline bool gp_mutex_timed_lock(
+    GPMutex*restrict mutex, const struct timespec*restrict time_point)
+{
+    return mtx_timedlock(mutex, time_point) == thrd_success;
+}
+static inline bool gp_mutex_unlock(GPMutex* mutex)
+{
+    return mtx_unlock(mutex) == thrd_success;
+}
+static inline void gp_mutex_destroy(GPMutex* mutex)
+{
+    mtx_destroy(mutex);
+}
+
+// ----------------------------------------------------------------------------
+// Thread local storage
+
 typedef tss_t     GPThreadKey;
 typedef once_flag GPThreadOnce;
 #define GP_THREAD_ONCE_INIT ONCE_FLAG_INIT
@@ -57,6 +89,36 @@ static inline void gp_thread_once(GPThreadOnce* flag, void(*init)(void))
 }
 
 #else // standard threads not supported, use POSIX threads
+
+// ----------------------------------------------------------------------------
+// Mutual exclusion
+
+typedef pthread_mutex_t GPMutex;
+
+static inline bool gp_mutex_init(GPMutex* mutex)
+{
+    return pthread_mutex_init(mutex, NULL) == 0;
+}
+static inline bool gp_mutex_lock(GPMutex* mutex)
+{
+    return pthread_mutex_lock(mutex) == 0;
+}
+static inline bool gp_mutex_timed_lock(
+    GPMutex*restrict mutex, const struct timespec*restrict time_point)
+{
+    return pthread_mutex_timedlock(mutex, time_point) == 0;
+}
+static inline bool gp_mutex_unlock(GPMutex* mutex)
+{
+    return pthread_mutex_unlock(mutex) == 0;
+}
+static inline void gp_mutex_destroy(GPMutex* mutex)
+{
+    pthread_mutex_destroy(mutex);
+}
+
+// ----------------------------------------------------------------------------
+// Thread local storage
 
 typedef pthread_key_t  GPThreadKey;
 typedef pthread_once_t GPThreadOnce;
