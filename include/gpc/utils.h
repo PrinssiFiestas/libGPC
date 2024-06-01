@@ -47,15 +47,19 @@ bool gp_check_bounds(
     size_t  limit);
 
 /** Round number up to the next power of 2.
- * Used to compute array sizes on reallocations, thus size_t.
+ * Always rounds up so gp_next_power_of_2(1 << n) == 1 << (n + 1).
  */
 size_t   gp_next_power_of_2   (size_t);
 uint32_t gp_next_power_of_2_32(uint32_t);
 uint64_t gp_next_power_of_2_64(uint64_t);
 
+/** Round number up to alignment boundary.
+ * @p boundary must be a power of 2.
+ * @return @p x if already aligned.
+ */
 inline uintptr_t gp_round_to_aligned(const uintptr_t x,const uintptr_t boundary)
 {
-    return x + (boundary - 1) - ((x - 1) % boundary);
+    return x + (boundary - 1) - ((x - 1) & (boundary - 1));
 }
 
 #define gp_min(x, y) gp_generic_min(x, y)

@@ -10,7 +10,7 @@
 #ifndef GP_MEMORY_INCLUDED
 #define GP_MEMORY_INCLUDED
 
-#include "attributes.h" // TODO <gpc/attributes> after testing single header generator
+#include <gpc/attributes.h>
 #include <stddef.h>
 
 // ----------------------------------------------------------------------------
@@ -104,6 +104,10 @@ GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
 // ----------------------------------------------------------------------------
 // Arena allocator
 
+#ifndef GP_DEFAULT_INIT_ARENA_SIZE
+#define GP_DEFAULT_INIT_ARENA_SIZE 256
+#endif
+
 // Arena that does not run out of memory. This is achieved by creating new
 // arenas when old one gets full.
 typedef struct gp_arena
@@ -117,6 +121,8 @@ typedef struct gp_arena
 
 GPArena  gp_arena_new(size_t capacity) GP_NODISCARD;
 GPArena* gp_arena_new_shared(size_t capacity) GP_NODISCARD; // for threading
+
+
 void gp_arena_delete(GPArena* optional);
 void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 

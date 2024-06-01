@@ -96,7 +96,7 @@ GPArena gp_arena_new(const size_t capacity)
 {
     const size_t cap  = capacity != 0 ?
         gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT)
-      : 256;
+      : GP_DEFAULT_INIT_ARENA_SIZE;
     GPArenaNode* node = gp_mem_alloc(gp_heap, sizeof(GPArenaNode) + cap);
     node->position = node + 1;
     node->tail     = NULL;
@@ -184,36 +184,24 @@ void* gp_mem_realloc(
 // ----------------------------------------------------------------------------
 // Scope allocator
 
-#ifndef GP_MIN_DEFAULT_SCOPE_SIZE
-#define GP_MIN_DEFAULT_SCOPE_SIZE 1024
-#endif
-
-typedef struct gp_defer_object // TODO rename to GPDeferrer
+typedef struct gp_defer
 {
     void (*f)(void* arg);
     void* arg;
-} GPDeferObject;
+} GPDefer;
 
 typedef struct gp_defer_stack
 {
-    GPDeferObject* stack;
+    GPDefer* stack;
     uint32_t length;
     uint32_t capacity;
 } GPDeferStack;
 
 typedef struct gp_scope
 {
-    GPArena arena;
+    GPArena          arena;
     struct gp_scope* parent;
-    #if TODO
-    union
-    {
-        size_t stack_handle; // index to the appropriate stack
-        GPArray(GPDeferObject) stack; // dynamic array owned by scope_factory
-    } defer;
-    #else
-    GPDeferStack* defer_stack;
-    #endif
+    GPDeferStack*    defer_stack;
 } GPScope;
 
 static GPThreadKey  gp_scope_factory_key;
@@ -302,6 +290,23 @@ static void* gp_scope_alloc(const GPAllocator* scope, size_t _size)
 #define GP_UNLIKELY(COND) (COND)
 #endif
 
+GPArena* gp_new_scope_factory(void)
+{
+    const size_t nested_scopes = 64; // before reallocation
+    GPArena scope_factory_arena = gp_arena_new(
+        (nested_scopes + 1/*self*/) * gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT));
+
+    // Extend lifetime
+    GPArena* scope_factory = gp_arena_alloc(
+        (GPAllocator*)&scope_factory_arena,
+        sizeof(GPScope)); // gets rounded in gp_arena_alloc()
+    memset(scope_factory, 0, sizeof*scope_factory);
+    memcpy(scope_factory, &scope_factory_arena, sizeof*scope_factory);
+
+    gp_thread_local_set(gp_scope_factory_key, scope_factory);
+    return scope_factory;
+}
+
 GPAllocator* gp_begin(const size_t _size)
 {
     gp_thread_once(&gp_scope_factory_key_once, gp_make_scope_factory_key);
@@ -310,25 +315,11 @@ GPAllocator* gp_begin(const size_t _size)
     // sized objects for consistent pointer arithmetic.
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
     if (GP_UNLIKELY(scope_factory == NULL)) // initialize scope factory
-    {
-        const size_t nested_scopes = 64; // before reallocation
-        GPArena scope_factory_data = gp_arena_new(
-            (nested_scopes + 1/*self*/) * gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT));
+        scope_factory = gp_new_scope_factory();
 
-        // TODO scope_factory should be a GPScope so it can have a pointer to an
-        // arena holding all defer stacks.
-        // Extend lifetime
-        GPArena* scope_factory_mem = gp_arena_alloc(
-            (GPAllocator*)&scope_factory_data,
-            sizeof(GPScope)); // gets rounded in gp_arena_alloc()
-        memcpy(scope_factory_mem, &scope_factory_data, sizeof*scope_factory_mem);
-
-        scope_factory = scope_factory_mem;
-        gp_thread_local_set(gp_scope_factory_key, scope_factory);
-    }
     GP_ATOMIC_OP(gp_total_scope_count++);
     const size_t size = _size == 0 ?
-        gp_max(2 * gp_scope_average_memory_usage(), (size_t)GP_MIN_DEFAULT_SCOPE_SIZE)
+        gp_max(2 * gp_scope_average_memory_usage(), (size_t)GP_DEFAULT_INIT_ARENA_SIZE)
       : _size;
 
     GPScope* previous = gp_last_scope_of(scope_factory);
@@ -351,7 +342,6 @@ void gp_end(GPAllocator*_scope)
     GPScope* scope = (GPScope*)_scope;
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
     gp_end_scopes(gp_last_scope_of(scope_factory), scope);
-
     gp_arena_rewind(scope_factory, scope);
 }
 
@@ -360,21 +350,21 @@ void gp_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
     GPScope* scope = (GPScope*)_scope;
     if (scope->defer_stack == NULL)
     {
-        const size_t init_cap = 8;
+        const size_t init_cap = 4;
         scope->defer_stack = gp_arena_alloc((GPAllocator*)scope,
-            sizeof*(scope->defer_stack) + init_cap * sizeof(GPDeferObject));
+            sizeof*(scope->defer_stack) + init_cap * sizeof(GPDefer));
 
         scope->defer_stack->length   = 0;
         scope->defer_stack->capacity = init_cap;
-        scope->defer_stack->stack    = (GPDeferObject*)(scope->defer_stack + 1);
+        scope->defer_stack->stack    = (GPDefer*)(scope->defer_stack + 1);
     }
     else if (scope->defer_stack->length == scope->defer_stack->capacity)
     {
-        GPDeferObject* old_stack  = scope->defer_stack->stack;
+        GPDefer* old_stack  = scope->defer_stack->stack;
         scope->defer_stack->stack = gp_arena_alloc((GPAllocator*)scope,
-            scope->defer_stack->capacity * 2 * sizeof(GPDeferObject));
+            scope->defer_stack->capacity * 2 * sizeof(GPDefer));
         memcpy(scope->defer_stack->stack, old_stack,
-            scope->defer_stack->length * sizeof(GPDeferObject));
+            scope->defer_stack->length * sizeof(GPDefer));
         scope->defer_stack->capacity *= 2;
     }
     scope->defer_stack->stack[scope->defer_stack->length].f   = f;
