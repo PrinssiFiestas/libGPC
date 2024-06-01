@@ -2,7 +2,7 @@
 # Copyright (c) 2023 Lauri Lorenzo Fiestas
 # https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-CC = gcc
+CC      = gcc
 CFLAGS  = -Wall -Wextra -Werror
 CFLAGS += -Wno-missing-field-initializers -Wno-comment -Wno-missing-braces
 CFLAGS += -Iinclude
@@ -13,13 +13,13 @@ endif
 DEBUG_CFLAGS   = -ggdb3
 RELEASE_CFLAGS = -O3 -flto -DNDEBUG
 
-NPROC = $(shell echo `nproc`)
+NPROC        = $(shell echo `nproc`)
 THREAD_COUNT = $(if $(NPROC),$(NPROC),4)
-MAKEFLAGS += -j$(THREAD_COUNT)
+MAKEFLAGS   += -j$(THREAD_COUNT)
 
 ifeq ($(OS), Windows_NT)
 	EXE_EXT = .exe
-	ifeq ($(CC), clang)
+	ifeq ($(CC), clang) # get rid of -flto problems on some platforms
 		RELEASE_CFLAGS = -O3 -DNDEBUG
 	endif
 else

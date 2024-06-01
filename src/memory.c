@@ -148,6 +148,17 @@ void gp_arena_rewind(GPArena* arena, void* new_pos)
     arena->head->position = new_pos;
 }
 
+// With -03 GCC inlined bunch of functions and ignored the last if statement in
+// gp_arena_delete() giving a false positive for -Wfree-nonheap-object and
+// refusing to compile with -Werror so this pointless wrapper is needed.
+#if __GNUC__ && ! __clang__
+__attribute__((noinline))
+#endif
+static void gp_arena_shared_heap_dealloc(GPArena* arena)
+{
+    gp_mem_dealloc(gp_heap, arena);
+}
+
 void gp_arena_delete(GPArena* arena)
 {
     if (arena == NULL)
@@ -158,7 +169,7 @@ void gp_arena_delete(GPArena* arena)
         gp_mem_dealloc(gp_heap, old_head);
     }
     if (arena->allocator.alloc == gp_arena_shared_alloc)
-        gp_mem_dealloc(gp_heap, arena);
+        gp_arena_shared_heap_dealloc(arena);
 }
 
 // ----------------------------------------------------------------------------
