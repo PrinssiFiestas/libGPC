@@ -63,7 +63,7 @@ static uintmax_t get_uint(pf_va_list args[static 1], const PFFormatSpecifier fmt
     }
 }
 
-static void string_padding(
+static void c_string_padding(
     struct pf_string out[static 1],
     const PFFormatSpecifier fmt,
     const void* string,
@@ -100,8 +100,31 @@ static unsigned write_s(
         while (cstr_len < fmt.precision.width && cstr[cstr_len] != '\0')
             cstr_len++;
 
-    string_padding(out, fmt, cstr, cstr_len);
+    c_string_padding(out, fmt, cstr, cstr_len);
     return out->length - original_length;
+}
+
+static void utf8_string_padding(
+    struct pf_string out[static 1],
+    const PFFormatSpecifier fmt,
+    const void* bytes,
+    const size_t bytes_length,
+    const size_t codepoint_count)
+{
+    const unsigned field_width = fmt.field.width > codepoint_count ?
+        fmt.field.width : codepoint_count;
+    const unsigned diff = field_width - codepoint_count;
+    if (fmt.flag.dash) // left justified
+    { // first string, then pad
+        pf_concat(out, bytes, bytes_length);
+        pf_pad(out, ' ', diff);
+    }
+    else // first pad, then string
+    {
+        pf_pad(out, ' ', diff);
+        pf_concat(out, bytes, bytes_length);
+    }
+
 }
 
 static unsigned write_S(
@@ -111,11 +134,27 @@ static unsigned write_S(
 {
     const size_t original_length = out->length;
     const GPString str = va_arg(args->list, GPString);
+
     size_t length = gp_str_length(str);
     if (fmt.precision.option != PF_NONE)
         length = pf_min(length, fmt.precision.width);
 
-    string_padding(out, fmt, str, length);
+    size_t codepoint_count = 0;
+    size_t last_cp_length  = 0;
+    size_t i = 0;
+    while (true)
+    {
+        if (i > length) {
+            codepoint_count--;
+            length = i - last_cp_length;
+            break;
+        } else if (i == length) {
+            break;
+        }
+        codepoint_count++;
+        i += last_cp_length = gp_char_codepoint_length(str + i);
+    }
+    utf8_string_padding(out, fmt, str, length, codepoint_count);
     return out->length - original_length;
 }
 

@@ -282,7 +282,7 @@ int main(void)
             gp_expect(gp_str_equal(str, "Copying strings.", strlen("Copying strings.")));
         }
 
-        gp_test("Custom formats");
+        gp_test("Formatting");
         {
             GPString str = gp_str_on_stack(NULL, 128, "");
             gp_str_print(&str,
@@ -299,6 +299,20 @@ int main(void)
             gp_str_print(&str, "%S for GPString", str2);
             sprintf(buf, "%s for GPString", gp_cstr(str2));
             gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
+
+            GPString str3 = gp_str_on_stack(NULL, 128, "");
+            gp_str_copy(&str,  "a", 1);
+            gp_str_copy(&str2, "ä", strlen("ä"));
+            gp_str_print(&str3, "|%4S|%4S|%4s|", str, str2, "ö");
+            strcpy(buf, "|   a|   ä|  ö|");
+            gp_expect(gp_str_equal(str3, buf, strlen(buf)),
+                "GPString should calculate field width based on UTF-8 "
+                "codepoints. This is not true for char* though.", str3);
+            gp_str_print(&str3, "|%4.1S|", str2);
+            gp_expect(gp_str_equal(str3, "|    |", strlen("|    |")),
+                "Precision is calculated in bytes. Here 'ä' didn't fit. Instead "
+                "of truncating the codepoint making the stirng invalid UTF-8, "
+                "'ä' got removed completely.");
         }
 
         gp_test("Fixed width length modifiers for format strings");

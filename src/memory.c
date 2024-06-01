@@ -200,7 +200,7 @@ static GPArena* gp_new_scratch_arena(void)
     *arena = _arena;
     #else
     gp_scratch_allocator = gp_arena_new(GP_SCOPE_DEFAULT_INIT_SIZE);
-    GPArena* arena = &gp_scratch_allocator;
+    GPArena* arena       = &gp_scratch_allocator;
     #endif
     arena->max_size           = GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE;
     arena->growth_coefficient = GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT;
