@@ -14,11 +14,11 @@
 // source files in an #ifdef X_IMPLEMENTATION block. #include directives
 // referring to local headers have to be filtered out or inlined if not already.
 
-#include <gpc/string.h>
-#include <gpc/io.h>
-#include <gpc/array.h>
-#include <gpc/assert.h>
-#include <gpc/terminal.h>
+#include "../include/gpc/string.h"
+#include "../include/gpc/io.h"
+#include "../include/gpc/array.h"
+#include "../include/gpc/assert.h"
+#include "../include/gpc/terminal.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
