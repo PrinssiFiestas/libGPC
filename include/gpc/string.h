@@ -66,20 +66,18 @@ GPString gp_str_new(
 */
 
 // Passing strings on stack is safe too.
-void gp_str_delete(GPString optional_string);
+void gp_str_delete(GPString optional);
 
 const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
 size_t             gp_str_length    (GPString) GP_NONNULL_ARGS();
 size_t             gp_str_capacity  (GPString) GP_NONNULL_ARGS();
 const GPAllocator* gp_str_allocator (GPString) GP_NONNULL_ARGS();
-
-// Pass this to gp_mem_dealloc() if allocated
 void*              gp_str_allocation(GPString) GP_NONNULL_ARGS();
 
 GP_NONNULL_ARGS()
 void gp_str_reserve(
-    GPString* str,
+    GPString*,
     size_t    capacity);
 
 GP_NONNULL_ARGS()
@@ -154,21 +152,19 @@ size_t gp_str_replace_all(
 // Trims whitespace if char_set is NULL.
 GP_NONNULL_ARGS(1)
 void gp_str_trim(
-    GPString*   str,
+    GPString*,
     const char* optional_char_set,
     int         flags);
 
 // Only converts Unicode characters with 1:1 mapping. Result is locale
 // dependent.
 GP_NONNULL_ARGS()
-void gp_str_to_upper(
-    GPString* str);
+void gp_str_to_upper(GPString*);
 
 // Only converts Unicode characters with 1:1 mapping. Result is locale
 // dependent.
 GP_NONNULL_ARGS()
-void gp_str_to_lower(
-    GPString* str);
+void gp_str_to_lower(GPString*);
 
 GP_NONNULL_ARGS()
 void gp_str_to_valid(
@@ -185,7 +181,7 @@ void gp_str_to_valid(
 // Returns  1 if file size > SIZE_MAX in 32-bit systems.
 GP_NONNULL_ARGS() GP_NODISCARD
 int gp_str_file(
-    GPString*   str,
+    GPString*,
     const char* file_path,
     const char* operation);
 
