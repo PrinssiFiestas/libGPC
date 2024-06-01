@@ -25,6 +25,7 @@
 #define GP_MAYBE_THREAD_LOCAL __thread
 #else
 #define GP_MAYBE_THREAD_LOCAL
+#define GP_NO_THREAD_LOCALS
 #endif
 
 // Use this only when atomis are desirable but not necessary.

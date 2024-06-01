@@ -33,7 +33,7 @@ static void deferred_dealloc(void* p)
     gp_mem_dealloc(gp_heap, p);
 }
 
-void* test0(void*_)
+static void* test0(void*_)
 {
     (void)_;
     void* ps[8] = {0}; // Dummy objects
@@ -108,9 +108,9 @@ void* test0(void*_)
     return NULL;
 }
 
-void* test1_ps[4] = {0};
+static void* test1_ps[4] = {0};
 
-void* test1(void*_)
+static void* test1(void*_)
 {
     (void)_;
     GPAllocator* scope0 = gp_begin(0);
@@ -124,7 +124,7 @@ void* test1(void*_)
     return NULL;
 } // All scopes will be cleaned when threads terminate
 
-void* test2(void*_)
+static void* test2(void*_)
 {
     (void)_;
     gp_suite("Arena allocator");
@@ -167,7 +167,7 @@ void* test2(void*_)
     return NULL;
 }
 
-void* test_shared(void* shared_arena)
+static void* test_shared(void* shared_arena)
 {
     (void)shared_arena;
     gp_test("Shared arena");
@@ -178,6 +178,22 @@ void* test_shared(void* shared_arena)
             strcpy(str, "Thread safe!");
             gp_assert(strcmp(str, "Thread safe!") == 0);
         }
+    }
+    return NULL;
+}
+
+static void* test_scratch(void*_)
+{
+    (void)_;
+    gp_test("Scratch arena");
+    {
+        GPArena* scratch = gp_scratch_arena();
+        char* mem = gp_mem_alloc((GPAllocator*)scratch, 64);
+        strcpy(mem, "Blazing fast thread local memory!");
+        gp_expect(strcmp(mem, "Blazing fast thread local memory!") == 0);
+
+        // Do NOT delete scratch arenas! Scratch arenas get deleted
+        // automatically when threads exit.
     }
     return NULL;
 }
@@ -207,6 +223,11 @@ int main(void)
     for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
         pthread_join(tests[i], NULL);
     gp_arena_delete(shared_arena);
+
+    for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
+        pthread_create(&tests[i], NULL, test_scratch, NULL);
+    for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
+        pthread_join(tests[i], NULL);
 
     // Make Valgrind shut up.
     delete_test_allocator();

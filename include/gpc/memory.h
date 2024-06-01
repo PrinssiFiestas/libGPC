@@ -101,12 +101,19 @@ void gp_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
 // as arguments when possible.
 GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
 
+// Feel free to define your own values for these
+#ifndef GP_SCOPE_DEFAULT_INIT_SIZE
+#define GP_SCOPE_DEFAULT_INIT_SIZE 256
+#endif
+#ifndef GP_SCOPE_DEFAULT_MAX_SIZE
+#define GP_SCOPE_DEFAULT_MAX_SIZE (1 << 15) // 32 KB
+#endif
+#ifndef GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT
+#define GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT 2.0
+#endif
+
 // ----------------------------------------------------------------------------
 // Arena allocator
-
-#ifndef GP_DEFAULT_INIT_ARENA_SIZE
-#define GP_DEFAULT_INIT_ARENA_SIZE 256
-#endif
 
 // Arena that does not run out of memory. This is achieved by creating new
 // arenas when old one gets full.
@@ -116,15 +123,39 @@ typedef struct gp_arena
     double growth_coefficient;
     size_t max_size;
     size_t alignment;
-    struct gp_arena_node* head; // private!
+    struct gp_arena_node* head; // private
 } GPArena;
 
-GPArena  gp_arena_new(size_t capacity) GP_NODISCARD;
-GPArena* gp_arena_new_shared(size_t capacity) GP_NODISCARD; // for threading
+// Basic fast arena
+GPArena gp_arena_new(size_t capacity) GP_NODISCARD;
 
+// Arena with mutex alloc(). dealloc() is also thread safe, but delete() and
+// rewind() is not!
+GPArena* gp_arena_new_shared(size_t capacity) GP_NODISCARD;
+
+// Use this to free chunks everything after to_this_position including
+// to_this_position. Pass the first allocated object to clear the whole arena.
+void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 
 void gp_arena_delete(GPArena* optional);
-void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
+
+// ----------------------------------------------------------------------------
+// Thread local scratch arena
+
+// Use this for temporary memory. Rewind when you are done, but do NOT delete.
+// Scratch arenas get deleted automatically when threads exit.
+GPArena* gp_scratch_arena(void) GP_NODISCARD;
+
+// Feel free to define your own values for these
+#ifndef GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE
+#define GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE 256
+#endif
+#ifndef GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE
+#define GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE SIZE_MAX
+#endif
+#ifndef GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT
+#define GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT 2.0
+#endif
 
 // ----------------------------------------------------------------------------
 // Heap allocator

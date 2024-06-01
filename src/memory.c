@@ -13,6 +13,12 @@
 #include <gpc/assert.h>
 #endif
 
+#ifdef __GNUC__
+#define GP_UNLIKELY(COND) __builtin_expect(!!(COND), 0)
+#else
+#define GP_UNLIKELY(COND) (COND)
+#endif
+
 extern inline void* gp_mem_alloc       (const GPAllocator*,size_t);
 extern inline void* gp_mem_alloc_zeroes(const GPAllocator*,size_t);
 extern inline void  gp_mem_dealloc     (const GPAllocator*,void*);
@@ -96,7 +102,7 @@ GPArena gp_arena_new(const size_t capacity)
 {
     const size_t cap  = capacity != 0 ?
         gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT)
-      : GP_DEFAULT_INIT_ARENA_SIZE;
+      : 256;
     GPArenaNode* node = gp_mem_alloc(gp_heap, sizeof(GPArenaNode) + cap);
     node->position = node + 1;
     node->tail     = NULL;
@@ -153,6 +159,63 @@ void gp_arena_delete(GPArena* arena)
     }
     if (arena->allocator.alloc == gp_arena_shared_alloc)
         gp_mem_dealloc(gp_heap, arena);
+}
+
+// ----------------------------------------------------------------------------
+// Scratch arena
+
+static GPThreadKey  gp_scratch_arena_key;
+static GPThreadOnce gp_scratch_arena_key_once = GP_THREAD_ONCE_INIT;
+#ifndef GP_NO_THREAD_LOCALS // Avoid unnecessary heap allocation
+static GP_MAYBE_THREAD_LOCAL GPArena gp_scratch_allocator = {0};
+#endif
+
+static void gp_delete_scratch_arena(void* arena)
+{
+    gp_arena_delete(arena);
+    #ifdef GP_NO_THREAD_LOCALS
+    gp_mem_dealloc(gp_heap, arena);
+    #endif
+}
+
+// Make Valgrind shut up.
+static void gp_delete_main_thread_scratch_arena(void)
+{
+    GPArena* arena = gp_thread_local_get(gp_scratch_arena_key);
+    if (arena != NULL)
+        gp_delete_scratch_arena(arena);
+}
+
+static void gp_make_scratch_arena_key(void)
+{
+    atexit(gp_delete_main_thread_scratch_arena);
+    gp_thread_key_create(&gp_scratch_arena_key, gp_delete_scratch_arena);
+}
+
+static GPArena* gp_new_scratch_arena(void)
+{
+    #ifdef GP_NO_THREAD_LOCALS
+    GPArena _arena = gp_arena_new(GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE);
+    GPArena* arena = gp_mem_alloc(gp_heap, sizeof*arena);
+    *arena = _arena;
+    #else
+    gp_scratch_allocator = gp_arena_new(GP_SCOPE_DEFAULT_INIT_SIZE);
+    GPArena* arena = &gp_scratch_allocator;
+    #endif
+    arena->max_size           = GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE;
+    arena->growth_coefficient = GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT;
+    gp_thread_local_set(gp_scratch_arena_key, arena);
+    return arena;
+}
+
+GPArena* gp_scratch_arena(void)
+{
+    gp_thread_once(&gp_scratch_arena_key_once, gp_make_scratch_arena_key);
+
+    GPArena* arena = gp_thread_local_get(gp_scratch_arena_key);
+    if (GP_UNLIKELY(arena == NULL))
+        arena = gp_new_scratch_arena();
+    return arena;
 }
 
 // ----------------------------------------------------------------------------
@@ -284,12 +347,6 @@ static void* gp_scope_alloc(const GPAllocator* scope, size_t _size)
     return gp_arena_alloc(scope, size);
 }
 
-#ifdef __GNUC__
-#define GP_UNLIKELY(COND) __builtin_expect(!!(COND), 0)
-#else
-#define GP_UNLIKELY(COND) (COND)
-#endif
-
 GPArena* gp_new_scope_factory(void)
 {
     const size_t nested_scopes = 64; // before reallocation
@@ -319,7 +376,7 @@ GPAllocator* gp_begin(const size_t _size)
 
     GP_ATOMIC_OP(gp_total_scope_count++);
     const size_t size = _size == 0 ?
-        gp_max(2 * gp_scope_average_memory_usage(), (size_t)GP_DEFAULT_INIT_ARENA_SIZE)
+        gp_max(2 * gp_scope_average_memory_usage(), (size_t)GP_SCOPE_DEFAULT_INIT_SIZE)
       : _size;
 
     GPScope* previous = gp_last_scope_of(scope_factory);
@@ -328,7 +385,9 @@ GPAllocator* gp_begin(const size_t _size)
 
     GPScope* scope = gp_arena_alloc((GPAllocator*)scope_factory, sizeof*scope);
     *(GPArena*)scope = gp_arena_new(size);
-    scope->arena.allocator.alloc = gp_scope_alloc;
+    scope->arena.allocator.alloc    = gp_scope_alloc;
+    scope->arena.max_size           = GP_SCOPE_DEFAULT_MAX_SIZE;
+    scope->arena.growth_coefficient = GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT;
     scope->parent = previous;
     scope->defer_stack = NULL;
 
