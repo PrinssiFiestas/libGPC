@@ -11,6 +11,7 @@
 
 #include "attributes.h"
 #include "overload.h"
+#include <string.h>
 #include <stdbool.h>
 #include <stddef.h>
 
