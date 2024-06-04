@@ -91,9 +91,19 @@ static void* test0(void*_)
             GPAllocator* scope = gp_begin(0);
 
             void* p1 = gp_mem_alloc(gp_heap, 64);
-            gp_defer(scope, deferred_dealloc, p1);
+            gp_scope_defer(scope, deferred_dealloc, p1);
             void* p2 = gp_mem_alloc(gp_heap, 64);
             gp_defer(scope, deferred_dealloc, p2);
+            FILE* f = tmpfile();
+            #if WARNING
+            // fclose does not type check to void(*)(void*) although safe. Bad!
+            gp_scope_defer(scope, fclose, f);
+            // pi does not type check to arg of fclose which would be unsafe. Good!
+            int* pi = gp_mem_alloc(gp_heap, sizeof*pi);
+            gp_defer(scope, fclose, pi);
+            #else
+            gp_defer(scope, fclose, f);
+            #endif
 
             gp_expect( ! is_free(p1));
             gp_expect( ! is_free(p2));

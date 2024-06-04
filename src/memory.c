@@ -415,7 +415,7 @@ void gp_end(GPAllocator*_scope)
     gp_arena_rewind(scope_factory, scope);
 }
 
-void gp_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
+void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
 {
     GPScope* scope = (GPScope*)_scope;
     if (scope->defer_stack == NULL)

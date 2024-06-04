@@ -1,7 +1,7 @@
 import gdb
 import gdb.printing
 
-class StringPrinter():
+class GPStringPrinter():
     def __init__(self, val):
         self.val = val
 
@@ -15,12 +15,12 @@ class StringPrinter():
         val_contents = str(val_contents).encode("unicode_escape").decode()
         return "\"" + val_contents + "\", " + str(str_data)
 
-def str_lookup_function(val):
+def gp_str_lookup_function(val):
     if str(val.type) == "GPString":
         return StringPrinter(val)
     return None
 
-def const_str_lookup_function(val):
+def gp_const_str_lookup_function(val):
     if str(val.type) == "const GPString":
         return StringPrinter(val)
     return None

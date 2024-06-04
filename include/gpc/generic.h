@@ -3,7 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 /**@file generic.h
- * Type generic macros for arrays and strings.
+ * Type generic macros.
  */
 
 #ifndef GP_GENERIC_INCLUDED
@@ -11,6 +11,7 @@
 
 #include <gpc/array.h>
 #include <gpc/string.h>
+#include <gpc/hashmap.h>
 
 // ----------------------------------------------------------------------------
 //
@@ -18,15 +19,68 @@
 //
 // ----------------------------------------------------------------------------
 
-#define gp_length(X)            GP_LENGTH(X)
-#define gp_capacity(X)          GP_CAPACITY(X)
-#define gp_allocation(X)        GP_ALLOCATION(X)
-#define gp_allocator(X)         GP_ALLOCATOR(X)
-#define gp_reserve(X, CAPACITY) GP_RESERVE(X, CAPACITY)
-#define gp_copy(X, ...)         GP_COPY(X, __VA_ARGS__)
-#define gp_slice(X, ...)        GP_SLICE(X, __VA_ARGS__)
-#define gp_append(X, ...)       GP_APPEND(X, __VA_ARGS__)
-#define gp_insert(X, ...)       GP_INSERT(X, __VA_ARGS__)
+// TODO most of these
+
+// Note: macros may take variadic arguments even when not necessary for better
+// error messages.
+
+#define GPHashMap(T) T*
+
+// Constructors
+#define gp_arr(...)          GP_ARR_NEW(__VA_ARGS__)
+#define gp_str(...)          GP_STR_NEW(__VA_ARGS__)
+#define gp_hmap(...)
+
+// Strings
+#define gp_repeat(...)
+#define gp_replace(...)
+#define gp_replace_all(...)
+#define gp_trim(...)
+#define gp_to_upper(...)     gp_str_to_upper(__VA_ARGS__)
+#define gp_to_lower(...)     gp_str_to_lower(__VA_ARGS__)
+#define gp_to_valid(...)
+#define gp_find_first(...)
+#define gp_find_last(...)
+#define gp_find_first_of(...)
+#define gp_find_first_not_of(...)
+#define gp_count(...)
+#define gp_equal(...)
+#define gp_equal_case(...)
+#define gp_codepoint_count(...)
+#define gp_is_valid(...)
+#define gp_codepoint_length(...) gp_char_codepoint_length(__VA_ARGS__)
+#define gp_classify(...)
+
+// Strings and arrays
+#define gp_length(...)       gp_arr_length(__VA_ARGS__)
+#define gp_capacity(...)     gp_arr_capacity(__VA_ARGS__)
+#define gp_allocation(...)   gp_arr_allocation(__VA_ARGS__)
+#define gp_allocator(...)    gp_arr_allocator(__VA_ARGS__)
+#define gp_reserve(...)      GP_RESERVE(__VA_ARGS__)
+#define gp_copy(...)         GP_COPY(__VA_ARGS__)
+#define gp_slice(...)        GP_SLICE(__VA_ARGS__)
+#define gp_append(...)       GP_APPEND(__VA_ARGS__)
+#define gp_insert(...)       GP_INSERT(__VA_ARGS__)
+
+// Arrays
+#define gp_map(...)
+#define gp_fold(...)
+#define gp_foldr(...)
+#define gp_filter(...)
+
+// Arrays and hash maps
+#define gp_at(...)
+#define gp_push(...)
+#define gp_pop(...)
+#define gp_remove(...)
+
+// Memory
+#define gp_alloc(...)        GP_ALLOC(__VA_ARGS__)
+#define gp_alloc_type(...)   GP_ALLOC_TYPE(__VA_ARGS__)
+#define gp_alloc_zeroes(...) GP_ALLOC_ZEROES(__VA_ARGS__)
+#define gp_dealloc(...)      GP_DEALLOC(__VA_ARGS__)
+#define gp_realloc(...)      GP_REALLOC(__VA_ARGS__)
+
 
 // ----------------------------------------------------------------------------
 //
@@ -36,10 +90,30 @@
 //
 // ----------------------------------------------------------------------------
 
-#define GP_LENGTH(A)            gp_arr_length(A)
-#define GP_CAPACITY(A)          gp_arr_capacity(A)
-#define GP_ALLOCATION(A)        gp_arr_allocation(A)
-#define GP_ALLOCATOR(A)         gp_arr_allocator(A)
+
+// ----------------------------------------------------------------------------
+// Constructors
+
+#define GP_ARR_NEW(ALLOCATOR, COUNT, TYPE, ...) \
+    (TYPE*)gp_arr_copy(sizeof(TYPE), \
+        gp_arr_new(ALLOCATOR, COUNT, sizeof(TYPE)), \
+        (TYPE[]){__VA_ARGS__}, \
+        sizeof((TYPE[]){__VA_ARGS__}) / sizeof(TYPE))
+
+#define GP_STRING_WITH_INIT(ALC, CAP, INIT) gp_str_new(ALC, CAP, INIT)
+#define GP_STRING_WOUT_INIT(ALC, CAP)       gp_str_new(ALC, CAP, "")
+#define GP_STR_NEW(ALLOCATOR, ...) \
+    GP_OVERLOAD2(__VA_ARGS__, GP_STRING_WITH_INIT, GP_STRING_WOUT_INIT)(ALLOCATOR, __VA_ARGS__)
+
+// ----------------------------------------------------------------------------
+// Srting and array shared
+
+#ifdef GP_TYPEOF
+// Suppress GCC suspicious usage of sizeof warning.
+#define GP_SIZEOF_TYPEOF(X) sizeof(GP_TYPEOF(X))
+#else
+#define GP_SIZEOF_TYPEOF(X) sizeof(X)
+#endif
 
 void gp_reserve99(size_t elem_size, void* px, const size_t capacity);
 #define GP_RESERVE(A, CAPACITY) gp_reserve99(sizeof**(A), A, CAPACITY)
@@ -72,21 +146,16 @@ void* gp_append99(
 
 #define GP_APPEND2(A, B) \
     gp_append99(sizeof*(A), A, B, #B, sizeof(B), sizeof*(B), NULL, NULL, 0)
-    //gp_append99(sizeof*(A), A, B, #B, sizeof(B) - sizeof"", sizeof*(B), NULL, NULL, 0)
 
 #define GP_APPEND3(A, B, C) \
     gp_append99(sizeof*(A), A, \
         B, GP_IS_ALC(A) ? #B : NULL, GP_IS_ALC(A) ? sizeof(B) : (uintptr_t)(C), sizeof*(B), \
-        GP_IS_ALC(A) ? (void*)(C) : NULL, #C, sizeof(typeof(C)))
-        // B, GP_IS_ALC(A) ? #B : NULL, GP_IS_ALC(A) ? sizeof(B) - sizeof"" : (uintptr_t)(C), sizeof*(B), \
-        //GP_IS_ALC(A) ? (void*)(C) : NULL, #C, sizeof((char[]){C}) - sizeof"")
+        GP_IS_ALC(A) ? (void*)(C) : NULL, #C, GP_SIZEOF_TYPEOF(C))
 
 #define GP_APPEND4(A, B, C, D) \
     gp_append99(sizeof*(A), A, \
         B, #B, sizeof(B) : sizeof*(B), \
         C, NULL, D)
-        // B, #B, sizeof(B) - sizeof"" : sizeof*(B), \
-        // C, NULL, D)
 
 #define GP_APPEND5(A, B, C, D, E) \
     gp_append99(sizeof*(A), A, B, NULL, C, sizeof*(B), D, NULL, E)
@@ -100,26 +169,42 @@ void* gp_insert99(
 
 #define GP_INSERT3(A, POS, B) \
     gp_insert99(sizeof*(A), A, POS, B, #B, sizeof(B), sizeof*(B), NULL, NULL, 0)
-//    gp_insert99(sizeof*(A), A, POS, B, #B, sizeof(B) - sizeof"", sizeof*(B), NULL, NULL, 0)
 
 #define GP_INSERT4(A, POS, B, C) \
     gp_insert99(sizeof*(A), A, POS, \
         B, GP_IS_ALC(A) ? #B : NULL, GP_IS_ALC(A) ? sizeof(B) : (uintptr_t)(C), sizeof*(B), \
-        GP_IS_ALC(A) ? (void*)(C) : NULL, #C, sizeof((char[]){C}))
-        // B, GP_IS_ALC(A) ? #B : NULL, GP_IS_ALC(A) ? sizeof(B) - sizeof"" : (uintptr_t)(C), sizeof*(B), \
-        // GP_IS_ALC(A) ? (void*)(C) : NULL, #C, sizeof((char[]){C}) - sizeof"")
+        GP_IS_ALC(A) ? (void*)(C) : NULL, #C, GP_SIZEOF_TYPEOF(C))
 
 #define GP_INSERT5(A, POS, B, C, D) \
     gp_insert99(sizeof*(A), A, POS, \
         B, #B, sizeof(B): sizeof*(B), \
         C, NULL, D)
-        //B, #B, sizeof(B) - sizeof"" : sizeof*(B), \
-        //C, NULL, D)
 
 #define GP_INSERT6(A, POS, B, C, D, E) \
     gp_insert99(sizeof*(A), A, POS, B, NULL, C, sizeof*(B), D, NULL, E)
 
 #define GP_INSERT(A, POS, ...) GP_OVERLOAD4(__VA_ARGS__, \
     GP_INSERT6, GP_INSERT5, GP_INSERT4, GP_INSERT3)(A, POS, __VA_ARGS__)
+
+// ----------------------------------------------------------------------------
+// Allocators
+
+#define GP_ALLOC(ALLOCATOR, SIZE) gp_mem_alloc((GPAllocator*)(ALLOCATOR), SIZE)
+
+#define GP_ALLOC_TYPE_WITH_COUNT(ALLOCATOR, TYPE, COUNT) \
+    gp_mem_alloc((GPAllocator*)(ALLOCATOR), (COUNT) * sizeof(TYPE))
+#define GP_ALLOC_TYPE_WOUT_COUNT(ALLOCATOR, TYPE) \
+    gp_mem_alloc((GPAllocator*)(ALLOCATOR), sizeof(TYPE))
+#define GP_ALLOC_TYPE(ALC, ...) \
+    GP_OVERLOAD2(__VA_ARGS__, GP_ALLOC_TYPE_WITH_COUNT,GP_ALLOC_TYPE_WOUT_COUNT)(ALC, __VA_ARGS__)
+
+#define GP_ALLOC_ZEROES(ALLOCATOR, SIZE, COUNT) \
+    gp_mem_alloc_zeroes((GPAllocator*)(ALLOCATOR), (SIZE) * sizeof(TYPE))
+
+#define GP_DEALLOC(ALLOCATOR, BLOCK) \
+    gp_mem_dealloc((GPAllocator*)(ALLOCATOR), (BLOCK))
+
+#define GP_REALLOC(ALLOCATOR, ...) \
+    gp_mem_realloc((GPAllocator*)(ALLOCATOR),__VA_ARGS__)
 
 #endif // GP_GENERIC_INCLUDED

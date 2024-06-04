@@ -68,22 +68,6 @@ void* gp_mem_realloc(
     size_t old_size,
     size_t new_size);
 
-#define gp_alloc(allocator, type, count) \
-    gp_mem_alloc((GPAllocator*)(allocator), (count) * sizeof(type))
-
-#define gp_alloc_zeroes(allocator, type, count) \
-    gp_mem_alloc_zeroes((GPAllocator*)(allocator), (count) * sizeof(type))
-
-#define gp_dealloc(allocator, optional_block) \
-    gp_mem_dealloc((GPAllocator*)(allocator), (optional_block))
-
-#define gp_realloc(allocator, optional_block, old_capacity, new_capacity) \
-    gp_mem_realloc( \
-        (GPAllocator*)(allocator), \
-        optional_block, \
-        old_capacity, \
-        new_capacity)
-
 // ----------------------------------------------------------------------------
 // Scope allocator
 
@@ -95,7 +79,14 @@ void gp_end(GPAllocator* optional_scope);
 
 // Deferred functions are called in Last In First Out order in gp_end().
 GP_NONNULL_ARGS(1, 2)
-void gp_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
+void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
+
+// like scope_defer() but can take also take functions with non-void pointer
+// arguments. Also argument to f will be type checked.
+#define gp_defer(scope, f, arg) do { \
+    if (0) (f)(arg); \
+    gp_scope_defer(scope, (void(*)(void*))(f), arg); \
+} while(0)
 
 // Get lastly created scope in callbacks. You should prefer to just pass scopes
 // as arguments when possible.

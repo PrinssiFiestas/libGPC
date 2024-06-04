@@ -34,7 +34,7 @@ GPString gp_str_new(
 void gp_str_delete(GPString me)
 {
     if (me != NULL && gp_str_allocation(me) != NULL)
-        gp_dealloc(gp_str_allocator(me), gp_str_allocation(me));
+        gp_mem_dealloc(gp_str_allocator(me), gp_str_allocation(me));
 }
 
 static GPStringHeader* gp_str_header(const GPString str)

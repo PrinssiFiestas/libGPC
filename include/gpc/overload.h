@@ -92,7 +92,7 @@ int main(void)
 // not all compilers are supported.
 
 #if __STDC_VERSION__ >= 202311L || defined(__GNUC__) || defined(__TINYC__)
-#define GP_TYPEOF(X) typeof(X)
+#define GP_TYPEOF(...) typeof(__VA_ARGS__)
 #elif defined(_MSC_VER)
 #define GP_TYPEOF(X) __typeof__(X)
 #endif
