@@ -31,177 +31,113 @@
 
 int main(void)
 {
-    GPArena _arena = gp_arena_new(0);
-    GPAllocator* arena = (GPAllocator*)&_arena;
-    gp_suite("Memory");
+    GPArena arena = gp_arena_new(0);
+    gp_suite("Strings");
     {
-        gp_test("Arrays on stack");
+        // GPString str1 = gp_str(&arena);
+        // GPString str2 = gp_str(&arena);
+        // GPString str3 = gp_str(&arena, ""); // same as the ones above
+        // char cstr[64] = "whatever";
+        gp_test("Repeat");
         {
-            // Create array that can hold 4 elements
-            GPArray(int) arr = gp_arr_on_stack(arena, 4, int);
-            gp_expect(gp_allocation(arr) == NULL,
-                "Stack allocated arrays should not have a allocation.");
+            // gp_repeat(&str1, 2, "blah", strlen("blah")); // ok, length given
+            // gp_repeat(&str2, 3, "BLAH"); // ok, literal string
+            // gp_repeat(&str3, 4, str1);   // ok, GPString
+            // //gp_repeat(&str3, 5, cstr); // not ok, non-literal without length!
 
-            // It's okay not to provide an allocator since this one does not grow.
-            const GPArray(int) arr2 = gp_arr_on_stack(NULL, 8, int,
-                1, 2, 3, 4, 5, 6, 7, 8);
+            // // Same as above but by passing an allocator, a copy is made instead
+            // // of writing to an output string.
+            // GPString copy1 = gp_repeat(&arena, 2, "blah", strlen("blah"));
+            // GPString copy2 = gp_repeat(&arena, 3, "BLAH");
+            // GPString copy3 = gp_repeat(&arena, 4, str1);
+            // //GPString copy4 = gp_repeat(&arena, 5, cstr);
 
-            // Copying past capacity is safe; arr uses gp_heap to reallocate.
-            arr = gp_arr_copy(sizeof*arr, arr, arr2, gp_length(arr2));
-            arr_assert_eq(arr, arr2, gp_length(arr2));
-
-            // First array is on gp_heap, don't forget to deallocate!
-            gp_arr_delete(arr);
-
-            // The second array is on stack and no allocator provided so no need
-            // to delete. It is safe, but in this case compiler warns about
-            // discarding const qualifier.
-            #if WARNING
-            gp_arr_delete(arr2);
-            #endif
+            // gp_expect(gp_equal(str1, "blahblah", strlen("blahblah")));
+            // gp_expect(gp_equal(str2, "BLAHBLAHBLAH"));
+            // gp_expect(gp_equal(copy1, str1));
+            // gp_expect(gp_equal(copy2, str2));
+            // gp_expect(gp_equal(copy3, str3));
         }
-
-        gp_test("Fast array on stack");
-        {
-            // Avoiding initialization cost of large arrays by manually creating
-            // them on stack.
-            struct name_is_optional_if_C11_but_C99_requires_it {
-                GPArrayHeader header;
-                int array[2048];
-            } array_mem; // No init!
-            array_mem.header = (GPArrayHeader) {
-                .capacity  = 2048,
-                .allocator = gp_heap // optional if 2048 is not exceeded
-            };
-            GPArray(int) arr = array_mem.array;
-
-            const int carr[] = { 1, 2, 3 };
-            gp_copy(&arr, carr, CARR_LEN(carr));
-            arr_assert_eq(arr, carr, CARR_LEN(carr));
-
-            gp_arr_delete(arr);
-        }
-
-        gp_test("Arrays on arenas/scopes");
-        {
-            // Here using the scope allocator, but everything in this example
-            // applies to GPArena as well.
-
-            // Note: arrays and arenas have metadata so an arena with size
-            // 256 * sizeof(int) is NOT capable of holding an array with 256 ints.
-            GPAllocator* scope = gp_begin(256 * sizeof(int));
-
-            const size_t INIT_CAPACITY = 8;
-            GPArray(int) arr = gp_arr_new(scope, sizeof*arr, INIT_CAPACITY);
-            const int*const init_pos = arr;
-            gp_expect(gp_capacity(arr) == INIT_CAPACITY);
-            gp_reserve(&arr, 9); // Extend arr memory
-            gp_expect(gp_capacity(arr) > INIT_CAPACITY
-                && arr == init_pos,"Arenas should know how to extend memory of "
-                                   "lastly created objects so arr is not moved.");
-
-            void* new_object = gp_mem_alloc(scope, 1); (void)new_object;
-            gp_reserve(&arr, 32);
-            gp_expect(arr != init_pos,
-                "arr can nott extend since it would overwrite new_object.");
-            const int*const new_pos = arr;
-            arr = gp_arr_reserve(sizeof*arr, arr, 64);
-            gp_expect(arr == new_pos,
-                "After reallocation arr is last element so it can be extended.");
-
-            arr = gp_arr_reserve(sizeof*arr, arr, 256);
-            gp_expect(arr != new_pos,
-                "arr did not fit in arena so it should've been reallocated.");
-
-            // No need to delete arr or dealloc new_object, they live in scope.
-            gp_end(scope);
-        }
-    } // gp_suite("Memory");
-
-    gp_suite("Array manipulation");
-    {
-        GPAllocator* scope = gp_begin(0);
-
-        gp_test("Copy slice");
-        {
-            GPArray(int) arr = gp_arr_on_stack(NULL, 64, int);
-            const int carr[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-
-            gp_slice(&arr, carr, 1, 6);
-            const int carr2[] = { 1, 2, 3, 4, 5 };
-            arr_assert_eq(arr, carr2, CARR_LEN(carr2));
-        }
-
-        gp_test("Mutating slice");
-        {
-            GPArray(int) arr = gp_arr_on_stack(NULL, 64, int, 0, 1, 2, 3, 4, 5 );
-            gp_slice(&arr, 2, 5);
-            const int carr[] = { 2, 3, 4 };
-            arr_assert_eq(arr, carr, CARR_LEN(carr));
-        }
-
-        gp_test("Push and pop");
-        {
-            GPArray(int) arr = gp_arr_new(scope, sizeof*arr, 4);
-            arr = gp_arr_push(sizeof*arr, arr, &(int){3});
-            arr = gp_arr_push(sizeof*arr, arr, &(int){6});
-            gp_expect(arr[0] == 3);
-            gp_expect(arr[1] == 6);
-            gp_expect(gp_arr_length(arr) == 2);
-            gp_expect(*(int*)gp_arr_pop(sizeof*arr, arr) == 6);
-            gp_expect(*(int*)gp_arr_pop(sizeof*arr, arr) == 3);
-            gp_expect(gp_arr_length(arr) == 0);
-
-            // Undefined, arr length is 0, don't do this!
-            // gp_arr_pop(sizeof*arr, arr);
-        }
-
-        gp_test("Append, insert, and remove");
-        {
-            GPArray(int) arr = gp_arr_new(scope, sizeof*arr, 4);
-            gp_append(&arr, ((int[]){1,2,3}), 3);
-            arr_assert_eq(arr, ((int[]){1,2,3}), 3);
-            gp_append(&arr, ((int[]){4,5,6}));
-            arr_assert_eq(arr, ((int[]){1,2,3,4,5,6}), 6);
-            gp_insert(&arr, 3, ((int[]){0,0}), 2);
-            arr_assert_eq(arr, ((int[]){1,2,3,0,0,4,5,6}), 8);
-            arr = gp_arr_remove(sizeof*arr, arr, 3, 2);
-            arr_assert_eq(arr, ((int[]){1,2,3,4,5,6}), 6);
-        }
-
-        gp_test("Map, fold, foldr, filter");
-        {
-            void increment(void* out, const void* in);
-
-            GPArray(int) arr  = gp_arr_on_stack(scope, 2, int);
-            GPArray(int) arr2 = gp_arr_on_stack(scope, 4, int, 1, 2, 3, 4);
-            arr = gp_arr_map(sizeof*arr, arr, arr2, gp_arr_length(arr2), increment);
-            arr_assert_eq(arr, ((int[]){2, 3, 4, 5}), 4);
-
-            arr = gp_arr_map(sizeof*arr, arr, NULL, 0, increment);
-            arr_assert_eq(arr, ((int[]){3, 4, 5, 6}), 4);
-
-            void* sum(void* accumulator, const void* element);
-            gp_expect(*(int*)gp_arr_fold(sizeof*arr, arr, &(int){0}, sum)
-                == 0 + 3 + 4 + 5 + 6);
-
-            void* append(void* accumulator, const void* element);
-            GPArray(const char*) arr_cstr = gp_arr_on_stack(scope, 4, const char*,
-                "I", "am", "the", "Walrus");
-            char* result = gp_arr_foldr(sizeof*arr_cstr, arr_cstr, NULL, append);
-            gp_expect(strcmp(result, "Walrus the am I ") == 0, result);
-
-            bool even(const void* element);
-            arr2 = gp_arr_filter(sizeof*arr2, arr2, arr, gp_arr_length(arr), even);
-            arr_assert_eq(arr2, ((int[]){4, 6}), 2);
-
-            bool more_than_5(const void* element);
-            arr2 = gp_arr_filter(sizeof*arr2, arr2, NULL, 0, more_than_5);
-            arr_assert_eq(arr2, ((int[]){6}), 1);
-        }
-        gp_end(scope);
+        // #define gp_replace(...)
+        // size_t gp_str_replace(
+        //     GPString*           haystack,
+        //     const void*restrict needle,
+        //     size_t              needle_length,
+        //     const void*restrict replacement,
+        //     size_t              replacement_length,
+        //     size_t              start);
+        // #define gp_replace_all(...)
+        // size_t gp_str_replace_all(
+        //     GPString*           haystack,
+        //     const void*restrict needle,
+        //     size_t              needle_length,
+        //     const void*restrict replacement,
+        //     size_t              replacement_length);
+        // #define gp_trim(...)
+        // void gp_str_trim(
+        //     GPString*,
+        //     const char* optional_char_set,
+        //     int         flags);
+        // #define gp_to_upper(...)     gp_str_to_upper(__VA_ARGS__)
+        // void gp_str_to_upper(GPString*);
+        // #define gp_to_lower(...)     gp_str_to_lower(__VA_ARGS__)
+        // void gp_str_to_lower(GPString*);
+        // #define gp_to_valid(...)
+        // void gp_str_to_valid(
+        //     GPString*   str,
+        //     const char* replacement);
+        // #define gp_find_first(...)
+        // size_t gp_str_find_first(
+        //     GPString    haystack,
+        //     const void* needle,
+        //     size_t      needle_size,
+        //     size_t      start);
+        // #define gp_find_last(...)
+        // size_t gp_str_find_last(
+        //     GPString    haystack,
+        //     const void* needle,
+        //     size_t      needle_size);
+        // #define gp_find_first_of(...)
+        // size_t gp_str_find_first_of(
+        //     GPString    haystack,
+        //     const char* utf8_char_set,
+        //     size_t      start);
+        // #define gp_find_first_not_of(...)
+        // size_t gp_str_find_first_not_of(
+        //     GPString    haystack,
+        //     const char* utf8_char_set,
+        //     size_t      start);
+        // #define gp_count(...)
+        // size_t gp_str_count(
+        //     GPString    haystack,
+        //     const void* needle,
+        //     size_t      needle_size);
+        // #define gp_equal(...)
+        // bool gp_str_equal(
+        //     GPString    s1,
+        //     const void* s2,
+        //     size_t      s2_size);
+        // #define gp_equal_case(...)
+        // bool gp_str_equal_case(
+        //     GPString    s1,
+        //     const void* s2,
+        //     size_t      s2_size);
+        // #define gp_codepoint_count(...)
+        // size_t gp_str_codepoint_count(
+        //     GPString str);
+        // #define gp_is_valid(...)
+        // bool gp_str_is_valid(
+        //     GPString str,
+        //     size_t*  optional_invalid_position);
+        // #define gp_codepoint_length(...) gp_char_codepoint_length(__VA_ARGS__)
+        // size_t gp_char_codepoint_length(
+        //     const void* str);
+        // #define gp_classify(...)
+        // bool gp_char_classify(
+        //     const void* str,
+        //     int (*classifier)(wint_t c));
     }
-    gp_arena_delete(&_arena);
+    gp_arena_delete(&arena);
 }
 
 void increment(void* out, const void* in) { *(int*)out = *(int*)in + 1; }

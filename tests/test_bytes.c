@@ -4,7 +4,6 @@
 
 #include "../src/bytes.c"
 #include <gpc/assert.h>
-#include <string.h>
 
 // GPString depends on big part of bytes module so we only test some bytes
 // specific stuff here.

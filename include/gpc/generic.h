@@ -19,10 +19,11 @@
 //
 // ----------------------------------------------------------------------------
 
-// TODO most of these
+// TODO implement what's not implemented
 
 // Note: macros may take variadic arguments even when not necessary for better
-// error messages.
+// error messages. Also in some occasions, but not always, allows using
+// compound literals as macros arguments.
 
 #define GPHashMap(T) T*
 
@@ -31,8 +32,17 @@
 #define gp_str(...)          GP_STR_NEW(__VA_ARGS__)
 #define gp_hmap(...)
 
+// Bytes and strings
+#define gp_equal(...)
+#define gp_count(...)
+#define gp_equal_case(...)
+#define gp_codepoint_count(...)
+#define gp_is_valid(...)
+#define gp_codepoint_length(...) gp_char_codepoint_length(__VA_ARGS__)
+#define gp_classify(...)
+
 // Strings
-#define gp_repeat(...)
+#define gp_repeat(...)       GP_REPEAT(__VA_ARGS__)
 #define gp_replace(...)
 #define gp_replace_all(...)
 #define gp_trim(...)
@@ -43,13 +53,6 @@
 #define gp_find_last(...)
 #define gp_find_first_of(...)
 #define gp_find_first_not_of(...)
-#define gp_count(...)
-#define gp_equal(...)
-#define gp_equal_case(...)
-#define gp_codepoint_count(...)
-#define gp_is_valid(...)
-#define gp_codepoint_length(...) gp_char_codepoint_length(__VA_ARGS__)
-#define gp_classify(...)
 
 // Strings and arrays
 #define gp_length(...)       gp_arr_length(__VA_ARGS__)
@@ -81,6 +84,9 @@
 #define gp_dealloc(...)      GP_DEALLOC(__VA_ARGS__)
 #define gp_realloc(...)      GP_REALLOC(__VA_ARGS__)
 
+// File
+#define gp_file(...)         GP_FILE(__VA_ARGS__)
+
 
 // ----------------------------------------------------------------------------
 //
@@ -91,19 +97,28 @@
 // ----------------------------------------------------------------------------
 
 
+// Currently C99 compliant, but later on C11 _Generic() selection should be used
+// so any char* could be passed as string inputs insead of just literals. This
+// would have better type safety too.
+
 // ----------------------------------------------------------------------------
 // Constructors
 
-#define GP_ARR_NEW(ALLOCATOR, COUNT, TYPE, ...) \
+#define GP_ARR_NEW(ALLOCATOR, TYPE, ...) \
     (TYPE*)gp_arr_copy(sizeof(TYPE), \
-        gp_arr_new(ALLOCATOR, COUNT, sizeof(TYPE)), \
+        gp_arr_new((GPAllocator*)(ALLOCATOR), 4, sizeof(TYPE)), \
         (TYPE[]){__VA_ARGS__}, \
         sizeof((TYPE[]){__VA_ARGS__}) / sizeof(TYPE))
 
-#define GP_STRING_WITH_INIT(ALC, CAP, INIT) gp_str_new(ALC, CAP, INIT)
-#define GP_STRING_WOUT_INIT(ALC, CAP)       gp_str_new(ALC, CAP, "")
+struct gp_str_maker { const GPAllocator* allocator; const char* init; };
+GPString gp_str_make(struct gp_str_maker maker);
 #define GP_STR_NEW(ALLOCATOR, ...) \
-    GP_OVERLOAD2(__VA_ARGS__, GP_STRING_WITH_INIT, GP_STRING_WOUT_INIT)(ALLOCATOR, __VA_ARGS__)
+    gp_str_make((struct gp_str_maker){(GPAllocator*)(ALLOCATOR), __VA_ARGS__})
+
+// ----------------------------------------------------------------------------
+// String
+
+#define GP_REPEAT()
 
 // ----------------------------------------------------------------------------
 // Srting and array shared

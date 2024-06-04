@@ -19,6 +19,12 @@
 //
 // ----------------------------------------------------------------------------
 
+// To be passed to gp_defer() with correct function type
+inline void gp_file_close(FILE* file)
+{
+    fclose(file);
+}
+
 #define/* size_t */gp_print(...) \
     GP_FILE_PRINT(stdout, __VA_ARGS__)
 

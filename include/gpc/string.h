@@ -166,6 +166,10 @@ void gp_str_to_upper(GPString*);
 GP_NONNULL_ARGS()
 void gp_str_to_lower(GPString*);
 
+// Unicode standard recommends using this as replacement character for invalid
+// bytes.
+#define GP_REPLACEMENT_CHARACTER "\UFFFD" // �
+
 GP_NONNULL_ARGS()
 void gp_str_to_valid(
     GPString*   str,

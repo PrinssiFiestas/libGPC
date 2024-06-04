@@ -39,7 +39,7 @@ static void* gp_memmem(
     return NULL;
 }
 
-size_t gp_bytes_find(
+size_t gp_bytes_find_first(
     const void*  haystack,
     const size_t haystack_size,
     const void*  needle,
@@ -103,7 +103,7 @@ size_t gp_bytes_count(
 {
     size_t count = 0;
     size_t i = 0;
-    while ((i = gp_bytes_find(haystack, haystack_length, needle, needle_size, i))
+    while ((i = gp_bytes_find_first(haystack, haystack_length, needle, needle_size, i))
         != GP_NOT_FOUND)
     {
         count++;
@@ -254,7 +254,7 @@ size_t gp_bytes_replace(
     size_t* in_start_out_pos)
 {
     size_t start = in_start_out_pos != NULL ? *in_start_out_pos : 0;
-    if ((start = gp_bytes_find(haystack, haystack_length, needle, needle_length, start))
+    if ((start = gp_bytes_find_first(haystack, haystack_length, needle, needle_length, start))
         == GP_NOT_FOUND) {
         return GP_NOT_FOUND;
     }
@@ -283,7 +283,7 @@ size_t gp_bytes_replace_all(
 {
     size_t start = 0;
     size_t replacement_count = 0;
-    while ((start = gp_bytes_find(haystack, haystack_length, needle, needle_length, start))
+    while ((start = gp_bytes_find_first(haystack, haystack_length, needle, needle_length, start))
         != GP_NOT_FOUND)
     {
         haystack_length = gp_bytes_replace_range(

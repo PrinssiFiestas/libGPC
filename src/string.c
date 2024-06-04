@@ -23,6 +23,7 @@ GPString gp_str_new(
     size_t capacity,
     const char* init)
 {
+    capacity = gp_max(strlen(init), capacity);
     GPStringHeader* me = gp_mem_alloc(allocator, sizeof*me + capacity + sizeof"");
     *me = (GPStringHeader) {
         .capacity   = capacity,
@@ -53,7 +54,7 @@ size_t gp_str_find_first(
     size_t      needle_size,
     size_t      start)
 {
-    return gp_bytes_find(haystack, gp_str_length(haystack), needle, needle_size, start);
+    return gp_bytes_find_first(haystack, gp_str_length(haystack), needle, needle_size, start);
 }
 
 size_t gp_str_find_last(

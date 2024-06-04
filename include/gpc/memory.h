@@ -82,7 +82,7 @@ GP_NONNULL_ARGS(1, 2)
 void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
 
 // like scope_defer() but can take also take functions with non-void pointer
-// arguments. Also argument to f will be type checked.
+// arguments like fclose. Also argument to f will be type checked.
 #define gp_defer(scope, f, arg) do { \
     if (0) (f)(arg); \
     gp_scope_defer(scope, (void(*)(void*))(f), arg); \

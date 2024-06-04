@@ -3,6 +3,15 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include <gpc/generic.h>
+#include <gpc/utils.h>
+
+GPString gp_str_make(struct gp_str_maker maker)
+{
+    if (maker.init == NULL)
+        maker.init = "";
+    return gp_str_new(
+        maker.allocator, gp_max((size_t)16, gp_next_power_of_2(strlen(maker.init))), maker.init);
+}
 
 void gp_reserve99(const size_t elem_size, void* px, const size_t capacity)
 {

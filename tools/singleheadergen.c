@@ -311,7 +311,7 @@ static size_t find_header(
 static size_t find_header_from_include_paths(
     const char* name, size_t name_length, const File* file)
 {
-    const size_t slash = gp_bytes_find(name, name_length, "/", strlen("/"), 0);
+    const size_t slash = gp_bytes_find_first(name, name_length, "/", strlen("/"), 0);
     if (slash == GP_NOT_FOUND)
         return GP_NOT_FOUND;
     const size_t path_length = slash + strlen("/");

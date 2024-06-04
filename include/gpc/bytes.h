@@ -126,7 +126,7 @@ size_t gp_bytes_to_valid(
 #define GP_NOT_FOUND ((size_t)-1)
 
 GP_NONNULL_ARGS()
-size_t gp_bytes_find(
+size_t gp_bytes_find_first(
     const void* haystack,
     size_t      haystack_size,
     const void* needle,

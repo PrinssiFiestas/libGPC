@@ -7,7 +7,8 @@
 #include <printf/printf.h>
 #include "common.h"
 
-extern inline int gp_stat(GPStat* s, const char* path);
+extern inline void gp_file_close(FILE*);
+extern inline int  gp_stat(GPStat*, const char* path);
 
 bool gp_file_read_line(GPString* out, FILE* in)
 {

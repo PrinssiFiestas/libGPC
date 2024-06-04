@@ -104,6 +104,14 @@
 // https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
 
 /* * * * * * *
+ * generic.c 
+ */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/* * * * * * *
  * hashmap.c 
  */
 
@@ -393,22 +401,6 @@ void* gp_mem_realloc(
     size_t old_size,
     size_t new_size);
 
-#define gp_alloc(allocator, type, count) \
-    gp_mem_alloc((GPAllocator*)(allocator), (count) * sizeof(type))
-
-#define gp_alloc_zeroes(allocator, type, count) \
-    gp_mem_alloc_zeroes((GPAllocator*)(allocator), (count) * sizeof(type))
-
-#define gp_dealloc(allocator, optional_block) \
-    gp_mem_dealloc((GPAllocator*)(allocator), (optional_block))
-
-#define gp_realloc(allocator, optional_block, old_capacity, new_capacity) \
-    gp_mem_realloc( \
-        (GPAllocator*)(allocator), \
-        optional_block, \
-        old_capacity, \
-        new_capacity)
-
 // ----------------------------------------------------------------------------
 // Scope allocator
 
@@ -420,7 +412,14 @@ void gp_end(GPAllocator* optional_scope);
 
 // Deferred functions are called in Last In First Out order in gp_end().
 GP_NONNULL_ARGS(1, 2)
-void gp_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
+void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
+
+// like scope_defer() but can take also take functions with non-void pointer
+// arguments like fclose. Also argument to f will be type checked.
+#define gp_defer(scope, f, arg) do { \
+    if (0) (f)(arg); \
+    gp_scope_defer(scope, (void(*)(void*))(f), arg); \
+} while(0)
 
 // Get lastly created scope in callbacks. You should prefer to just pass scopes
 // as arguments when possible.
@@ -623,7 +622,7 @@ int main(void)
 // not all compilers are supported.
 
 #if __STDC_VERSION__ >= 202311L || defined(__GNUC__) || defined(__TINYC__)
-#define GP_TYPEOF(X) typeof(X)
+#define GP_TYPEOF(...) typeof(__VA_ARGS__)
 #elif defined(_MSC_VER)
 #define GP_TYPEOF(X) __typeof__(X)
 #endif
@@ -1054,6 +1053,7 @@ _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, RESOLVED, ...) 
 
 #endif // GP_OVERLOAD_INCLUDED
 
+#include <string.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -1168,7 +1168,7 @@ size_t gp_bytes_to_valid(
 #define GP_NOT_FOUND ((size_t)-1)
 
 GP_NONNULL_ARGS()
-size_t gp_bytes_find(
+size_t gp_bytes_find_first(
     const void* haystack,
     size_t      haystack_size,
     const void* needle,
@@ -1284,11 +1284,10 @@ size_t gp_bytes_println_internal(
 //
 // ----------------------------------------------------------------------------
 
-// To be passed to scope allocators defer().
-inline void gp_file_close(void* optional_file)
+// To be passed to gp_defer() with correct function type
+inline void gp_file_close(FILE* file)
 {
-    if (optional_file != NULL)
-        fclose(optional_file);
+    fclose(file);
 }
 
 #define/* size_t */gp_print(...) \
@@ -1405,7 +1404,6 @@ size_t gp_file_println_internal(
 // ----------------------------------------------------------------------------
 
 //
-typedef struct gp_char { uint8_t c; } GPChar;
 typedef struct gp_string_header
 {
     size_t length;
@@ -1413,6 +1411,7 @@ typedef struct gp_string_header
     const GPAllocator* allocator;
     void* allocation; // pointer to self or NULL if on stack
 } GPStringHeader;
+typedef struct gp_char { uint8_t c; } GPChar;
 
 typedef GPChar* GPString;
 
@@ -1445,21 +1444,19 @@ GPString gp_str_new(
 */
 
 // Passing strings on stack is safe too.
-void gp_str_delete(GPString optional_string);
+void gp_str_delete(GPString optional);
 
 const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
 size_t             gp_str_length    (GPString) GP_NONNULL_ARGS();
 size_t             gp_str_capacity  (GPString) GP_NONNULL_ARGS();
 const GPAllocator* gp_str_allocator (GPString) GP_NONNULL_ARGS();
-
-// Pass this to gp_mem_dealloc() if allocated
 void*              gp_str_allocation(GPString) GP_NONNULL_ARGS();
 
 GP_NONNULL_ARGS()
 void gp_str_reserve(
-    GPString* str,
-    size_t    capacity);
+    GPString*,
+    size_t capacity);
 
 GP_NONNULL_ARGS()
 void gp_str_copy(
@@ -1533,21 +1530,23 @@ size_t gp_str_replace_all(
 // Trims whitespace if char_set is NULL.
 GP_NONNULL_ARGS(1)
 void gp_str_trim(
-    GPString*   str,
+    GPString*,
     const char* optional_char_set,
     int         flags);
 
 // Only converts Unicode characters with 1:1 mapping. Result is locale
 // dependent.
 GP_NONNULL_ARGS()
-void gp_str_to_upper(
-    GPString* str);
+void gp_str_to_upper(GPString*);
 
 // Only converts Unicode characters with 1:1 mapping. Result is locale
 // dependent.
 GP_NONNULL_ARGS()
-void gp_str_to_lower(
-    GPString* str);
+void gp_str_to_lower(GPString*);
+
+// Unicode standard recommends using this as replacement character for invalid
+// bytes.
+#define GP_REPLACEMENT_CHARACTER "\UFFFD" // �
 
 GP_NONNULL_ARGS()
 void gp_str_to_valid(
@@ -1564,7 +1563,7 @@ void gp_str_to_valid(
 // Returns  1 if file size > SIZE_MAX in 32-bit systems.
 GP_NONNULL_ARGS() GP_NODISCARD
 int gp_str_file(
-    GPString*   str,
+    GPString*,
     const char* file_path,
     const char* operation);
 
@@ -1880,6 +1879,396 @@ GPUint128 gp_bytes_hash128(const void* key, size_t key_size) GP_NONNULL_ARGS();
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+/**@file generic.h
+ * Type generic macros.
+ */
+
+#ifndef GP_GENERIC_INCLUDED
+#define GP_GENERIC_INCLUDED
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+#ifndef GPC_ARRAY_H
+#define GPC_ARRAY_H
+
+#include <stdint.h>
+
+// ----------------------------------------------------------------------------
+//
+//          API REFERENCE
+//
+// ----------------------------------------------------------------------------
+
+//
+typedef struct gp_array_header
+{
+    size_t length;
+    size_t capacity;
+    const GPAllocator* allocator;
+    void* allocation; // pointer to self or NULL if on stack
+} GPArrayHeader;
+
+#define GPArray(T) T*
+
+#define GP_ARR_ATTRS(...) \
+    GP_NONNULL_RETURN GP_NODISCARD GP_NONNULL_ARGS(__VA_ARGS__)
+
+GP_ARR_ATTRS()
+GPArray(void) gp_arr_new(
+    const GPAllocator*,
+    size_t element_size,
+    size_t element_count);
+
+#define/* GPArray(T) */gp_arr_on_stack( \
+    optional_allocator_ptr, \
+    size_t_capacity, \
+    T, ...) \
+(struct GP_C99_UNIQUE_STRUCT(__LINE__) \
+{ GPArrayHeader header; T data[size_t_capacity]; }) { \
+{ \
+    .length     = sizeof((T[]){__VA_ARGS__})/sizeof(T), \
+    .capacity   = size_t_capacity, \
+    .allocator  = optional_allocator_ptr, \
+    .allocation = NULL \
+}, {__VA_ARGS__} }.data
+
+// If not zeroing memory for performance is desirable and/or macro magic is
+// undesirable, arrays can be created on stack manually. Example with int:
+/*
+    struct optional_name { GPArrayHeader header; int data[2048]; } my_array_mem;
+    my_array_mem.header = (GPArrayHeader) {.capacity = 2048 };
+    GPArray(int) my_array = my_array_mem.data;
+*/
+
+// Passing arrays on stack is safe too.
+void gp_arr_delete(GPArray(void) optional);
+
+size_t             gp_arr_length    (const GPArray(void)) GP_NONNULL_ARGS();
+size_t             gp_arr_capacity  (const GPArray(void)) GP_NONNULL_ARGS();
+void*              gp_arr_allocation(const GPArray(void)) GP_NONNULL_ARGS();
+const GPAllocator* gp_arr_allocator (const GPArray(void)) GP_NONNULL_ARGS();
+
+GP_ARR_ATTRS()
+GPArray(void) gp_arr_reserve(
+    size_t        element_size,
+    GPArray(void) arr,
+    size_t        capacity);
+
+GP_ARR_ATTRS()
+GPArray(void) gp_arr_copy(
+    size_t              element_size,
+    GPArray(void)       dest,
+    const void*restrict src,
+    size_t              src_length);
+
+GP_ARR_ATTRS(2)
+GPArray(void) gp_arr_slice(
+    size_t              element_size,
+    GPArray(void)       arr,
+    const void*restrict optional_src, // mutates arr if NULL
+    size_t              start_index,
+    size_t              end_index);
+
+GP_ARR_ATTRS()
+GPArray(void) gp_arr_push(
+    size_t              element_size,
+    GPArray(void)       arr,
+    const void*restrict element);
+
+GP_NONNULL_ARGS_AND_RETURN
+void* gp_arr_pop(
+    size_t        element_size,
+    GPArray(void) arr);
+
+GP_ARR_ATTRS()
+GPArray(void) gp_arr_append(
+    size_t              element_size,
+    GPArray(void)       arr,
+    const void*restrict src,
+    size_t              element_count);
+
+GP_ARR_ATTRS()
+GPArray(void) gp_arr_insert(
+    size_t              element_size,
+    GPArray(void)       arr,
+    size_t              pos,
+    const void*restrict src,
+    size_t              element_count);
+
+GP_ARR_ATTRS()
+GPArray(void) gp_arr_remove(
+    size_t        element_size,
+    GPArray(void) arr,
+    size_t        pos,
+    size_t        count);
+
+GP_ARR_ATTRS(2, 5)
+GPArray(void) gp_arr_map(
+    size_t              element_size,
+    GPArray(void)       arr,
+    const void*restrict optional_src, // mutates arr if NULL
+    size_t              src_length,
+    void (*f)(void* out, const void* in));
+
+GP_NONNULL_ARGS(2, 4)
+void* gp_arr_fold(
+    size_t              elem_size,
+    const GPArray(void) arr,
+    void*               accumulator,
+    void* (*f)(void* accumulator, const void* element));
+
+GP_NONNULL_ARGS(2, 4)
+void* gp_arr_foldr(
+    size_t              elem_size,
+    const GPArray(void) arr,
+    void*               accumulator,
+    void* (*f)(void* accumulator, const void* element));
+
+GP_ARR_ATTRS(2, 5)
+GPArray(void) gp_arr_filter(
+    size_t              element_size,
+    GPArray(void)       arr,
+    const void*restrict optional_src, // mutates arr if NULL
+    size_t              src_length,
+    bool (*f)(const void* element));
+
+// ----------------------------------------------------------------------------
+//
+//          END OF API REFERENCE
+//
+//          Code below is for internal usage and may change without notice.
+//
+// ----------------------------------------------------------------------------
+
+#ifdef _MSC_VER
+// unnamed struct in parenthesis in gp_arr_on_stack()
+#pragma warning(disable : 4116)
+#endif
+
+#endif // GPC_ARRAY_H
+
+
+// ----------------------------------------------------------------------------
+//
+//          API REFERENCE
+//
+// ----------------------------------------------------------------------------
+
+// TODO implement what's not implemented
+
+// Note: macros may take variadic arguments even when not necessary for better
+// error messages. Also in some occasions, but not always, allows using
+// compound literals as macros arguments.
+
+#define GPHashMap(T) T*
+
+// Constructors
+#define gp_arr(...)          GP_ARR_NEW(__VA_ARGS__)
+#define gp_str(...)          GP_STR_NEW(__VA_ARGS__)
+#define gp_hmap(...)
+
+// Bytes and strings
+#define gp_equal(...)
+#define gp_count(...)
+#define gp_equal_case(...)
+#define gp_codepoint_count(...)
+#define gp_is_valid(...)
+#define gp_codepoint_length(...) gp_char_codepoint_length(__VA_ARGS__)
+#define gp_classify(...)
+
+// Strings
+#define gp_repeat(...)       GP_REPEAT(__VA_ARGS__)
+#define gp_replace(...)
+#define gp_replace_all(...)
+#define gp_trim(...)
+#define gp_to_upper(...)     gp_str_to_upper(__VA_ARGS__)
+#define gp_to_lower(...)     gp_str_to_lower(__VA_ARGS__)
+#define gp_to_valid(...)
+#define gp_find_first(...)
+#define gp_find_last(...)
+#define gp_find_first_of(...)
+#define gp_find_first_not_of(...)
+
+// Strings and arrays
+#define gp_length(...)       gp_arr_length(__VA_ARGS__)
+#define gp_capacity(...)     gp_arr_capacity(__VA_ARGS__)
+#define gp_allocation(...)   gp_arr_allocation(__VA_ARGS__)
+#define gp_allocator(...)    gp_arr_allocator(__VA_ARGS__)
+#define gp_reserve(...)      GP_RESERVE(__VA_ARGS__)
+#define gp_copy(...)         GP_COPY(__VA_ARGS__)
+#define gp_slice(...)        GP_SLICE(__VA_ARGS__)
+#define gp_append(...)       GP_APPEND(__VA_ARGS__)
+#define gp_insert(...)       GP_INSERT(__VA_ARGS__)
+
+// Arrays
+#define gp_map(...)
+#define gp_fold(...)
+#define gp_foldr(...)
+#define gp_filter(...)
+
+// Arrays and hash maps
+#define gp_at(...)
+#define gp_push(...)
+#define gp_pop(...)
+#define gp_remove(...)
+
+// Memory
+#define gp_alloc(...)        GP_ALLOC(__VA_ARGS__)
+#define gp_alloc_type(...)   GP_ALLOC_TYPE(__VA_ARGS__)
+#define gp_alloc_zeroes(...) GP_ALLOC_ZEROES(__VA_ARGS__)
+#define gp_dealloc(...)      GP_DEALLOC(__VA_ARGS__)
+#define gp_realloc(...)      GP_REALLOC(__VA_ARGS__)
+
+// File
+#define gp_file(...)         GP_FILE(__VA_ARGS__)
+
+
+// ----------------------------------------------------------------------------
+//
+//          END OF API REFERENCE
+//
+//          Code below is for internal usage and may change without notice.
+//
+// ----------------------------------------------------------------------------
+
+
+// Currently C99 compliant, but later on C11 _Generic() selection should be used
+// so any char* could be passed as string inputs insead of just literals. This
+// would have better type safety too.
+
+// ----------------------------------------------------------------------------
+// Constructors
+
+#define GP_ARR_NEW(ALLOCATOR, TYPE, ...) \
+    (TYPE*)gp_arr_copy(sizeof(TYPE), \
+        gp_arr_new((GPAllocator*)(ALLOCATOR), 4, sizeof(TYPE)), \
+        (TYPE[]){__VA_ARGS__}, \
+        sizeof((TYPE[]){__VA_ARGS__}) / sizeof(TYPE))
+
+struct gp_str_maker { const GPAllocator* allocator; const char* init; };
+GPString gp_str_make(struct gp_str_maker maker);
+#define GP_STR_NEW(ALLOCATOR, ...) \
+    gp_str_make((struct gp_str_maker){(GPAllocator*)(ALLOCATOR), __VA_ARGS__})
+
+// ----------------------------------------------------------------------------
+// String
+
+#define GP_REPEAT()
+
+// ----------------------------------------------------------------------------
+// Srting and array shared
+
+#ifdef GP_TYPEOF
+// Suppress GCC suspicious usage of sizeof warning.
+#define GP_SIZEOF_TYPEOF(X) sizeof(GP_TYPEOF(X))
+#else
+#define GP_SIZEOF_TYPEOF(X) sizeof(X)
+#endif
+
+void gp_reserve99(size_t elem_size, void* px, const size_t capacity);
+#define GP_RESERVE(A, CAPACITY) gp_reserve99(sizeof**(A), A, CAPACITY)
+
+void* gp_copy99(size_t y_size, void* y,
+    const void* x, const char* x_ident, size_t x_length, const size_t x_size);
+
+#define GP_COPY2(A, B)    gp_copy99(sizeof*(A), A, B, #B, sizeof(B) - sizeof"", sizeof*(B))
+#define GP_COPY3(A, B, C) gp_copy99(sizeof*(A), A, B, NULL, C, sizeof*(B))
+#define GP_COPY(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_COPY3, GP_COPY2)(A,__VA_ARGS__)
+
+void* gp_slice99(
+    const size_t y_size, const void* y,
+    const size_t x_size, const void* x,
+    const size_t start, const size_t end);
+
+#define GP_SLICE_WITH_INPUT(Y, X, START, END) \
+    gp_slice99(sizeof*(Y), Y, sizeof*(X), X, START, END)
+#define GP_SLICE_WOUT_INPUT(Y, START, END) \
+    ((void*){0} = gp_arr_slice(sizeof**(Y), *(void**)(Y), NULL, START, END))
+#define GP_SLICE(A, START, ...) \
+    GP_OVERLOAD2(__VA_ARGS__, GP_SLICE_WITH_INPUT, GP_SLICE_WOUT_INPUT)(A, START, __VA_ARGS__)
+
+void* gp_append99(
+    const size_t a_size, void* a,
+    const void* b, const char* b_ident, size_t b_length, const size_t b_size,
+    const void* c, const char* c_ident, size_t c_length);
+
+#define GP_IS_ALC(A) (sizeof*(A) == sizeof(GPAllocator))
+
+#define GP_APPEND2(A, B) \
+    gp_append99(sizeof*(A), A, B, #B, sizeof(B), sizeof*(B), NULL, NULL, 0)
+
+#define GP_APPEND3(A, B, C) \
+    gp_append99(sizeof*(A), A, \
+        B, GP_IS_ALC(A) ? #B : NULL, GP_IS_ALC(A) ? sizeof(B) : (uintptr_t)(C), sizeof*(B), \
+        GP_IS_ALC(A) ? (void*)(C) : NULL, #C, GP_SIZEOF_TYPEOF(C))
+
+#define GP_APPEND4(A, B, C, D) \
+    gp_append99(sizeof*(A), A, \
+        B, #B, sizeof(B) : sizeof*(B), \
+        C, NULL, D)
+
+#define GP_APPEND5(A, B, C, D, E) \
+    gp_append99(sizeof*(A), A, B, NULL, C, sizeof*(B), D, NULL, E)
+#define GP_APPEND(A, ...) GP_OVERLOAD4(__VA_ARGS__, \
+    GP_APPEND5, GP_APPEND4, GP_APPEND3, GP_APPEND2)(A, __VA_ARGS__)
+
+void* gp_insert99(
+    const size_t a_size, void* a, const size_t pos,
+    const void* b, const char* b_ident, size_t b_length, const size_t b_size,
+    const void* c, const char* c_ident, size_t c_length);
+
+#define GP_INSERT3(A, POS, B) \
+    gp_insert99(sizeof*(A), A, POS, B, #B, sizeof(B), sizeof*(B), NULL, NULL, 0)
+
+#define GP_INSERT4(A, POS, B, C) \
+    gp_insert99(sizeof*(A), A, POS, \
+        B, GP_IS_ALC(A) ? #B : NULL, GP_IS_ALC(A) ? sizeof(B) : (uintptr_t)(C), sizeof*(B), \
+        GP_IS_ALC(A) ? (void*)(C) : NULL, #C, GP_SIZEOF_TYPEOF(C))
+
+#define GP_INSERT5(A, POS, B, C, D) \
+    gp_insert99(sizeof*(A), A, POS, \
+        B, #B, sizeof(B): sizeof*(B), \
+        C, NULL, D)
+
+#define GP_INSERT6(A, POS, B, C, D, E) \
+    gp_insert99(sizeof*(A), A, POS, B, NULL, C, sizeof*(B), D, NULL, E)
+
+#define GP_INSERT(A, POS, ...) GP_OVERLOAD4(__VA_ARGS__, \
+    GP_INSERT6, GP_INSERT5, GP_INSERT4, GP_INSERT3)(A, POS, __VA_ARGS__)
+
+// ----------------------------------------------------------------------------
+// Allocators
+
+#define GP_ALLOC(ALLOCATOR, SIZE) gp_mem_alloc((GPAllocator*)(ALLOCATOR), SIZE)
+
+#define GP_ALLOC_TYPE_WITH_COUNT(ALLOCATOR, TYPE, COUNT) \
+    gp_mem_alloc((GPAllocator*)(ALLOCATOR), (COUNT) * sizeof(TYPE))
+#define GP_ALLOC_TYPE_WOUT_COUNT(ALLOCATOR, TYPE) \
+    gp_mem_alloc((GPAllocator*)(ALLOCATOR), sizeof(TYPE))
+#define GP_ALLOC_TYPE(ALC, ...) \
+    GP_OVERLOAD2(__VA_ARGS__, GP_ALLOC_TYPE_WITH_COUNT,GP_ALLOC_TYPE_WOUT_COUNT)(ALC, __VA_ARGS__)
+
+#define GP_ALLOC_ZEROES(ALLOCATOR, SIZE, COUNT) \
+    gp_mem_alloc_zeroes((GPAllocator*)(ALLOCATOR), (SIZE) * sizeof(TYPE))
+
+#define GP_DEALLOC(ALLOCATOR, BLOCK) \
+    gp_mem_dealloc((GPAllocator*)(ALLOCATOR), (BLOCK))
+
+#define GP_REALLOC(ALLOCATOR, ...) \
+    gp_mem_realloc((GPAllocator*)(ALLOCATOR),__VA_ARGS__)
+
+#endif // GP_GENERIC_INCLUDED
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
 /**
  * @file string.h
  * @brief General purpose utilities
@@ -2051,171 +2440,6 @@ _Generic(X, \
 #endif // breakpoint
 
 #endif // GP_UTILS_INCLUDED
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-
-#ifndef GPC_ARRAY_H
-#define GPC_ARRAY_H
-
-#include <stdint.h>
-
-// ----------------------------------------------------------------------------
-//
-//          API REFERENCE
-//
-// ----------------------------------------------------------------------------
-
-//
-typedef struct gp_array_header
-{
-    size_t length;
-    size_t capacity;
-    const GPAllocator* allocator;
-    void* allocation; // pointer to self or NULL if on stack
-} GPArrayHeader;
-
-#define GPArray(T) T*
-
-#define GP_ARR_ATTRS(...) \
-    GP_NONNULL_RETURN GP_NODISCARD GP_NONNULL_ARGS(__VA_ARGS__)
-
-GP_ARR_ATTRS()
-GPArray(void) gp_arr_new(
-    const GPAllocator*,
-    size_t element_size,
-    size_t element_count);
-
-#define/* GPArray(T) */gp_arr_on_stack( \
-    optional_allocator_ptr, \
-    size_t_capacity, \
-    T, ...) \
-(struct GP_C99_UNIQUE_STRUCT(__LINE__) \
-{ GPArrayHeader header; T data[size_t_capacity]; }) { \
-{ \
-    .length     = sizeof((T[]){__VA_ARGS__})/sizeof(T), \
-    .capacity   = size_t_capacity, \
-    .allocator  = optional_allocator_ptr, \
-    .allocation = NULL \
-}, {__VA_ARGS__} }.data
-
-// If not zeroing memory for performance is desirable and/or macro magic is
-// undesirable, arrays can be created on stack manually. Example with int:
-/*
-    struct optional_name { GPArrayHeader header; int data[2048]; } my_array_mem;
-    my_array_mem.header = (GPArrayHeader) {.capacity = 2048 };
-    GPArray(int) my_array = my_array_mem.data;
-*/
-
-// Passing arrays on stack is safe too.
-void gp_arr_delete(GPArray(void) optional);
-
-size_t             gp_arr_length    (const GPArray(void)) GP_NONNULL_ARGS();
-size_t             gp_arr_capacity  (const GPArray(void)) GP_NONNULL_ARGS();
-void*              gp_arr_allocation(const GPArray(void)) GP_NONNULL_ARGS();
-const GPAllocator* gp_arr_allocator (const GPArray(void)) GP_NONNULL_ARGS();
-
-GP_ARR_ATTRS()
-GPArray(void) gp_arr_reserve(
-    size_t        element_size,
-    GPArray(void) arr,
-    size_t        capacity);
-
-GP_ARR_ATTRS()
-GPArray(void) gp_arr_copy(
-    size_t              element_size,
-    GPArray(void)       dest,
-    const void*restrict src,
-    size_t              src_length);
-
-GP_ARR_ATTRS(2)
-GPArray(void) gp_arr_slice(
-    size_t              element_size,
-    GPArray(void)       arr,
-    const void*restrict optional_src, // mutates arr if NULL
-    size_t              start_index,
-    size_t              end_index);
-
-GP_ARR_ATTRS()
-GPArray(void) gp_arr_push(
-    size_t              element_size,
-    GPArray(void)       arr,
-    const void*restrict element);
-
-GP_NONNULL_ARGS_AND_RETURN
-void* gp_arr_pop(
-    size_t        element_size,
-    GPArray(void) arr);
-
-GP_ARR_ATTRS()
-GPArray(void) gp_arr_append(
-    size_t              element_size,
-    GPArray(void)       arr,
-    const void*restrict src,
-    size_t              element_count);
-
-GP_ARR_ATTRS()
-GPArray(void) gp_arr_insert(
-    size_t              element_size,
-    GPArray(void)       arr,
-    size_t              pos,
-    const void*restrict src,
-    size_t              element_count);
-
-GP_ARR_ATTRS()
-GPArray(void) gp_arr_remove(
-    size_t        element_size,
-    GPArray(void) arr,
-    size_t        pos,
-    size_t        count);
-
-GP_ARR_ATTRS(2, 5)
-GPArray(void) gp_arr_map(
-    size_t              element_size,
-    GPArray(void)       arr,
-    const void*restrict optional_src, // mutates arr if NULL
-    size_t              src_length,
-    void (*f)(void* out, const void* in));
-
-GP_NONNULL_ARGS(2, 4)
-void* gp_arr_fold(
-    size_t              elem_size,
-    const GPArray(void) arr,
-    void*               accumulator,
-    void* (*f)(void* accumulator, const void* element));
-
-GP_NONNULL_ARGS(2, 4)
-void* gp_arr_foldr(
-    size_t              elem_size,
-    const GPArray(void) arr,
-    void*               accumulator,
-    void* (*f)(void* accumulator, const void* element));
-
-GP_ARR_ATTRS(2, 5)
-GPArray(void) gp_arr_filter(
-    size_t              element_size,
-    GPArray(void)       arr,
-    const void*restrict optional_src, // mutates arr if NULL
-    size_t              src_length,
-    bool (*f)(const void* element));
-
-// ----------------------------------------------------------------------------
-//
-//          END OF API REFERENCE
-//
-//          Code below is for internal usage and may change without notice.
-//
-// ----------------------------------------------------------------------------
-
-#ifdef _MSC_VER
-// unnamed struct in parenthesis in gp_arr_on_stack()
-#pragma warning(disable : 4116)
-#endif
-
-#endif // GPC_ARRAY_H
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -8526,7 +8750,7 @@ static void* gp_memmem(
     return NULL;
 }
 
-size_t gp_bytes_find(
+size_t gp_bytes_find_first(
     const void*  haystack,
     const size_t haystack_size,
     const void*  needle,
@@ -8590,7 +8814,7 @@ size_t gp_bytes_count(
 {
     size_t count = 0;
     size_t i = 0;
-    while ((i = gp_bytes_find(haystack, haystack_length, needle, needle_size, i))
+    while ((i = gp_bytes_find_first(haystack, haystack_length, needle, needle_size, i))
         != GP_NOT_FOUND)
     {
         count++;
@@ -8741,7 +8965,7 @@ size_t gp_bytes_replace(
     size_t* in_start_out_pos)
 {
     size_t start = in_start_out_pos != NULL ? *in_start_out_pos : 0;
-    if ((start = gp_bytes_find(haystack, haystack_length, needle, needle_length, start))
+    if ((start = gp_bytes_find_first(haystack, haystack_length, needle, needle_length, start))
         == GP_NOT_FOUND) {
         return GP_NOT_FOUND;
     }
@@ -8770,7 +8994,7 @@ size_t gp_bytes_replace_all(
 {
     size_t start = 0;
     size_t replacement_count = 0;
-    while ((start = gp_bytes_find(haystack, haystack_length, needle, needle_length, start))
+    while ((start = gp_bytes_find_first(haystack, haystack_length, needle, needle_length, start))
         != GP_NOT_FOUND)
     {
         haystack_length = gp_bytes_replace_range(
@@ -8989,6 +9213,7 @@ GPString gp_str_new(
     size_t capacity,
     const char* init)
 {
+    capacity = gp_max(strlen(init), capacity);
     GPStringHeader* me = gp_mem_alloc(allocator, sizeof*me + capacity + sizeof"");
     *me = (GPStringHeader) {
         .capacity   = capacity,
@@ -9000,7 +9225,7 @@ GPString gp_str_new(
 void gp_str_delete(GPString me)
 {
     if (me != NULL && gp_str_allocation(me) != NULL)
-        gp_dealloc(gp_str_allocator(me), gp_str_allocation(me));
+        gp_mem_dealloc(gp_str_allocator(me), gp_str_allocation(me));
 }
 
 static GPStringHeader* gp_str_header(const GPString str)
@@ -9019,7 +9244,7 @@ size_t gp_str_find_first(
     size_t      needle_size,
     size_t      start)
 {
-    return gp_bytes_find(haystack, gp_str_length(haystack), needle, needle_size, start);
+    return gp_bytes_find_first(haystack, gp_str_length(haystack), needle, needle_size, start);
 }
 
 size_t gp_str_find_last(
@@ -10882,6 +11107,120 @@ int pf_fprintf(
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+
+GPString gp_str_make(struct gp_str_maker maker)
+{
+    if (maker.init == NULL)
+        maker.init = "";
+    return gp_str_new(
+        maker.allocator, gp_max((size_t)16, gp_next_power_of_2(strlen(maker.init))), maker.init);
+}
+
+void gp_reserve99(const size_t elem_size, void* px, const size_t capacity)
+{
+    if (gp_arr_allocator(*(void**)px) == NULL)
+        return;
+
+    if (elem_size == sizeof(GPChar))
+        gp_str_reserve(px, capacity);
+    else
+        *(void**)px = gp_arr_reserve(elem_size, *(void**)px, capacity);
+}
+
+static size_t gp_length99(const void* x, const char* ident, const size_t length, const size_t size)
+{
+    // Old
+    //x_length = x_ident == NULL ? x_length : x_ident[0] == '"' ? x_length : gp_arr_length(x);
+
+    // New
+    return ident == NULL ?
+        length            : ident[0] == '"' ?
+        length - sizeof"" : strchr(ident, '{') ?
+        length / size     : gp_arr_length(x);
+}
+
+void* gp_copy99(const size_t y_size, void* y,
+    const void* x, const char* x_ident, size_t x_length, const size_t x_size)
+{
+    //x_length = x_ident == NULL ? x_length : x_ident[0] == '"' ? x_length : gp_arr_length(x);
+    x_length = gp_length99(x, x_ident, x_length, x_size);
+    if (y_size == sizeof(GPAllocator))
+        return x_size == 1 ? gp_str_new(y, x_length, x) : gp_arr_new(y, x_size, x_length);
+
+    if (x_size == 1)
+        gp_str_copy(y, x, x_length);
+    else
+        *(void**)y = gp_arr_copy(x_size, *(void**)y, x, x_length);
+    return *(void**)y;
+}
+
+void* gp_slice99(
+    const size_t y_size, const void* y,
+    const size_t x_size, const void* x,
+    const size_t start, const size_t end)
+{
+    if (y_size == sizeof(GPAllocator)) {
+        if (x_size == 1)
+            return gp_str_new(y, start - end, (char*)x + start);
+        else
+            return gp_arr_slice(x_size, gp_arr_new(y, x_size, end - start), x, start, end);
+    }
+    return gp_arr_slice(x_size, *(void**)y, x, start, end);
+}
+
+void* gp_append99(
+    const size_t a_size, void* a,
+    const void* b, const char* b_ident, size_t b_length, const size_t b_size,
+    const void* c, const char* c_ident, size_t c_length)
+{
+    //b_length = b_ident == NULL ? b_length : b_ident[0] == '"' ? b_length : gp_arr_length(b);
+    b_length = gp_length99(b, b_ident, b_length, b_size);
+    if (a_size != sizeof(GPAllocator))
+    {
+        if (b_size == 1) {
+            gp_str_append(a, b, b_length);
+            return *(GPString*)a;
+        } else {
+            return gp_arr_append(b_size, *(void**)a, b, b_length);
+        }
+    }
+    //c_length = c_ident == NULL ? c_length : c_ident[0] == '"' ? c_length : gp_arr_length(c);
+    c_length = gp_length99(c, c_ident, c_length, b_size);
+    void* out = gp_arr_new(a, b_size, b_length + c_length + sizeof"");
+    memcpy(out, b, b_length * b_size);
+    memcpy((uint8_t*)out + b_length * b_size, c, c_length * b_size);
+    ((GPArrayHeader*)out - 1)->length = b_length + c_length;
+    return out;
+}
+
+void* gp_insert99(
+    const size_t a_size, void* a, const size_t pos,
+    const void* b, const char* b_ident, size_t b_length, const size_t b_size,
+    const void* c, const char* c_ident, size_t c_length)
+{
+    //b_length = b_ident == NULL ? b_length : b_ident[0] == '"' ? b_length : gp_arr_length(b);
+    b_length = gp_length99(b, b_ident, b_length, b_size);
+    if (a_size != sizeof(GPAllocator))
+    {
+        if (b_size == 1) {
+            gp_str_insert(a, pos, b, b_length);
+            return *(GPString*)a;
+        } else {
+            return gp_arr_insert(b_size, *(void**)a, pos, b, b_length);
+        }
+    }
+    //c_length = c_ident == NULL ? c_length : c_ident[0] == '"' ? c_length : gp_arr_length(c);
+    c_length = gp_length99(c, c_ident, c_length, b_size);
+    void* out = gp_arr_new(a, b_size, b_length + c_length + sizeof"");
+    memcpy(out, b, pos * b_size);
+    memcpy((uint8_t*)out + pos * b_size, c, c_length * b_size);
+    memcpy((uint8_t*)out + (pos + c_length) * b_size, (uint8_t*)b + pos * b_size, (b_length - pos) * b_size);
+    ((GPArrayHeader*)out - 1)->length = b_length + c_length;
+    return out;
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 #include <string.h>
 
 const union gp_endianness_detector GP_INTEGER = {.u16 = 1 };
@@ -11261,8 +11600,8 @@ bool gp_hash_map_remove(
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 
-extern inline void gp_file_close(void* optional_file);
-extern inline int gp_stat(GPStat* s, const char* path);
+extern inline void gp_file_close(FILE*);
+extern inline int  gp_stat(GPStat*, const char* path);
 
 bool gp_file_read_line(GPString* out, FILE* in)
 {
@@ -12979,7 +13318,7 @@ void gp_end(GPAllocator*_scope)
     gp_arena_rewind(scope_factory, scope);
 }
 
-void gp_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
+void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
 {
     GPScope* scope = (GPScope*)_scope;
     if (scope->defer_stack == NULL)

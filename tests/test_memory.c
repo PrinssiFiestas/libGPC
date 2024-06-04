@@ -3,6 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include <gpc/assert.h>
+#include <gpc/io.h>
 #include "../src/memory.c"
 #include <pthread.h>
 
@@ -97,12 +98,12 @@ static void* test0(void*_)
             FILE* f = tmpfile();
             #if WARNING
             // fclose does not type check to void(*)(void*) although safe. Bad!
-            gp_scope_defer(scope, fclose, f);
+            gp_scope_defer(scope, gp_file_close, f);
             // pi does not type check to arg of fclose which would be unsafe. Good!
             int* pi = gp_mem_alloc(gp_heap, sizeof*pi);
-            gp_defer(scope, fclose, pi);
+            gp_defer(scope, gp_file_close, pi);
             #else
-            gp_defer(scope, fclose, f);
+            gp_defer(scope, gp_file_close, f);
             #endif
 
             gp_expect( ! is_free(p1));
