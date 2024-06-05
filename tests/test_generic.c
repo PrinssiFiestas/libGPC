@@ -5,6 +5,7 @@
 #include "../src/generic.c"
 #include <gpc/io.h>
 #include <gpc/assert.h>
+#include <errno.h>
 
 #define arr_assert_eq(ARR, CARR, CARR_LENGTH) do { \
     typeof(ARR  )  _gp_arr1 = (ARR);  \
@@ -136,6 +137,31 @@ int main(void)
         // bool gp_char_classify(
         //     const void* str,
         //     int (*classifier)(wint_t c));
+    }
+
+    gp_suite("File");
+    {
+        const char* test_path = "gptestfile.txt";
+        GPString str1 = gp_str(&arena, "contents");
+        GPString str2 = gp_str(&arena);
+        GPString str3 = gp_str(&arena);
+
+        gp_file(str1,  test_path, "write");
+        gp_file(&str2, test_path, "read");
+
+        // + not necessary here, but demonstrates that it can be passed. Same
+        // would be true for "binary" or just 'b'.
+        FILE* f = gp_file(test_path, "read+");
+        gp_file_read_line(&str3, f);
+        gp_file_close(f);
+
+        GPString str4 = gp_file(&arena, test_path, "read binary");
+
+        gp_expect(gp_equal(str1, str2));
+        gp_expect(gp_equal(str1, str3));
+        gp_expect(gp_equal(str1, str4));
+
+        remove(test_path);
     }
     gp_arena_delete(&arena);
 }

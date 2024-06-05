@@ -33,13 +33,17 @@
 #define gp_hmap(...)
 
 // Bytes and strings
-#define gp_equal(...)
+#define gp_equal(...)            GP_EQUAL(__VA_ARGS__)
 #define gp_count(...)
 #define gp_equal_case(...)
 #define gp_codepoint_count(...)
 #define gp_is_valid(...)
 #define gp_codepoint_length(...) gp_char_codepoint_length(__VA_ARGS__)
 #define gp_classify(...)
+#define gp_find_first(...)
+#define gp_find_last(...)
+#define gp_find_first_of(...)
+#define gp_find_first_not_of(...)
 
 // Strings
 #define gp_repeat(...)       GP_REPEAT(__VA_ARGS__)
@@ -49,10 +53,6 @@
 #define gp_to_upper(...)     gp_str_to_upper(__VA_ARGS__)
 #define gp_to_lower(...)     gp_str_to_lower(__VA_ARGS__)
 #define gp_to_valid(...)
-#define gp_find_first(...)
-#define gp_find_last(...)
-#define gp_find_first_of(...)
-#define gp_find_first_not_of(...)
 
 // Strings and arrays
 #define gp_length(...)       gp_arr_length(__VA_ARGS__)
@@ -101,6 +101,13 @@
 // so any char* could be passed as string inputs insead of just literals. This
 // would have better type safety too.
 
+#ifdef __GNUC__
+// Suppress suspicious usage of sizeof warning.
+#define GP_SIZEOF_TYPEOF(X) sizeof(typeof(X))
+#else
+#define GP_SIZEOF_TYPEOF(X) sizeof(X)
+#endif
+
 // ----------------------------------------------------------------------------
 // Constructors
 
@@ -116,19 +123,37 @@ GPString gp_str_make(struct gp_str_maker maker);
     gp_str_make((struct gp_str_maker){(GPAllocator*)(ALLOCATOR), __VA_ARGS__})
 
 // ----------------------------------------------------------------------------
+// Bytes and strings
+
+static inline bool gp_equal99(
+    const size_t elem_size, const void* a, const void* b, size_t b_length)
+{
+    if (b_length == SIZE_MAX)
+        b_length = gp_arr_length(b);
+    if (gp_arr_length(a) != b_length)
+        return false;
+    return memcmp(a, b, b_length * elem_size) == 0;
+}
+
+#define GP_EQUAL2(A, B) \
+    gp_equal99(sizeof*(A), A, B, #B[0] == '"' ? GP_SIZEOF_TYPEOF(B) - sizeof"" : SIZE_MAX)
+
+#define GP_EQUAL3(A, B, B_LENGTH) \
+    gp_equal99(sizeof*(A), A, B, B_LENGTH)
+
+#define GP_EQUAL4(A, A_LEN, B, B_LEN) \
+    gp_bytes_equal(A, sizeof*(A) * (A_LEN), B, sizeof*(B) * (B_LEN))
+
+#define GP_EQUAL(A, ...) \
+    GP_OVERLOAD3(__VA_ARGS__, GP_EQUAL4, GP_EQUAL3, GP_EQUAL2)(A, __VA_ARGS__)
+
+// ----------------------------------------------------------------------------
 // String
 
 #define GP_REPEAT()
 
 // ----------------------------------------------------------------------------
 // Srting and array shared
-
-#ifdef GP_TYPEOF
-// Suppress GCC suspicious usage of sizeof warning.
-#define GP_SIZEOF_TYPEOF(X) sizeof(GP_TYPEOF(X))
-#else
-#define GP_SIZEOF_TYPEOF(X) sizeof(X)
-#endif
 
 void gp_reserve99(size_t elem_size, void* px, const size_t capacity);
 #define GP_RESERVE(A, CAPACITY) gp_reserve99(sizeof**(A), A, CAPACITY)
@@ -221,5 +246,36 @@ void* gp_insert99(
 
 #define GP_REALLOC(ALLOCATOR, ...) \
     gp_mem_realloc((GPAllocator*)(ALLOCATOR),__VA_ARGS__)
+
+// ----------------------------------------------------------------------------
+// File
+
+static inline GPString gp_file99(size_t a_size, void* a, const char* path, const char* mode)
+{
+    switch (a_size)
+    {
+        case sizeof(GPChar): // read a, write to path
+            if (gp_str_file((GPString*)&a, path, mode) == 0)
+                return a;
+            break;
+
+        case sizeof(GPString): // read from path, write to a
+            if (gp_str_file(a, path, mode) == 0)
+                return *(GPString*)a;
+            break;
+
+        GPString str;
+        default: // read from path to a new string
+            str = gp_str_new(a, 128, "");
+            if (gp_str_file(&str, path, mode) == 0)
+                return str;
+            break;
+    }
+    return NULL;
+}
+#define GP_FILE3(A, ...) gp_file99(GP_SIZEOF_TYPEOF(*(A)), A, __VA_ARGS__)
+
+#define GP_FILE2(PATH, ...) gp_file_open(PATH, __VA_ARGS__)
+#define GP_FILE(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_FILE3, GP_FILE2)(A,__VA_ARGS__)
 
 #endif // GP_GENERIC_INCLUDED

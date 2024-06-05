@@ -15,10 +15,13 @@ int main(void)
         const char* f_contents = "yeah\nsecond line\nblah";
         gp_test("file size");
         {
-            FILE* f = fopen("gp_io_test_file.txt", "w");
+            // The first character in mode string is used to determine actual
+            // mode passed to fopen() to be consistent with gp_str_file(). Also
+            // checks for occurrence of '+' and 'b'.
+            FILE* f = gp_file_open("gp_io_test_file.txt", "write");
             gp_assert(f != NULL);
             fwrite(f_contents, 1, strlen(f_contents), f);
-            fclose(f);
+            gp_file_close(f);
 
             GPStat s;
             gp_expect(gp_stat(&s, "gp_io_test_file.txt") == 0);

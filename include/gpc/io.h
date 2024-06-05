@@ -19,6 +19,9 @@
 //
 // ----------------------------------------------------------------------------
 
+// This is mostly for completeness
+FILE* gp_file_open(const char* path, const char* mode);
+
 // To be passed to gp_defer() with correct function type
 inline void gp_file_close(FILE* file)
 {
