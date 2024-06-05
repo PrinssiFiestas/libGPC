@@ -33,12 +33,12 @@
 #define gp_hmap(...)
 
 // Bytes and strings
-#define gp_equal(...)            GP_EQUAL(__VA_ARGS__)
+#define gp_equal(...)             GP_EQUAL(__VA_ARGS__)
 #define gp_count(...)
 #define gp_equal_case(...)
 #define gp_codepoint_count(...)
 #define gp_is_valid(...)
-#define gp_codepoint_length(...) gp_char_codepoint_length(__VA_ARGS__)
+#define gp_codepoint_length(...)  gp_char_codepoint_length(__VA_ARGS__)
 #define gp_classify(...)
 #define gp_find_first(...)
 #define gp_find_last(...)
@@ -150,7 +150,29 @@ static inline bool gp_equal99(
 // ----------------------------------------------------------------------------
 // String
 
-#define GP_REPEAT()
+typedef struct gp_str_in { const void* data; const size_t length; } GPStrIn;
+static inline GPStrIn gp_str_in99(const void* data, const size_t length)
+{
+    return (GPStrIn) {
+        .data   = data,
+        .length = length != SIZE_MAX ? length : gp_arr_length(data)
+    };
+}
+#define GP_STR_IN1(A) gp_str_in99(A, #A[0] == '"' ? GP_SIZEOF_TYPEOF(A) - sizeof "" : SIZE_MAX)
+#define GP_STR_IN(...) GP_OVERLOAD2(__VA_ARGS__, gp_str_in99, GP_STR_IN1)(__VA_ARGS__)
+
+GPString gp_repeat99(
+    const size_t a_size, const void* a, const size_t count, GPStrIn in)
+{
+    if (a_size < sizeof(GPAllocator)) {
+        gp_str_repeat((GPString*)a, count, in.data, in.length);
+        return *(GPString*)a;
+    }
+    GPString out = gp_str_new(a, count * in.length, "");
+    gp_str_repeat(&out, count, in.data, in.length);
+    return out;
+}
+#define GP_REPEAT(A, COUNT, ...) gp_repeat99(GP_SIZEOF_TYPEOF(*(A)), A, COUNT, GP_STR_IN(__VA_ARGS__))
 
 // ----------------------------------------------------------------------------
 // Srting and array shared

@@ -2,6 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+// WORK IN PROGRESS
+
 #include "../src/generic.c"
 #include <gpc/io.h>
 #include <gpc/assert.h>
@@ -35,29 +37,28 @@ int main(void)
     GPArena arena = gp_arena_new(0);
     gp_suite("Strings");
     {
-        // GPString str1 = gp_str(&arena);
-        // GPString str2 = gp_str(&arena);
-        // GPString str3 = gp_str(&arena, ""); // same as the ones above
-        // char cstr[64] = "whatever";
+        GPString str1 = gp_str(&arena);
+        GPString str2 = gp_str(&arena);
+        GPString str3 = gp_str(&arena, ""); // same as the ones above
+        char cstr[64] = "blah";
         gp_test("Repeat");
         {
-            // gp_repeat(&str1, 2, "blah", strlen("blah")); // ok, length given
-            // gp_repeat(&str2, 3, "BLAH"); // ok, literal string
-            // gp_repeat(&str3, 4, str1);   // ok, GPString
-            // //gp_repeat(&str3, 5, cstr); // not ok, non-literal without length!
+            gp_repeat(&str1, 2, cstr, strlen(cstr)); // ok, length given
+            gp_repeat(&str2, 3, "BLAH"); // ok, literal string
+            gp_repeat(&str3, 4, str1);   // ok, GPString
+            //gp_repeat(&str3, 5, cstr); // not ok, non-literal without length!
 
-            // // Same as above but by passing an allocator, a copy is made instead
-            // // of writing to an output string.
-            // GPString copy1 = gp_repeat(&arena, 2, "blah", strlen("blah"));
-            // GPString copy2 = gp_repeat(&arena, 3, "BLAH");
-            // GPString copy3 = gp_repeat(&arena, 4, str1);
-            // //GPString copy4 = gp_repeat(&arena, 5, cstr);
+            // Same as above but by passing an allocator, a copy is made instead
+            // of writing to an output string.
+            GPString copy1 = gp_repeat(&arena, 2, "blah", strlen("blah"));
+            GPString copy2 = gp_repeat(&arena, 3, "BLAH");
+            GPString copy3 = gp_repeat(&arena, 4, str1);
 
-            // gp_expect(gp_equal(str1, "blahblah", strlen("blahblah")));
-            // gp_expect(gp_equal(str2, "BLAHBLAHBLAH"));
-            // gp_expect(gp_equal(copy1, str1));
-            // gp_expect(gp_equal(copy2, str2));
-            // gp_expect(gp_equal(copy3, str3));
+            gp_expect(gp_equal(str1, "blahblah", strlen("blahblah")));
+            gp_expect(gp_equal(str2, "BLAHBLAHBLAH"));
+            gp_expect(gp_equal(copy1, str1));
+            gp_expect(gp_equal(copy2, str2));
+            gp_expect(gp_equal(copy3, str3));
         }
         // #define gp_replace(...)
         // size_t gp_str_replace(
