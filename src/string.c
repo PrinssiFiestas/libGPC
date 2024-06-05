@@ -19,17 +19,19 @@
 #include <sys/stat.h>
 
 GPString gp_str_new(
-    const GPAllocator* allocator,
+    const GPAllocator*const allocator,
     size_t capacity,
-    const char* init)
+    const char*const init)
 {
-    capacity = gp_max(strlen(init), capacity);
+    const size_t init_length = strlen(init);
+    capacity = gp_max(init_length, capacity);
     GPStringHeader* me = gp_mem_alloc(allocator, sizeof*me + capacity + sizeof"");
     *me = (GPStringHeader) {
+        .length     = init_length,
         .capacity   = capacity,
         .allocator  = allocator,
         .allocation = me };
-    return memcpy(me + 1, init, strlen(init));
+    return memcpy(me + 1, init, init_length);
 }
 
 void gp_str_delete(GPString me)

@@ -34,7 +34,7 @@
 
 // Bytes and strings
 #define gp_equal(...)             GP_EQUAL(__VA_ARGS__)
-#define gp_count(...)
+#define gp_count(...)             GP_COUNT(__VA_ARGS__)
 #define gp_equal_case(...)
 #define gp_codepoint_count(...)
 #define gp_is_valid(...)
@@ -125,31 +125,6 @@ GPString gp_str_make(struct gp_str_maker maker);
 // ----------------------------------------------------------------------------
 // Bytes and strings
 
-static inline bool gp_equal99(
-    const size_t elem_size, const void* a, const void* b, size_t b_length)
-{
-    if (b_length == SIZE_MAX)
-        b_length = gp_arr_length(b);
-    if (gp_arr_length(a) != b_length)
-        return false;
-    return memcmp(a, b, b_length * elem_size) == 0;
-}
-
-#define GP_EQUAL2(A, B) \
-    gp_equal99(sizeof*(A), A, B, #B[0] == '"' ? GP_SIZEOF_TYPEOF(B) - sizeof"" : SIZE_MAX)
-
-#define GP_EQUAL3(A, B, B_LENGTH) \
-    gp_equal99(sizeof*(A), A, B, B_LENGTH)
-
-#define GP_EQUAL4(A, A_LEN, B, B_LEN) \
-    gp_bytes_equal(A, sizeof*(A) * (A_LEN), B, sizeof*(B) * (B_LEN))
-
-#define GP_EQUAL(A, ...) \
-    GP_OVERLOAD3(__VA_ARGS__, GP_EQUAL4, GP_EQUAL3, GP_EQUAL2)(A, __VA_ARGS__)
-
-// ----------------------------------------------------------------------------
-// String
-
 typedef struct gp_str_in { const void* data; const size_t length; } GPStrIn;
 static inline GPStrIn gp_str_in99(const void* data, const size_t length)
 {
@@ -160,6 +135,35 @@ static inline GPStrIn gp_str_in99(const void* data, const size_t length)
 }
 #define GP_STR_IN1(A) gp_str_in99(A, #A[0] == '"' ? GP_SIZEOF_TYPEOF(A) - sizeof "" : SIZE_MAX)
 #define GP_STR_IN(...) GP_OVERLOAD2(__VA_ARGS__, gp_str_in99, GP_STR_IN1)(__VA_ARGS__)
+
+static inline bool gp_equal99(
+    const size_t elem_size, const void* a, const void* b, size_t b_length)
+{
+    if (b_length == SIZE_MAX)
+        b_length = gp_arr_length(b);
+    if (gp_arr_length(a) != b_length)
+        return false;
+    return memcmp(a, b, b_length * elem_size) == 0;
+}
+#define GP_EQUAL2(A, B) \
+    gp_equal99(sizeof*(A), A, B, #B[0] == '"' ? GP_SIZEOF_TYPEOF(B) - sizeof"" : SIZE_MAX)
+#define GP_EQUAL3(A, B, B_LENGTH) \
+    gp_equal99(sizeof*(A), A, B, B_LENGTH)
+#define GP_EQUAL4(A, A_LEN, B, B_LEN) \
+    gp_bytes_equal(A, sizeof*(A) * (A_LEN), B, sizeof*(B) * (B_LEN))
+#define GP_EQUAL(A, ...) \
+    GP_OVERLOAD3(__VA_ARGS__, GP_EQUAL4, GP_EQUAL3, GP_EQUAL2)(A, __VA_ARGS__)
+
+static inline size_t gp_count99(GPStrIn haystack, GPStrIn needle) {
+    return gp_bytes_count(haystack.data, haystack.length, needle.data, needle.length);
+}
+#define GP_COUNT2(A, B)       gp_count99(GP_STR_IN(A), GP_STR_IN(B))
+#define GP_COUNT3(A, B, C)    gp_count99(GP_STR_IN(A), GP_STR_IN(B, C))
+#define GP_COUNT4(A, B, C, D) gp_count99(GP_STR_IN(A, B), GP_STR_IN(C, D))
+#define GP_COUNT(A, ...) GP_OVERLOAD3(__VA_ARGS__, GP_COUNT4, GP_COUNT3, GP_COUNT2)(A, __VA_ARGS__)
+
+// ----------------------------------------------------------------------------
+// String
 
 GPString gp_repeat99(
     const size_t a_size, const void* a, const size_t count, GPStrIn in)

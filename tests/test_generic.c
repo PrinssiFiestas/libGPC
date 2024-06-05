@@ -35,6 +35,38 @@
 int main(void)
 {
     GPArena arena = gp_arena_new(0);
+    gp_suite("Bytes and strings");
+    {
+        gp_test("Count");
+        {
+            GPString haystack = gp_str(&arena, "1 and 2 and 3");
+            GPString needle   = gp_str(&arena, "and");
+            gp_expect(gp_count(haystack, needle) == 2);
+            gp_expect(gp_count(haystack, "and") == 2);
+            gp_expect(gp_count(haystack, needle, gp_length(needle)) == 2);
+            gp_expect(gp_count(haystack, gp_length(haystack), needle, gp_length(needle)) == 2);
+        }
+        // #define gp_equal_case(...)
+        // bool gp_str_equal_case(
+        //     GPString    s1,
+        //     const void* s2,
+        //     size_t      s2_size);
+        // #define gp_codepoint_count(...)
+        // size_t gp_str_codepoint_count(
+        //     GPString str);
+        // #define gp_is_valid(...)
+        // bool gp_str_is_valid(
+        //     GPString str,
+        //     size_t*  optional_invalid_position);
+        // #define gp_codepoint_length(...) gp_char_codepoint_length(__VA_ARGS__)
+        // size_t gp_char_codepoint_length(
+        //     const void* str);
+        // #define gp_classify(...)
+        // bool gp_char_classify(
+        //     const void* str,
+        //     int (*classifier)(wint_t c));
+    }
+
     gp_suite("Strings");
     {
         GPString str1 = gp_str(&arena);
@@ -109,35 +141,6 @@ int main(void)
         //     GPString    haystack,
         //     const char* utf8_char_set,
         //     size_t      start);
-        // #define gp_count(...)
-        // size_t gp_str_count(
-        //     GPString    haystack,
-        //     const void* needle,
-        //     size_t      needle_size);
-        // #define gp_equal(...)
-        // bool gp_str_equal(
-        //     GPString    s1,
-        //     const void* s2,
-        //     size_t      s2_size);
-        // #define gp_equal_case(...)
-        // bool gp_str_equal_case(
-        //     GPString    s1,
-        //     const void* s2,
-        //     size_t      s2_size);
-        // #define gp_codepoint_count(...)
-        // size_t gp_str_codepoint_count(
-        //     GPString str);
-        // #define gp_is_valid(...)
-        // bool gp_str_is_valid(
-        //     GPString str,
-        //     size_t*  optional_invalid_position);
-        // #define gp_codepoint_length(...) gp_char_codepoint_length(__VA_ARGS__)
-        // size_t gp_char_codepoint_length(
-        //     const void* str);
-        // #define gp_classify(...)
-        // bool gp_char_classify(
-        //     const void* str,
-        //     int (*classifier)(wint_t c));
     }
 
     gp_suite("File");
