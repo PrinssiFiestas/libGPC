@@ -97,6 +97,20 @@ int main(void)
         //     const void*restrict replacement,
         //     size_t              replacement_length,
         //     size_t              start);
+        gp_test("Replace");
+        {
+            // This one does not take lengths. Only GPString and literals are
+            // allowed.
+            GPString haystack = gp_str(&arena, "blah skiibel blah");
+            GPString needle   = gp_str(&arena, "BLAHH");
+            gp_replace(&haystack, "skiibel", "BLAHH");
+            gp_replace(&haystack, needle, "XX");
+            gp_replace(&haystack, "XX", gp_str(&arena, "YYYY"));
+            gp_replace(&haystack, "YY", "yyy", 7);
+            GPString str2   = gp_replace(&arena, haystack, "blah", "shloiben", 1);
+            GPString result = gp_replace(&arena, str2, "blah", "😂");
+            gp_expect(gp_equal(result, "😂 YYyyy shloiben"));
+        }
         // #define gp_replace_all(...)
         // size_t gp_str_replace_all(
         //     GPString*           haystack,

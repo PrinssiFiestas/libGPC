@@ -38,12 +38,12 @@
 #define gp_codepoint_length(...)  gp_char_codepoint_length(&__VA_ARGS__)
 
 // Strings
-#define gp_repeat(...)       GP_REPEAT(__VA_ARGS__)
-#define gp_replace(...)
+#define gp_repeat(...)            GP_REPEAT(__VA_ARGS__)
+#define gp_replace(...)           GP_REPLACE(__VA_ARGS__)
 #define gp_replace_all(...)
 #define gp_trim(...)
-#define gp_to_upper(...)     gp_str_to_upper(__VA_ARGS__)
-#define gp_to_lower(...)     gp_str_to_lower(__VA_ARGS__)
+#define gp_to_upper(...)
+#define gp_to_lower(...)
 #define gp_to_valid(...)
 #define gp_equal_case(...)
 #define gp_codepoint_count(...)
@@ -133,7 +133,8 @@ static inline GPStrIn gp_str_in99(const void* data, const size_t length)
         .length = length != SIZE_MAX ? length : gp_arr_length(data)
     };
 }
-#define GP_STR_IN1(A) gp_str_in99(A, #A[0] == '"' ? GP_SIZEOF_TYPEOF(A) - sizeof "" : SIZE_MAX)
+#define GP_STR_IN1(A) gp_str_in99( \
+    (void*)(A), #A[0] == '"' ? GP_SIZEOF_TYPEOF(A) - sizeof "" : SIZE_MAX)
 #define GP_STR_IN(...) GP_OVERLOAD2(__VA_ARGS__, gp_str_in99, GP_STR_IN1)(__VA_ARGS__)
 
 static inline bool gp_equal99(
@@ -177,6 +178,48 @@ GPString gp_repeat99(
     return out;
 }
 #define GP_REPEAT(A, COUNT, ...) gp_repeat99(GP_SIZEOF_TYPEOF(*(A)), A, COUNT, GP_STR_IN(__VA_ARGS__))
+
+// replace(&hay, ndl, repl)
+// replace(&hay, ndl, repl, pos)
+// replace(alc,  hay, ndl, repl)
+// replace(alc,  hay, ndl, repl, pos)
+static inline GPString gp_replace99(
+    const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d,
+    const size_t start)
+{
+    if (a_size < sizeof(GPAllocator)) {
+        gp_str_replace((GPString*)a, b.data, b.length, c.data, c.length, start);
+        return *(GPString*)a;
+    }
+    GPString out = gp_str_new(a, b.length + c.length + d.length, "");
+    const size_t pos = gp_bytes_find_first(b.data, b.length, c.data, c.length, start);
+    if (pos == GP_NOT_FOUND) {
+        memcpy(out, b.data, b.length);
+        ((GPStringHeader*)out - 1)->length = b.length;
+    } else {
+        memcpy(out, b.data, pos);
+        memcpy(out + pos, d.data, d.length);
+        memcpy(out + pos + d.length, b.data + pos + c.length, b.length - c.length);
+        ((GPStringHeader*)out - 1)->length = b.length + d.length - c.length;
+    }
+    return out;
+}
+
+#define GP_REPLACE3(HAY, NDL, REPL) gp_replace99( \
+    GP_SIZEOF_TYPEOF(*(HAY)), HAY, GP_STR_IN(NDL), GP_STR_IN(REPL), GP_STR_IN(NULL, 0), 0)
+
+#define GP_REPLACE4(A, B, C, D) gp_replace99( \
+    GP_SIZEOF_TYPEOF(*(A)), A, GP_STR_IN(B), GP_STR_IN(C), \
+    GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? \
+        GP_STR_IN(NULL, 0) : GP_STR_IN(D), \
+    GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? \
+        (uintptr_t)(D) : 0)
+
+#define GP_REPLACE5(ALC, HAY, NDL, REPL, START) gp_replace99( \
+    GP_SIZEOF_TYPEOF(*(ALC)), ALC, GP_STR_IN(HAY), GP_STR_IN(NDL), GP_STR_IN(REPL), START)
+
+#define GP_REPLACE(A, B, ...) GP_OVERLOAD3(__VA_ARGS__, \
+    GP_REPLACE5, GP_REPLACE4, GP_REPLACE3)(A, B, __VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Srting and array shared
