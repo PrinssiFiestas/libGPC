@@ -137,21 +137,12 @@ static inline GPStrIn gp_str_in99(const void* data, const size_t length)
     (void*)(A), #A[0] == '"' ? GP_SIZEOF_TYPEOF(A) - sizeof "" : SIZE_MAX)
 #define GP_STR_IN(...) GP_OVERLOAD2(__VA_ARGS__, gp_str_in99, GP_STR_IN1)(__VA_ARGS__)
 
-static inline bool gp_equal99(
-    const size_t elem_size, const void* a, const void* b, size_t b_length)
-{
-    if (b_length == SIZE_MAX)
-        b_length = gp_arr_length(b);
-    if (gp_arr_length(a) != b_length)
-        return false;
-    return memcmp(a, b, b_length * elem_size) == 0;
+static inline bool gp_equal99(const GPString a, GPStrIn b) {
+    return gp_bytes_equal(a, gp_str_length(a), b.data, b.length);
 }
-#define GP_EQUAL2(A, B) \
-    gp_equal99(sizeof*(A), A, B, #B[0] == '"' ? GP_SIZEOF_TYPEOF(B) - sizeof"" : SIZE_MAX)
-#define GP_EQUAL3(A, B, B_LENGTH) \
-    gp_equal99(sizeof*(A), A, B, B_LENGTH)
-#define GP_EQUAL4(A, A_LEN, B, B_LEN) \
-    gp_bytes_equal(A, sizeof*(A) * (A_LEN), B, sizeof*(B) * (B_LEN))
+#define GP_EQUAL2(A, B)               gp_equal99(A, GP_STR_IN(B))
+#define GP_EQUAL3(A, B, B_LENGTH)     gp_str_equal(A, B, B_LENGTH)
+#define GP_EQUAL4(A, A_LEN, B, B_LEN) gp_bytes_equal(A, A_LEN, B, B_LEN)
 #define GP_EQUAL(A, ...) \
     GP_OVERLOAD3(__VA_ARGS__, GP_EQUAL4, GP_EQUAL3, GP_EQUAL2)(A, __VA_ARGS__)
 
