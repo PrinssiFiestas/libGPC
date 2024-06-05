@@ -35,15 +35,7 @@
 // Bytes and strings
 #define gp_equal(...)             GP_EQUAL(__VA_ARGS__)
 #define gp_count(...)             GP_COUNT(__VA_ARGS__)
-#define gp_equal_case(...)
-#define gp_codepoint_count(...)
-#define gp_is_valid(...)
-#define gp_codepoint_length(...)  gp_char_codepoint_length(__VA_ARGS__)
-#define gp_classify(...)
-#define gp_find_first(...)
-#define gp_find_last(...)
-#define gp_find_first_of(...)
-#define gp_find_first_not_of(...)
+#define gp_codepoint_length(...)  gp_char_codepoint_length(&__VA_ARGS__)
 
 // Strings
 #define gp_repeat(...)       GP_REPEAT(__VA_ARGS__)
@@ -53,6 +45,14 @@
 #define gp_to_upper(...)     gp_str_to_upper(__VA_ARGS__)
 #define gp_to_lower(...)     gp_str_to_lower(__VA_ARGS__)
 #define gp_to_valid(...)
+#define gp_equal_case(...)
+#define gp_codepoint_count(...)
+#define gp_is_valid(...)
+#define gp_classify(...)
+#define gp_find_first(...)
+#define gp_find_last(...)
+#define gp_find_first_of(...)
+#define gp_find_first_not_of(...)
 
 // Strings and arrays
 #define gp_length(...)       gp_arr_length(__VA_ARGS__)
