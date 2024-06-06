@@ -135,21 +135,26 @@ int main(void)
             GPString result = gp_replace(&arena, str2, "blah", "😂");
             gp_expect(gp_equal(result, "😂 YYyyy shloiben"));
         }
-        // #define gp_replace_all(...)
-        // size_t gp_str_replace_all(
-        //     GPString*           haystack,
-        //     const void*restrict needle,
-        //     size_t              needle_length,
-        //     const void*restrict replacement,
-        //     size_t              replacement_length);
+
+        gp_test("Replace all");
+        {
+            // This one does not take lengths. Only GPString and literals are
+            // allowed.
+            GPString haystack = gp_str(&arena, "blah skiibel skiibel blah");
+            GPString needle   = gp_str(&arena, "BLAHH");
+            gp_replace_all(&haystack, "skiibel", "BLAHH");
+            gp_expect(gp_equal(haystack, "blah BLAHH BLAHH blah"));
+            gp_replace_all(&haystack, needle, "XX");
+            gp_expect(gp_equal(haystack, "blah XX XX blah"));
+            gp_replace_all(&haystack, "XX", gp_str(&arena, "YYYY"));
+            gp_expect(gp_equal(haystack, "blah YYYY YYYY blah"));
+            gp_replace_all(&haystack, "YY", "yyy");
+            gp_expect(gp_equal(haystack, "blah yyyyyy yyyyyy blah"));
+            GPString result = gp_replace_all(&arena, haystack, "blah", "😂");
+            gp_expect(gp_equal(result, "😂 yyyyyy yyyyyy 😂"), result);
+        }
         gp_test("Trim");
         {
-            // trim(pstr)
-            // trim(pstr, chars)
-            // trim(alc,  str)
-            // trim(pstr, chars, flags)
-            // trim(alc,  str,   chars)
-            // trim(alc,  str,   chars, flags)
             GPString str = gp_str(&arena, "\t XYX  asdfg\r  YYX  \n");
             gp_trim(&str);
             gp_expect(gp_equal(str, "XYX  asdfg\r  YYX"));

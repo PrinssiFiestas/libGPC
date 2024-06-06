@@ -41,7 +41,7 @@
 // Strings
 #define gp_repeat(...)             GP_REPEAT(__VA_ARGS__)
 #define gp_replace(...)            GP_REPLACE(__VA_ARGS__)
-#define gp_replace_all(...)
+#define gp_replace_all(...)        GP_REPLACE_ALL(__VA_ARGS__)
 #define gp_trim(...)               GP_TRIM(__VA_ARGS__)
 #define gp_to_upper(...)
 #define gp_to_lower(...)
@@ -180,10 +180,6 @@ GPString gp_repeat99(
 }
 #define GP_REPEAT(A, COUNT, ...) gp_repeat99(GP_SIZEOF_TYPEOF(*(A)), A, COUNT, GP_STR_IN(__VA_ARGS__))
 
-// replace(&hay, ndl, repl)
-// replace(&hay, ndl, repl, pos)
-// replace(alc,  hay, ndl, repl)
-// replace(alc,  hay, ndl, repl, pos)
 static inline GPString gp_replace99(
     const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d,
     const size_t start)
@@ -218,6 +214,26 @@ static inline GPString gp_replace99(
 #define GP_REPLACE(A, B, ...) GP_OVERLOAD3(__VA_ARGS__, \
     GP_REPLACE5, GP_REPLACE4, GP_REPLACE3)(A, B, __VA_ARGS__)
 
+static inline GPString gp_replace_all99(
+    const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d)
+{
+    if (a_size < sizeof(GPAllocator)) {
+        gp_str_replace_all((GPString*)a, b.data, b.length, c.data, c.length);
+        return *(GPString*)a;
+    }
+    // TODO don't copy and replace all, just copy what's needed
+    GPString out = gp_str_new(a, b.length, "");
+    gp_str_copy(&out, b.data, b.length);
+    gp_str_replace_all(&out, c.data, c.length, d.data, d.length);
+    return out;
+}
+#define GP_REPLACE_ALL3(HAY, NDL, REPL) gp_replace_all99( \
+    GP_SIZEOF_TYPEOF(*(HAY)), HAY, GP_STR_IN(NDL), GP_STR_IN(REPL), GP_STR_IN(NULL, 0))
+#define GP_REPLACE_ALL4(ALC, HAY, NDL, REPL) gp_replace_all99( \
+    GP_SIZEOF_TYPEOF(*(ALC)), ALC, GP_STR_IN(HAY), GP_STR_IN(NDL), GP_STR_IN(REPL))
+#define GP_REPLACE_ALL(A, B, ...) GP_OVERLOAD2(__VA_ARGS__, \
+    GP_REPLACE_ALL4, GP_REPLACE_ALL3)(A, B, __VA_ARGS__)
+
 static inline GPString gp_trim99(
     const size_t a_size, const void* a, GPStrIn b, const char* char_set, int flags)
 {
@@ -233,22 +249,18 @@ static inline GPString gp_trim99(
 }
 #define GP_TRIM1(STR) gp_trim99( \
     GP_SIZEOF_TYPEOF(*(STR)), STR, GP_STR_IN(NULL, 0), NULL, 'l' | 'r')
-
 #define GP_TRIM2(A, B) gp_trim99( \
     GP_SIZEOF_TYPEOF(*(A)), A, \
     GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? GP_STR_IN(NULL, 0) : GP_STR_IN(B), \
     GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? (char*)(B) : NULL, \
     'l' | 'r')
-
 #define GP_TRIM3(A, B, C) gp_trim99( \
     GP_SIZEOF_TYPEOF(*(A)), A, \
     GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? GP_STR_IN(NULL, 0) : GP_STR_IN(B), \
     GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? (char*)(B) : (char*)(C), \
     GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? (intptr_t)(C) : 'l' | 'r')
-
 #define GP_TRIM4(ALC, STR, CHARS, FLAGS) gp_trim99( \
     GP_SIZEOF_TYPEOF(*(ALC)), ALC, GP_STR_IN(STR), CHARS, FLAGS)
-
 #define GP_TRIM(...) \
     GP_OVERLOAD4(__VA_ARGS__, GP_TRIM4, GP_TRIM3, GP_TRIM2, GP_TRIM1)(__VA_ARGS__)
 
