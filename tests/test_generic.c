@@ -56,7 +56,7 @@ int main(void)
         }
 
         gp_test("Codepoint length");
-        { // aka how many bytes does a UTF-8 codepoint take
+        { // aka how many bytes does a UTF-8 codepoint take. Only 1 byte read.
             const char* cstr = "x😂";
             GPString str = gp_str(&arena, cstr);
 
@@ -74,7 +74,8 @@ int main(void)
         }
 
         gp_test("Codepoint classify");
-        { // aka how many bytes does a UTF-8 codepoint take
+        { // 1-4 bytes read. No bytes are read past string if string is valid
+          // UTF-8.
             if (setlocale(LC_ALL, "C.utf8") != NULL)
             {
                 const char* cstr = "x ";
@@ -120,14 +121,6 @@ int main(void)
             gp_expect(gp_equal(copy2, str2));
             gp_expect(gp_equal(copy3, str3));
         }
-        // #define gp_replace(...)
-        // size_t gp_str_replace(
-        //     GPString*           haystack,
-        //     const void*restrict needle,
-        //     size_t              needle_length,
-        //     const void*restrict replacement,
-        //     size_t              replacement_length,
-        //     size_t              start);
         gp_test("Replace");
         {
             // This one does not take lengths. Only GPString and literals are
@@ -149,11 +142,32 @@ int main(void)
         //     size_t              needle_length,
         //     const void*restrict replacement,
         //     size_t              replacement_length);
-        // #define gp_trim(...)
-        // void gp_str_trim(
-        //     GPString*,
-        //     const char* optional_char_set,
-        //     int         flags);
+        gp_test("Trim");
+        {
+            // trim(pstr)
+            // trim(pstr, chars)
+            // trim(alc,  str)
+            // trim(pstr, chars, flags)
+            // trim(alc,  str,   chars)
+            // trim(alc,  str,   chars, flags)
+            GPString str = gp_str(&arena, "\t XYX  asdfg\r  YYX  \n");
+            gp_trim(&str);
+            gp_expect(gp_equal(str, "XYX  asdfg\r  YYX"));
+            gp_trim(&str, "XY");
+            gp_expect(gp_equal(str, "  asdfg\r  "));
+            GPString str1 = gp_trim(&arena, str);
+            gp_expect(gp_equal(str1, "asdfg"));
+            gp_trim(&str1, "ag", 'l');
+            gp_expect(gp_equal(str1, "sdfg"));
+            gp_trim(&str1, "ag", 'r');
+            gp_expect(gp_equal(str1, "sdf"));
+            GPString str2 = gp_trim(&arena, str1, "f");
+            gp_expect(gp_equal(str2, "sd"));
+            GPString str3 = gp_trim(&arena, str2, "s", 'l');
+            gp_expect(gp_equal(str3, "d"));
+            gp_trim(&str3, str); // for completeness
+            gp_expect(gp_equal(str3, ""));
+        }
         // #define gp_to_upper(...)     gp_str_to_upper(__VA_ARGS__)
         // void gp_str_to_upper(GPString*);
         // #define gp_to_lower(...)     gp_str_to_lower(__VA_ARGS__)

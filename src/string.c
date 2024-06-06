@@ -644,6 +644,11 @@ void gp_str_trim(
         {
             char codepoint[8] = "";
             size_t size = gp_str_codepoint_length(*str, prefix_length);
+            if (size == 0)
+            { // assuming valid UTF-8, this only happens if trims to empty string
+                gp_str_header(*str)->length = 0;
+                return;
+            }
             memcpy(codepoint, *str + prefix_length, size);
             if (strstr(char_set, codepoint) == NULL)
                 break;

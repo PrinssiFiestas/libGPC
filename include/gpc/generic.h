@@ -28,8 +28,8 @@
 #define GPHashMap(T) T*
 
 // Constructors
-#define gp_arr(...)          GP_ARR_NEW(__VA_ARGS__)
-#define gp_str(...)          GP_STR_NEW(__VA_ARGS__)
+#define gp_arr(...)                GP_ARR_NEW(__VA_ARGS__)
+#define gp_str(...)                GP_STR_NEW(__VA_ARGS__)
 #define gp_hmap(...)
 
 // Bytes and strings
@@ -42,7 +42,7 @@
 #define gp_repeat(...)             GP_REPEAT(__VA_ARGS__)
 #define gp_replace(...)            GP_REPLACE(__VA_ARGS__)
 #define gp_replace_all(...)
-#define gp_trim(...)
+#define gp_trim(...)               GP_TRIM(__VA_ARGS__)
 #define gp_to_upper(...)
 #define gp_to_lower(...)
 #define gp_to_valid(...)
@@ -205,22 +205,52 @@ static inline GPString gp_replace99(
     }
     return out;
 }
-
 #define GP_REPLACE3(HAY, NDL, REPL) gp_replace99( \
     GP_SIZEOF_TYPEOF(*(HAY)), HAY, GP_STR_IN(NDL), GP_STR_IN(REPL), GP_STR_IN(NULL, 0), 0)
-
 #define GP_REPLACE4(A, B, C, D) gp_replace99( \
     GP_SIZEOF_TYPEOF(*(A)), A, GP_STR_IN(B), GP_STR_IN(C), \
     GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? \
         GP_STR_IN(NULL, 0) : GP_STR_IN(D), \
     GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? \
         (uintptr_t)(D) : 0)
-
 #define GP_REPLACE5(ALC, HAY, NDL, REPL, START) gp_replace99( \
     GP_SIZEOF_TYPEOF(*(ALC)), ALC, GP_STR_IN(HAY), GP_STR_IN(NDL), GP_STR_IN(REPL), START)
-
 #define GP_REPLACE(A, B, ...) GP_OVERLOAD3(__VA_ARGS__, \
     GP_REPLACE5, GP_REPLACE4, GP_REPLACE3)(A, B, __VA_ARGS__)
+
+static inline GPString gp_trim99(
+    const size_t a_size, const void* a, GPStrIn b, const char* char_set, int flags)
+{
+    if (a_size < sizeof(GPAllocator)) {
+        gp_str_trim((GPString*)a, char_set, flags);
+        return *(GPString*)a;
+    }
+    GPString out = gp_str_new(a, b.length, "");
+    // TODO don't copy and trim, just copy what's needed!
+    gp_str_copy(&out, b.data, b.length);
+    gp_str_trim(&out, char_set, flags);
+    return out;
+}
+#define GP_TRIM1(STR) gp_trim99( \
+    GP_SIZEOF_TYPEOF(*(STR)), STR, GP_STR_IN(NULL, 0), NULL, 'l' | 'r')
+
+#define GP_TRIM2(A, B) gp_trim99( \
+    GP_SIZEOF_TYPEOF(*(A)), A, \
+    GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? GP_STR_IN(NULL, 0) : GP_STR_IN(B), \
+    GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? (char*)(B) : NULL, \
+    'l' | 'r')
+
+#define GP_TRIM3(A, B, C) gp_trim99( \
+    GP_SIZEOF_TYPEOF(*(A)), A, \
+    GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? GP_STR_IN(NULL, 0) : GP_STR_IN(B), \
+    GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? (char*)(B) : (char*)(C), \
+    GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? (intptr_t)(C) : 'l' | 'r')
+
+#define GP_TRIM4(ALC, STR, CHARS, FLAGS) gp_trim99( \
+    GP_SIZEOF_TYPEOF(*(ALC)), ALC, GP_STR_IN(STR), CHARS, FLAGS)
+
+#define GP_TRIM(...) \
+    GP_OVERLOAD4(__VA_ARGS__, GP_TRIM4, GP_TRIM3, GP_TRIM2, GP_TRIM1)(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Srting and array shared
