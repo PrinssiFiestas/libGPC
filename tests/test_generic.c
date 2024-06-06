@@ -173,14 +173,22 @@ int main(void)
             gp_trim(&str3, str); // for completeness
             gp_expect(gp_equal(str3, ""));
         }
-        // #define gp_to_upper(...)     gp_str_to_upper(__VA_ARGS__)
-        // void gp_str_to_upper(GPString*);
-        // #define gp_to_lower(...)     gp_str_to_lower(__VA_ARGS__)
-        // void gp_str_to_lower(GPString*);
-        // #define gp_to_valid(...)
-        // void gp_str_to_valid(
-        //     GPString*   str,
-        //     const char* replacement);
+
+        gp_test("To upper, lower, and valid");
+        {
+            GPString str0 = gp_str(&arena, "blah");
+            GPString str1 = gp_to_upper(&arena, str0);
+            gp_to_upper(&str0);
+            gp_expect(gp_equal(str0, str1) && gp_equal(str0, "BLAH"));
+            gp_to_lower(&str1);
+            GPString str2 = gp_to_lower(&arena, str1);
+            gp_expect(gp_equal(str1, str2) && gp_equal(str1, "blah"));
+
+            gp_append(&str2, "\xff\xff\xff");
+            GPString str3 = gp_to_valid(&arena, str2, GP_REPLACEMENT_CHARACTER);
+            gp_to_valid(&str2, GP_REPLACEMENT_CHARACTER);
+            gp_expect(gp_equal(str2, str3) && gp_equal(str2, "blah�"), str2);
+        }
         // #define gp_find_first(...)
         // size_t gp_str_find_first(
         //     GPString    haystack,
