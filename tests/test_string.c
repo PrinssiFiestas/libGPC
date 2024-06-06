@@ -136,12 +136,13 @@ int main(void)
             { // Note that GP_WHITESPACE includes characters defined by unicode
               // while iswspace() includes characters defined by locale which
               // may differ slightly.
-                gp_expect(gp_char_classify(" ",      iswspace));
-                gp_expect(gp_char_classify("\t",     iswspace));
-                gp_expect(gp_char_classify("\n",     iswspace));
-                gp_expect(gp_char_classify("\u2008", iswspace));
-                gp_expect( ! gp_char_classify("X",   iswspace));
-                gp_expect( ! gp_char_classify("Ä",   iswspace));
+                const GPString str = gp_str_on_stack(NULL, 16, " \t\n\u2008XÄ");
+                gp_expect(   gp_str_codepoint_classify(str, 0, iswspace));
+                gp_expect(   gp_str_codepoint_classify(str, 1, iswspace));
+                gp_expect(   gp_str_codepoint_classify(str, 2, iswspace));
+                gp_expect(   gp_str_codepoint_classify(str, 3, iswspace));
+                gp_expect( ! gp_str_codepoint_classify(str, 5, iswspace));
+                gp_expect( ! gp_str_codepoint_classify(str, 6, iswspace));
             }
         }
 
@@ -165,15 +166,15 @@ int main(void)
         gp_test("Valid index");
         {
             GPString str = gp_str_on_stack(NULL, 8, "\u1153");
-            gp_expect(   gp_char_codepoint_length(str));
+            gp_expect(   gp_str_codepoint_length(str, 0));
             gp_str_slice(&str, NULL, 1, gp_arr_length(str));
-            gp_expect( ! gp_char_codepoint_length(str));
+            gp_expect( ! gp_str_codepoint_length(str, 0));
         }
 
         gp_test("Codepoint size");
         {
             GPString str = gp_str_on_stack(NULL, 8, "\u1153");
-            gp_expect(gp_char_codepoint_length(str) == strlen("\u1153"));
+            gp_expect(gp_str_codepoint_length(str, 0) == strlen("\u1153"));
         }
 
         gp_test("Codepoint count");

@@ -152,7 +152,7 @@ static unsigned write_S(
             break;
         }
         codepoint_count++;
-        i += last_cp_length = gp_char_codepoint_length(str + i);
+        i += last_cp_length = gp_str_codepoint_length(str, i);
     }
     utf8_string_padding(out, fmt, str, length, codepoint_count);
     return out->length - original_length;

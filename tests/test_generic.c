@@ -8,6 +8,14 @@
 #include <gpc/io.h>
 #include <gpc/assert.h>
 #include <errno.h>
+#include <wchar.h>
+#include <locale.h>
+
+#if _WIN32
+// quick hack to disable locale dependent tests for now
+// TODO operating system agnostic way to set locale to utf-8
+#define setlocale(...) NULL
+#endif
 
 #define arr_assert_eq(ARR, CARR, CARR_LENGTH) do { \
     typeof(ARR  )  _gp_arr1 = (ARR);  \
@@ -48,19 +56,42 @@ int main(void)
         }
 
         gp_test("Codepoint length");
-        {
-            // The non-generic takes pointer inputs. This one takes 8-bit
-            // lvalues.
+        { // aka how many bytes does a UTF-8 codepoint take
             const char* cstr = "x😂";
             GPString str = gp_str(&arena, cstr);
-            gp_expect(gp_codepoint_length(cstr[0])  == 1);
-            gp_expect(gp_codepoint_length(cstr[1])  == 4);
-            gp_expect(gp_codepoint_length(str [0])  == 1);
-            gp_expect(gp_codepoint_length(str [1])  == 4);
 
-            // Non-compliant, not lvalue. Also character literals are of type
-            // int so this would fail anyway.
-            // gp_expect(gp_codepoint_length('x') == 1);
+            // Using index.
+            gp_expect(gp_codepoint_length(cstr,  0)  == 1);
+            gp_expect(gp_codepoint_length(cstr,  1)  == 4);
+            gp_expect(gp_codepoint_length(str,   0)  == 1);
+            gp_expect(gp_codepoint_length(str,   1)  == 4);
+
+            // Using pointers. Useful with iterators.
+            gp_expect(gp_codepoint_length(cstr)      == 1);
+            gp_expect(gp_codepoint_length(cstr + 1)  == 4);
+            gp_expect(gp_codepoint_length(str)       == 1);
+            gp_expect(gp_codepoint_length(str  + 1)  == 4);
+        }
+
+        gp_test("Codepoint classify");
+        { // aka how many bytes does a UTF-8 codepoint take
+            if (setlocale(LC_ALL, "C.utf8") != NULL)
+            {
+                const char* cstr = "x ";
+                GPString str = gp_str(&arena, cstr);
+
+                // Using index.
+                gp_expect( ! gp_codepoint_classify(cstr,  0, iswspace));
+                gp_expect(   gp_codepoint_classify(cstr,  1, iswspace));
+                gp_expect( ! gp_codepoint_classify(str,   0, iswspace));
+                gp_expect(   gp_codepoint_classify(str,   1, iswspace));
+
+                // Using pointers. Useful with iterators.
+                gp_expect( ! gp_codepoint_classify(cstr,     iswspace));
+                gp_expect(   gp_codepoint_classify(cstr + 1, iswspace));
+                gp_expect( ! gp_codepoint_classify(str,      iswspace));
+                gp_expect(   gp_codepoint_classify(str  + 1, iswspace));
+            }
         }
     }
 

@@ -247,15 +247,17 @@ bool gp_str_is_valid(
     GPString str,
     size_t*  optional_invalid_position);
 
-// Only reads the first byte from str
+// Only reads the first byte at str + i
 GP_NONNULL_ARGS()
-size_t gp_char_codepoint_length(
-    const void* str);
+size_t gp_str_codepoint_length(
+    GPString str,
+    size_t i);
 
 // Locale dependent!
 GP_NONNULL_ARGS()
-bool gp_char_classify(
-    const void* str,
+bool gp_str_codepoint_classify(
+    GPString str,
+    size_t i,
     int (*classifier)(wint_t c));
 
 

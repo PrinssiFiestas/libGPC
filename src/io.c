@@ -92,7 +92,7 @@ bool gp_file_read_strip(
         if (c == EOF)
             return false;
         char codepoint[8] = {c};
-        size_t codepoint_length = gp_char_codepoint_length(codepoint);
+        size_t codepoint_length = gp_str_codepoint_length((GPString)codepoint, 0);
         for (size_t i = 1; i < codepoint_length; i++) {
             if ((c = fgetc(in)) == EOF)
                 return false;
@@ -107,7 +107,7 @@ bool gp_file_read_strip(
         if (c == EOF)
             return false;
         char codepoint[8] = {c};
-        size_t codepoint_length = gp_char_codepoint_length(codepoint);
+        size_t codepoint_length = gp_str_codepoint_length((GPString)codepoint, 0);
         for (size_t i = 1; i < codepoint_length; i++) {
             if ((c = fgetc(in)) == EOF)
                 return false;

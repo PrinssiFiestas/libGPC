@@ -33,13 +33,14 @@
 #define gp_hmap(...)
 
 // Bytes and strings
-#define gp_equal(...)             GP_EQUAL(__VA_ARGS__)
-#define gp_count(...)             GP_COUNT(__VA_ARGS__)
-#define gp_codepoint_length(...)  gp_char_codepoint_length(&__VA_ARGS__)
+#define gp_equal(...)              GP_EQUAL(__VA_ARGS__)
+#define gp_count(...)              GP_COUNT(__VA_ARGS__)
+#define gp_codepoint_length(...)   GP_CODEPOINT_LENGTH(__VA_ARGS__)
+#define gp_codepoint_classify(...) GP_CODEPOINT_CLASSIFY(__VA_ARGS__)
 
 // Strings
-#define gp_repeat(...)            GP_REPEAT(__VA_ARGS__)
-#define gp_replace(...)           GP_REPLACE(__VA_ARGS__)
+#define gp_repeat(...)             GP_REPEAT(__VA_ARGS__)
+#define gp_replace(...)            GP_REPLACE(__VA_ARGS__)
 #define gp_replace_all(...)
 #define gp_trim(...)
 #define gp_to_upper(...)
@@ -48,7 +49,6 @@
 #define gp_equal_case(...)
 #define gp_codepoint_count(...)
 #define gp_is_valid(...)
-#define gp_classify(...)
 #define gp_find_first(...)
 #define gp_find_last(...)
 #define gp_find_first_of(...)
@@ -153,6 +153,16 @@ static inline size_t gp_count99(GPStrIn haystack, GPStrIn needle) {
 #define GP_COUNT3(A, B, C)    gp_count99(GP_STR_IN(A), GP_STR_IN(B, C))
 #define GP_COUNT4(A, B, C, D) gp_count99(GP_STR_IN(A, B), GP_STR_IN(C, D))
 #define GP_COUNT(A, ...) GP_OVERLOAD3(__VA_ARGS__, GP_COUNT4, GP_COUNT3, GP_COUNT2)(A, __VA_ARGS__)
+
+#define GP_CODEPOINT_LENGTH1(PTR)    gp_str_codepoint_length((GPString)(PTR), 0)
+#define GP_CODEPOINT_LENGTH2(STR, I) gp_str_codepoint_length((GPString)(STR), I)
+#define GP_CODEPOINT_LENGTH(...) \
+    GP_OVERLOAD2(__VA_ARGS__, GP_CODEPOINT_LENGTH2, GP_CODEPOINT_LENGTH1)(__VA_ARGS__)
+
+#define GP_CODEPOINT_CLASSIFY2(PTR, F)    gp_str_codepoint_classify((GPString)(PTR), 0, F)
+#define GP_CODEPOINT_CLASSIFY3(PTR, I, F) gp_str_codepoint_classify((GPString)(PTR), I, F)
+#define GP_CODEPOINT_CLASSIFY(P, ...) \
+    GP_OVERLOAD2(__VA_ARGS__, GP_CODEPOINT_CLASSIFY3, GP_CODEPOINT_CLASSIFY2)(P, __VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // String
