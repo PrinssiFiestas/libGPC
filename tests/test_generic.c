@@ -230,13 +230,31 @@ int main(void)
                 gp_expect(gp_equal_case(a, "😂aAaAäÄä😂"));
             }
         }
-        // #define gp_codepoint_count(...)
-        // size_t gp_str_codepoint_count(
-        //     GPString str);
+        gp_test("Codepoint count");
+        {
+            GPString str = gp_str(&arena, "😂aÄ😂");
+            gp_expect(gp_codepoint_count(str) == 4);
+            gp_expect(gp_codepoint_count("😂aÄ😂") == 4);
+        }
         // #define gp_is_valid(...)
         // bool gp_str_is_valid(
         //     GPString str,
         //     size_t*  optional_invalid_position);
+        gp_test("Is valid");
+        {
+            GPString str = gp_str(&arena, "😂aÄ😂");
+            size_t invalid_index;
+            gp_expect(   gp_is_valid(str));
+            gp_expect(   gp_is_valid("😂aÄ😂"));
+            gp_expect(   gp_is_valid(str, gp_length(str)));
+            gp_expect(   gp_is_valid(str, gp_length(str), &invalid_index));
+            gp_copy(&str, "😂a\xffÄ😂");
+            gp_expect( ! gp_is_valid(str));
+            gp_expect( ! gp_is_valid("😂a\xffÄ😂"));
+            gp_expect( ! gp_is_valid(str, gp_length(str)));
+            gp_expect( ! gp_is_valid(str, gp_length(str), &invalid_index));
+            gp_expect(invalid_index == 5);
+        }
         // #define gp_classify(...)
         // bool gp_char_classify(
         //     const void* str,

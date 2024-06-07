@@ -51,8 +51,8 @@
 #define gp_find_first_of(...)      GP_FIND_FIRST_OF(__VA_ARGS__)
 #define gp_find_first_not_of(...)  GP_FIND_FIRST_NOT_OF(__VA_ARGS__)
 #define gp_equal_case(...)         GP_EQUAL_CASE(__VA_ARGS__)
-#define gp_codepoint_count(...)
-#define gp_is_valid(...)
+#define gp_codepoint_count(...)    GP_CODEPOINT_COUNT(__VA_ARGS__)
+#define gp_is_valid(...)           GP_IS_VALID(__VA_ARGS__)
 
 // Strings and arrays
 #define gp_length(...)             gp_arr_length(__VA_ARGS__)
@@ -333,6 +333,16 @@ static inline bool gp_equal_case99(const GPString a, GPStrIn b)
 #define GP_EQUAL_CASE2(A, B) gp_equal_case99(a, GP_STR_IN(B))
 #define GP_EQUAL_CASE(A,...) \
     GP_OVERLOAD2(__VA_ARGS__, gp_str_equal_case, GP_EQUAL_CASE2)(A, __VA_ARGS__)
+
+size_t gp_codepoint_count99(GPStrIn s);
+#define GP_CODEPOINT_COUNT(...) gp_codepoint_count99(GP_STR_IN(__VA_ARGS__))
+
+bool gp_is_valid99(GPStrIn s, size_t*i);
+#define GP_IS_VALID1(S)       gp_is_valid99(GP_STR_IN(S),    NULL)
+#define GP_IS_VALID2(S, L)    gp_is_valid99(GP_STR_IN(S, L), NULL)
+#define GP_IS_VALID3(S, L, I) gp_is_valid99(GP_STR_IN(S, L), I)
+#define GP_IS_VALID(...) \
+    GP_OVERLOAD3(__VA_ARGS__, GP_IS_VALID3, GP_IS_VALID2, GP_IS_VALID1)(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Srting and array shared

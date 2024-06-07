@@ -4,6 +4,7 @@
 
 #include <gpc/generic.h>
 #include <gpc/utils.h>
+#include "common.h"
 
 GPString gp_str_make(struct gp_str_maker maker)
 {
@@ -12,6 +13,22 @@ GPString gp_str_make(struct gp_str_maker maker)
     return gp_str_new(
         maker.allocator, gp_max((size_t)16, gp_next_power_of_2(strlen(maker.init))), maker.init);
 }
+
+// ----------------------------------------------------------------------------
+// String
+
+size_t gp_codepoint_count99(GPStrIn s)
+{
+    return gp_bytes_codepoint_count(s.data, s.length);
+}
+
+bool gp_is_valid99(GPStrIn s, size_t*i)
+{
+    return gp_bytes_is_valid_utf8(s.data, s.length, i);
+}
+
+// ----------------------------------------------------------------------------
+// Srting and array shared
 
 void gp_reserve99(const size_t elem_size, void* px, const size_t capacity)
 {

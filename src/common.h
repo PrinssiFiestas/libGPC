@@ -37,6 +37,19 @@ inline size_t gp_max_digits_in(const GPType T)
     return 0;
 }
 
+bool gp_valid_codepoint(uint32_t c);
+
+GP_NONNULL_ARGS()
+size_t gp_bytes_codepoint_count(
+    const void* _str,
+    const size_t n);
+
+GP_NONNULL_ARGS(1)
+bool gp_bytes_is_valid_utf8(
+    const void* str,
+    size_t str_length,
+    size_t* optional_invalid_index);
+
 GP_NONNULL_ARGS()
 inline size_t gp_count_fmt_specs(const char* fmt)
 {
