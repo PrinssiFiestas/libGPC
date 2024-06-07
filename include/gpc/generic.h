@@ -50,20 +50,20 @@
 #define gp_find_last(...)          GP_FIND_LAST(__VA_ARGS__)
 #define gp_find_first_of(...)      GP_FIND_FIRST_OF(__VA_ARGS__)
 #define gp_find_first_not_of(...)  GP_FIND_FIRST_NOT_OF(__VA_ARGS__)
-#define gp_equal_case(...)
+#define gp_equal_case(...)         GP_EQUAL_CASE(__VA_ARGS__)
 #define gp_codepoint_count(...)
 #define gp_is_valid(...)
 
 // Strings and arrays
-#define gp_length(...)       gp_arr_length(__VA_ARGS__)
-#define gp_capacity(...)     gp_arr_capacity(__VA_ARGS__)
-#define gp_allocation(...)   gp_arr_allocation(__VA_ARGS__)
-#define gp_allocator(...)    gp_arr_allocator(__VA_ARGS__)
-#define gp_reserve(...)      GP_RESERVE(__VA_ARGS__)
-#define gp_copy(...)         GP_COPY(__VA_ARGS__)
-#define gp_slice(...)        GP_SLICE(__VA_ARGS__)
-#define gp_append(...)       GP_APPEND(__VA_ARGS__)
-#define gp_insert(...)       GP_INSERT(__VA_ARGS__)
+#define gp_length(...)             gp_arr_length(__VA_ARGS__)
+#define gp_capacity(...)           gp_arr_capacity(__VA_ARGS__)
+#define gp_allocation(...)         gp_arr_allocation(__VA_ARGS__)
+#define gp_allocator(...)          gp_arr_allocator(__VA_ARGS__)
+#define gp_reserve(...)            GP_RESERVE(__VA_ARGS__)
+#define gp_copy(...)               GP_COPY(__VA_ARGS__)
+#define gp_slice(...)              GP_SLICE(__VA_ARGS__)
+#define gp_append(...)             GP_APPEND(__VA_ARGS__)
+#define gp_insert(...)             GP_INSERT(__VA_ARGS__)
 
 // Arrays
 #define gp_map(...)
@@ -326,16 +326,26 @@ static inline size_t gp_find_last99(const GPString haystack, GPStrIn needle)
 #define GP_FIND_FIRST_NOT_OF(A, ...) \
     GP_OVERLOAD2(__VA_ARGS__, gp_str_find_first_not_of, GP_FIND_FIRST_NOT_OF2)(A, __VA_ARGS__)
 
+static inline bool gp_equal_case99(const GPString a, GPStrIn b)
+{
+    return gp_str_equal_case(a, b.data, b.length);
+}
+#define GP_EQUAL_CASE2(A, B) gp_equal_case99(a, GP_STR_IN(B))
+#define GP_EQUAL_CASE(A,...) \
+    GP_OVERLOAD2(__VA_ARGS__, gp_str_equal_case, GP_EQUAL_CASE2)(A, __VA_ARGS__)
+
 // ----------------------------------------------------------------------------
 // Srting and array shared
+
+#define GP_IS_ALC(A) (GP_SIZEOF_TYPEOF(*(A)) >= sizeof(GPAllocator))
 
 void gp_reserve99(size_t elem_size, void* px, const size_t capacity);
 #define GP_RESERVE(A, CAPACITY) gp_reserve99(sizeof**(A), A, CAPACITY)
 
 void* gp_copy99(size_t y_size, void* y,
     const void* x, const char* x_ident, size_t x_length, const size_t x_size);
-
-#define GP_COPY2(A, B)    gp_copy99(GP_SIZEOF_TYPEOF(*(A)), A, B, #B, sizeof(B) - sizeof"", GP_SIZEOF_TYPEOF(*(B)))
+#define GP_COPY2(A, B) \
+    gp_copy99(GP_SIZEOF_TYPEOF(*(A)), A, B, #B, GP_SIZEOF_TYPEOF(B), GP_SIZEOF_TYPEOF(*(B)))
 #define GP_COPY3(A, B, C) gp_copy99(GP_SIZEOF_TYPEOF(*(A)), A, B, NULL, C, GP_SIZEOF_TYPEOF(*(B)))
 #define GP_COPY(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_COPY3, GP_COPY2)(A,__VA_ARGS__)
 
@@ -343,7 +353,6 @@ void* gp_slice99(
     const size_t y_size, const void* y,
     const size_t x_size, const void* x,
     const size_t start, const size_t end);
-
 #define GP_SLICE_WITH_INPUT(Y, X, START, END) \
     gp_slice99(GP_SIZEOF_TYPEOF(*(Y)), Y, GP_SIZEOF_TYPEOF(*(X)), X, START, END)
 #define GP_SLICE_WOUT_INPUT(Y, START, END) \
@@ -355,22 +364,16 @@ void* gp_append99(
     const size_t a_size, void* a,
     const void* b, const char* b_ident, size_t b_length, const size_t b_size,
     const void* c, const char* c_ident, size_t c_length);
-
-#define GP_IS_ALC(A) (GP_SIZEOF_TYPEOF(*(A)) == sizeof(GPAllocator))
-
 #define GP_APPEND2(A, B) \
-    gp_append99(GP_SIZEOF_TYPEOF(*(A)), A, B, #B, sizeof(B), GP_SIZEOF_TYPEOF(*(B)), NULL, NULL, 0)
-
+    gp_append99(GP_SIZEOF_TYPEOF(*(A)), A, B, #B, GP_SIZEOF_TYPEOF(B), GP_SIZEOF_TYPEOF(*(B)), NULL, NULL, 0)
 #define GP_APPEND3(A, B, C) \
     gp_append99(GP_SIZEOF_TYPEOF(*(A)), A, \
-        B, GP_IS_ALC(A) ? #B : NULL, GP_IS_ALC(A) ? sizeof(B) : (uintptr_t)(C), GP_SIZEOF_TYPEOF(*(B)), \
+        B, GP_IS_ALC(A) ? #B : NULL, GP_IS_ALC(A) ? GP_SIZEOF_TYPEOF(B) : (uintptr_t)(C), GP_SIZEOF_TYPEOF(*(B)), \
         GP_IS_ALC(A) ? (void*)(C) : NULL, #C, GP_SIZEOF_TYPEOF(C))
-
 #define GP_APPEND4(A, B, C, D) \
     gp_append99(GP_SIZEOF_TYPEOF(*(A)), A, \
-        B, #B, sizeof(B) : GP_SIZEOF_TYPEOF(*(B)), \
+        B, #B, GP_SIZEOF_TYPEOF(B) : GP_SIZEOF_TYPEOF(*(B)), \
         C, NULL, D)
-
 #define GP_APPEND5(A, B, C, D, E) \
     gp_append99(GP_SIZEOF_TYPEOF(*(A)), A, B, NULL, C, GP_SIZEOF_TYPEOF(*(B)), D, NULL, E)
 #define GP_APPEND(A, ...) GP_OVERLOAD4(__VA_ARGS__, \
@@ -380,23 +383,18 @@ void* gp_insert99(
     const size_t a_size, void* a, const size_t pos,
     const void* b, const char* b_ident, size_t b_length, const size_t b_size,
     const void* c, const char* c_ident, size_t c_length);
-
 #define GP_INSERT3(A, POS, B) \
-    gp_insert99(GP_SIZEOF_TYPEOF(*(A)), A, POS, B, #B, sizeof(B), GP_SIZEOF_TYPEOF(*(B)), NULL, NULL, 0)
-
+    gp_insert99(GP_SIZEOF_TYPEOF(*(A)), A, POS, B, #B, GP_SIZEOF_TYPEOF(B), GP_SIZEOF_TYPEOF(*(B)), NULL, NULL, 0)
 #define GP_INSERT4(A, POS, B, C) \
     gp_insert99(GP_SIZEOF_TYPEOF(*(A)), A, POS, \
-        B, GP_IS_ALC(A) ? #B : NULL, GP_IS_ALC(A) ? sizeof(B) : (uintptr_t)(C), GP_SIZEOF_TYPEOF(*(B)), \
+        B, GP_IS_ALC(A) ? #B : NULL, GP_IS_ALC(A) ? GP_SIZEOF_TYPEOF(B) : (uintptr_t)(C), GP_SIZEOF_TYPEOF(*(B)), \
         GP_IS_ALC(A) ? (void*)(C) : NULL, #C, GP_SIZEOF_TYPEOF(C))
-
 #define GP_INSERT5(A, POS, B, C, D) \
     gp_insert99(GP_SIZEOF_TYPEOF(*(A)), A, POS, \
-        B, #B, sizeof(B): GP_SIZEOF_TYPEOF(*(B)), \
+        B, #B, GP_SIZEOF_TYPEOF(B): GP_SIZEOF_TYPEOF(*(B)), \
         C, NULL, D)
-
 #define GP_INSERT6(A, POS, B, C, D, E) \
     gp_insert99(GP_SIZEOF_TYPEOF(*(A)), A, POS, B, NULL, C, GP_SIZEOF_TYPEOF(*(B)), D, NULL, E)
-
 #define GP_INSERT(A, POS, ...) GP_OVERLOAD4(__VA_ARGS__, \
     GP_INSERT6, GP_INSERT5, GP_INSERT4, GP_INSERT3)(A, POS, __VA_ARGS__)
 

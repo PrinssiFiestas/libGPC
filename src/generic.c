@@ -36,8 +36,11 @@ void* gp_copy99(const size_t y_size, void* y,
     const void* x, const char* x_ident, size_t x_length, const size_t x_size)
 {
     x_length = gp_length99(x, x_ident, x_length, x_size);
-    if (y_size >= sizeof(GPAllocator))
-        return x_size == 1 ? gp_str_new(y, x_length, x) : gp_arr_new(y, x_size, x_length);
+    if (y_size >= sizeof(GPAllocator)) {
+        void* out = gp_arr_new(y, x_size, x_length + sizeof"");
+        ((GPArrayHeader*)out - 1)->length = x_length;
+        return memcpy(out, x, x_size * x_length);
+    }
 
     if (x_size == 1)
         gp_str_copy(y, x, x_length);
@@ -52,10 +55,9 @@ void* gp_slice99(
     const size_t start, const size_t end)
 {
     if (y_size >= sizeof(GPAllocator)) {
-        if (x_size == 1)
-            return gp_str_new(y, start - end, (char*)x + start);
-        else
-            return gp_arr_slice(x_size, gp_arr_new(y, x_size, end - start), x, start, end);
+        void* out = gp_arr_new(y, x_size, end - start + sizeof"");
+        ((GPArrayHeader*)out - 1)->length = end - start;
+        return memcpy(out, x, (end - start) * x_size);
     }
     return gp_arr_slice(x_size, *(void**)y, x, start, end);
 }

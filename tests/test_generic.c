@@ -219,11 +219,17 @@ int main(void)
             gp_expect(gp_find_first_not_of(haystack, "hlab", 6) == 9);
         }
 
-        // #define gp_equal_case(...)
-        // bool gp_str_equal_case(
-        //     GPString    s1,
-        //     const void* s2,
-        //     size_t      s2_size);
+        gp_test("Equal case");
+        {
+            if (setlocale(LC_ALL, "C.utf8") != NULL)
+            {
+                GPString a = gp_str(&arena, "😂aAaAäÄä😂");
+                GPString b = gp_copy(&arena, a);
+                gp_expect(gp_equal_case(a, b));
+                gp_expect(gp_equal_case(a, b, gp_length(b)));
+                gp_expect(gp_equal_case(a, "😂aAaAäÄä😂"));
+            }
+        }
         // #define gp_codepoint_count(...)
         // size_t gp_str_codepoint_count(
         //     GPString str);
@@ -235,6 +241,11 @@ int main(void)
         // bool gp_char_classify(
         //     const void* str,
         //     int (*classifier)(wint_t c));
+    }
+
+    gp_suite("Arrays and strings");
+    {
+
     }
 
     gp_suite("File");
