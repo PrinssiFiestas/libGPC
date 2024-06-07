@@ -297,6 +297,14 @@ int main(void)
             gp_expect(gp_equal(str1, "blah"));
             GPString str2 = gp_slice(&arena, str1, 1, 3);
             gp_expect(gp_equal(str2, "la"), str2);
+
+            GPArray(int) arr1 = gp_arr(&arena, int);
+            gp_slice(&arr1, ((int[]){ 1, 2, 3, 4, 5, 6, 7, 8 }), 1, 7);
+            arr_assert_eq(arr1, ((int[]){ 2, 3, 4, 5, 6, 7 }), 6);
+            gp_slice(&arr1, 1, 5);
+            arr_assert_eq(arr1, ((int[]){ 3, 4, 5, 6 }), 4);
+            GPArray(int) arr2 = gp_slice(&arena, arr1, 1, 3);
+            arr_assert_eq(arr2, ((int[]){ 4, 5 }), 2);
         }
     }
 
