@@ -370,6 +370,34 @@ int main(void)
         }
     }
 
+    gp_suite("Array");
+    {
+        GPAllocator* scope = gp_begin(0);
+        gp_test("Map");
+        {
+            // Arguments do not need to be of type void* as long as they are
+            // pointers and in is const. Return must be void.
+            void increment(int* out, const int* in);
+            GPArray(int) arr1 = gp_arr(scope, int, 1, 2, 3, 4);
+            gp_map(&arr1, increment);
+            arr_assert_eq(arr1, ((int[]){ 2, 3, 4, 5 }), 4);
+            GPArray(int) arr2 = gp_map(scope, arr1, increment);
+            arr_assert_eq(arr2, ((int[]){ 3, 4, 5, 6 }), 4);
+            gp_map(&arr1, arr2, increment);
+            arr_assert_eq(arr1, ((int[]){ 4, 5, 6, 7 }), 4);
+            GPArray(int) arr3 = gp_map(scope, ((int[]){ 1, 1, 1 }), increment);
+            arr_assert_eq(arr3, ((int[]){ 2, 2, 2 }), 3);
+            int carr[] = { 9, 9, 9, 9, 9 };
+            GPArray(int) arr4 = gp_map(scope, carr, sizeof carr / sizeof*carr, increment);
+            arr_assert_eq(arr4, ((int[]){ 10, 10, 10, 10, 10 }), 5);
+        }
+            int* sum(int* y, const int* x);
+            char* append(char* result, const char**_element);
+            bool even(const int* element);
+            bool more_than_5(const int* element);
+        gp_end(scope);
+    }
+
     gp_suite("File");
     {
         const char* test_path = "gptestfile.txt";
@@ -397,11 +425,11 @@ int main(void)
     gp_arena_delete(&arena);
 }
 
-void increment(void* out, const void* in) { *(int*)out = *(int*)in + 1; }
-void* sum(void* y, const void* x) { *(int*)y += *(int*)x; return y; }
-void* append(void* result, const void*_element)
+void increment(int* out, const int* in) { *out = *in + 1; }
+int* sum(int* y, const int* x) { *y += *x; return y; }
+char* append(char* result, const char**_element)
 {
-    const char* element = *(const char**)_element;
+    const char* element = *_element;
     const size_t length = result && strlen(result);
     result = gp_mem_realloc(
         gp_last_scope(NULL), result, length, length + strlen(element) + sizeof" ");
@@ -409,5 +437,5 @@ void* append(void* result, const void*_element)
         ((char*)result)[0] = '\0';
     return strcat(strcat(result, element), " ");
 }
-bool even(const void* element) { return !(*(int*)element % 2); }
-bool more_than_5(const void* element) { return *(int*)element > 5; }
+bool even(const int* element) { return !(*element % 2); }
+bool more_than_5(const int* element) { return *element > 5; }

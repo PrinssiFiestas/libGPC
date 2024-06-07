@@ -28,7 +28,7 @@ bool gp_is_valid99(GPStrIn s, size_t*i)
 }
 
 // ----------------------------------------------------------------------------
-// Srting and array shared
+// Srtings and arrays
 
 void gp_reserve99(const size_t elem_size, void* px, const size_t capacity)
 {
@@ -124,4 +124,20 @@ void* gp_insert99(
     memcpy((uint8_t*)out + (pos + c_length) * b_size, (uint8_t*)b + pos * b_size, (b_length - pos) * b_size);
     ((GPArrayHeader*)out - 1)->length = b_length + c_length;
     return out;
+}
+
+// ----------------------------------------------------------------------------
+// Arrays
+
+GPArray(void) gp_map99(const size_t a_size, const void* a,
+    const GPArray(void)const src, const char*const src_ident,
+    const size_t src_size, const size_t src_elem_size,
+    void(*f)(void*,const void*))
+{
+    const size_t src_length = gp_length99(src, src_ident, src_size, src_elem_size);
+    if (a_size < sizeof(GPAllocator))
+        return gp_arr_map(src_elem_size, *(GPArray(void)*)a, src, src_length, f);
+
+    GPArray(void) out = gp_arr_new(a, src_elem_size, src_length);
+    return gp_arr_map(src_elem_size, out, src, src_length, f);
 }

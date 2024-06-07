@@ -17,6 +17,8 @@
 // ----------------------------------------------------------------------------
 
 //
+#define GPArray(T) T*
+
 typedef struct gp_array_header
 {
     size_t length;
@@ -24,8 +26,6 @@ typedef struct gp_array_header
     const GPAllocator* allocator;
     void* allocation; // pointer to self or NULL if on stack
 } GPArrayHeader;
-
-#define GPArray(T) T*
 
 #define GP_ARR_ATTRS(...) \
     GP_NONNULL_RETURN GP_NODISCARD GP_NONNULL_ARGS(__VA_ARGS__)
@@ -119,7 +119,7 @@ GPArray(void) gp_arr_remove(
     size_t        pos,
     size_t        count);
 
-GP_ARR_ATTRS(2, 5)
+GP_NONNULL_RETURN GP_NONNULL_ARGS(2, 5)
 GPArray(void) gp_arr_map(
     size_t              element_size,
     GPArray(void)       arr,

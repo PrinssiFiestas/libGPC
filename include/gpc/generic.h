@@ -66,10 +66,10 @@
 #define gp_insert(...)             GP_INSERT(__VA_ARGS__)
 
 // Arrays
-#define gp_map(...)
-#define gp_fold(...)
-#define gp_foldr(...)
-#define gp_filter(...)
+#define gp_map(...)                GP_MAP(__VA_ARGS__)
+#define gp_fold(...)               GP_FOLD(__VA_ARGS__)
+#define gp_foldr(...)              GP_FOLDR(__VA_ARGS__)
+#define gp_filter(...)             GP_FILTER(__VA_ARGS__)
 
 // Arrays and hash maps
 #define gp_at(...)
@@ -111,11 +111,16 @@
 // ----------------------------------------------------------------------------
 // Constructors
 
-#define GP_ARR_NEW(ALLOCATOR, TYPE, ...) \
-    (TYPE*)gp_arr_copy(sizeof(TYPE), \
-        gp_arr_new((GPAllocator*)(ALLOCATOR), 4, sizeof(TYPE)), \
-        (TYPE[]){__VA_ARGS__}, \
-        sizeof((TYPE[]){__VA_ARGS__}) / sizeof(TYPE))
+static inline GPArray(void) gp_arr99(const GPAllocator* alc,
+    const size_t elem_size, const void*const init, const size_t init_length)
+{
+    GPArray(void) out = gp_arr_new(alc, elem_size, init_length > 4 ? init_length : 4);
+    ((GPArrayHeader*)out - 1)->length = init_length;
+    return memcpy(out, init, elem_size * init_length);
+}
+#define GP_ARR_NEW(ALC, TYPE, ...) (TYPE*)gp_arr99( \
+    (GPAllocator*)(ALC), \
+    sizeof(TYPE), (TYPE[]){__VA_ARGS__}, sizeof((TYPE[]){__VA_ARGS__}) / sizeof(TYPE))
 
 struct gp_str_maker { const GPAllocator* allocator; const char* init; };
 GPString gp_str_make(struct gp_str_maker maker);
@@ -345,7 +350,7 @@ bool gp_is_valid99(GPStrIn s, size_t*i);
     GP_OVERLOAD3(__VA_ARGS__, GP_IS_VALID3, GP_IS_VALID2, GP_IS_VALID1)(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
-// Srting and array shared
+// Strings and arrays
 
 #define GP_IS_ALC(A) (GP_SIZEOF_TYPEOF(*(A)) >= sizeof(GPAllocator))
 
@@ -407,6 +412,26 @@ void* gp_insert99(
     gp_insert99(GP_SIZEOF_TYPEOF(*(A)), A, POS, B, NULL, C, GP_SIZEOF_TYPEOF(*(B)), D, NULL, E)
 #define GP_INSERT(A, POS, ...) GP_OVERLOAD4(__VA_ARGS__, \
     GP_INSERT6, GP_INSERT5, GP_INSERT4, GP_INSERT3)(A, POS, __VA_ARGS__)
+
+// ----------------------------------------------------------------------------
+// Arrays
+
+// map(dest, f)
+// map(dest, src, f)
+// map(alc,  src, f)
+// map(dest, src, lsrc, f)
+// map(alc,  src, lsrc, f)
+GPArray(void) gp_map99(size_t a_size, const void* a,
+    const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,
+    void(*f)(void*,const void*));
+#define GP_MAP2(ARR, F) \
+    gp_arr_map(sizeof**(ARR), *(ARR), NULL, 0, (void(*)(void*,const void*))(F))
+#define GP_MAP3(A, SRC, F) gp_map99(GP_SIZEOF_TYPEOF(*(A)), A, \
+    SRC, #SRC, GP_SIZEOF_TYPEOF(SRC), GP_SIZEOF_TYPEOF(*(SRC)), (void(*)(void*,const void*))(F))
+#define GP_MAP4(A, SRC, SRC_LENGTH, F) gp_map99(GP_SIZEOF_TYPEOF(*(A)), A, \
+    SRC, NULL, SRC_LENGTH, GP_SIZEOF_TYPEOF(*(SRC)), (void(*)(void*,const void*))(F))
+#define GP_MAP(A, ...) \
+    GP_OVERLOAD3(__VA_ARGS__, GP_MAP4, GP_MAP3, GP_MAP2)(A,__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Allocators
