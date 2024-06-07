@@ -236,10 +236,7 @@ int main(void)
             gp_expect(gp_codepoint_count(str) == 4);
             gp_expect(gp_codepoint_count("😂aÄ😂") == 4);
         }
-        // #define gp_is_valid(...)
-        // bool gp_str_is_valid(
-        //     GPString str,
-        //     size_t*  optional_invalid_position);
+
         gp_test("Is valid");
         {
             GPString str = gp_str(&arena, "😂aÄ😂");
@@ -255,15 +252,41 @@ int main(void)
             gp_expect( ! gp_is_valid(str, gp_length(str), &invalid_index));
             gp_expect(invalid_index == 5);
         }
-        // #define gp_classify(...)
-        // bool gp_char_classify(
-        //     const void* str,
-        //     int (*classifier)(wint_t c));
     }
 
     gp_suite("Arrays and strings");
     {
+        gp_test("Copy");
+        {
+            GPString str1 = gp_str(&arena, "");
+            gp_copy(&str1, "blah");
+            gp_expect(gp_equal(str1, "blah"));
+            GPString str2 = gp_copy(&arena, "BLAH");
+            gp_expect(gp_equal(str2, "BLAH"));
+            gp_copy(&str1, str2);
+            gp_expect(gp_equal(str1, "BLAH"));
+            GPString str3 = gp_copy(&arena, str1);
+            gp_expect(gp_equal(str3, "BLAH"));
+            gp_copy(&str3, "XXX", 3);
+            gp_expect(gp_equal(str3, "XXX"));
+            GPString str4 = gp_copy(&arena, str3, gp_length(str3));
+            gp_expect(gp_equal(str4, "XXX"));
 
+            GPArray(int) arr1 = gp_arr(&arena, int);
+            gp_copy(&arr1, ((int[]){1, 2, 3, 4}));
+            arr_assert_eq(arr1, ((int[]){1, 2, 3, 4}), 4);
+            GPArray(int) arr2 = gp_copy(&arena, ((int[]){3, 2, 1}));
+            arr_assert_eq(arr2, ((int[]){3, 2, 1}), 3);
+            gp_copy(&arr1, arr2);
+            arr_assert_eq(arr1, ((int[]){3, 2, 1}), 3);
+            GPArray(int) arr3 = gp_copy(&arena, arr1);
+            arr_assert_eq(arr3, ((int[]){3, 2, 1}), 3);
+            int carr[] = { 9, 8, 7, 6, 5 };
+            gp_copy(&arr3, carr, 5);
+            arr_assert_eq(arr3, carr, 5);
+            GPArray(int) arr4 = gp_copy(&arena, arr3, gp_length(arr3));
+            arr_assert_eq(arr4, carr, 5);
+        }
     }
 
     gp_suite("File");
