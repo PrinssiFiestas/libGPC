@@ -74,7 +74,7 @@ void* gp_slice99(
     if (y_size >= sizeof(GPAllocator)) {
         void* out = gp_arr_new(y, x_size, end - start + sizeof"");
         ((GPArrayHeader*)out - 1)->length = end - start;
-        return memcpy(out, x, (end - start) * x_size);
+        return memcpy(out, (uint8_t*)x + start, (end - start) * x_size);
     }
     return gp_arr_slice(x_size, *(void**)y, x, start, end);
 }

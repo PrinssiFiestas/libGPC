@@ -258,7 +258,7 @@ int main(void)
     {
         gp_test("Copy");
         {
-            GPString str1 = gp_str(&arena, "");
+            GPString str1 = gp_str(&arena);
             gp_copy(&str1, "blah");
             gp_expect(gp_equal(str1, "blah"));
             GPString str2 = gp_copy(&arena, "BLAH");
@@ -286,6 +286,17 @@ int main(void)
             arr_assert_eq(arr3, carr, 5);
             GPArray(int) arr4 = gp_copy(&arena, arr3, gp_length(arr3));
             arr_assert_eq(arr4, carr, 5);
+        }
+
+        gp_test("Slice");
+        {
+            GPString str1 = gp_str(&arena);
+            gp_slice(&str1, "XXblahYY", 1, 7);
+            gp_expect(gp_equal(str1, "XblahY"));
+            gp_slice(&str1, 1, 5);
+            gp_expect(gp_equal(str1, "blah"));
+            GPString str2 = gp_slice(&arena, str1, 1, 3);
+            gp_expect(gp_equal(str2, "la"), str2);
         }
     }
 
