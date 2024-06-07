@@ -306,6 +306,37 @@ int main(void)
             GPArray(int) arr2 = gp_slice(&arena, arr1, 1, 3);
             arr_assert_eq(arr2, ((int[]){ 4, 5 }), 2);
         }
+
+        gp_test("Append");
+        {
+            GPString str1 = gp_str(&arena);
+            gp_append(&str1, "ab");
+            gp_expect(gp_equal(str1, "ab"));
+            gp_append(&str1, "cd");
+            gp_expect(gp_equal(str1, "abcd"));
+            gp_append(&str1, "efg", 3);
+            gp_expect(gp_equal(str1, "abcdefg"), str1);
+            GPString str2 = gp_append(&arena, str1, "h");
+            gp_expect(gp_equal(str2, "abcdefgh"));
+            GPString str3 = gp_append(&arena, str1, str2);
+            gp_expect(gp_equal(str3, "abcdefgabcdefgh"));
+            GPString str4 = gp_append(&arena, str1, "h", 1);
+            gp_expect(gp_equal(str4, str2));
+
+            GPArray(int) arr1 = gp_arr(&arena, int);
+            gp_append(&arr1, (int[]){1});
+            arr_assert_eq(arr1, (int[]){1}, 1);
+            gp_append(&arr1, (int[]){2});
+            arr_assert_eq(arr1, ((int[]){ 1, 2 }), 2);
+            gp_append(&arr1, ((int[]){ 3, 4, 5 }), 3);
+            arr_assert_eq(arr1, ((int[]){ 1, 2, 3, 4, 5 }), 5);
+            GPArray(int) arr2 = gp_append(&arena, arr1, (int[]){6});
+            arr_assert_eq(arr2, ((int[]){ 1, 2, 3, 4, 5, 6 }), 6);
+            GPArray(int) arr3 = gp_append(&arena, arr1, arr2);
+            arr_assert_eq(arr3, ((int[]){ 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6 }), 11);
+            GPArray(int) arr4 = gp_append(&arena, arr1, ((int[]){6}), 1);
+            arr_assert_eq(arr4, arr2, gp_length(arr2));
+        }
     }
 
     gp_suite("File");

@@ -382,7 +382,7 @@ void* gp_append99(
         GP_IS_ALC(A) ? (void*)(C) : NULL, #C, GP_SIZEOF_TYPEOF(C))
 #define GP_APPEND4(A, B, C, D) \
     gp_append99(GP_SIZEOF_TYPEOF(*(A)), A, \
-        B, #B, GP_SIZEOF_TYPEOF(B) : GP_SIZEOF_TYPEOF(*(B)), \
+        B, #B, GP_SIZEOF_TYPEOF(B), GP_SIZEOF_TYPEOF(*(B)), \
         C, NULL, D)
 #define GP_APPEND5(A, B, C, D, E) \
     gp_append99(GP_SIZEOF_TYPEOF(*(A)), A, B, NULL, C, GP_SIZEOF_TYPEOF(*(B)), D, NULL, E)
