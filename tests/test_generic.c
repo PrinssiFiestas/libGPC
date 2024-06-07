@@ -324,7 +324,7 @@ int main(void)
             gp_expect(gp_equal(str4, str2));
 
             GPArray(int) arr1 = gp_arr(&arena, int);
-            gp_append(&arr1, (int[]){1});
+            gp_append(&arr1, (int[]){1}); // MUST be array literal even if 1 element
             arr_assert_eq(arr1, (int[]){1}, 1);
             gp_append(&arr1, (int[]){2});
             arr_assert_eq(arr1, ((int[]){ 1, 2 }), 2);
@@ -335,6 +335,37 @@ int main(void)
             GPArray(int) arr3 = gp_append(&arena, arr1, arr2);
             arr_assert_eq(arr3, ((int[]){ 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6 }), 11);
             GPArray(int) arr4 = gp_append(&arena, arr1, ((int[]){6}), 1);
+            arr_assert_eq(arr4, arr2, gp_length(arr2));
+        }
+
+        gp_test("Insert");
+        {
+            GPString str1 = gp_str(&arena);
+            gp_insert(&str1, 0, "ab");
+            gp_expect(gp_equal(str1, "ab"));
+            gp_insert(&str1, 0, "cd");
+            gp_expect(gp_equal(str1, "cdab"));
+            gp_insert(&str1, 0, "efg", 3);
+            gp_expect(gp_equal(str1, "efgcdab"), str1);
+            GPString str2 = gp_insert(&arena, 0, str1, "h");
+            gp_expect(gp_equal(str2, "hefgcdab"));
+            GPString str3 = gp_insert(&arena, 0, str1, str2);
+            gp_expect(gp_equal(str3, "hefgcdabefgcdab"));
+            GPString str4 = gp_insert(&arena, 0, str1, "h", 1);
+            gp_expect(gp_equal(str4, str2));
+
+            GPArray(int) arr1 = gp_arr(&arena, int);
+            gp_insert(&arr1, 0, (int[]){1}); // MUST be array literal even if 1 element
+            arr_assert_eq(arr1, (int[]){1}, 1);
+            gp_insert(&arr1, 0, (int[]){2});
+            arr_assert_eq(arr1, ((int[]){ 2, 1 }), 2);
+            gp_insert(&arr1, 0, ((int[]){ 3, 4, 5 }), 3);
+            arr_assert_eq(arr1, ((int[]){ 3, 4, 5, 2, 1 }), 5);
+            GPArray(int) arr2 = gp_insert(&arena, 0, arr1, (int[]){6});
+            arr_assert_eq(arr2, ((int[]){ 6, 3, 4, 5, 2, 1 }), 6);
+            GPArray(int) arr3 = gp_insert(&arena, 0, arr1, arr2);
+            arr_assert_eq(arr3, ((int[]){ 6, 3, 4, 5, 2, 1, 3, 4, 5, 2, 1 }), 11);
+            GPArray(int) arr4 = gp_insert(&arena, 0, arr1, ((int[]){6}), 1);
             arr_assert_eq(arr4, arr2, gp_length(arr2));
         }
     }

@@ -401,7 +401,7 @@ void* gp_insert99(
         GP_IS_ALC(A) ? (void*)(C) : NULL, #C, GP_SIZEOF_TYPEOF(C))
 #define GP_INSERT5(A, POS, B, C, D) \
     gp_insert99(GP_SIZEOF_TYPEOF(*(A)), A, POS, \
-        B, #B, GP_SIZEOF_TYPEOF(B): GP_SIZEOF_TYPEOF(*(B)), \
+        B, #B, GP_SIZEOF_TYPEOF(B), GP_SIZEOF_TYPEOF(*(B)), \
         C, NULL, D)
 #define GP_INSERT6(A, POS, B, C, D, E) \
     gp_insert99(GP_SIZEOF_TYPEOF(*(A)), A, POS, B, NULL, C, GP_SIZEOF_TYPEOF(*(B)), D, NULL, E)
