@@ -189,27 +189,36 @@ int main(void)
             gp_to_valid(&str2, GP_REPLACEMENT_CHARACTER);
             gp_expect(gp_equal(str2, str3) && gp_equal(str2, "blah�"), str2);
         }
-        // #define gp_find_first(...)
-        // size_t gp_str_find_first(
-        //     GPString    haystack,
-        //     const void* needle,
-        //     size_t      needle_size,
-        //     size_t      start);
-        // #define gp_find_last(...)
-        // size_t gp_str_find_last(
-        //     GPString    haystack,
-        //     const void* needle,
-        //     size_t      needle_size);
-        // #define gp_find_first_of(...)
-        // size_t gp_str_find_first_of(
-        //     GPString    haystack,
-        //     const char* utf8_char_set,
-        //     size_t      start);
-        // #define gp_find_first_not_of(...)
-        // size_t gp_str_find_first_not_of(
-        //     GPString    haystack,
-        //     const char* utf8_char_set,
-        //     size_t      start);
+
+        gp_test("Find first");
+        {
+            GPString haystack = gp_str(&arena, "yeah blah nope blah yeah");
+            gp_expect(gp_find_first(haystack, "blah")                    == 5);
+            gp_expect(gp_find_first(haystack, "blah", strlen("blah"))    == 5);
+            gp_expect(gp_find_first(haystack, "blah", strlen("blah"), 6) == 15);
+        }
+
+        gp_test("Find last");
+        {
+            GPString haystack = gp_str(&arena, "yeah blah nope blah yeah");
+            gp_expect(gp_find_last(haystack, "blah")                    == 15);
+            gp_expect(gp_find_last(haystack, "blah", strlen("blah"))    == 15);
+        }
+
+        gp_test("Find first of");
+        {
+            GPString haystack = gp_str(&arena, "yeah blah nope blah yeah");
+            gp_expect(gp_find_first_of(haystack, "blah")    == 2);
+            gp_expect(gp_find_first_of(haystack, "blah", 6) == 6);
+        }
+
+        gp_test("Find first not of");
+        {
+            GPString haystack = gp_str(&arena, "yeah blah nope blah yeah");
+            gp_expect(gp_find_first_not_of(haystack, "haey")    == 4);
+            gp_expect(gp_find_first_not_of(haystack, "hlab", 6) == 9);
+        }
+
         // #define gp_equal_case(...)
         // bool gp_str_equal_case(
         //     GPString    s1,

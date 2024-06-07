@@ -95,6 +95,32 @@ size_t gp_bytes_find_last(
     return position;
 }
 
+size_t gp_bytes_find_first_of(
+    const void*const haystack,
+    const size_t haystack_size,
+    const char*const char_set,
+    const size_t start)
+{
+    const uint8_t*const hay = haystack;
+    for (size_t i = start; i < haystack_size; i++)
+        if (strchr(char_set, hay[i]) != NULL)
+            return i;
+    return GP_NOT_FOUND;
+}
+
+size_t gp_bytes_find_first_not_of(
+    const void*const haystack,
+    const size_t haystack_size,
+    const char*const char_set,
+    const size_t start)
+{
+    const uint8_t*const hay = haystack;
+    for (size_t i = start; i < haystack_size; i++)
+        if (strchr(char_set, hay[i]) == NULL)
+            return i;
+    return GP_NOT_FOUND;
+}
+
 size_t gp_bytes_count(
     const void*  haystack,
     const size_t haystack_length,

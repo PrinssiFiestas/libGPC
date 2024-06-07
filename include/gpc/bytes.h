@@ -141,6 +141,20 @@ size_t gp_bytes_find_last(
     size_t      needle_size);
 
 GP_NONNULL_ARGS()
+size_t gp_bytes_find_first_of(
+    const void* haystack,
+    size_t      haystack_size,
+    const char* char_set,
+    size_t      start);
+
+GP_NONNULL_ARGS()
+size_t gp_bytes_find_first_not_of(
+    const void* haystack,
+    size_t      haystack_size,
+    const char* char_set,
+    size_t      start);
+
+GP_NONNULL_ARGS()
 size_t gp_bytes_count(
     const void* haystack,
     size_t      haystack_size,

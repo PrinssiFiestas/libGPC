@@ -70,4 +70,29 @@ int main(void)
             gp_expect(gp_bytes_equal(str, length, "hellX", strlen("hellX")));
         }
     }
+
+    gp_suite("ASCII examination");
+    {
+        gp_test("Find first of");
+        {
+            const char* haystack = " \t\r\nblah";
+            gp_expect(
+                gp_bytes_find_first_of(haystack, strlen(haystack), "abcd", 0)
+                == strcspn(haystack, "abcd"));
+            gp_expect(
+                gp_bytes_find_first_of(haystack, strlen(haystack), GP_ASCII_WHITESPACE, 4)
+                == GP_NOT_FOUND);
+        }
+
+        gp_test("Find first not of");
+        {
+            const char* haystack = " \t\r\nblah";
+            gp_expect(
+                gp_bytes_find_first_not_of(haystack, strlen(haystack), GP_ASCII_WHITESPACE, 0)
+                == strspn(haystack, "\n\r\t "));
+            gp_expect(
+                gp_bytes_find_first_not_of(haystack, strlen(haystack), "hlab", 4)
+                == GP_NOT_FOUND);
+        }
+    }
 }

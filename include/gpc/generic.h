@@ -46,13 +46,13 @@
 #define gp_to_upper(...)           GP_TO_UPPER(__VA_ARGS__)
 #define gp_to_lower(...)           GP_TO_LOWER(__VA_ARGS__)
 #define gp_to_valid(...)           GP_TO_VALID(__VA_ARGS__)
+#define gp_find_first(...)         GP_FIND_FIRST(__VA_ARGS__)
+#define gp_find_last(...)          GP_FIND_LAST(__VA_ARGS__)
+#define gp_find_first_of(...)      GP_FIND_FIRST_OF(__VA_ARGS__)
+#define gp_find_first_not_of(...)  GP_FIND_FIRST_NOT_OF(__VA_ARGS__)
 #define gp_equal_case(...)
 #define gp_codepoint_count(...)
 #define gp_is_valid(...)
-#define gp_find_first(...)
-#define gp_find_last(...)
-#define gp_find_first_of(...)
-#define gp_find_first_not_of(...)
 
 // Strings and arrays
 #define gp_length(...)       gp_arr_length(__VA_ARGS__)
@@ -300,6 +300,31 @@ static inline GPString gp_to_valid99(
 #define GP_TO_VALID2(A, REPL)        gp_str_to_valid(A, REPL)
 #define GP_TO_VALID3(ALC, STR, REPL) gp_to_valid99((GPAllocator*)(ALC), STR, REPL)
 #define GP_TO_VALID(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_VALID3, GP_TO_VALID2)(A,__VA_ARGS__)
+
+static inline size_t gp_find_first99(const GPString haystack, GPStrIn needle)
+{
+    return gp_str_find_first(haystack, needle.data, needle.length, 0);
+}
+#define GP_FIND_FIRST2(HAY, NDL)                gp_find_first99(HAY, GP_STR_IN(NDL))
+#define GP_FIND_FIRST3(HAY, NDL, NDLLEN)        gp_str_find_first(HAY, NDL, NDLLEN, 0)
+#define GP_FIND_FIRST(A, ...) \
+    GP_OVERLOAD3(__VA_ARGS__, gp_str_find_first, GP_FIND_FIRST3, GP_FIND_FIRST2)(A, __VA_ARGS__)
+
+static inline size_t gp_find_last99(const GPString haystack, GPStrIn needle)
+{
+    return gp_str_find_last(haystack, needle.data, needle.length);
+}
+#define GP_FIND_LAST2(HAY, NDL) gp_find_last99(HAY, GP_STR_IN(NDL))
+#define GP_FIND_LAST(A, ...) \
+    GP_OVERLOAD2(__VA_ARGS__, gp_str_find_last, GP_FIND_LAST2)(A, __VA_ARGS__)
+
+#define GP_FIND_FIRST_OF2(HAY, CHARS) gp_str_find_first_of(HAY, CHARS, 0)
+#define GP_FIND_FIRST_OF(A, ...) \
+    GP_OVERLOAD2(__VA_ARGS__, gp_str_find_first_of, GP_FIND_FIRST_OF2)(A, __VA_ARGS__)
+
+#define GP_FIND_FIRST_NOT_OF2(HAY, CHARS) gp_str_find_first_not_of(HAY, CHARS, 0)
+#define GP_FIND_FIRST_NOT_OF(A, ...) \
+    GP_OVERLOAD2(__VA_ARGS__, gp_str_find_first_not_of, GP_FIND_FIRST_NOT_OF2)(A, __VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Srting and array shared

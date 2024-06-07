@@ -60,17 +60,17 @@ size_t gp_str_find_first(
 }
 
 size_t gp_str_find_last(
-    GPString haystack,
+    GPString    haystack,
     const void* needle,
-    size_t needle_length)
+    size_t      needle_length)
 {
     return gp_bytes_find_last(haystack, gp_str_length(haystack), needle, needle_length);
 }
 
 size_t gp_str_find_first_of(
-    const GPString haystack,
+    const GPString   haystack,
     const char*const char_set,
-    const size_t start)
+    const size_t     start)
 {
     for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
         cplen = gp_str_codepoint_length(haystack, i);
@@ -81,9 +81,9 @@ size_t gp_str_find_first_of(
 }
 
 size_t gp_str_find_first_not_of(
-    const GPString haystack,
+    const GPString   haystack,
     const char*const char_set,
-    const size_t start)
+    const size_t     start)
 {
     for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
         cplen = gp_str_codepoint_length(haystack, i);
@@ -96,7 +96,7 @@ size_t gp_str_find_first_not_of(
 size_t gp_str_count(
     GPString haystack,
     const void* needle,
-    size_t     needle_size)
+    size_t      needle_size)
 {
     return gp_bytes_count(haystack, gp_str_length(haystack), needle, needle_size);
 }
