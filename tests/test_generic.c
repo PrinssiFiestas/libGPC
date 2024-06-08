@@ -371,7 +371,7 @@ int main(void)
     }
 
     gp_suite("Array");
-    {
+    { // Definitions for helper functions are below main()
         GPAllocator* scope = gp_begin(0);
         gp_test("Map");
         {
@@ -391,8 +391,19 @@ int main(void)
             GPArray(int) arr4 = gp_map(scope, carr, sizeof carr / sizeof*carr, increment);
             arr_assert_eq(arr4, ((int[]){ 10, 10, 10, 10, 10 }), 5);
         }
-            int* sum(int* y, const int* x);
+
+        gp_test("Fold");
+        {
+            // The return value and accumulator y MUST be a pointer or a pointer
+            // sized integer and in must be a const pointer.
+            intptr_t sum(intptr_t accumulator, const int* in);
+            gp_expect(gp_fold(gp_arr(scope, int, 1, 2, 3, 4, 5), 0, sum) == 15);
+
+            GPArray(const char*) cstrs = gp_arr(scope, const char*, "one", "two", "three");
             char* append(char* result, const char**_element);
+            char* result = gp_foldr(cstrs, NULL, append);
+            gp_expect(gp_equal(result, strlen(result), "three two one ", strlen("three two one ")));
+        }
             bool even(const int* element);
             bool more_than_5(const int* element);
         gp_end(scope);
@@ -426,7 +437,7 @@ int main(void)
 }
 
 void increment(int* out, const int* in) { *out = *in + 1; }
-int* sum(int* y, const int* x) { *y += *x; return y; }
+intptr_t sum(intptr_t y, const int* x) { return y + *x; }
 char* append(char* result, const char**_element)
 {
     const char* element = *_element;

@@ -67,8 +67,8 @@
 
 // Arrays
 #define gp_map(...)                GP_MAP(__VA_ARGS__)
-#define gp_fold(...)               GP_FOLD(__VA_ARGS__)
-#define gp_foldr(...)              GP_FOLDR(__VA_ARGS__)
+#define gp_fold(ARR, ACC, F)       (typeof(ACC))(uintptr_t)gp_arr_fold (sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
+#define gp_foldr(ARR, ACC, F)      (typeof(ACC))(uintptr_t)gp_arr_foldr(sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
 #define gp_filter(...)             GP_FILTER(__VA_ARGS__)
 
 // Arrays and hash maps
@@ -416,11 +416,6 @@ void* gp_insert99(
 // ----------------------------------------------------------------------------
 // Arrays
 
-// map(dest, f)
-// map(dest, src, f)
-// map(alc,  src, f)
-// map(dest, src, lsrc, f)
-// map(alc,  src, lsrc, f)
 GPArray(void) gp_map99(size_t a_size, const void* a,
     const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,
     void(*f)(void*,const void*));
@@ -432,6 +427,18 @@ GPArray(void) gp_map99(size_t a_size, const void* a,
     SRC, NULL, SRC_LENGTH, GP_SIZEOF_TYPEOF(*(SRC)), (void(*)(void*,const void*))(F))
 #define GP_MAP(A, ...) \
     GP_OVERLOAD3(__VA_ARGS__, GP_MAP4, GP_MAP3, GP_MAP2)(A,__VA_ARGS__)
+
+GPArray(void) gp_filter99(size_t a_size, const void* a,
+    const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,
+    bool(*f)(const void* element));
+#define GP_FILTER2(ARR, F) \
+    gp_arr_map(sizeof**(ARR), *(ARR), NULL, 0, (void(*)(void*,const void*))(F))
+#define GP_FILTER3(A, SRC, F) gp_map99(GP_SIZEOF_TYPEOF(*(A)), A, \
+    SRC, #SRC, GP_SIZEOF_TYPEOF(SRC), GP_SIZEOF_TYPEOF(*(SRC)), (void(*)(void*,const void*))(F))
+#define GP_FILTER4(A, SRC, SRC_LENGTH, F) gp_map99(GP_SIZEOF_TYPEOF(*(A)), A, \
+    SRC, NULL, SRC_LENGTH, GP_SIZEOF_TYPEOF(*(SRC)), (void(*)(void*,const void*))(F))
+#define GP_FILTER(A, ...) \
+    GP_OVERLOAD3(__VA_ARGS__, GP_FILTER4, GP_FILTER3, GP_FILTER2)(A,__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Allocators
