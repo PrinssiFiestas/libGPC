@@ -67,8 +67,8 @@
 
 // Arrays
 #define gp_map(...)                GP_MAP(__VA_ARGS__)
-#define gp_fold(ARR, ACC, F)       (typeof(ACC))(uintptr_t)gp_arr_fold (sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
-#define gp_foldr(ARR, ACC, F)      (typeof(ACC))(uintptr_t)gp_arr_foldr(sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
+#define gp_fold(...)               GP_FOLD(__VA_ARGS__)
+#define gp_foldr(...)              GP_FOLDR(__VA_ARGS__)
 #define gp_filter(...)             GP_FILTER(__VA_ARGS__)
 
 // Arrays and hash maps
@@ -439,6 +439,14 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
     SRC, NULL, SRC_LENGTH, GP_SIZEOF_TYPEOF(*(SRC)), (void(*)(void*,const void*))(F))
 #define GP_FILTER(A, ...) \
     GP_OVERLOAD3(__VA_ARGS__, GP_FILTER4, GP_FILTER3, GP_FILTER2)(A,__VA_ARGS__)
+
+#ifdef GP_TYPEOF // better type safety and allow using integer accumulator
+#define GP_FOLD(ARR, ACC, F)  (GP_TYPEOF(ACC))(uintptr_t)gp_arr_fold (sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
+#define GP_FOLDR(ARR, ACC, F) (GP_TYPEOF(ACC))(uintptr_t)gp_arr_foldr(sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
+#else
+#define GP_FOLD(ARR, ACC, F)  gp_arr_fold (sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
+#define GP_FOLDR(ARR, ACC, F) gp_arr_foldr(sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
+#endif
 
 // ----------------------------------------------------------------------------
 // Allocators
