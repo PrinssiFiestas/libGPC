@@ -404,8 +404,29 @@ int main(void)
             char* result = gp_foldr(cstrs, NULL, append);
             gp_expect(gp_equal(result, strlen(result), "three two one ", strlen("three two one ")));
         }
+
+        gp_test("Filter");
+        {
+            // Argument must be a const pointer, return value must be bool.
+            bool not_divisible_by_3(const int* element);
             bool even(const int* element);
-            bool more_than_5(const int* element);
+            bool not_4(const int* element);
+            bool more_than_3(const int* element);
+            bool less_than_7(const int* element);
+            GPArray(int) arr1 = gp_arr(scope,
+                int, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+            gp_filter(&arr1, not_divisible_by_3);
+            arr_assert_eq(arr1, ((int[]){ 1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16 }), 11);
+            GPArray(int) arr2 = gp_filter(scope, arr1, even);
+            arr_assert_eq(arr2, ((int[]){ 2, 4, 8, 10, 14, 16 }), 6);
+            gp_filter(&arr1, arr2, not_4);
+            arr_assert_eq(arr1, ((int[]){ 2, 8, 10, 14, 16 }), 5);
+            GPArray(int) arr3 = gp_filter(scope, ((int[]){ 2, 3, 4 ,5 }), more_than_3);
+            arr_assert_eq(arr3, ((int[]){ 4, 5 }), 2);
+            int carr[] = { 5, 6, 7, 8, 9 };
+            GPArray(int) arr4 = gp_filter(scope, carr, sizeof carr / sizeof*carr, less_than_7);
+            arr_assert_eq(arr4, ((int[]){ 5, 6 }), 2);
+        }
         gp_end(scope);
     }
 
@@ -437,7 +458,7 @@ int main(void)
 }
 
 void increment(int* out, const int* in) { *out = *in + 1; }
-intptr_t sum(intptr_t y, const int* x) { return y + *x; }
+intptr_t sum(intptr_t y, const int* x)  { return y + *x; }
 char* append(char* result, const char**_element)
 {
     const char* element = *_element;
@@ -448,5 +469,8 @@ char* append(char* result, const char**_element)
         ((char*)result)[0] = '\0';
     return strcat(strcat(result, element), " ");
 }
-bool even(const int* element) { return !(*element % 2); }
-bool more_than_5(const int* element) { return *element > 5; }
+bool even(const int* element)               { return !(*element  % 2); }
+bool more_than_3(const int* element)        { return   *element  > 3 ; }
+bool less_than_7(const int* element)        { return   *element  < 7 ; }
+bool not_4(const int* element)              { return   *element != 4 ; }
+bool not_divisible_by_3(const int* element) { return   *element  % 3 ; }

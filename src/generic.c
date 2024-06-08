@@ -141,3 +141,15 @@ GPArray(void) gp_map99(const size_t a_size, const void* a,
     GPArray(void) out = gp_arr_new(a, src_elem_size, src_length);
     return gp_arr_map(src_elem_size, out, src, src_length, f);
 }
+
+GPArray(void) gp_filter99(size_t a_size, const void* a,
+    const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,
+    bool(*f)(const void* element))
+{
+    const size_t src_length = gp_length99(src, src_ident, src_size, src_elem_size);
+    if (a_size < sizeof(GPAllocator))
+        return gp_arr_filter(src_elem_size, *(GPArray(void)*)a, src, src_length, f);
+
+    GPArray(void) out = gp_arr_new(a, src_elem_size, src_length);
+    return gp_arr_filter(src_elem_size, out, src, src_length, f);
+}
