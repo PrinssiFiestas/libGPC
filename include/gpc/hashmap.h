@@ -91,7 +91,7 @@ GPHashMap* gp_hash_map_new(
 
 void gp_hash_map_delete(GPHashMap*);
 
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS(1, 2)
 void gp_hash_map_put(
     GPHashMap*,
     const void* key,
@@ -121,7 +121,7 @@ GPMap* gp_map_new(
 
 void gp_map_delete(GPMap* optional);
 
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS(1)
 void gp_map_put(
     GPMap*,
     GPUint128   key,

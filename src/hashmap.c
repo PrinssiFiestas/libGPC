@@ -318,9 +318,7 @@ static bool gp_map_remove_elem(
     const size_t i  = *gp_u128_lo(&key) & (length - 1);
     if (slots[i].slot == GP_IN_USE) {
         slots[i].slot = GP_EMPTY;
-        destructor(elem_size == 0 ?
-            (void*)slots[i].element
-          : (uint8_t*)(slots + length) + i * elem_size);
+        destructor((void*)slots[i].element);
         slots[i].element = NULL;
         return true;
     }
@@ -329,9 +327,7 @@ static bool gp_map_remove_elem(
     }
     else if (memcmp(&slots[i].key, &key, sizeof key) == 0) {
         slots[i].key = gp_bytes_hash128(&key, sizeof key);
-        destructor(elem_size == 0 ?
-            (void*)slots[i].element
-          : (uint8_t*)(slots + length) + i * elem_size);
+        destructor((void*)slots[i].element);
         slots[i].element = NULL;
         return true;
     }

@@ -491,7 +491,13 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
 // ----------------------------------------------------------------------------
 // Hash maps
 
-#define GP_PUT(...)
+GP_NONNULL_ARGS(1)
+static inline void gp_put99(GPHashMap* map, GPStrIn key, const void* value)
+{
+    gp_hash_map_put(map, key.data, key.length, value);
+}
+#define GP_PUT3(MAP, KEY, VALUE) gp_put99(MAP, GP_STR_IN(KEY), VALUE)
+#define GP_PUT(A,B,...) GP_OVERLOAD2(__VA_ARGS__, gp_hash_map_put, GP_PUT3)(A,B,__VA_ARGS__)
 #define GP_GET(...)
 #define GP_REMOVE(...)
 
