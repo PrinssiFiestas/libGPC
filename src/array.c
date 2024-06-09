@@ -164,7 +164,7 @@ GPArray(void) gp_arr_insert(
     return arr;
 }
 
-GPArray(void) gp_arr_remove(
+GPArray(void) gp_arr_erase(
     const size_t  elem_size,
     GPArray(void) arr,
     const size_t  pos,

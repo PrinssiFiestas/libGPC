@@ -397,6 +397,9 @@ size_t gp_bytes_trim(
     const char*restrict optional_char_set,
     int flags)
 {
+    if (length == 0)
+        return 0;
+
     char* str = _str;
     const bool left  = flags & 0x04;
     const bool right = flags & 0x02;

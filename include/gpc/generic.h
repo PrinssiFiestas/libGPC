@@ -64,17 +64,16 @@
 // Arrays
 #define gp_push(...)                GP_PUSH(__VA_ARGS__)
 #define gp_pop(...)                 GP_POP(__VA_ARGS__)
+#define gp_erase(...)               GP_ERASE(__VA_ARGS__)
 #define gp_map(...)                 GP_MAP(__VA_ARGS__)
 #define gp_fold(...)                GP_FOLD(__VA_ARGS__)
 #define gp_foldr(...)               GP_FOLDR(__VA_ARGS__)
 #define gp_filter(...)              GP_FILTER(__VA_ARGS__)
 
-// Arrays and hash maps
-#define gp_remove(...)              GP_REMOVE(__VA_ARGS__)
-
 // Hash maps
 #define gp_get(...)                 GP_GET(__VA_ARGS__)
 #define gp_put(...)                 GP_PUT(__VA_ARGS__)
+#define gp_remove(...)
 
 // Memory
 #define gp_alloc(...)               GP_ALLOC(__VA_ARGS__)
@@ -85,6 +84,9 @@
 
 // File
 #define gp_file(...)                GP_FILE(__VA_ARGS__)
+#define gp_read_line(...)
+#define gp_read_until(...)
+#define gp_read_string(...)
 
 
 // ----------------------------------------------------------------------------
@@ -454,6 +456,10 @@ static inline void gp_push99(
 #define GP_POP(ARR) gp_arr_pop(sizeof(**(ARR)), *(ARR))
 #endif
 
+#define GP_ERASE2(ARR, POS)        ((void*){0} = gp_arr_erase(sizeof**(ARR), *(ARR), POS, 1))
+#define GP_ERASE3(ARR, POS, COUNT) ((void*){0} = gp_arr_erase(sizeof**(ARR), *(ARR), POS, COUNT))
+#define GP_ERASE(A,...) GP_OVERLOAD2(__VA_ARGS__, GP_ERASE3, GP_ERASE2)(A,__VA_ARGS__)
+
 GPArray(void) gp_map99(size_t a_size, const void* a,
     const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,
     void(*f)(void*,const void*));
@@ -498,7 +504,14 @@ static inline void gp_put99(GPHashMap* map, GPStrIn key, const void* value)
 }
 #define GP_PUT3(MAP, KEY, VALUE) gp_put99(MAP, GP_STR_IN(KEY), VALUE)
 #define GP_PUT(A,B,...) GP_OVERLOAD2(__VA_ARGS__, gp_hash_map_put, GP_PUT3)(A,B,__VA_ARGS__)
-#define GP_GET(...)
+
+GP_NONNULL_ARGS(1)
+static inline void* gp_get99(GPHashMap* map, GPStrIn key)
+{
+    return gp_hash_map_get(map, key.data, key.length);
+}
+#define GP_GET(MAP, ...) gp_get99(MAP, GP_STR_IN(__VA_ARGS__))
+
 #define GP_REMOVE(...)
 
 // ----------------------------------------------------------------------------

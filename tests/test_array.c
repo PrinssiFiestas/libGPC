@@ -164,7 +164,7 @@ int main(void)
             arr_assert_eq(arr, ((int[]){1,2,3,4,5,6}), 6);
             arr = gp_arr_insert(sizeof*arr, arr, 3, (int[]){0,0}, 2);
             arr_assert_eq(arr, ((int[]){1,2,3,0,0,4,5,6}), 8);
-            arr = gp_arr_remove(sizeof*arr, arr, 3, 2);
+            arr = gp_arr_erase(sizeof*arr, arr, 3, 2);
             arr_assert_eq(arr, ((int[]){1,2,3,4,5,6}), 6);
         }
 

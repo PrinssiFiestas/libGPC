@@ -106,8 +106,8 @@ GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
 // ----------------------------------------------------------------------------
 // Arena allocator
 
-// Arena that does not run out of memory. This is achieved by creating new
-// arenas when old one gets full.
+// Arena that does not run out of memory. A new arena is created when old gets
+// full.
 typedef struct gp_arena
 {
     GPAllocator allocator;
@@ -124,7 +124,7 @@ GPArena gp_arena_new(size_t capacity) GP_NODISCARD;
 // rewind() is not!
 GPArena* gp_arena_new_shared(size_t capacity) GP_NODISCARD;
 
-// Use this to free chunks everything after to_this_position including
+// Use this to free everything after to_this_position including
 // to_this_position. Pass the first allocated object to clear the whole arena.
 void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 
@@ -133,8 +133,8 @@ void gp_arena_delete(GPArena* optional);
 // ----------------------------------------------------------------------------
 // Thread local scratch arena
 
-// Use this for temporary memory. Rewind when you are done, but do NOT delete.
-// Scratch arenas get deleted automatically when threads exit.
+// Use this for temporary memory. Rewind when you are done, but do NOT delete
+// the arena. Scratch arenas get deleted automatically when threads exit.
 GPArena* gp_scratch_arena(void) GP_NODISCARD;
 
 // Feel free to define your own values for these

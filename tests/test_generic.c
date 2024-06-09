@@ -168,7 +168,7 @@ int main(void)
             GPString str3 = gp_trim(&arena, str2, "s", 'l');
             gp_expect(gp_equal(str3, "d"));
             gp_trim(&str3, str); // for completeness
-            gp_expect(gp_equal(str3, ""));
+            gp_expect(gp_equal(str3, ""), str3, (size_t)-1, gp_length(str3));
         }
 
         gp_test("To upper, lower, and valid");
@@ -388,6 +388,11 @@ int main(void)
             arr_assert_eq(arr, ((int[]){ 1, 2, 3 }), 3);
             #endif
             gp_expect(i == 4, i);
+
+            gp_erase(&arr, 1);
+            arr_assert_eq(arr, ((int[]){ 1, 3 }), 2);
+            gp_erase(&arr, 0, 2);
+            gp_expect(gp_length(arr) == 0);
         }
 
         gp_test("Map");
@@ -445,6 +450,11 @@ int main(void)
             arr_assert_eq(arr4, ((int[]){ 5, 6 }), 2);
         }
         gp_end(scope);
+    }
+
+    gp_suite("Hash map");
+    {
+
     }
 
     gp_suite("File");

@@ -113,7 +113,7 @@ GPArray(void) gp_arr_insert(
     size_t              element_count);
 
 GP_ARR_ATTRS()
-GPArray(void) gp_arr_remove(
+GPArray(void) gp_arr_erase(
     size_t        element_size,
     GPArray(void) arr,
     size_t        pos,
