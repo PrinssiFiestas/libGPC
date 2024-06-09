@@ -172,6 +172,49 @@ int main(void)
     // -------------------------------------------
     // Internal tests
 
+    gp_suite("Pointers");
+    {
+        gp_test("Validity after collision");
+        {
+            GPMapInitializer init = {.element_size = sizeof(int) };
+            GPMap* map = gp_map_new(gp_heap, &init);
+
+            GPUint128 key1 = {0};
+            GPUint128 key2 = {0};
+            *gp_u128_lo(&key1) = 3;
+            *gp_u128_hi(&key1) = 0;
+            *gp_u128_lo(&key2) = 3;
+            *gp_u128_hi(&key2) = 9;
+
+            gp_map_put(map, key1, &(int){ 111 });
+            int* elem1 = gp_map_get(map, key1);
+            gp_expect(*elem1 == 111);
+
+            gp_map_put(map, key2, &(int){ 222 });
+            gp_expect(gp_map_get(map, key1) == elem1); // This failed in old impl
+
+            gp_map_delete(map);
+        }
+
+        gp_test("Double free");
+        {
+            GPMapInitializer init = {.destructor = free };
+            GPMap* map = gp_map_new(arena, &init);
+
+            GPUint128 key1 = {0};
+            GPUint128 key2 = {0};
+            *gp_u128_lo(&key1) = 3;
+            *gp_u128_hi(&key1) = 0;
+            *gp_u128_lo(&key2) = 3;
+            *gp_u128_hi(&key2) = 9;
+
+            gp_map_put(map, key1, malloc(sizeof(int)));
+            gp_map_put(map, key2, malloc(sizeof(int)));
+
+            gp_map_remove(map, key1); // free once
+            gp_map_delete(map);       // are we freeing again?
+        }
+    }
     #if __GNUC__ && __SIZEOF_INT128__
     gp_suite("Uint128");
     {

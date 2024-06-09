@@ -70,11 +70,11 @@
 #define gp_filter(...)              GP_FILTER(__VA_ARGS__)
 
 // Arrays and hash maps
-#define gp_remove(...)
+#define gp_remove(...)              GP_REMOVE(__VA_ARGS__)
 
 // Hash maps
-#define gp_get(...)
-#define gp_put(...)
+#define gp_get(...)                 GP_GET(__VA_ARGS__)
+#define gp_put(...)                 GP_PUT(__VA_ARGS__)
 
 // Memory
 #define gp_alloc(...)               GP_ALLOC(__VA_ARGS__)
@@ -126,6 +126,17 @@ GPString gp_str_make(struct gp_str_maker maker);
 #define GP_STR_NEW(ALLOCATOR, ...) \
     gp_str_make((struct gp_str_maker){(GPAllocator*)(ALLOCATOR), __VA_ARGS__})
 
+#define GP_HMAP1(ALC) gp_hash_map_new((GPAllocator*)(ALC), NULL)
+#define GP_HMAP2(ALC, ELEM_SIZE) \
+    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+        .element_size = ELEM_SIZE})
+#define GP_HMAP3(ALC, ELEM_SIZE, DCTOR) \
+    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+        .element_size = ELEM_SIZE, .destructor = (void(*)(void*))(DCTOR)})
+#define GP_HMAP4(ALC, ELEM_SIZE, DCTOR, CAP) \
+    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+        .element_size = ELEM_SIZE, .capacity = CAP, .destructor = (void(*)(void*))(DCTOR)})
+#define GP_HAMP(...) GP_OVERLOAD4(__VA_ARGS__, GP_HMAP4, GP_HMAP3, GP_HMAP2, GP_GMAP1)(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Bytes and strings
@@ -476,6 +487,13 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
     SRC, NULL, SRC_LENGTH, GP_SIZEOF_TYPEOF(*(SRC)), (bool(*)(const void*))(F))
 #define GP_FILTER(A, ...) \
     GP_OVERLOAD3(__VA_ARGS__, GP_FILTER4, GP_FILTER3, GP_FILTER2)(A,__VA_ARGS__)
+
+// ----------------------------------------------------------------------------
+// Hash maps
+
+#define GP_PUT(...)
+#define GP_GET(...)
+#define GP_REMOVE(...)
 
 // ----------------------------------------------------------------------------
 // Allocators

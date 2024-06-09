@@ -134,10 +134,7 @@ static void gp_no_op_destructor(void*_) { (void)_; }
 GPMap* gp_map_new(const GPAllocator* allocator, const GPMapInitializer*_init)
 {
     static const size_t DEFAULT_CAP = 1 << 8; // somewhat arbitrary atm
-    static const GPMapInitializer defaults = {
-        //.element_size = sizeof(void*),
-        .capacity     = DEFAULT_CAP,
-    };
+    static const GPMapInitializer defaults = { .capacity = DEFAULT_CAP };
     const GPMapInitializer* init = _init == NULL ? &defaults : _init;
 
     const size_t length = init->capacity == 0 ?
@@ -198,6 +195,8 @@ static inline GPUint128 gp_shift_key(const GPUint128 key, const size_t length)
     #endif
 }
 
+// ----------------------------------------------------------------------------
+
 void gp_map_delete_elems(
     GPMap*const  map,
     GPSlot*const slots,
@@ -207,12 +206,15 @@ void gp_map_delete_elems(
     {
         if (slots[i].slot == GP_IN_USE)
         {
-            map->destructor(map->element_size == 0 ?
-                (void*)slots[i].element
-              : (uint8_t*)(slots + length) + i * map->element_size);
+            if (slots[i].element == NULL)
+                continue;
+
+            map->destructor((void*)slots[i].element);
         }
         else if (slots[i].slot != GP_EMPTY)
         {
+            if (slots[i].element != NULL)
+                map->destructor((void*)slots[i].element);
             gp_map_delete_elems(map, slots[i].slots, gp_next_length(length));
         }
     }
@@ -227,7 +229,7 @@ void gp_map_delete(GPMap* map)
     gp_map_delete_elems(map, (GPSlot*)(map + 1), map->length);
 }
 
-static void gp_map_set_elem(
+static void gp_map_put_elem(
     const GPAllocator*const allocator,
     GPSlot*const            slots,
     const size_t            length,
@@ -240,10 +242,12 @@ static void gp_map_set_elem(
 
     if (slots[i].slot == GP_EMPTY)
     {
-        if (elem_size != 0)
+        if (elem_size != 0) {
             memcpy(values + i * elem_size, elem, elem_size);
-        else
+            slots[i].element = values + i * elem_size;
+        } else {
             slots[i].element = elem;
+        }
         slots[i].slot = GP_IN_USE;
         slots[i].key  = key;
         return;
@@ -253,18 +257,9 @@ static void gp_map_set_elem(
     {
         GPSlot* new_slots = gp_mem_alloc_zeroes(allocator,
             next_length * sizeof*new_slots + next_length * elem_size);
-
-        gp_map_set_elem(
-            allocator,
-            new_slots,
-            next_length,
-            gp_shift_key(slots[i].key, length),
-            elem_size != 0 ? values + i * elem_size : slots[i].element,
-            elem_size);
-
         slots[i].slots = new_slots;
     }
-    gp_map_set_elem(
+    gp_map_put_elem(
         allocator,
         slots[i].slots,
         next_length,
@@ -278,7 +273,7 @@ void gp_map_put(
     GPUint128 key,
     const void* value)
 {
-    gp_map_set_elem(
+    gp_map_put_elem(
         map->allocator,
         (GPSlot*)(map + 1),
         map->length,
@@ -293,12 +288,12 @@ static void* gp_map_get_elem(
     const GPUint128 key,
     const size_t elem_size)
 {
-    uint8_t* values = (uint8_t*)(slots + length);
     const size_t i  = *gp_u128_lo(&key) & (length - 1);
-    if (slots[i].slot == GP_IN_USE)
-        return elem_size != 0 ? values + i * elem_size : (void*)slots[i].element;
-    else if (slots[i].slot == GP_EMPTY)
+
+    if (slots[i].slot == GP_EMPTY)
         return NULL;
+    else if (slots[i].slot == GP_IN_USE || memcmp(&slots[i].key, &key, sizeof key) == 0)
+        return (void*)slots[i].element;
 
     return gp_map_get_elem(
         slots[i].slots, gp_next_length(length), gp_shift_key(key, length), elem_size);
@@ -326,10 +321,19 @@ static bool gp_map_remove_elem(
         destructor(elem_size == 0 ?
             (void*)slots[i].element
           : (uint8_t*)(slots + length) + i * elem_size);
+        slots[i].element = NULL;
         return true;
     }
     else if (slots[i].slot == GP_EMPTY) {
         return false;
+    }
+    else if (memcmp(&slots[i].key, &key, sizeof key) == 0) {
+        slots[i].key = gp_bytes_hash128(&key, sizeof key);
+        destructor(elem_size == 0 ?
+            (void*)slots[i].element
+          : (uint8_t*)(slots + length) + i * elem_size);
+        slots[i].element = NULL;
+        return true;
     }
     return gp_map_remove_elem(
         slots, gp_next_length(length), gp_shift_key(key, length), elem_size, destructor);
