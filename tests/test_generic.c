@@ -2,8 +2,6 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// WORK IN PROGRESS
-
 #include "../src/generic.c"
 #include <gpc/io.h>
 #include <gpc/assert.h>
@@ -13,7 +11,6 @@
 
 #if _WIN32
 // quick hack to disable locale dependent tests for now
-// TODO operating system agnostic way to set locale to utf-8
 #define setlocale(...) NULL
 #endif
 
@@ -373,6 +370,26 @@ int main(void)
     gp_suite("Array");
     { // Definitions for helper functions are below main()
         GPAllocator* scope = gp_begin(0);
+        gp_test("Push and pop");
+        {
+            GPArray(int) arr = gp_arr(scope, int, 1, 2, 3);
+            #ifdef GP_TYPEOF
+            gp_push(&arr, 4);
+            arr_assert_eq(arr, ((int[]){ 1, 2, 3, 4 }), 4);
+            // Pointer to the popped value returned. That pointer is only valid
+            // as long as no elements are inserted to the array so it's best
+            // practice to immediately dereference and store it.
+            int i = *gp_pop(&arr);
+            arr_assert_eq(arr, ((int[]){ 1, 2, 3 }), 3);
+            #else // argument has to be addressable
+            gp_push(&arr, (int){4});
+            arr_assert_eq(arr, ((int[]){ 1, 2, 3, 4 }), 4);
+            int i = *(int*)gp_pop(&arr); // cast required
+            arr_assert_eq(arr, ((int[]){ 1, 2, 3 }), 3);
+            #endif
+            gp_expect(i == 4, i);
+        }
+
         gp_test("Map");
         {
             // Arguments do not need to be of type void* as long as they are

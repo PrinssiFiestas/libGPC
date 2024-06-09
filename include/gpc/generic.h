@@ -19,73 +19,72 @@
 //
 // ----------------------------------------------------------------------------
 
-// TODO implement what's not implemented
-
 // Note: macros may take variadic arguments even when not necessary for better
 // error messages. Also in some occasions, but not always, allows using
 // compound literals as macros arguments.
 
-#define GPHashMap(T) T*
-
 // Constructors
-#define gp_arr(...)                GP_ARR_NEW(__VA_ARGS__)
-#define gp_str(...)                GP_STR_NEW(__VA_ARGS__)
-#define gp_hmap(...)
+#define gp_arr(...)                 GP_ARR_NEW(__VA_ARGS__)
+#define gp_str(...)                 GP_STR_NEW(__VA_ARGS__)
+#define gp_hmap(...)                GP_HMAP_NEW(__VA_ARGS__)
 
 // Bytes and strings
-#define gp_equal(...)              GP_EQUAL(__VA_ARGS__)
-#define gp_count(...)              GP_COUNT(__VA_ARGS__)
-#define gp_codepoint_length(...)   GP_CODEPOINT_LENGTH(__VA_ARGS__)
-#define gp_codepoint_classify(...) GP_CODEPOINT_CLASSIFY(__VA_ARGS__)
+#define gp_equal(...)               GP_EQUAL(__VA_ARGS__)
+#define gp_count(...)               GP_COUNT(__VA_ARGS__)
+#define gp_codepoint_length(...)    GP_CODEPOINT_LENGTH(__VA_ARGS__)
+#define gp_codepoint_classify(...)  GP_CODEPOINT_CLASSIFY(__VA_ARGS__)
 
 // Strings
-#define gp_repeat(...)             GP_REPEAT(__VA_ARGS__)
-#define gp_replace(...)            GP_REPLACE(__VA_ARGS__)
-#define gp_replace_all(...)        GP_REPLACE_ALL(__VA_ARGS__)
-#define gp_trim(...)               GP_TRIM(__VA_ARGS__)
-#define gp_to_upper(...)           GP_TO_UPPER(__VA_ARGS__)
-#define gp_to_lower(...)           GP_TO_LOWER(__VA_ARGS__)
-#define gp_to_valid(...)           GP_TO_VALID(__VA_ARGS__)
-#define gp_find_first(...)         GP_FIND_FIRST(__VA_ARGS__)
-#define gp_find_last(...)          GP_FIND_LAST(__VA_ARGS__)
-#define gp_find_first_of(...)      GP_FIND_FIRST_OF(__VA_ARGS__)
-#define gp_find_first_not_of(...)  GP_FIND_FIRST_NOT_OF(__VA_ARGS__)
-#define gp_equal_case(...)         GP_EQUAL_CASE(__VA_ARGS__)
-#define gp_codepoint_count(...)    GP_CODEPOINT_COUNT(__VA_ARGS__)
-#define gp_is_valid(...)           GP_IS_VALID(__VA_ARGS__)
+#define gp_repeat(...)              GP_REPEAT(__VA_ARGS__)
+#define gp_replace(...)             GP_REPLACE(__VA_ARGS__)
+#define gp_replace_all(...)         GP_REPLACE_ALL(__VA_ARGS__)
+#define gp_trim(...)                GP_TRIM(__VA_ARGS__)
+#define gp_to_upper(...)            GP_TO_UPPER(__VA_ARGS__)
+#define gp_to_lower(...)            GP_TO_LOWER(__VA_ARGS__)
+#define gp_to_valid(...)            GP_TO_VALID(__VA_ARGS__)
+#define gp_find_first(...)          GP_FIND_FIRST(__VA_ARGS__)
+#define gp_find_last(...)           GP_FIND_LAST(__VA_ARGS__)
+#define gp_find_first_of(...)       GP_FIND_FIRST_OF(__VA_ARGS__)
+#define gp_find_first_not_of(...)   GP_FIND_FIRST_NOT_OF(__VA_ARGS__)
+#define gp_equal_case(...)          GP_EQUAL_CASE(__VA_ARGS__)
+#define gp_codepoint_count(...)     GP_CODEPOINT_COUNT(__VA_ARGS__)
+#define gp_is_valid(...)            GP_IS_VALID(__VA_ARGS__)
 
 // Strings and arrays
-#define gp_length(...)             gp_arr_length(__VA_ARGS__)
-#define gp_capacity(...)           gp_arr_capacity(__VA_ARGS__)
-#define gp_allocation(...)         gp_arr_allocation(__VA_ARGS__)
-#define gp_allocator(...)          gp_arr_allocator(__VA_ARGS__)
-#define gp_reserve(...)            GP_RESERVE(__VA_ARGS__)
-#define gp_copy(...)               GP_COPY(__VA_ARGS__)
-#define gp_slice(...)              GP_SLICE(__VA_ARGS__)
-#define gp_append(...)             GP_APPEND(__VA_ARGS__)
-#define gp_insert(...)             GP_INSERT(__VA_ARGS__)
+#define gp_length(...)              gp_arr_length(__VA_ARGS__)
+#define gp_capacity(...)            gp_arr_capacity(__VA_ARGS__)
+#define gp_allocation(...)          gp_arr_allocation(__VA_ARGS__)
+#define gp_allocator(...)           gp_arr_allocator(__VA_ARGS__)
+#define gp_reserve(...)             GP_RESERVE(__VA_ARGS__)
+#define gp_copy(...)                GP_COPY(__VA_ARGS__)
+#define gp_slice(...)               GP_SLICE(__VA_ARGS__)
+#define gp_append(...)              GP_APPEND(__VA_ARGS__)
+#define gp_insert(...)              GP_INSERT(__VA_ARGS__)
 
 // Arrays
-#define gp_map(...)                GP_MAP(__VA_ARGS__)
-#define gp_fold(...)               GP_FOLD(__VA_ARGS__)
-#define gp_foldr(...)              GP_FOLDR(__VA_ARGS__)
-#define gp_filter(...)             GP_FILTER(__VA_ARGS__)
+#define gp_push(...)                GP_PUSH(__VA_ARGS__)
+#define gp_pop(...)                 GP_POP(__VA_ARGS__)
+#define gp_map(...)                 GP_MAP(__VA_ARGS__)
+#define gp_fold(...)                GP_FOLD(__VA_ARGS__)
+#define gp_foldr(...)               GP_FOLDR(__VA_ARGS__)
+#define gp_filter(...)              GP_FILTER(__VA_ARGS__)
 
 // Arrays and hash maps
-#define gp_at(...)
-#define gp_push(...)
-#define gp_pop(...)
 #define gp_remove(...)
 
+// Hash maps
+#define gp_get(...)
+#define gp_put(...)
+
 // Memory
-#define gp_alloc(...)        GP_ALLOC(__VA_ARGS__)
-#define gp_alloc_type(...)   GP_ALLOC_TYPE(__VA_ARGS__)
-#define gp_alloc_zeroes(...) GP_ALLOC_ZEROES(__VA_ARGS__)
-#define gp_dealloc(...)      GP_DEALLOC(__VA_ARGS__)
-#define gp_realloc(...)      GP_REALLOC(__VA_ARGS__)
+#define gp_alloc(...)               GP_ALLOC(__VA_ARGS__)
+#define gp_alloc_type(...)          GP_ALLOC_TYPE(__VA_ARGS__)
+#define gp_alloc_zeroes(...)        GP_ALLOC_ZEROES(__VA_ARGS__)
+#define gp_dealloc(...)             GP_DEALLOC(__VA_ARGS__)
+#define gp_realloc(...)             GP_REALLOC(__VA_ARGS__)
 
 // File
-#define gp_file(...)         GP_FILE(__VA_ARGS__)
+#define gp_file(...)                GP_FILE(__VA_ARGS__)
 
 
 // ----------------------------------------------------------------------------
@@ -126,6 +125,7 @@ struct gp_str_maker { const GPAllocator* allocator; const char* init; };
 GPString gp_str_make(struct gp_str_maker maker);
 #define GP_STR_NEW(ALLOCATOR, ...) \
     gp_str_make((struct gp_str_maker){(GPAllocator*)(ALLOCATOR), __VA_ARGS__})
+
 
 // ----------------------------------------------------------------------------
 // Bytes and strings
@@ -415,6 +415,33 @@ void* gp_insert99(
 
 // ----------------------------------------------------------------------------
 // Arrays
+
+ #ifdef GP_TYPEOF
+static inline void* gp_push99(
+    const size_t elem_size, void*_parr)
+{
+    uint8_t** parr = _parr;
+    *parr = gp_arr_reserve(elem_size, *parr, gp_arr_length(*parr) + 1);
+    return *parr + elem_size * ((GPArrayHeader*)*parr - 1)->length++;
+}
+ #define GP_PUSH(ARR, ELEM) \
+     (*(GP_TYPEOF(*(ARR)))gp_push99(sizeof(**(ARR) = (ELEM)), (ARR)) = (ELEM))
+ #else
+static inline void gp_push99(
+    const size_t elem_size, void*_parr, const void* elem)
+{
+    void** parr = _parr;
+    *parr = gp_arr_push(elem_size, *parr, elem);
+}
+#define GP_PUSH(ARR, ELEM) \
+    gp_push99(sizeof(**(ARR) = (ELEM)), (ARR), &(ELEM))
+#endif
+
+#ifdef GP_TYPEOF
+#define GP_POP(ARR) (GP_TYPEOF(*(ARR)))gp_arr_pop(GP_SIZEOF_TYPEOF(**(ARR)), *(ARR))
+#else
+#define GP_POP(ARR) gp_arr_pop(sizeof(**(ARR)), *(ARR))
+#endif
 
 GPArray(void) gp_map99(size_t a_size, const void* a,
     const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,

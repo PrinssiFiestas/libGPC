@@ -17,7 +17,7 @@ int main(void)
         gp_expect(gp_hash_map_get(map, key, strlen(key)) == NULL,
             "No elements yet");
 
-        gp_hash_map_set(map, key, strlen(key), &(int){3});
+        gp_hash_map_put(map, key, strlen(key), &(int){3});
         gp_expect(*(int*)gp_hash_map_get(map, key, strlen(key)) == 3);
 
         gp_hash_map_remove(map, key, strlen(key));
@@ -43,8 +43,8 @@ int main(void)
         *gp_u128_lo(&key_67) = 3;
         *gp_u128_hi(&key_67) = 9;
 
-        gp_map_set(map, key_25, elem_25);
-        gp_map_set(map, key_67, elem_67);
+        gp_map_put(map, key_25, elem_25);
+        gp_map_put(map, key_67, elem_67);
         gp_expect(*(int*)gp_map_get(map, key_25) == *elem_25);
         gp_expect(*(int*)gp_map_get(map, key_67) == *elem_67);
 

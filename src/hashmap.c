@@ -107,8 +107,8 @@ struct gp_hash_map
     struct gp_map map;
 };
 
-#define GP_EMPTY  ((uintptr_t) 0)
-#define GP_IN_USE ((uintptr_t)-1)
+#define GP_EMPTY  ((size_t) 0)
+#define GP_IN_USE ((size_t)-1)
 typedef struct gp_slot
 {
     GPUint128 key;
@@ -135,7 +135,7 @@ GPMap* gp_map_new(const GPAllocator* allocator, const GPMapInitializer*_init)
 {
     static const size_t DEFAULT_CAP = 1 << 8; // somewhat arbitrary atm
     static const GPMapInitializer defaults = {
-        .element_size = sizeof(void*),
+        //.element_size = sizeof(void*),
         .capacity     = DEFAULT_CAP,
     };
     const GPMapInitializer* init = _init == NULL ? &defaults : _init;
@@ -273,7 +273,7 @@ static void gp_map_set_elem(
         elem_size);
 }
 
-void gp_map_set(
+void gp_map_put(
     GPMap* map,
     GPUint128 key,
     const void* value)
@@ -352,16 +352,15 @@ GPHashMap* gp_hash_map_new(const GPAllocator* alc, const GPMapInitializer* init)
 
 void gp_hash_map_delete(GPHashMap* map) { gp_map_delete((GPMap*)map); }
 
-void gp_hash_map_set(
+void gp_hash_map_put(
     GPHashMap*  map,
     const void* key,
     size_t      key_size,
     const void* value)
 {
-    gp_map_set((GPMap*)map, gp_bytes_hash128(key, key_size), value);
+    gp_map_put((GPMap*)map, gp_bytes_hash128(key, key_size), value);
 }
 
-// Returns NULL if not found
 void* gp_hash_map_get(
     GPHashMap*  map,
     const void* key,

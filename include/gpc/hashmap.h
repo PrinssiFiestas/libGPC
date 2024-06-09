@@ -92,7 +92,7 @@ GPHashMap* gp_hash_map_new(
 void gp_hash_map_delete(GPHashMap*);
 
 GP_NONNULL_ARGS()
-void gp_hash_map_set(
+void gp_hash_map_put(
     GPHashMap*,
     const void* key,
     size_t      key_size,
@@ -122,7 +122,7 @@ GPMap* gp_map_new(
 void gp_map_delete(GPMap* optional);
 
 GP_NONNULL_ARGS()
-void gp_map_set(
+void gp_map_put(
     GPMap*,
     GPUint128   key,
     const void* value);
