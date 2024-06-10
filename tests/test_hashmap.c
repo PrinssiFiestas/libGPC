@@ -117,8 +117,11 @@ int main(void)
             {
                 MyType init_values = create("Some stuff");
                 gp_hash_map_put(map, key1, strlen(key1), &init_values);
+
+                // Other way of storing elemets is to use the returned pointer.
                 init_values = create("Some other stuff");
-                gp_hash_map_put(map, key2, strlen(key2), &init_values);
+                MyType* elem = gp_hash_map_put(map, key2, strlen(key2), NULL);
+                *elem = init_values;
             }
             MyType* obj1 = gp_hash_map_get(map, key1, strlen(key1));
             gp_expect(memcmp(obj1->data, "Some stuff", obj1->length) == 0);

@@ -23,10 +23,14 @@
 // error messages. Also in some occasions, but not always, allows using
 // compound literals as macros arguments.
 
+// Like hash map, except less control but more type safety.
+#define GPDictionary(T) T*
+
 // Constructors
 #define gp_arr(...)                 GP_ARR_NEW(__VA_ARGS__)
 #define gp_str(...)                 GP_STR_NEW(__VA_ARGS__)
 #define gp_hmap(...)                GP_HMAP_NEW(__VA_ARGS__)
+#define gp_dict(...)                GP_DICT_NEW(__VA_ARGS__)
 
 // Bytes and strings
 #define gp_equal(...)               GP_EQUAL(__VA_ARGS__)
@@ -70,9 +74,9 @@
 #define gp_foldr(...)               GP_FOLDR(__VA_ARGS__)
 #define gp_filter(...)              GP_FILTER(__VA_ARGS__)
 
-// Hash maps
-#define gp_get(...)                 GP_GET(__VA_ARGS__)
-#define gp_put(...)                 GP_PUT(__VA_ARGS__)
+// Dictionarys and hash maps
+#define gp_get(...)
+#define gp_put(...)
 #define gp_remove(...)
 
 // Memory
@@ -131,14 +135,25 @@ GPString gp_str_make(struct gp_str_maker maker);
 #define GP_HMAP1(ALC) gp_hash_map_new((GPAllocator*)(ALC), NULL)
 #define GP_HMAP2(ALC, ELEM_SIZE) \
     gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
-        .element_size = ELEM_SIZE})
+        .element_size = ELEM_SIZE, .capacity = 0, .destructor = NULL})
 #define GP_HMAP3(ALC, ELEM_SIZE, DCTOR) \
     gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
-        .element_size = ELEM_SIZE, .destructor = (void(*)(void*))(DCTOR)})
+        .element_size = ELEM_SIZE, .capacity = 0, .destructor = (void(*)(void*))(DCTOR)})
 #define GP_HMAP4(ALC, ELEM_SIZE, DCTOR, CAP) \
     gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
         .element_size = ELEM_SIZE, .capacity = CAP, .destructor = (void(*)(void*))(DCTOR)})
 #define GP_HAMP(...) GP_OVERLOAD4(__VA_ARGS__, GP_HMAP4, GP_HMAP3, GP_HMAP2, GP_GMAP1)(__VA_ARGS__)
+
+#define GP_DICT2(ALC, TYPE) (TYPE*) \
+    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+        .element_size = sizeof(TYPE), .capacity = 0, .destructor = NULL})
+#define GP_DICT3(ALC, TYPE, DCTOR) (TYPE*) \
+    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+        .element_size = sizeof(TYPE), .capacity = 0, .destructor = (void(*)(void*))(DCTOR)})
+#define GP_DICT4(ALC, TYPE, DCTOR, CAP) (TYPE*) \
+    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+        .element_size = sizeof(TYPE), .capacity = CAP, .destructor = (void(*)(void*))(DCTOR)})
+#define GP_DICT(A,...) GP_OVERLOAD3(__VA_ARGS__, GP_DICT4, GP_DICT3, GP_DICT2)(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Bytes and strings
@@ -429,7 +444,7 @@ void* gp_insert99(
 // ----------------------------------------------------------------------------
 // Arrays
 
- #ifdef GP_TYPEOF
+#ifdef GP_TYPEOF
 static inline void* gp_push99(
     const size_t elem_size, void*_parr)
 {
@@ -495,7 +510,34 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
     GP_OVERLOAD3(__VA_ARGS__, GP_FILTER4, GP_FILTER3, GP_FILTER2)(A,__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
-// Hash maps
+// Hash maps and dictionarys
+
+// #ifdef GP_TYPEOF
+// static inline void* gp_push99(
+//     const size_t elem_size, void*_parr)
+// {
+//     uint8_t** parr = _parr;
+//     *parr = gp_arr_reserve(elem_size, *parr, gp_arr_length(*parr) + 1);
+//     return *parr + elem_size * ((GPArrayHeader*)*parr - 1)->length++;
+// }
+//  #define GP_PUSH(ARR, ELEM) \
+//      (*(GP_TYPEOF(*(ARR)))gp_push99(sizeof(**(ARR) = (ELEM)), (ARR)) = (ELEM))
+//  #else
+// static inline void gp_push99(
+//     const size_t elem_size, void*_parr, const void* elem)
+// {
+//     void** parr = _parr;
+//     *parr = gp_arr_push(elem_size, *parr, elem);
+// }
+// #define GP_PUSH(ARR, ELEM) \
+//     gp_push99(sizeof(**(ARR) = (ELEM)), (ARR), &(ELEM))
+// #endif
+//
+// #ifdef GP_TYPEOF
+// #define GP_POP(ARR) (GP_TYPEOF(*(ARR)))gp_arr_pop(GP_SIZEOF_TYPEOF(**(ARR)), *(ARR))
+// #else
+// #define GP_POP(ARR) gp_arr_pop(sizeof(**(ARR)), *(ARR))
+// #endif
 
 GP_NONNULL_ARGS(1)
 static inline void gp_put99(GPHashMap* map, GPStrIn key, const void* value)

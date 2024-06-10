@@ -91,12 +91,12 @@ GPHashMap* gp_hash_map_new(
 
 void gp_hash_map_delete(GPHashMap*);
 
-GP_NONNULL_ARGS(1, 2)
-void gp_hash_map_put(
+GP_NONNULL_ARGS(1, 2) GP_NONNULL_RETURN
+void* gp_hash_map_put(
     GPHashMap*,
     const void* key,
     size_t      key_size,
-    const void* value);
+    const void* optional_value);
 
 // Returns NULL if not found
 GP_NONNULL_ARGS()
@@ -121,11 +121,11 @@ GPMap* gp_map_new(
 
 void gp_map_delete(GPMap* optional);
 
-GP_NONNULL_ARGS(1)
-void gp_map_put(
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
+void* gp_map_put(
     GPMap*,
     GPUint128   key,
-    const void* value);
+    const void* optional_value);
 
 // Returns NULL if not found
 GP_NONNULL_ARGS()

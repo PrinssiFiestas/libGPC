@@ -229,7 +229,7 @@ void gp_map_delete(GPMap* map)
     gp_map_delete_elems(map, (GPSlot*)(map + 1), map->length);
 }
 
-static void gp_map_put_elem(
+static void* gp_map_put_elem(
     const GPAllocator*const allocator,
     GPSlot*const            slots,
     const size_t            length,
@@ -243,14 +243,15 @@ static void gp_map_put_elem(
     if (slots[i].slot == GP_EMPTY)
     {
         if (elem_size != 0) {
-            memcpy(values + i * elem_size, elem, elem_size);
+            if (elem != NULL)
+                memcpy(values + i * elem_size, elem, elem_size);
             slots[i].element = values + i * elem_size;
         } else {
             slots[i].element = elem;
         }
         slots[i].slot = GP_IN_USE;
         slots[i].key  = key;
-        return;
+        return (void*)slots[i].element;
     }
     const size_t next_length = gp_next_length(length);
     if (slots[i].slot == GP_IN_USE)
@@ -259,7 +260,7 @@ static void gp_map_put_elem(
             next_length * sizeof*new_slots + next_length * elem_size);
         slots[i].slots = new_slots;
     }
-    gp_map_put_elem(
+    return gp_map_put_elem(
         allocator,
         slots[i].slots,
         next_length,
@@ -268,12 +269,12 @@ static void gp_map_put_elem(
         elem_size);
 }
 
-void gp_map_put(
+void* gp_map_put(
     GPMap* map,
     GPUint128 key,
     const void* value)
 {
-    gp_map_put_elem(
+    return gp_map_put_elem(
         map->allocator,
         (GPSlot*)(map + 1),
         map->length,
@@ -352,13 +353,13 @@ GPHashMap* gp_hash_map_new(const GPAllocator* alc, const GPMapInitializer* init)
 
 void gp_hash_map_delete(GPHashMap* map) { gp_map_delete((GPMap*)map); }
 
-void gp_hash_map_put(
+void* gp_hash_map_put(
     GPHashMap*  map,
     const void* key,
     size_t      key_size,
     const void* value)
 {
-    gp_map_put((GPMap*)map, gp_bytes_hash128(key, key_size), value);
+    return gp_map_put((GPMap*)map, gp_bytes_hash128(key, key_size), value);
 }
 
 void* gp_hash_map_get(

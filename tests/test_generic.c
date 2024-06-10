@@ -452,7 +452,7 @@ int main(void)
         gp_end(scope);
     }
 
-    gp_suite("Hash map");
+    gp_suite("Hash maps and dictionarys");
     {
 
     }
