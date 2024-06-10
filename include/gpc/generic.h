@@ -87,9 +87,9 @@
 
 // File
 #define gp_file(...)                GP_FILE(__VA_ARGS__)
-#define gp_read_line(...)
-#define gp_read_until(...)
-#define gp_read_string(...)
+#define gp_read_line(...)           gp_file_read_line(...)
+#define gp_read_until(...)          gp_file_read_until(...)
+#define gp_read_strip(...)          gp_file_read_strip(...)
 
 
 // ----------------------------------------------------------------------------
