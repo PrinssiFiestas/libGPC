@@ -23,7 +23,6 @@
 // error messages. Also in some occasions, but not always, allows using
 // compound literals as macros arguments.
 
-// Like hash map, except less control but more type safety.
 #define GPDictionary(T) T*
 
 // Constructors
@@ -74,9 +73,9 @@
 #define gp_foldr(...)               GP_FOLDR(__VA_ARGS__)
 #define gp_filter(...)              GP_FILTER(__VA_ARGS__)
 
-// Dictionarys and hash maps
-#define gp_get(...)
-#define gp_put(...)
+// Dictionarys
+#define gp_get(...)                 GP_GET(__VA_ARGS__)
+#define gp_put(...)                 GP_PUT(__VA_ARGS__)
 #define gp_remove(...)
 
 // Memory
@@ -142,7 +141,7 @@ GPString gp_str_make(struct gp_str_maker maker);
 #define GP_HMAP4(ALC, ELEM_SIZE, DCTOR, CAP) \
     gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
         .element_size = ELEM_SIZE, .capacity = CAP, .destructor = (void(*)(void*))(DCTOR)})
-#define GP_HAMP(...) GP_OVERLOAD4(__VA_ARGS__, GP_HMAP4, GP_HMAP3, GP_HMAP2, GP_GMAP1)(__VA_ARGS__)
+#define GP_HMAP_NEW(...) GP_OVERLOAD4(__VA_ARGS__, GP_HMAP4, GP_HMAP3, GP_HMAP2, GP_GMAP1)(__VA_ARGS__)
 
 #define GP_DICT2(ALC, TYPE) (TYPE*) \
     gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
@@ -153,7 +152,7 @@ GPString gp_str_make(struct gp_str_maker maker);
 #define GP_DICT4(ALC, TYPE, DCTOR, CAP) (TYPE*) \
     gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
         .element_size = sizeof(TYPE), .capacity = CAP, .destructor = (void(*)(void*))(DCTOR)})
-#define GP_DICT(A,...) GP_OVERLOAD3(__VA_ARGS__, GP_DICT4, GP_DICT3, GP_DICT2)(__VA_ARGS__)
+#define GP_DICT_NEW(A,...) GP_OVERLOAD3(__VA_ARGS__, GP_DICT4, GP_DICT3, GP_DICT2)(A, __VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Bytes and strings
@@ -452,23 +451,17 @@ static inline void* gp_push99(
     *parr = gp_arr_reserve(elem_size, *parr, gp_arr_length(*parr) + 1);
     return *parr + elem_size * ((GPArrayHeader*)*parr - 1)->length++;
 }
- #define GP_PUSH(ARR, ELEM) \
-     (*(GP_TYPEOF(*(ARR)))gp_push99(sizeof(**(ARR) = (ELEM)), (ARR)) = (ELEM))
- #else
-static inline void gp_push99(
-    const size_t elem_size, void*_parr, const void* elem)
-{
-    void** parr = _parr;
-    *parr = gp_arr_push(elem_size, *parr, elem);
-}
 #define GP_PUSH(ARR, ELEM) \
-    gp_push99(sizeof(**(ARR) = (ELEM)), (ARR), &(ELEM))
+    (*(GP_TYPEOF(*(ARR)))gp_push99(sizeof(**(ARR) = (ELEM)), (ARR)) = (ELEM))
+#else
+#define GP_PUSH(ARR, ELEM) ( \
+    ((GPArrayHeader*)*(ARR) - 1)->length++, (*(ARR))[gp_length(*(ARR)) - 1] = (ELEM))
 #endif
 
 #ifdef GP_TYPEOF
-#define GP_POP(ARR) (GP_TYPEOF(*(ARR)))gp_arr_pop(GP_SIZEOF_TYPEOF(**(ARR)), *(ARR))
+#define GP_POP(ARR) (*(GP_TYPEOF(*(ARR)))gp_arr_pop(GP_SIZEOF_TYPEOF(**(ARR)), *(ARR)))
 #else
-#define GP_POP(ARR) gp_arr_pop(sizeof(**(ARR)), *(ARR))
+#define GP_POP(ARR) (gp_arr_pop(sizeof(**(ARR)), *(ARR)), (*(ARR))[gp_arr_length(*(ARR))])
 #endif
 
 #define GP_ERASE2(ARR, POS)        ((void*){0} = gp_arr_erase(sizeof**(ARR), *(ARR), POS, 1))
@@ -510,7 +503,7 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
     GP_OVERLOAD3(__VA_ARGS__, GP_FILTER4, GP_FILTER3, GP_FILTER2)(A,__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
-// Hash maps and dictionarys
+// Dictionarys
 
 // #ifdef GP_TYPEOF
 // static inline void* gp_push99(
@@ -539,20 +532,23 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
 // #define GP_POP(ARR) gp_arr_pop(sizeof(**(ARR)), *(ARR))
 // #endif
 
-GP_NONNULL_ARGS(1)
-static inline void gp_put99(GPHashMap* map, GPStrIn key, const void* value)
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
+static inline void* gp_put99(GPHashMap* map, GPStrIn key, const void* value)
 {
-    gp_hash_map_put(map, key.data, key.length, value);
+    return gp_hash_map_put(map, key.data, key.length, value);
 }
-#define GP_PUT3(MAP, KEY, VALUE) gp_put99(MAP, GP_STR_IN(KEY), VALUE)
-#define GP_PUT(A,B,...) GP_OVERLOAD2(__VA_ARGS__, gp_hash_map_put, GP_PUT3)(A,B,__VA_ARGS__)
+// TODO type checkgin
+#define GP_PUT3(DICT, KEY, VALUE) gp_put99((GPHashMap*)(DICT), GP_STR_IN(KEY), &(VALUE))
+#define GP_PUT4(DICT, KEY, KEY_LEN, VALUE) \
+    gp_hash_map_put((GPHashMap*)*(DICT), KEY, KEY_LEN, &(VALUE))
+#define GP_PUT(A,B,...) GP_OVERLOAD2(__VA_ARGS__, GP_PUT4, GP_PUT3)(A,B,__VA_ARGS__)
 
 GP_NONNULL_ARGS(1)
-static inline void* gp_get99(GPHashMap* map, GPStrIn key)
+static inline void* gp_get99(void* map, GPStrIn key)
 {
     return gp_hash_map_get(map, key.data, key.length);
 }
-#define GP_GET(MAP, ...) gp_get99(MAP, GP_STR_IN(__VA_ARGS__))
+#define GP_GET(DICT, ...) gp_get99(DICT, GP_STR_IN(__VA_ARGS__))
 
 #define GP_REMOVE(...)
 

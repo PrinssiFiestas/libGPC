@@ -373,20 +373,10 @@ int main(void)
         gp_test("Push and pop");
         {
             GPArray(int) arr = gp_arr(scope, int, 1, 2, 3);
-            #ifdef GP_TYPEOF
             gp_push(&arr, 4);
             arr_assert_eq(arr, ((int[]){ 1, 2, 3, 4 }), 4);
-            // Pointer to the popped value returned. That pointer is only valid
-            // as long as no elements are inserted to the array so it's best
-            // practice to immediately dereference and store it.
-            int i = *gp_pop(&arr);
+            int i = gp_pop(&arr);
             arr_assert_eq(arr, ((int[]){ 1, 2, 3 }), 3);
-            #else // argument has to be addressable
-            gp_push(&arr, (int){4});
-            arr_assert_eq(arr, ((int[]){ 1, 2, 3, 4 }), 4);
-            int i = *(int*)gp_pop(&arr); // cast required
-            arr_assert_eq(arr, ((int[]){ 1, 2, 3 }), 3);
-            #endif
             gp_expect(i == 4, i);
 
             gp_erase(&arr, 1);
@@ -452,9 +442,17 @@ int main(void)
         gp_end(scope);
     }
 
-    gp_suite("Hash maps and dictionarys");
+    gp_suite("Dictionarys");
     {
-
+        //GPDictionary(int) dict = gp_dict(&arena, int);
+        //GPString key1    = gp_str(&arena, "key1");
+        //const char* key2 = "key2";
+        ////#ifdef GP_TYPEOF
+        ////#else // lvalues required for gp_put() values
+        //gp_put(&dict, key1,               (int){1});
+        //gp_put(&dict, key2, strlen(key2), (int){2});
+        //gp_put(&dict, "key3",             (int){3});
+        ////#endif
     }
 
     gp_suite("File");
