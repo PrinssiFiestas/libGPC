@@ -444,15 +444,31 @@ int main(void)
 
     gp_suite("Dictionarys");
     {
-        //GPDictionary(int) dict = gp_dict(&arena, int);
-        //GPString key1    = gp_str(&arena, "key1");
-        //const char* key2 = "key2";
-        ////#ifdef GP_TYPEOF
-        ////#else // lvalues required for gp_put() values
-        //gp_put(&dict, key1,               (int){1});
-        //gp_put(&dict, key2, strlen(key2), (int){2});
-        //gp_put(&dict, "key3",             (int){3});
-        ////#endif
+        GPDictionary(int) dict = gp_dict(&arena, int);
+        GPString key1    = gp_str(&arena, "key1");
+        const char* key2 = "key2";
+        gp_put(&dict, key1,               1);
+        gp_put(&dict, key2, strlen(key2), 2);
+        gp_put(&dict, "key3",             3);
+        #ifndef GP_TYPEOF
+        gp_expect(*(int*)gp_get(dict, key1)               == 1);
+        gp_expect(*(int*)gp_get(dict, key2, strlen(key2)) == 2);
+        gp_expect(*(int*)gp_get(dict, "key3")             == 3);
+        #else // no cast required
+        gp_expect(*gp_get(dict, key1)               == 1);
+        gp_expect(*gp_get(dict, key2, strlen(key2)) == 2);
+        gp_expect(*gp_get(dict, "key3")             == 3);
+        #endif
+        gp_expect(gp_remove(&dict, key1));
+        gp_expect(gp_remove(&dict, key2, strlen(key2)));
+        gp_expect(gp_remove(&dict, "key3"));
+        gp_expect(gp_get(dict, key1)               == NULL);
+        gp_expect(gp_get(dict, key2, strlen(key2)) == NULL);
+        gp_expect(gp_get(dict, "key3")             == NULL);
+
+        #if TYPE_CHECK
+        gp_put(&dict, key1, "blah"); // assign char[] to int
+        #endif
     }
 
     gp_suite("File");
