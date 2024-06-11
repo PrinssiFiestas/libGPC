@@ -47,7 +47,7 @@ RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(wildcard t
 all: release debug build/gprun$(EXE_EXT)
 
 build/gprun$(EXE_EXT): tools/gprun.c
-	$(CC) $(DEBUG_CFLAGS) $? -o $@
+	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) $? -o $@
 
 /etc/gdb/gpstring.py:
 	cp tools/gpstring.py /etc/gdb/
@@ -67,7 +67,7 @@ install:
 	cp build/gprun     /usr/local/bin/
 
 build/singleheadergen$(EXE_EXT): tools/singleheadergen.c build/libgpc.a
-	$(CC) $(RELEASE_CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(RELEASE_CFLAGS) $^ -o $@
 
 release: CFLAGS += $(RELEASE_CFLAGS)
 release: build/libgpc.a

@@ -33,7 +33,7 @@
 static FILE*                   out            = NULL;
 static const char*             out_name       = "gpc.h";
 static GPString                implementation = NULL;
-static GPArena                 garena         = {0};
+static GPArena                 garena         = {{0}};
 static const GPAllocator*const gmem           = (GPAllocator*)&garena;
 static GPString                line           = NULL;
 
@@ -283,7 +283,7 @@ static void write_sources_until_include(void)
 }
 
 static size_t find_header(
-    const char* name, const size_t name_length, const char* include_dir, const File* file)
+    const char* name, const size_t name_length, const File* file)
 {
     size_t i = 0;
     for (;; i++)
@@ -383,7 +383,6 @@ static size_t find_header_index(
             return find_header(
                 (char*)line + i,
                 gp_str_find_first_of(line, "\">", i) - i,
-                file->include_dir,
                 file);
         }
         else {
@@ -425,7 +424,7 @@ static void write_files(GPArray(File) files)
 int main(void)
 {
     init_globals();
-    Assert(setlocale(LC_ALL, "C.utf8"));
+    Assert(setlocale(LC_ALL, "C.UTF-8"), strerror(errno));
     write_license();
     fputs("/*\n"
         " * This file has been generated. The original code may have gone trough heavy\n"
