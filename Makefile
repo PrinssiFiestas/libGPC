@@ -40,11 +40,14 @@ TESTS         = $(patsubst tests/test_%.c, build/test_%d$(EXE_EXT), $(wildcard t
 RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(wildcard tests/test_*.c))
 
 .PHONY: all release debug install tests build_tests run_tests release_tests
-.PHONY: build_release_tests run_release_tests analyze clean
+.PHONY: build_release_tests run_release_tests single_header analyze clean
 
 .PRECIOUS: $(TESTS)
 
-all: release debug build/gprun$(EXE_EXT)
+all: release debug build/gprun$(EXE_EXT) single_header
+
+single_header: build/singleheadergen$(EXE_EXT)
+	./$<
 
 build/gprun$(EXE_EXT): tools/gprun.c
 	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) $? -o $@
@@ -71,13 +74,8 @@ build/singleheadergen$(EXE_EXT): tools/singleheadergen.c build/libgpc.a
 
 release: CFLAGS += $(RELEASE_CFLAGS)
 release: build/libgpc.a
-release: build/singleheadergen$(EXE_EXT)
-	./$<
-
 debug: CFLAGS += $(DEBUG_CFLAGS)
 debug: build/libgpcd.a
-debug: build/singleheadergen$(EXE_EXT)
-	./$<
 
 analyze: CFLAGS += -fanalyzer
 analyze: build_tests
@@ -114,7 +112,7 @@ run_tests:
 tests:
 	make build_tests
 	make run_tests
-	make debug
+	make single_header
 
 build_release_tests: CFLAGS += -DGP_TESTS $(RELEASE_CFLAGS)
 build_release_tests: $(RELEASE_TESTS)
@@ -131,7 +129,7 @@ run_release_tests:
 release_tests:
 	make build_release_tests
 	make run_release_tests
-	make release
+	make single_header
 
 clean:
 	rm -rf build
