@@ -76,6 +76,8 @@ release: build/singleheadergen$(EXE_EXT)
 
 debug: CFLAGS += $(DEBUG_CFLAGS)
 debug: build/libgpcd.a
+debug: build/singleheadergen$(EXE_EXT)
+	./$<
 
 analyze: CFLAGS += -fanalyzer
 analyze: build_tests
@@ -112,6 +114,7 @@ run_tests:
 tests:
 	make build_tests
 	make run_tests
+	make debug
 
 build_release_tests: CFLAGS += -DGP_TESTS $(RELEASE_CFLAGS)
 build_release_tests: $(RELEASE_TESTS)
@@ -128,6 +131,7 @@ run_release_tests:
 release_tests:
 	make build_release_tests
 	make run_release_tests
+	make release
 
 clean:
 	rm -rf build
