@@ -2243,8 +2243,20 @@ static inline GPArray(void) gp_arr99(const GPAllocator* alc,
     (GPAllocator*)(ALC), \
     sizeof(TYPE), (TYPE[]){__VA_ARGS__}, sizeof((TYPE[]){__VA_ARGS__}) / sizeof(TYPE))
 
+#if __GNUC__
+#define GP_ARR_READ_ONLY(T, ...) ({ \
+    static const struct GP_C99_UNIQUE_STRUCT(__LINE__) { \
+        GPArrayHeader header; T data[GP_COUNT_ARGS(__VA_ARGS__)]; \
+    }_gp_arr_ro = {.header = { \
+        .length = GP_COUNT_ARGS(__VA_ARGS__), .capacity = GP_COUNT_ARGS(__VA_ARGS__), \
+        .allocator = NULL, .allocation = NULL \
+    }, .data = {__VA_ARGS__}}; \
+    _gp_arr_ro.data; \
+})
+#else
 #define GP_ARR_READ_ONLY(T, ...) \
     (const T*)(gp_arr_on_stack(NULL, GP_COUNT_ARGS(__VA_ARGS__), T, __VA_ARGS__))
+#endif
 
 struct gp_str_maker { const GPAllocator* allocator; const char* init; };
 GPString gp_str_make(struct gp_str_maker maker);
