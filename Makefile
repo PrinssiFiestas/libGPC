@@ -10,7 +10,7 @@ CFLAGS += -D_GNU_SOURCE # memmem(), stat64()
 ifeq ($(CC), gcc)
 CFLAGS += -lm -lpthread
 endif
-DEBUG_CFLAGS   = -ggdb3 -gdwarf-5
+DEBUG_CFLAGS   = -ggdb3 -gdwarf
 RELEASE_CFLAGS = -O3 -flto -DNDEBUG
 
 NPROC        = $(shell echo `nproc`)

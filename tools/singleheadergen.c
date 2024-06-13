@@ -290,7 +290,7 @@ static size_t find_header(
     {
         if (i >= gp_arr_length(headers)) {
             gp_file_print(stderr, GP_YELLOW "[WARNING]" GP_RESET_TERMINAL,
-                " Could not inline\n" GP_BRIGHT_CYAN "#include ");
+                " Could not inline\n" GP_YELLOW "#include ");
             if (file->include_dir == NULL)
                 gp_file_print(stderr, "\"%.*s", name_length, name, "\"");
             else

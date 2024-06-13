@@ -131,10 +131,12 @@ int main(int argc, char* argv[])
                 break;
         }
         if ( ! optimized) {
-            push((char[]){"-g3"});
+            push((char[]){"-ggdb3"});
+            push((char[]){"-gdwarf"});
             #if ! _WIN32
                 push((char[]){"-fsanitize=address"});
                 push((char[]){"-fsanitize=undefined"});
+                push((char[]){"-static-libasan"}); // avoid LD_PRELOAD problems
             #endif
             push((char[]){"-lgpcd"});
         } else {
