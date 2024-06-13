@@ -70,7 +70,7 @@ install:
 	cp build/gprun     /usr/local/bin/
 
 build/singleheadergen$(EXE_EXT): tools/singleheadergen.c build/libgpc.a
-	$(CC) $(CFLAGS) $(RELEASE_CFLAGS) $^ -o $@
+	$(CC) $^ $(CFLAGS) $(RELEASE_CFLAGS) -o $@
 
 release: CFLAGS += $(RELEASE_CFLAGS)
 release: build/libgpc.a

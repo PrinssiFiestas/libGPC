@@ -31,6 +31,7 @@ extern "C" {
 
 // Constructors
 #define gp_arr(...)                 GP_ARR_NEW(__VA_ARGS__)
+#define gp_arr_ro(T,...)            GP_ARR_READ_ONLY(T,__VA_ARGS__)
 #define gp_str(...)                 GP_STR_NEW(__VA_ARGS__)
 #define gp_hmap(...)                GP_HMAP_NEW(__VA_ARGS__)
 #define gp_dict(...)                GP_DICT_NEW(__VA_ARGS__)
@@ -129,6 +130,9 @@ static inline GPArray(void) gp_arr99(const GPAllocator* alc,
 #define GP_ARR_NEW(ALC, TYPE, ...) (TYPE*)gp_arr99( \
     (GPAllocator*)(ALC), \
     sizeof(TYPE), (TYPE[]){__VA_ARGS__}, sizeof((TYPE[]){__VA_ARGS__}) / sizeof(TYPE))
+
+#define GP_ARR_READ_ONLY(T, ...) \
+    (const T*)(gp_arr_on_stack(NULL, GP_COUNT_ARGS(__VA_ARGS__), T, __VA_ARGS__))
 
 struct gp_str_maker { const GPAllocator* allocator; const char* init; };
 GPString gp_str_make(struct gp_str_maker maker);

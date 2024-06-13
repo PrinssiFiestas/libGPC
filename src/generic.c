@@ -41,18 +41,21 @@ void gp_reserve99(const size_t elem_size, void* px, const size_t capacity)
         *(void**)px = gp_arr_reserve(elem_size, *(void**)px, capacity);
 }
 
-static size_t gp_length99(const void* x, const char* ident, const size_t length, const size_t size)
+static size_t gp_length99(const void* x, const char* ident, const size_t length)
+//static size_t gp_length99(const void* x, const char* ident, const size_t length, const size_t size)
 {
-    return ident == NULL ?
-        length            : ident[0] == '"' ?
-        length - sizeof"" : strchr(ident, '{') ?
-        length / size     : gp_arr_length(x);
+    //return ident == NULL ?
+    //    length            : ident[0] == '"' ?
+    //    length - sizeof"" : strchr(ident, '{') ?
+    //    length / size     : gp_arr_length(x);
+    return
+        ident == NULL ? length : ident[0] == '"' ? length - sizeof"" : gp_arr_length(x);
 }
 
 void* gp_copy99(const size_t y_size, void* y,
     const void* x, const char* x_ident, size_t x_length, const size_t x_size)
 {
-    x_length = gp_length99(x, x_ident, x_length, x_size);
+    x_length = gp_length99(x, x_ident, x_length);
     if (y_size >= sizeof(GPAllocator)) {
         void* out = gp_arr_new(y, x_size, x_length + sizeof"");
         ((GPArrayHeader*)out - 1)->length = x_length;
@@ -84,7 +87,7 @@ void* gp_append99(
     const void* b, const char* b_ident, size_t b_length, const size_t b_size,
     const void* c, const char* c_ident, size_t c_length)
 {
-    b_length = gp_length99(b, b_ident, b_length, b_size);
+    b_length = gp_length99(b, b_ident, b_length);
     if (a_size < sizeof(GPAllocator))
     {
         if (b_size == 1) {
@@ -94,7 +97,7 @@ void* gp_append99(
             return gp_arr_append(b_size, *(void**)a, b, b_length);
         }
     }
-    c_length = gp_length99(c, c_ident, c_length, b_size);
+    c_length = gp_length99(c, c_ident, c_length);
     void* out = gp_arr_new(a, b_size, b_length + c_length + sizeof"");
     memcpy(out, b, b_length * b_size);
     memcpy((uint8_t*)out + b_length * b_size, c, c_length * b_size);
@@ -107,7 +110,7 @@ void* gp_insert99(
     const void* b, const char* b_ident, size_t b_length, const size_t b_size,
     const void* c, const char* c_ident, size_t c_length)
 {
-    b_length = gp_length99(b, b_ident, b_length, b_size);
+    b_length = gp_length99(b, b_ident, b_length);
     if (a_size < sizeof(GPAllocator))
     {
         if (b_size == 1) {
@@ -117,7 +120,7 @@ void* gp_insert99(
             return gp_arr_insert(b_size, *(void**)a, pos, b, b_length);
         }
     }
-    c_length = gp_length99(c, c_ident, c_length, b_size);
+    c_length = gp_length99(c, c_ident, c_length);
     void* out = gp_arr_new(a, b_size, b_length + c_length + sizeof"");
     memcpy(out, b, pos * b_size);
     memcpy((uint8_t*)out + pos * b_size, c, c_length * b_size);
@@ -134,7 +137,7 @@ GPArray(void) gp_map99(const size_t a_size, const void* a,
     const size_t src_size, const size_t src_elem_size,
     void(*f)(void*,const void*))
 {
-    const size_t src_length = gp_length99(src, src_ident, src_size, src_elem_size);
+    const size_t src_length = gp_length99(src, src_ident, src_size);
     if (a_size < sizeof(GPAllocator))
         return gp_arr_map(src_elem_size, *(GPArray(void)*)a, src, src_length, f);
 
@@ -146,7 +149,7 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
     const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,
     bool(*f)(const void* element))
 {
-    const size_t src_length = gp_length99(src, src_ident, src_size, src_elem_size);
+    const size_t src_length = gp_length99(src, src_ident, src_size);
     if (a_size < sizeof(GPAllocator))
         return gp_arr_filter(src_elem_size, *(GPArray(void)*)a, src, src_length, f);
 

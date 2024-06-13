@@ -270,14 +270,14 @@ int main(void)
             gp_expect(gp_equal(str4, "XXX"));
 
             GPArray(int) arr1 = gp_arr(&arena, int);
-            gp_copy(&arr1, ((int[]){1, 2, 3, 4}));
-            arr_assert_eq(arr1, ((int[]){1, 2, 3, 4}), 4);
-            GPArray(int) arr2 = gp_copy(&arena, ((int[]){3, 2, 1}));
-            arr_assert_eq(arr2, ((int[]){3, 2, 1}), 3);
+            gp_copy(&arr1, gp_arr_ro(int, 1, 2, 3, 4));
+            arr_assert_eq(arr1, gp_arr_ro(int, 1, 2, 3, 4), 4);
+            GPArray(int) arr2 = gp_copy(&arena, gp_arr_ro(int, 3, 2, 1));
+            arr_assert_eq(arr2, gp_arr_ro(int, 3, 2, 1), 3);
             gp_copy(&arr1, arr2);
-            arr_assert_eq(arr1, ((int[]){3, 2, 1}), 3);
+            arr_assert_eq(arr1, gp_arr_ro(int, 3, 2, 1), 3);
             GPArray(int) arr3 = gp_copy(&arena, arr1);
-            arr_assert_eq(arr3, ((int[]){3, 2, 1}), 3);
+            arr_assert_eq(arr3, gp_arr_ro(int, 3, 2, 1), 3);
             int carr[] = { 9, 8, 7, 6, 5 };
             gp_copy(&arr3, carr, 5);
             arr_assert_eq(arr3, carr, 5);
@@ -296,12 +296,12 @@ int main(void)
             gp_expect(gp_equal(str2, "la"), str2);
 
             GPArray(int) arr1 = gp_arr(&arena, int);
-            gp_slice(&arr1, ((int[]){ 1, 2, 3, 4, 5, 6, 7, 8 }), 1, 7);
-            arr_assert_eq(arr1, ((int[]){ 2, 3, 4, 5, 6, 7 }), 6);
+            gp_slice(&arr1, gp_arr_ro(int, 1, 2, 3, 4, 5, 6, 7, 8), 1, 7);
+            arr_assert_eq(arr1, gp_arr_ro(int, 2, 3, 4, 5, 6, 7), 6);
             gp_slice(&arr1, 1, 5);
-            arr_assert_eq(arr1, ((int[]){ 3, 4, 5, 6 }), 4);
+            arr_assert_eq(arr1, gp_arr_ro(int, 3, 4, 5, 6), 4);
             GPArray(int) arr2 = gp_slice(&arena, arr1, 1, 3);
-            arr_assert_eq(arr2, ((int[]){ 4, 5 }), 2);
+            arr_assert_eq(arr2, gp_arr_ro(int, 4, 5), 2);
         }
 
         gp_test("Append");
@@ -321,17 +321,17 @@ int main(void)
             gp_expect(gp_equal(str4, str2));
 
             GPArray(int) arr1 = gp_arr(&arena, int);
-            gp_append(&arr1, (int[]){1}); // MUST be array literal even if 1 element
-            arr_assert_eq(arr1, (int[]){1}, 1);
-            gp_append(&arr1, (int[]){2});
-            arr_assert_eq(arr1, ((int[]){ 1, 2 }), 2);
-            gp_append(&arr1, ((int[]){ 3, 4, 5 }), 3);
-            arr_assert_eq(arr1, ((int[]){ 1, 2, 3, 4, 5 }), 5);
-            GPArray(int) arr2 = gp_append(&arena, arr1, (int[]){6});
-            arr_assert_eq(arr2, ((int[]){ 1, 2, 3, 4, 5, 6 }), 6);
+            gp_append(&arr1, gp_arr_ro(int, 1));
+            arr_assert_eq(arr1, gp_arr_ro(int, 1), 1);
+            gp_append(&arr1, gp_arr_ro(int, 2));
+            arr_assert_eq(arr1, gp_arr_ro(int, 1, 2), 2);
+            gp_append(&arr1, gp_arr_ro(int, 3, 4, 5 ), 3);
+            arr_assert_eq(arr1, gp_arr_ro(int, 1, 2, 3, 4, 5), 5);
+            GPArray(int) arr2 = gp_append(&arena, arr1, gp_arr_ro(int, 6));
+            arr_assert_eq(arr2, gp_arr_ro(int, 1, 2, 3, 4, 5, 6 ), 6);
             GPArray(int) arr3 = gp_append(&arena, arr1, arr2);
-            arr_assert_eq(arr3, ((int[]){ 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6 }), 11);
-            GPArray(int) arr4 = gp_append(&arena, arr1, ((int[]){6}), 1);
+            arr_assert_eq(arr3, gp_arr_ro(int, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6), 11);
+            GPArray(int) arr4 = gp_append(&arena, arr1, gp_arr_ro(int, 6), 1);
             arr_assert_eq(arr4, arr2, gp_length(arr2));
         }
 
@@ -352,17 +352,17 @@ int main(void)
             gp_expect(gp_equal(str4, str2));
 
             GPArray(int) arr1 = gp_arr(&arena, int);
-            gp_insert(&arr1, 0, (int[]){1}); // MUST be array literal even if 1 element
-            arr_assert_eq(arr1, (int[]){1}, 1);
-            gp_insert(&arr1, 0, (int[]){2});
-            arr_assert_eq(arr1, ((int[]){ 2, 1 }), 2);
-            gp_insert(&arr1, 0, ((int[]){ 3, 4, 5 }), 3);
-            arr_assert_eq(arr1, ((int[]){ 3, 4, 5, 2, 1 }), 5);
-            GPArray(int) arr2 = gp_insert(&arena, 0, arr1, (int[]){6});
-            arr_assert_eq(arr2, ((int[]){ 6, 3, 4, 5, 2, 1 }), 6);
+            gp_insert(&arr1, 0, gp_arr_ro(int, 1)); // MUST be array literal even if 1 element
+            arr_assert_eq(arr1, gp_arr_ro(int, 1), 1);
+            gp_insert(&arr1, 0, gp_arr_ro(int, 2));
+            arr_assert_eq(arr1, gp_arr_ro(int, 2, 1 ), 2);
+            gp_insert(&arr1, 0, gp_arr_ro(int, 3, 4, 5 ), 3);
+            arr_assert_eq(arr1, gp_arr_ro(int, 3, 4, 5, 2, 1 ), 5);
+            GPArray(int) arr2 = gp_insert(&arena, 0, arr1, gp_arr_ro(int, 6));
+            arr_assert_eq(arr2, gp_arr_ro(int, 6, 3, 4, 5, 2, 1), 6);
             GPArray(int) arr3 = gp_insert(&arena, 0, arr1, arr2);
-            arr_assert_eq(arr3, ((int[]){ 6, 3, 4, 5, 2, 1, 3, 4, 5, 2, 1 }), 11);
-            GPArray(int) arr4 = gp_insert(&arena, 0, arr1, ((int[]){6}), 1);
+            arr_assert_eq(arr3, gp_arr_ro(int, 6, 3, 4, 5, 2, 1, 3, 4, 5, 2, 1), 11);
+            GPArray(int) arr4 = gp_insert(&arena, 0, arr1, gp_arr_ro(int, 6), 1);
             arr_assert_eq(arr4, arr2, gp_length(arr2));
         }
     }
@@ -374,13 +374,13 @@ int main(void)
         {
             GPArray(int) arr = gp_arr(scope, int, 1, 2, 3);
             gp_push(&arr, 4);
-            arr_assert_eq(arr, ((int[]){ 1, 2, 3, 4 }), 4);
+            arr_assert_eq(arr, gp_arr_ro(int, 1, 2, 3, 4), 4);
             int i = gp_pop(&arr);
-            arr_assert_eq(arr, ((int[]){ 1, 2, 3 }), 3);
+            arr_assert_eq(arr, gp_arr_ro(int, 1, 2, 3), 3);
             gp_expect(i == 4, i);
 
             gp_erase(&arr, 1);
-            arr_assert_eq(arr, ((int[]){ 1, 3 }), 2);
+            arr_assert_eq(arr, gp_arr_ro(int, 1, 3), 2);
             gp_erase(&arr, 0, 2);
             gp_expect(gp_length(arr) == 0);
         }
@@ -392,16 +392,16 @@ int main(void)
             void increment(int* out, const int* in);
             GPArray(int) arr1 = gp_arr(scope, int, 1, 2, 3, 4);
             gp_map(&arr1, increment);
-            arr_assert_eq(arr1, ((int[]){ 2, 3, 4, 5 }), 4);
+            arr_assert_eq(arr1, gp_arr_ro(int, 2, 3, 4, 5), 4);
             GPArray(int) arr2 = gp_map(scope, arr1, increment);
-            arr_assert_eq(arr2, ((int[]){ 3, 4, 5, 6 }), 4);
+            arr_assert_eq(arr2, gp_arr_ro(int, 3, 4, 5, 6), 4);
             gp_map(&arr1, arr2, increment);
-            arr_assert_eq(arr1, ((int[]){ 4, 5, 6, 7 }), 4);
-            GPArray(int) arr3 = gp_map(scope, ((int[]){ 1, 1, 1 }), increment);
-            arr_assert_eq(arr3, ((int[]){ 2, 2, 2 }), 3);
+            arr_assert_eq(arr1, gp_arr_ro(int, 4, 5, 6, 7), 4);
+            GPArray(int) arr3 = gp_map(scope, gp_arr_ro(int,  1, 1, 1), increment);
+            arr_assert_eq(arr3, gp_arr_ro(int, 2, 2, 2), 3);
             int carr[] = { 9, 9, 9, 9, 9 };
             GPArray(int) arr4 = gp_map(scope, carr, sizeof carr / sizeof*carr, increment);
-            arr_assert_eq(arr4, ((int[]){ 10, 10, 10, 10, 10 }), 5);
+            arr_assert_eq(arr4, gp_arr_ro(int, 10, 10, 10, 10, 10), 5);
         }
 
         gp_test("Fold");
@@ -428,16 +428,16 @@ int main(void)
             GPArray(int) arr1 = gp_arr(scope,
                 int, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
             gp_filter(&arr1, not_divisible_by_3);
-            arr_assert_eq(arr1, ((int[]){ 1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16 }), 11);
+            arr_assert_eq(arr1, gp_arr_ro(int, 1, 2, 4, 5, 7, 8, 10, 11, 13, 14, 16), 11);
             GPArray(int) arr2 = gp_filter(scope, arr1, even);
-            arr_assert_eq(arr2, ((int[]){ 2, 4, 8, 10, 14, 16 }), 6);
+            arr_assert_eq(arr2, gp_arr_ro(int, 2, 4, 8, 10, 14, 16), 6);
             gp_filter(&arr1, arr2, not_4);
-            arr_assert_eq(arr1, ((int[]){ 2, 8, 10, 14, 16 }), 5);
-            GPArray(int) arr3 = gp_filter(scope, ((int[]){ 2, 3, 4 ,5 }), more_than_3);
-            arr_assert_eq(arr3, ((int[]){ 4, 5 }), 2);
+            arr_assert_eq(arr1, gp_arr_ro(int, 2, 8, 10, 14, 16), 5);
+            GPArray(int) arr3 = gp_filter(scope, gp_arr_ro(int,  2, 3, 4 ,5), more_than_3);
+            arr_assert_eq(arr3, gp_arr_ro(int, 4, 5), 2);
             int carr[] = { 5, 6, 7, 8, 9 };
             GPArray(int) arr4 = gp_filter(scope, carr, sizeof carr / sizeof*carr, less_than_7);
-            arr_assert_eq(arr4, ((int[]){ 5, 6 }), 2);
+            arr_assert_eq(arr4, gp_arr_ro(int, 5, 6), 2);
         }
         gp_end(scope);
     }
