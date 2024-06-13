@@ -17,6 +17,10 @@
 #include <stddef.h>
 #include <limits.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
@@ -155,5 +159,8 @@ GPUint128 gp_bytes_hash128(const void* key, size_t key_size) GP_NONNULL_ARGS();
 //
 // ----------------------------------------------------------------------------
 
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // GPC_HASHMAP_INCLUDED

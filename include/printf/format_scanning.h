@@ -8,6 +8,10 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Return type of scan_format_string(). Can also be filled manually to be used
 // with pf_strfromd().
 typedef struct PFFormatSpecifier
@@ -59,5 +63,9 @@ PFFormatSpecifier
 pf_scan_format_string(
     const char fmt_string[static 1], // should be null-terminated
     pf_va_list* asterisks); // optional
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // FORMAT_SCANNING_H_INCLUDED

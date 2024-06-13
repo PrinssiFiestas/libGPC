@@ -13,6 +13,10 @@
 #include <gpc/attributes.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
@@ -168,5 +172,8 @@ extern const GPAllocator* gp_heap;
 //
 // ----------------------------------------------------------------------------
 
-//
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
 #endif // GP_MEMORY_INCLUDED

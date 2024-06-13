@@ -13,6 +13,10 @@
 #include <gpc/string.h>
 #include <gpc/hashmap.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
@@ -595,5 +599,9 @@ static inline GPString gp_file99(size_t a_size, void* a, const char* path, const
 
 #define GP_FILE2(PATH, ...) gp_file_open(PATH, __VA_ARGS__)
 #define GP_FILE(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_FILE3, GP_FILE2)(A,__VA_ARGS__)
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // GP_GENERIC_INCLUDED

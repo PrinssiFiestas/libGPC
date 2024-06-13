@@ -21,6 +21,10 @@
 #include <intrin.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
@@ -164,5 +168,9 @@ _Generic(X, \
 #else // no breakpoints for you
 #define GP_BREAKPOINT_INTERNAL
 #endif // breakpoint
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // GP_UTILS_INCLUDED

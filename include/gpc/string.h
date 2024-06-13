@@ -19,6 +19,10 @@
 #include <stdint.h>
 #include <wctype.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
@@ -334,5 +338,9 @@ size_t gp_str_n_println_internal(
         (GPPrintable[]) \
             { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
         __VA_ARGS__)
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // GP_STRING_INCLUDED

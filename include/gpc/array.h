@@ -10,6 +10,10 @@
 #include "overload.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
@@ -160,6 +164,10 @@ GPArray(void) gp_arr_filter(
 #ifdef _MSC_VER
 // unnamed struct in parenthesis in gp_arr_on_stack()
 #pragma warning(disable : 4116)
+#endif
+
+#ifdef __cplusplus
+} // extern "C"
 #endif
 
 #endif // GPC_ARRAY_H

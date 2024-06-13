@@ -19,6 +19,10 @@
 #include <stdarg.h>
 #include "format_scanning.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int pf_vprintf(
     const char fmt[restrict static 1], va_list args);
 int pf_vfprintf(
@@ -53,5 +57,9 @@ int pf_vsnprintf_consuming(
     const size_t max_size,
     const char format[restrict static 1],
     struct pf_va_list* args);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // PRINTF_H_INCLUDED

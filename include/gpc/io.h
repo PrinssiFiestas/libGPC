@@ -13,6 +13,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
@@ -113,5 +117,9 @@ size_t gp_file_println_internal(
         (GPPrintable[]) \
             { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
         __VA_ARGS__)
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // GP_IO_INCLUDED

@@ -16,6 +16,10 @@
 #include <gpc/attributes.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef GP_USER_ASSERT_EXIT
 static inline void gp_assert_exit(int status) {
     GP_BREAKPOINT;
@@ -82,5 +86,9 @@ void gp_fail_internal(
     size_t arg_count,
     const GPPrintable* objs,
     ...);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif // GP_ASSERT_INCLUDED
