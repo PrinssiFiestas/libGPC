@@ -21,7 +21,7 @@ struct MiscData
     bool is_nan_or_inf;
 };
 
-static uintmax_t get_uint(pf_va_list args[static 1], const PFFormatSpecifier fmt)
+static uintmax_t get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
 {
     if (fmt.conversion_format == 'p')
         return va_arg(args->list, uintptr_t);
@@ -64,7 +64,7 @@ static uintmax_t get_uint(pf_va_list args[static 1], const PFFormatSpecifier fmt
 }
 
 static void c_string_padding(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const PFFormatSpecifier fmt,
     const void* string,
     const size_t length)
@@ -86,8 +86,8 @@ static void c_string_padding(
 }
 
 static unsigned write_s(
-    struct pf_string out[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -105,7 +105,7 @@ static unsigned write_s(
 }
 
 static void utf8_string_padding(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const PFFormatSpecifier fmt,
     const void* bytes,
     const size_t bytes_length,
@@ -128,8 +128,8 @@ static void utf8_string_padding(
 }
 
 static unsigned write_S(
-    struct pf_string out[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -159,7 +159,7 @@ static unsigned write_S(
 }
 
 static void write_leading_zeroes(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const unsigned written_by_utoa,
     const PFFormatSpecifier fmt)
 {
@@ -182,9 +182,9 @@ static void write_leading_zeroes(
 }
 
 static unsigned write_i(
-    struct pf_string out[static 1],
-    struct MiscData md[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     intmax_t i;
@@ -251,8 +251,8 @@ static unsigned write_i(
 }
 
 static unsigned write_o(
-    struct pf_string out[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -277,9 +277,9 @@ static unsigned write_o(
 }
 
 static unsigned write_x(
-    struct pf_string out[static 1],
-    struct MiscData md[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -299,9 +299,9 @@ static unsigned write_x(
 }
 
 static unsigned write_X(
-    struct pf_string out[static 1],
-    struct MiscData md[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -321,8 +321,8 @@ static unsigned write_X(
 }
 
 static unsigned write_u(
-    struct pf_string out[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -334,8 +334,8 @@ static unsigned write_u(
 }
 
 static unsigned write_p(
-    struct pf_string out[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -356,9 +356,9 @@ static unsigned write_p(
 }
 
 static unsigned write_f(
-    struct pf_string out[static 1],
-    struct MiscData md[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const double f = va_arg(args->list, double);
@@ -373,7 +373,7 @@ static unsigned write_f(
 }
 
 static unsigned add_padding(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const unsigned written,
     const struct MiscData md,
     const PFFormatSpecifier fmt)
@@ -422,7 +422,7 @@ static unsigned add_padding(
 int pf_vsnprintf_consuming(
     char*restrict out_buf,
     const size_t max_size,
-    const char format[restrict static 1],
+    const char* format,
     pf_va_list* args)
 {
     struct pf_string out = { out_buf ? out_buf : "", .capacity = max_size };
@@ -519,7 +519,7 @@ int pf_vsnprintf_consuming(
 int pf_vsnprintf(
     char* restrict out_buf,
     const size_t max_size,
-    const char format[restrict static 1],
+    const char*restrict format,
     va_list _args)
 {
     pf_va_list args;
@@ -530,13 +530,12 @@ int pf_vsnprintf(
 }
 
 int pf_vsprintf(
-    char buf[restrict static 1], const char fmt[restrict static 1], va_list args)
+    char*restrict buf, const char*restrict fmt, va_list args)
 {
     return pf_vsnprintf(buf, SIZE_MAX, fmt, args);
 }
 
-__attribute__((format (printf, 2, 3)))
-int pf_sprintf(char buf[restrict static 1], const char fmt[restrict static 1], ...)
+int pf_sprintf(char*restrict buf, const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -545,9 +544,8 @@ int pf_sprintf(char buf[restrict static 1], const char fmt[restrict static 1], .
     return written;
 }
 
-__attribute__((format (printf, 3, 4)))
 int pf_snprintf(
-    char* restrict buf, const size_t n, const char fmt[restrict static 1], ...)
+    char* restrict buf, const size_t n, const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -563,7 +561,7 @@ int pf_snprintf(
 #define BUF_SIZE (PAGE_SIZE + sizeof(""))
 
 int pf_vfprintf(
-    FILE stream[restrict static 1], const char fmt[restrict static 1], va_list args)
+    FILE*restrict stream, const char*restrict fmt, va_list args)
 {
     char buf[BUF_SIZE];
     char* pbuf = buf;
@@ -585,14 +583,13 @@ int pf_vfprintf(
 }
 
 int pf_vprintf(
-    const char fmt[restrict static 1], va_list args)
+    const char*restrict fmt, va_list args)
 {
     return pf_vfprintf(stdout, fmt, args);
 }
 
-__attribute__((format (printf, 1, 2)))
 int pf_printf(
-    const char fmt[restrict static 1], ...)
+    const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -601,9 +598,8 @@ int pf_printf(
     return n;
 }
 
-__attribute__((format (printf, 2, 3)))
 int pf_fprintf(
-    FILE stream[restrict static 1], const char fmt[restrict static 1], ...)
+    FILE*restrict stream, const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);

@@ -242,6 +242,7 @@
 #endif /* GPC_IMPLEMENTATION */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* array.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -251,6 +252,7 @@
 #define GPC_ARRAY_H
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* memory.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -265,6 +267,7 @@
 #define GP_MEMORY_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* attributes.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -367,7 +370,7 @@ extern "C" {
 
 // Aligment of all pointers returned by any valid allocators
 #ifndef GP_UTILS_INCLUDED
-#if __STDC_VERSION__ >= 201112L
+#if __STDC_VERSION__ >= 201112L && !defined(_MSC_VER)
 #define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
 #else
 #define GP_ALLOC_ALIGNMENT (sizeof(long double))
@@ -521,6 +524,7 @@ extern const GPAllocator* gp_heap;
 #endif // GP_MEMORY_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* overload.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -671,6 +675,7 @@ inline size_t gp_sizeof(const GPType T) {
     return 0;
 }
 
+#ifndef _MSC_VER
 #define GP_TYPE(VAR)                              \
 _Generic(VAR,                                     \
     bool:                  GP_BOOL,               \
@@ -692,6 +697,28 @@ _Generic(VAR,                                     \
     struct gp_char*:       GP_STRING,             \
     const struct gp_char*: GP_STRING,             \
     default:               GP_PTR)
+#else // MSVC char <=> signed char, although standard says that they are different
+#define GP_TYPE(VAR)                              \
+_Generic(VAR,                                     \
+    bool:                  GP_BOOL,               \
+    short:                 GP_SHORT,              \
+    int:                   GP_INT,                \
+    long:                  GP_LONG,               \
+    long long:             GP_LONG_LONG,          \
+    unsigned short:        GP_UNSIGNED_LONG,      \
+    unsigned int:          GP_UNSIGNED,           \
+    unsigned long:         GP_UNSIGNED_LONG,      \
+    unsigned long long:    GP_UNSIGNED_LONG_LONG, \
+    float:                 GP_FLOAT,              \
+    double:                GP_DOUBLE,             \
+    unsigned char:         GP_UNSIGNED_CHAR,      \
+    signed char:           GP_SIGNED_CHAR,        \
+    char*:                 GP_CHAR_PTR,           \
+    const char*:           GP_CHAR_PTR,           \
+    struct gp_char*:       GP_STRING,             \
+    const struct gp_char*: GP_STRING,             \
+    default:               GP_PTR)
+#endif
 
 inline bool gp_is_unsigned(const GPType T) { return T <= GP_UNSIGNED_LONG_LONG; }
 inline bool gp_is_integer (const GPType T) { return T <= GP_LONG_LONG; }
@@ -1220,6 +1247,7 @@ GPArray(void) gp_arr_filter(
 #endif // GPC_ARRAY_H
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* assert.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -1234,6 +1262,7 @@ GPArray(void) gp_arr_filter(
 #define GP_ASSERT_INCLUDED 1
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* utils.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -1341,19 +1370,19 @@ struct gp_random_state
     uint64_t private_inc;
 };
 
-int                gp_imin(int x, int y);
-long               gp_lmin(long x, long y);
-long long          gp_llmin(long long x, long long y);
-unsigned           gp_umin(unsigned x, unsigned y);
-unsigned long      gp_lumin(unsigned long x, unsigned long y);
-unsigned long long gp_llumin(unsigned long long x, unsigned long long y);
+inline int                gp_imin(int x, int y)                                 { return x < y ? x : y; }
+inline long               gp_lmin(long x, long y)                               { return x < y ? x : y; }
+inline long long          gp_llmin(long long x, long long y)                    { return x < y ? x : y; }
+inline unsigned           gp_umin(unsigned x, unsigned y)                       { return x < y ? x : y; }
+inline unsigned long      gp_lumin(unsigned long x, unsigned long y)            { return x < y ? x : y; }
+inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y) { return x < y ? x : y; }
 
-int                gp_imax(int x, int y);
-long               gp_lmax(long x, long y);
-long long          gp_llmax(long long x, long long y);
-unsigned           gp_umax(unsigned x, unsigned y);
-unsigned long      gp_lumax(unsigned long x, unsigned long y);
-unsigned long long gp_llumax(unsigned long long x, unsigned long long y);
+inline int                gp_imax(int x, int y)                                 { return x > y ? x : y; }
+inline long               gp_lmax(long x, long y)                               { return x > y ? x : y; }
+inline long long          gp_llmax(long long x, long long y)                    { return x > y ? x : y; }
+inline unsigned           gp_umax(unsigned x, unsigned y)                       { return x > y ? x : y; }
+inline unsigned long      gp_lumax(unsigned long x, unsigned long y)            { return x > y ? x : y; }
+inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y) { return x > y ? x : y; }
 
 // gp_min() and gp_max() implementations
 #if defined(__GNUC__)
@@ -1412,6 +1441,7 @@ _Generic(X, \
 #endif // GP_UTILS_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* bytes.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -1664,6 +1694,7 @@ size_t gp_bytes_println_internal(
 
 #endif // GP_BYTES_INCLUDED
 
+#include <stdlib.h>
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -1671,12 +1702,7 @@ extern "C" {
 #endif
 
 #ifndef GP_USER_ASSERT_EXIT
-static inline void gp_assert_exit(int status) {
-    GP_BREAKPOINT;
-    void exit(int status);
-    exit(status);
-}
-#define GP_USER_ASSERT_EXIT (gp_assert_exit)
+#define GP_USER_ASSERT_EXIT exit
 #endif
 
 // ----------------------------------------------------------------------------
@@ -1744,6 +1770,7 @@ void gp_fail_internal(
 #endif // GP_ASSERT_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* generic.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -1757,6 +1784,7 @@ void gp_fail_internal(
 #define GP_GENERIC_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* string.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -2102,6 +2130,7 @@ size_t gp_str_n_println_internal(
 #endif // GP_STRING_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* hashmap.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -2433,7 +2462,7 @@ GPString gp_str_make(struct gp_str_maker maker);
 // ----------------------------------------------------------------------------
 // Bytes and strings
 
-typedef struct gp_str_in { const void* data; const size_t length; } GPStrIn;
+typedef struct gp_str_in { const uint8_t* data; const size_t length; } GPStrIn;
 static inline GPStrIn gp_str_in99(const void* data, const size_t length)
 {
     return (GPStrIn) {
@@ -2879,6 +2908,7 @@ static inline GPString gp_file99(size_t a_size, void* a, const char* path, const
 #endif // GP_GENERIC_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* io.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -3006,6 +3036,7 @@ size_t gp_file_println_internal(
 #endif // GP_IO_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* terminal.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -3126,6 +3157,7 @@ size_t gp_file_println_internal(
 #endif // GP_TERMINAL_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* conversions.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -3135,6 +3167,7 @@ size_t gp_file_println_internal(
 #define CONVERSIONS_H_INCLUDED 1
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* format_scanning.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -3199,8 +3232,8 @@ typedef struct pf_va_list
 
 PFFormatSpecifier
 pf_scan_format_string(
-    const char fmt_string[static 1], // should be null-terminated
-    pf_va_list* asterisks); // optional
+    const char* fmt_string, // should be null-terminated
+    pf_va_list* optional_asterisks);
 
 #ifdef __cplusplus
 } // extern "C"
@@ -3237,6 +3270,7 @@ size_t pf_strfromd(char* buf, size_t n, PFFormatSpecifier fmt, double f);
 #endif // CONVERSIONS_H_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* printf.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -3262,39 +3296,68 @@ size_t pf_strfromd(char* buf, size_t n, PFFormatSpecifier fmt, double f);
 extern "C" {
 #endif
 
+#ifdef __GNUC__
+__attribute__((nonnull()))
+#endif
 int pf_vprintf(
-    const char fmt[restrict static 1], va_list args);
+    const char*restrict fmt, va_list args);
+
+#ifdef __GNUC__
+__attribute__((nonnull()))
+#endif
 int pf_vfprintf(
-    FILE stream[restrict static 1], const char fmt[restrict static 1], va_list args);
+    FILE*restrict stream, const char*restrict fmt, va_list args);
+
+#ifdef __GNUC__
+__attribute__((nonnull()))
+#endif
 int pf_vsprintf(
-    char buf[restrict static 1], const char fmt[restrict static 1], va_list args);
+    char*restrict buf, const char*restrict fmt, va_list args);
+
+#ifdef __GNUC__
+__attribute__((nonnull(3)))
+#endif
 int pf_vsnprintf(
-    char* restrict buf, size_t n, const char fmt[restrict static 1], va_list args);
+    char*restrict buf, size_t n, const char*restrict fmt, va_list args);
 
+#ifdef __GNUC__
 __attribute__((format (printf, 1, 2)))
+#endif
 int pf_printf(
-    const char fmt[restrict static 1], ...);
+    const char*restrict fmt, ...);
 
+#ifdef __GNUC__
+__attribute__((nonnull()))
 __attribute__((format (printf, 2, 3)))
+#endif
 int pf_fprintf(
-    FILE stream[restrict static 1], const char fmt[restrict static 1], ...);
+    FILE*restrict stream, const char*restrict fmt, ...);
 
+#ifdef __GNUC__
+__attribute__((nonnull()))
 __attribute__((format (printf, 2, 3)))
-int pf_sprintf(char buf[restrict static 1], const char fmt[restrict static 1], ...);
+#endif
+int pf_sprintf(char*restrict buf, const char*restrict fmt, ...);
 
+#ifdef __GNUC__
+__attribute__((nonnull(3)))
 __attribute__((format (printf, 3, 4)))
+#endif
 int pf_snprintf(
-    char* restrict buf, size_t n, const char fmt[restrict static 1], ...);
+    char*restrict buf, size_t n, const char*restrict fmt, ...);
 
 // Functions taking va_list may or may not consume an argument from the list due
 // to va_list being implementation defined. This limits their applications so
 // pf_vsnprintf() is guranteed to NOT consume an arg from arg list and
 // pf_vsnprintf_consuming() is guranteed to consume an arg from arg list.
 
+#ifdef __GNUC__
+__attribute__((nonnull(3, 4)))
+#endif
 int pf_vsnprintf_consuming(
     char*restrict out_buf,
     const size_t max_size,
-    const char format[restrict static 1],
+    const char*restrict format,
     struct pf_va_list* args);
 
 #ifdef __cplusplus
@@ -3304,6 +3367,7 @@ int pf_vsnprintf_consuming(
 #endif // PRINTF_H_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* common.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -3387,6 +3451,7 @@ size_t gp_bytes_print_objects(
 #endif // GP_PRINT_COMMON_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* d2fixed_full_table.h */
 
 // Copyright 2018 Ulf Adams
 //
@@ -7810,6 +7875,7 @@ static const uint64_t POW10_SPLIT_2[3133][3] = {
 #endif // RYU_D2FIXED_FULL_TABLE_H
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* d2s_full_table.h */
 
 // Copyright 2018 Ulf Adams
 //
@@ -8180,6 +8246,7 @@ static const uint64_t DOUBLE_POW5_SPLIT[DOUBLE_POW5_TABLE_SIZE][2] = {
 #endif // RYU_D2S_FULL_TABLE_H
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* d2s_intrinsics.h */
 
 // Copyright 2018 Ulf Adams
 //
@@ -8205,6 +8272,7 @@ static const uint64_t DOUBLE_POW5_SPLIT[DOUBLE_POW5_TABLE_SIZE][2] = {
 
 // Defines RYU_32_BIT_PLATFORM if applicable.
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* ryu_common.h */
 
 // Copyright 2018 Ulf Adams
 //
@@ -8657,6 +8725,7 @@ static inline uint64_t mulShiftAll64(uint64_t m, const uint64_t* const mul, cons
 #endif // RYU_D2S_INTRINSICS_H
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* digit_table.h */
 
 // Copyright 2018 Ulf Adams
 //
@@ -8695,6 +8764,7 @@ static const char DIGIT_TABLE[200] = {
 #endif // RYU_DIGIT_TABLE_H
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* pcg_basic.h */
 
 /*
  * PCG Random Number Generation for C.
@@ -8776,6 +8846,7 @@ uint32_t pcg32_boundedrand_r(pcg32_random_t* rng, uint32_t bound);
 #endif // PCG_BASIC_H_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* pfstring.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -8818,7 +8889,7 @@ static inline size_t pf_limit(const struct pf_string me, const size_t x)
 // how much the resulting string grew.
 
 static inline size_t
-pf_concat(struct pf_string me[static 1], const char* src, const size_t length)
+pf_concat(struct pf_string* me, const char* src, const size_t length)
 {
     memcpy(me->data + me->length, src, pf_limit(*me, length));
     me->length += length;
@@ -8826,7 +8897,7 @@ pf_concat(struct pf_string me[static 1], const char* src, const size_t length)
 }
 
 static inline size_t
-pf_pad(struct pf_string me[static 1], const char c, const size_t length)
+pf_pad(struct pf_string* me, const char c, const size_t length)
 {
     memset(me->data + me->length, c, pf_limit(*me, length));
     me->length += length;
@@ -8835,7 +8906,7 @@ pf_pad(struct pf_string me[static 1], const char c, const size_t length)
 
 static inline size_t
 pf_insert_pad(
-    struct pf_string me[static 1],
+    struct pf_string* me,
     const size_t i,
     const char c,
     const size_t n)
@@ -8862,7 +8933,7 @@ pf_insert_pad(
     return n - overflowed;
 }
 
-static inline bool pf_push_char(struct pf_string me[static 1], const char c)
+static inline bool pf_push_char(struct pf_string* me, const char c)
 { // TODO simplify this confusing mess
     if (pf_limit(*me, 1) != 0)
         me->data[me->length] = c;
@@ -8873,6 +8944,7 @@ static inline bool pf_push_char(struct pf_string me[static 1], const char c)
 #endif // PFSTRING_H_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* ryu.h */
 
 // Copyright 2018 Ulf Adams
 //
@@ -8922,6 +8994,7 @@ char* d2exp(double d, uint32_t precision);
 #endif // RYU_H
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* thread.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
@@ -9079,6 +9152,7 @@ static inline void gp_thread_once(GPThreadOnce* flag, void(*init)(void))
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* array.c */
 
 #include <string.h>
 
@@ -9371,6 +9445,7 @@ GPArray(void) gp_arr_filter(
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* assert.c */
 
 #include <stddef.h>
 #include <stdio.h>
@@ -9380,7 +9455,7 @@ GPArray(void) gp_arr_filter(
 #include <stdint.h>
 
 #ifdef _WIN32
-#include <libloaderapi.h> // GetModuleFileNameA()
+#include <windows.h> // GetModuleFileNameA()
 #endif
 
 static GP_MAYBE_THREAD_LOCAL const char* gp_current_test  = NULL;
@@ -9761,6 +9836,7 @@ void gp_fail_internal(
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* bytes.c */
 
 #include <stdlib.h>
 #include <string.h>
@@ -9779,15 +9855,15 @@ static void* gp_memmem(
         return NULL;
 
     const char n0 = *(char*)needle;
-    for (void* p = memchr(haystack, n0, hlen); p != NULL;)
+    for (char* p = memchr(haystack, n0, hlen); p != NULL;)
     {
-        if (p + nlen > haystack + hlen)
+        if (p + nlen > (char*)haystack + hlen)
             return NULL;
         if (memcmp(p, needle, nlen) == 0)
             return p;
 
         p++;
-        p = memchr(p, n0, hlen - (p - haystack));
+        p = memchr(p, n0, hlen - (p - (char*)haystack));
     }
     return NULL;
 }
@@ -9799,9 +9875,9 @@ size_t gp_bytes_find_first(
     const size_t needle_size,
     const size_t start)
 {
-    const void* result = gp_memmem(
-        haystack + start, haystack_size - start, needle, needle_size);
-    return result ? (size_t)(result - haystack) : GP_NOT_FOUND;
+    const char* result = gp_memmem(
+        (char*)haystack + start, haystack_size - start, needle, needle_size);
+    return result ? (size_t)(result - (char*)haystack) : GP_NOT_FOUND;
 }
 
 // Find first occurrence of ch looking from right to left
@@ -9964,7 +10040,7 @@ size_t gp_bytes_slice(
     size_t end)
 {
     if (src != NULL)
-        memcpy(dest, src + start, end - start);
+        memcpy(dest, (uint8_t*)src + start, end - start);
     else
         memmove(dest, (uint8_t*)dest + start, end - start);
     return end - start;
@@ -9979,7 +10055,7 @@ size_t gp_bytes_repeat(
     if (mem_length == 1) {
         memset(dest, *(uint8_t*)mem, n);
     } else for (size_t i = 0; i < n; i++) {
-        memcpy(dest + i * mem_length, mem, mem_length);
+        memcpy((uint8_t*)dest + i * mem_length, mem, mem_length);
     }
     return n * mem_length;
 }
@@ -9990,7 +10066,7 @@ size_t gp_bytes_append(
     const void* src,
     const size_t src_length)
 {
-    memcpy(dest + dest_length, src, src_length + sizeof(""));
+    memcpy((uint8_t*)dest + dest_length, src, src_length + sizeof(""));
     return dest_length + src_length;
 }
 
@@ -10001,8 +10077,8 @@ size_t gp_bytes_insert(
     const void*restrict src,
     size_t n)
 {
-    memmove(dest + pos + n, dest + pos, dest_length - pos);
-    memcpy(dest + pos, src, n);
+    memmove((uint8_t*)dest + pos + n, (uint8_t*)dest + pos, dest_length - pos);
+    memcpy((uint8_t*)dest + pos, src, n);
     return dest_length + n;
 }
 
@@ -10015,11 +10091,11 @@ size_t gp_bytes_replace_range(
     const size_t replacement_length)
 {
     memmove(
-        me + start + replacement_length,
-        me + end,
+        (uint8_t*)me + start + replacement_length,
+        (uint8_t*)me + end,
         me_length - end);
 
-    memcpy(me + start, replacement, replacement_length);
+    memcpy((uint8_t*)me + start, replacement, replacement_length);
     return me_length + replacement_length - (end - start);
 }
 
@@ -10269,6 +10345,7 @@ size_t gp_bytes_to_valid(
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* common.c */
 
 #include <stdint.h>
 #include <wchar.h>
@@ -10514,6 +10591,7 @@ size_t gp_bytes_print_objects(
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* conversions.c */
 
 #include <stdint.h>
 
@@ -10549,14 +10627,14 @@ static void str_reverse_copy(
 }
 
 static inline void
-append_n_digits(const uint32_t olength, uint32_t digits, char* const result);
+pf_append_n_digits(const uint32_t olength, uint32_t digits, char* const result);
 
 size_t pf_utoa(const size_t n, char* out, unsigned long long x)
 {
     if (n >= 10 && x < 1000000000) // use optimized
     {
         const uint32_t olength = decimalLength9(x);
-        append_n_digits(olength, x, out);
+        pf_append_n_digits(olength, x, out);
         return olength;
     }
 
@@ -10728,7 +10806,7 @@ size_t pf_strfromd(
 //   10^(olength-1) <= digits < 10^olength
 // e.g., by passing `olength` as `decimalLength9(digits)`.
 static inline void
-append_n_digits(const uint32_t olength, uint32_t digits, char* const result)
+pf_append_n_digits(const uint32_t olength, uint32_t digits, char* const result)
 {
     uint32_t i = 0;
     while (digits >= 10000)
@@ -10764,7 +10842,7 @@ append_n_digits(const uint32_t olength, uint32_t digits, char* const result)
 }
 
 static inline uint32_t
-mulShift_mod1e9(const uint64_t m, const uint64_t* const mul, const int32_t j)
+pf_mulShift_mod1e9(const uint64_t m, const uint64_t* const mul, const int32_t j)
 {
     uint64_t high0;                                   // 64
     const uint64_t low0 = umul128(m, mul[0], &high0); // 0
@@ -10810,7 +10888,7 @@ mulShift_mod1e9(const uint64_t m, const uint64_t* const mul, const int32_t j)
 //     10^(olength-1) <= digits < 10^olength
 // e.g., by passing `olength` as `decimalLength9(digits)`.
 static inline void
-append_d_digits(const uint32_t olength, uint32_t digits, char* const result)
+pf__append_d_digits(const uint32_t olength, uint32_t digits, char* const result)
 {
     uint32_t i = 0;
     while (digits >= 10000)
@@ -10852,20 +10930,20 @@ append_d_digits(const uint32_t olength, uint32_t digits, char* const result)
 
 static inline void
 pf_append_d_digits(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const uint32_t maximum, // first_available_digits
     const uint32_t digits)
 {
     if (pf_capacity_left(*out) >= maximum) // write directly
     {
-        append_d_digits(
+        pf__append_d_digits(
             maximum, digits, out->data + out->length);
         out->length += maximum + strlen(".");
     }
     else // write only as much as fits
     {
         char buf[10];
-        append_d_digits(maximum, digits, buf);
+        pf__append_d_digits(maximum, digits, buf);
         pf_concat(out, buf, maximum + strlen("."));
     }
 }
@@ -10873,7 +10951,7 @@ pf_append_d_digits(
 // Convert `digits` to decimal and write the last `count` decimal digits to result.
 // If `digits` contains additional digits, then those are silently ignored.
 static inline void
-append_c_digits(const uint32_t count, uint32_t digits, char* const result)
+pf__append_c_digits(const uint32_t count, uint32_t digits, char* const result)
 {
     // Copy pairs of digits from DIGIT_TABLE.
     uint32_t i = 0;
@@ -10893,20 +10971,20 @@ append_c_digits(const uint32_t count, uint32_t digits, char* const result)
 
 static inline void
 pf_append_c_digits(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const uint32_t count,
     const uint32_t digits)
 {
     if (pf_capacity_left(*out) >= count) // write directly
     {
-        append_c_digits(
+        pf__append_c_digits(
             count, digits, out->data + out->length);
         out->length += count;
     }
     else // write only as much as fits
     {
         char buf[10];
-        append_c_digits(
+        pf__append_c_digits(
             count, digits, buf);
         pf_concat(out, buf, count);
     }
@@ -10915,7 +10993,7 @@ pf_append_c_digits(
 // Convert `digits` to decimal and write the last 9 decimal digits to result.
 // If `digits` contains additional digits, then those are silently ignored.
 static inline void
-append_nine_digits(uint32_t digits, char* const result)
+pf__append_nine_digits(uint32_t digits, char* const result)
 {
     if (digits == 0)
     {
@@ -10940,23 +11018,23 @@ append_nine_digits(uint32_t digits, char* const result)
 }
 
 static inline void
-pf_append_nine_digits(struct pf_string out[static 1], uint32_t digits)
+pf_append_nine_digits(struct pf_string* out, uint32_t digits)
 {
     if (pf_capacity_left(*out) >= 9) // write directly
     {
-        append_nine_digits(digits, out->data + out->length);
+        pf__append_nine_digits(digits, out->data + out->length);
         out->length += 9;
     }
     else // write only as much as fits
     {
         char buf[10];
-        append_nine_digits(digits, buf);
+        pf__append_nine_digits(digits, buf);
         pf_concat(out, buf, 9);
     }
 }
 
 static inline void
-append_utoa(struct pf_string out[static 1], uint32_t digits)
+append_utoa(struct pf_string* out, uint32_t digits)
 {
     if (pf_capacity_left(*out) >= 9) // write directly
     {
@@ -10971,17 +11049,17 @@ append_utoa(struct pf_string out[static 1], uint32_t digits)
     }
 }
 
-static inline uint32_t indexForExponent(const uint32_t e)
+static inline uint32_t pf_indexForExponent(const uint32_t e)
 {
     return (e + 15) / 16;
 }
 
-static inline uint32_t pow10BitsForIndex(const uint32_t idx)
+static inline uint32_t pf_pow10BitsForIndex(const uint32_t idx)
 {
     return 16 * idx + POW10_ADDITIONAL_BITS;
 }
 
-static inline uint32_t lengthForIndex(const uint32_t idx)
+static inline uint32_t pf_lengthForIndex(const uint32_t idx)
 {
     // +1 for ceil, +16 for mantissa, +8 to round up when dividing by 9
     return (log10Pow2(16 * (int32_t) idx) + 1 + 16 + 8) / 9;
@@ -10993,7 +11071,7 @@ static inline uint32_t lengthForIndex(const uint32_t idx)
 
 static inline unsigned
 pf_copy_special_str_printf(
-    struct pf_string out[const static 1],
+    struct pf_string*const out,
     const uint64_t mantissa,
     const bool uppercase)
 {
@@ -11087,14 +11165,14 @@ pf_d2fixed_buffered_n(
 
     if (e2 >= -52) // store integer part
     {
-        const uint32_t idx = e2 < 0 ? 0 : indexForExponent((uint32_t) e2);
-        const uint32_t p10bits = pow10BitsForIndex(idx);
-        const int32_t len = (int32_t)lengthForIndex(idx);
+        const uint32_t idx = e2 < 0 ? 0 : pf_indexForExponent((uint32_t) e2);
+        const uint32_t p10bits = pf_pow10BitsForIndex(idx);
+        const int32_t len = (int32_t)pf_lengthForIndex(idx);
 
         for (int32_t i = len - 1; i >= 0; --i)
         {
             const uint32_t j = p10bits - e2;
-            const uint32_t digits = mulShift_mod1e9(
+            const uint32_t digits = pf_mulShift_mod1e9(
                 m2 << 8, POW10_SPLIT[POW10_OFFSET[idx] + i], (int32_t) (j + 8));
 
             if ( ! is_zero)
@@ -11165,7 +11243,7 @@ pf_d2fixed_buffered_n(
                 break;
             }
 
-            digits = mulShift_mod1e9(m2 << 8, POW10_SPLIT_2[p], j + 8);
+            digits = pf_mulShift_mod1e9(m2 << 8, POW10_SPLIT_2[p], j + 8);
             all_digits[digits_length++] = digits;
         }
 
@@ -11458,16 +11536,16 @@ pf_d2exp_buffered_n(
 
     if (e2 >= -52)
     {
-        const uint32_t idx = e2 < 0 ? 0 : indexForExponent((uint32_t)e2);
-        const uint32_t p10bits = pow10BitsForIndex(idx);
-        const int32_t len = (int32_t)lengthForIndex(idx);
+        const uint32_t idx = e2 < 0 ? 0 : pf_indexForExponent((uint32_t)e2);
+        const uint32_t p10bits = pf_pow10BitsForIndex(idx);
+        const int32_t len = (int32_t)pf_lengthForIndex(idx);
         for (int32_t i = len - 1; i >= 0; --i)
         {
             const uint32_t j = p10bits - e2;
             // Temporary: j is usually around 128, and by shifting a bit, we
             // push it to 128 or above, which is a slightly faster code path in
-            // mulShift_mod1e9. Instead, we can just increase the multipliers.
-            digits = mulShift_mod1e9(
+            // pf_mulShift_mod1e9. Instead, we can just increase the multipliers.
+            digits = pf_mulShift_mod1e9(
                 m2 << 8, POW10_SPLIT[POW10_OFFSET[idx] + i], (int32_t)(j + 8));
 
             if (stored_digits != 0) // never first iteration
@@ -11510,9 +11588,9 @@ pf_d2exp_buffered_n(
             const uint32_t p = POW10_OFFSET_2[idx] + (uint32_t)i - MIN_BLOCK_2[idx];
             // Temporary: j is usually around 128, and by shifting a bit, we
             // push it to 128 or above, which is a slightly faster code path in
-            // mulShift_mod1e9. Instead, we can just increase the multipliers.
+            // pf_mulShift_mod1e9. Instead, we can just increase the multipliers.
             digits = (p >= POW10_OFFSET_2[idx + 1]) ?
-                0 : mulShift_mod1e9(m2 << 8, POW10_SPLIT_2[p], j + 8);
+                0 : pf_mulShift_mod1e9(m2 << 8, POW10_SPLIT_2[p], j + 8);
 
             if (stored_digits != 0) // never first iteration
             { // store fractional part excluding last max 9 digits
@@ -11746,6 +11824,7 @@ pf_d2exp_buffered_n(
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* d2fixed.c */
 
 
 #include <assert.h>
@@ -12541,6 +12620,7 @@ char* d2exp(double d, uint32_t precision) {
 #endif
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* d2s.c */
 
 
 #include <assert.h>
@@ -12966,12 +13046,13 @@ char* d2s(double f) {
 #endif
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* format_scanning.c */
 
 #include <string.h>
 
 PFFormatSpecifier
 pf_scan_format_string(
-    const char fmt_string[static 1],
+    const char* fmt_string,
     pf_va_list* va_args)
 {
     PFFormatSpecifier fmt = { fmt_string };
@@ -13108,6 +13189,7 @@ pf_scan_format_string(
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* generic.c */
 
 
 GPString gp_str_make(struct gp_str_maker maker)
@@ -13262,6 +13344,7 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* hashmap.c */
 
 #include <string.h>
 
@@ -13392,12 +13475,12 @@ static void gp_no_op_destructor(void*_) { (void)_; }
 
 GPMap* gp_map_new(const GPAllocator* allocator, const GPMapInitializer*_init)
 {
-    static const size_t DEFAULT_CAP = 1 << 8; // somewhat arbitrary atm
-    static const GPMapInitializer defaults = { .capacity = DEFAULT_CAP };
+    #define GP_DEFAULT_MAP_CAP (1 << 8) // somewhat arbitrary atm
+    static const GPMapInitializer defaults = { .capacity = GP_DEFAULT_MAP_CAP };
     const GPMapInitializer* init = _init == NULL ? &defaults : _init;
 
     const size_t length = init->capacity == 0 ?
-        DEFAULT_CAP
+        GP_DEFAULT_MAP_CAP
       : gp_next_power_of_2(init->capacity) >> 1;
 
     const GPMap init_map = {
@@ -13640,6 +13723,7 @@ bool gp_hash_map_remove(
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* io.c */
 
 
 FILE* gp_file_open(const char* path, const char* mode)
@@ -13908,6 +13992,7 @@ size_t gp_file_println_internal(
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* memory.c */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14346,6 +14431,7 @@ void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* overload.c */
 
 
 extern inline size_t gp_sizeof     (const GPType T);
@@ -14356,6 +14442,7 @@ extern inline bool   gp_is_pointer (const GPType T);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* pcg_basic.c */
 
 
 // state for global RNGs
@@ -14391,7 +14478,7 @@ uint32_t pcg32_random_r(pcg32_random_t* rng)
     rng->state = oldstate * 6364136223846793005ULL + rng->inc;
     uint32_t xorshifted = (uint32_t)(((oldstate >> 18u) ^ oldstate) >> 27u);
     uint32_t rot = (uint32_t)(oldstate >> 59u);
-    return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+    return (xorshifted >> rot) | (xorshifted << ((0-rot) & 31));
 }
 
 uint32_t pcg32_random()
@@ -14420,7 +14507,7 @@ uint32_t pcg32_boundedrand_r(pcg32_random_t* rng, uint32_t bound)
     // because this version will calculate the same modulus, but the LHS
     // value is less than 2^32.
 
-    uint32_t threshold = -bound % bound;
+    uint32_t threshold = (0-bound) % bound;
 
     // Uniformity guarantees that this loop will terminate.  In practice, it
     // should usually terminate quickly; on average (assuming all bounds are
@@ -14444,6 +14531,7 @@ uint32_t pcg32_boundedrand(uint32_t bound)
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* printf.c */
 
 
 
@@ -14459,7 +14547,7 @@ struct MiscData
     bool is_nan_or_inf;
 };
 
-static uintmax_t get_uint(pf_va_list args[static 1], const PFFormatSpecifier fmt)
+static uintmax_t get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
 {
     if (fmt.conversion_format == 'p')
         return va_arg(args->list, uintptr_t);
@@ -14502,7 +14590,7 @@ static uintmax_t get_uint(pf_va_list args[static 1], const PFFormatSpecifier fmt
 }
 
 static void c_string_padding(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const PFFormatSpecifier fmt,
     const void* string,
     const size_t length)
@@ -14524,8 +14612,8 @@ static void c_string_padding(
 }
 
 static unsigned write_s(
-    struct pf_string out[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -14543,7 +14631,7 @@ static unsigned write_s(
 }
 
 static void utf8_string_padding(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const PFFormatSpecifier fmt,
     const void* bytes,
     const size_t bytes_length,
@@ -14566,8 +14654,8 @@ static void utf8_string_padding(
 }
 
 static unsigned write_S(
-    struct pf_string out[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -14597,7 +14685,7 @@ static unsigned write_S(
 }
 
 static void write_leading_zeroes(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const unsigned written_by_utoa,
     const PFFormatSpecifier fmt)
 {
@@ -14620,9 +14708,9 @@ static void write_leading_zeroes(
 }
 
 static unsigned write_i(
-    struct pf_string out[static 1],
-    struct MiscData md[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     intmax_t i;
@@ -14689,8 +14777,8 @@ static unsigned write_i(
 }
 
 static unsigned write_o(
-    struct pf_string out[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -14715,9 +14803,9 @@ static unsigned write_o(
 }
 
 static unsigned write_x(
-    struct pf_string out[static 1],
-    struct MiscData md[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -14737,9 +14825,9 @@ static unsigned write_x(
 }
 
 static unsigned write_X(
-    struct pf_string out[static 1],
-    struct MiscData md[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -14759,8 +14847,8 @@ static unsigned write_X(
 }
 
 static unsigned write_u(
-    struct pf_string out[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -14772,8 +14860,8 @@ static unsigned write_u(
 }
 
 static unsigned write_p(
-    struct pf_string out[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
@@ -14794,9 +14882,9 @@ static unsigned write_p(
 }
 
 static unsigned write_f(
-    struct pf_string out[static 1],
-    struct MiscData md[static 1],
-    pf_va_list args[static 1],
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const double f = va_arg(args->list, double);
@@ -14811,7 +14899,7 @@ static unsigned write_f(
 }
 
 static unsigned add_padding(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const unsigned written,
     const struct MiscData md,
     const PFFormatSpecifier fmt)
@@ -14860,7 +14948,7 @@ static unsigned add_padding(
 int pf_vsnprintf_consuming(
     char*restrict out_buf,
     const size_t max_size,
-    const char format[restrict static 1],
+    const char* format,
     pf_va_list* args)
 {
     struct pf_string out = { out_buf ? out_buf : "", .capacity = max_size };
@@ -14957,7 +15045,7 @@ int pf_vsnprintf_consuming(
 int pf_vsnprintf(
     char* restrict out_buf,
     const size_t max_size,
-    const char format[restrict static 1],
+    const char*restrict format,
     va_list _args)
 {
     pf_va_list args;
@@ -14968,13 +15056,12 @@ int pf_vsnprintf(
 }
 
 int pf_vsprintf(
-    char buf[restrict static 1], const char fmt[restrict static 1], va_list args)
+    char*restrict buf, const char*restrict fmt, va_list args)
 {
     return pf_vsnprintf(buf, SIZE_MAX, fmt, args);
 }
 
-__attribute__((format (printf, 2, 3)))
-int pf_sprintf(char buf[restrict static 1], const char fmt[restrict static 1], ...)
+int pf_sprintf(char*restrict buf, const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -14983,9 +15070,8 @@ int pf_sprintf(char buf[restrict static 1], const char fmt[restrict static 1], .
     return written;
 }
 
-__attribute__((format (printf, 3, 4)))
 int pf_snprintf(
-    char* restrict buf, const size_t n, const char fmt[restrict static 1], ...)
+    char* restrict buf, const size_t n, const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -15001,7 +15087,7 @@ int pf_snprintf(
 #define BUF_SIZE (PAGE_SIZE + sizeof(""))
 
 int pf_vfprintf(
-    FILE stream[restrict static 1], const char fmt[restrict static 1], va_list args)
+    FILE*restrict stream, const char*restrict fmt, va_list args)
 {
     char buf[BUF_SIZE];
     char* pbuf = buf;
@@ -15023,14 +15109,13 @@ int pf_vfprintf(
 }
 
 int pf_vprintf(
-    const char fmt[restrict static 1], va_list args)
+    const char*restrict fmt, va_list args)
 {
     return pf_vfprintf(stdout, fmt, args);
 }
 
-__attribute__((format (printf, 1, 2)))
 int pf_printf(
-    const char fmt[restrict static 1], ...)
+    const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -15039,9 +15124,8 @@ int pf_printf(
     return n;
 }
 
-__attribute__((format (printf, 2, 3)))
 int pf_fprintf(
-    FILE stream[restrict static 1], const char fmt[restrict static 1], ...)
+    FILE*restrict stream, const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
@@ -15053,6 +15137,7 @@ int pf_fprintf(
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* string.c */
 
 #include <stdio.h>
 #include <string.h>
@@ -15191,7 +15276,7 @@ bool gp_str_equal_case(
                 return false;
             }
             s1 += s1_codepoint_size;
-            s2 += s2_codepoint_size;
+            s2 = (uint8_t*)s2 + s2_codepoint_size;
         }
         else
         {
@@ -15201,7 +15286,7 @@ bool gp_str_equal_case(
                 return false;
 
             s1 += wc1_length;
-            s2 += wc2_length;
+            s2 = (uint8_t*)s2 + wc2_length;
         }
     }
     return true;
@@ -15290,7 +15375,7 @@ void gp_str_slice(
 {
     if (src != NULL) {
         gp_str_reserve(dest, end - start);
-        memcpy(*dest, src + start, end - start);
+        memcpy(*dest, (uint8_t*)src + start, end - start);
         gp_str_header(*dest)->length = end - start;
     } else {
         memmove(*dest, *dest + start,  end - start);
@@ -15832,12 +15917,27 @@ int gp_str_file(
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* utils.c */
 
 
 extern inline uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary);
 extern inline bool gp_fapproxf(float x, float y, float max_relative_diff);
 extern inline bool gp_fapprox(double x, double y, double max_relative_diff);
 extern inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff);
+
+extern inline int                gp_imin(int x, int y);
+extern inline long               gp_lmin(long x, long y);
+extern inline long long          gp_llmin(long long x, long long y);
+extern inline unsigned           gp_umin(unsigned x, unsigned y);
+extern inline unsigned long      gp_lumin(unsigned long x, unsigned long y);
+extern inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y);
+
+extern inline int                gp_imax(int x, int y);
+extern inline long               gp_lmax(long x, long y);
+extern inline long long          gp_llmax(long long x, long long y);
+extern inline unsigned           gp_umax(unsigned x, unsigned y);
+extern inline unsigned long      gp_lumax(unsigned long x, unsigned long y);
+extern inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y);
 
 size_t gp_next_power_of_2(size_t x)
 {
@@ -15880,7 +15980,6 @@ bool gp_check_bounds(size_t* start, size_t* end, size_t limit)
     }
     return ! clipped;
 }
-
 
 
 // Random stuff

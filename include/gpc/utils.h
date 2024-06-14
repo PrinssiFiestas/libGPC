@@ -105,19 +105,19 @@ struct gp_random_state
     uint64_t private_inc;
 };
 
-int                gp_imin(int x, int y);
-long               gp_lmin(long x, long y);
-long long          gp_llmin(long long x, long long y);
-unsigned           gp_umin(unsigned x, unsigned y);
-unsigned long      gp_lumin(unsigned long x, unsigned long y);
-unsigned long long gp_llumin(unsigned long long x, unsigned long long y);
+inline int                gp_imin(int x, int y)                                 { return x < y ? x : y; }
+inline long               gp_lmin(long x, long y)                               { return x < y ? x : y; }
+inline long long          gp_llmin(long long x, long long y)                    { return x < y ? x : y; }
+inline unsigned           gp_umin(unsigned x, unsigned y)                       { return x < y ? x : y; }
+inline unsigned long      gp_lumin(unsigned long x, unsigned long y)            { return x < y ? x : y; }
+inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y) { return x < y ? x : y; }
 
-int                gp_imax(int x, int y);
-long               gp_lmax(long x, long y);
-long long          gp_llmax(long long x, long long y);
-unsigned           gp_umax(unsigned x, unsigned y);
-unsigned long      gp_lumax(unsigned long x, unsigned long y);
-unsigned long long gp_llumax(unsigned long long x, unsigned long long y);
+inline int                gp_imax(int x, int y)                                 { return x > y ? x : y; }
+inline long               gp_lmax(long x, long y)                               { return x > y ? x : y; }
+inline long long          gp_llmax(long long x, long long y)                    { return x > y ? x : y; }
+inline unsigned           gp_umax(unsigned x, unsigned y)                       { return x > y ? x : y; }
+inline unsigned long      gp_lumax(unsigned long x, unsigned long y)            { return x > y ? x : y; }
+inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y) { return x > y ? x : y; }
 
 // gp_min() and gp_max() implementations
 #if defined(__GNUC__)

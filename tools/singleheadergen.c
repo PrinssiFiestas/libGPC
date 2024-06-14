@@ -398,7 +398,8 @@ static void write_file(GPArray(File) files, const size_t index)
         return;
 
     gp_file_println(out,
-        "/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */\n");
+        "/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */\n"
+        "/*", file->name, "*/\n");
 
     bool is_in_multiline_comment = false;
     while (gp_file_read_line(&line, file->fp))

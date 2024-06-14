@@ -177,7 +177,7 @@ GPString gp_str_make(struct gp_str_maker maker);
 // ----------------------------------------------------------------------------
 // Bytes and strings
 
-typedef struct gp_str_in { const void* data; const size_t length; } GPStrIn;
+typedef struct gp_str_in { const uint8_t* data; const size_t length; } GPStrIn;
 static inline GPStrIn gp_str_in99(const void* data, const size_t length)
 {
     return (GPStrIn) {

@@ -14,6 +14,7 @@
 #include <gpc/bytes.h>
 #include <gpc/overload.h>
 #include <gpc/attributes.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 #ifdef __cplusplus
@@ -21,12 +22,7 @@ extern "C" {
 #endif
 
 #ifndef GP_USER_ASSERT_EXIT
-static inline void gp_assert_exit(int status) {
-    GP_BREAKPOINT;
-    void exit(int status);
-    exit(status);
-}
-#define GP_USER_ASSERT_EXIT (gp_assert_exit)
+#define GP_USER_ASSERT_EXIT exit
 #endif
 
 // ----------------------------------------------------------------------------

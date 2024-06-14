@@ -133,12 +133,12 @@ static void gp_no_op_destructor(void*_) { (void)_; }
 
 GPMap* gp_map_new(const GPAllocator* allocator, const GPMapInitializer*_init)
 {
-    static const size_t DEFAULT_CAP = 1 << 8; // somewhat arbitrary atm
-    static const GPMapInitializer defaults = { .capacity = DEFAULT_CAP };
+    #define GP_DEFAULT_MAP_CAP (1 << 8) // somewhat arbitrary atm
+    static const GPMapInitializer defaults = { .capacity = GP_DEFAULT_MAP_CAP };
     const GPMapInitializer* init = _init == NULL ? &defaults : _init;
 
     const size_t length = init->capacity == 0 ?
-        DEFAULT_CAP
+        GP_DEFAULT_MAP_CAP
       : gp_next_power_of_2(init->capacity) >> 1;
 
     const GPMap init_map = {

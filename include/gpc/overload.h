@@ -147,6 +147,7 @@ inline size_t gp_sizeof(const GPType T) {
     return 0;
 }
 
+#ifndef _MSC_VER
 #define GP_TYPE(VAR)                              \
 _Generic(VAR,                                     \
     bool:                  GP_BOOL,               \
@@ -168,6 +169,28 @@ _Generic(VAR,                                     \
     struct gp_char*:       GP_STRING,             \
     const struct gp_char*: GP_STRING,             \
     default:               GP_PTR)
+#else // MSVC char <=> signed char, although standard says that they are different
+#define GP_TYPE(VAR)                              \
+_Generic(VAR,                                     \
+    bool:                  GP_BOOL,               \
+    short:                 GP_SHORT,              \
+    int:                   GP_INT,                \
+    long:                  GP_LONG,               \
+    long long:             GP_LONG_LONG,          \
+    unsigned short:        GP_UNSIGNED_LONG,      \
+    unsigned int:          GP_UNSIGNED,           \
+    unsigned long:         GP_UNSIGNED_LONG,      \
+    unsigned long long:    GP_UNSIGNED_LONG_LONG, \
+    float:                 GP_FLOAT,              \
+    double:                GP_DOUBLE,             \
+    unsigned char:         GP_UNSIGNED_CHAR,      \
+    signed char:           GP_SIGNED_CHAR,        \
+    char*:                 GP_CHAR_PTR,           \
+    const char*:           GP_CHAR_PTR,           \
+    struct gp_char*:       GP_STRING,             \
+    const struct gp_char*: GP_STRING,             \
+    default:               GP_PTR)
+#endif
 
 inline bool gp_is_unsigned(const GPType T) { return T <= GP_UNSIGNED_LONG_LONG; }
 inline bool gp_is_integer (const GPType T) { return T <= GP_LONG_LONG; }

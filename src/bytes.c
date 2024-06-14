@@ -26,15 +26,15 @@ static void* gp_memmem(
         return NULL;
 
     const char n0 = *(char*)needle;
-    for (void* p = memchr(haystack, n0, hlen); p != NULL;)
+    for (char* p = memchr(haystack, n0, hlen); p != NULL;)
     {
-        if (p + nlen > haystack + hlen)
+        if (p + nlen > (char*)haystack + hlen)
             return NULL;
         if (memcmp(p, needle, nlen) == 0)
             return p;
 
         p++;
-        p = memchr(p, n0, hlen - (p - haystack));
+        p = memchr(p, n0, hlen - (p - (char*)haystack));
     }
     return NULL;
 }
@@ -46,9 +46,9 @@ size_t gp_bytes_find_first(
     const size_t needle_size,
     const size_t start)
 {
-    const void* result = gp_memmem(
-        haystack + start, haystack_size - start, needle, needle_size);
-    return result ? (size_t)(result - haystack) : GP_NOT_FOUND;
+    const char* result = gp_memmem(
+        (char*)haystack + start, haystack_size - start, needle, needle_size);
+    return result ? (size_t)(result - (char*)haystack) : GP_NOT_FOUND;
 }
 
 // Find first occurrence of ch looking from right to left
@@ -211,7 +211,7 @@ size_t gp_bytes_slice(
     size_t end)
 {
     if (src != NULL)
-        memcpy(dest, src + start, end - start);
+        memcpy(dest, (uint8_t*)src + start, end - start);
     else
         memmove(dest, (uint8_t*)dest + start, end - start);
     return end - start;
@@ -226,7 +226,7 @@ size_t gp_bytes_repeat(
     if (mem_length == 1) {
         memset(dest, *(uint8_t*)mem, n);
     } else for (size_t i = 0; i < n; i++) {
-        memcpy(dest + i * mem_length, mem, mem_length);
+        memcpy((uint8_t*)dest + i * mem_length, mem, mem_length);
     }
     return n * mem_length;
 }
@@ -237,7 +237,7 @@ size_t gp_bytes_append(
     const void* src,
     const size_t src_length)
 {
-    memcpy(dest + dest_length, src, src_length + sizeof(""));
+    memcpy((uint8_t*)dest + dest_length, src, src_length + sizeof(""));
     return dest_length + src_length;
 }
 
@@ -248,8 +248,8 @@ size_t gp_bytes_insert(
     const void*restrict src,
     size_t n)
 {
-    memmove(dest + pos + n, dest + pos, dest_length - pos);
-    memcpy(dest + pos, src, n);
+    memmove((uint8_t*)dest + pos + n, (uint8_t*)dest + pos, dest_length - pos);
+    memcpy((uint8_t*)dest + pos, src, n);
     return dest_length + n;
 }
 
@@ -262,11 +262,11 @@ size_t gp_bytes_replace_range(
     const size_t replacement_length)
 {
     memmove(
-        me + start + replacement_length,
-        me + end,
+        (uint8_t*)me + start + replacement_length,
+        (uint8_t*)me + end,
         me_length - end);
 
-    memcpy(me + start, replacement, replacement_length);
+    memcpy((uint8_t*)me + start, replacement, replacement_length);
     return me_length + replacement_length - (end - start);
 }
 

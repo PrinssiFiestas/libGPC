@@ -16,7 +16,7 @@
 #include <stdint.h>
 
 #ifdef _WIN32
-#include <libloaderapi.h> // GetModuleFileNameA()
+#include <windows.h> // GetModuleFileNameA()
 #endif
 
 static GP_MAYBE_THREAD_LOCAL const char* gp_current_test  = NULL;

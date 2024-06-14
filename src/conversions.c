@@ -44,14 +44,14 @@ static void str_reverse_copy(
 }
 
 static inline void
-append_n_digits(const uint32_t olength, uint32_t digits, char* const result);
+pf_append_n_digits(const uint32_t olength, uint32_t digits, char* const result);
 
 size_t pf_utoa(const size_t n, char* out, unsigned long long x)
 {
     if (n >= 10 && x < 1000000000) // use optimized
     {
         const uint32_t olength = decimalLength9(x);
-        append_n_digits(olength, x, out);
+        pf_append_n_digits(olength, x, out);
         return olength;
     }
 
@@ -223,7 +223,7 @@ size_t pf_strfromd(
 //   10^(olength-1) <= digits < 10^olength
 // e.g., by passing `olength` as `decimalLength9(digits)`.
 static inline void
-append_n_digits(const uint32_t olength, uint32_t digits, char* const result)
+pf_append_n_digits(const uint32_t olength, uint32_t digits, char* const result)
 {
     uint32_t i = 0;
     while (digits >= 10000)
@@ -259,7 +259,7 @@ append_n_digits(const uint32_t olength, uint32_t digits, char* const result)
 }
 
 static inline uint32_t
-mulShift_mod1e9(const uint64_t m, const uint64_t* const mul, const int32_t j)
+pf_mulShift_mod1e9(const uint64_t m, const uint64_t* const mul, const int32_t j)
 {
     uint64_t high0;                                   // 64
     const uint64_t low0 = umul128(m, mul[0], &high0); // 0
@@ -305,7 +305,7 @@ mulShift_mod1e9(const uint64_t m, const uint64_t* const mul, const int32_t j)
 //     10^(olength-1) <= digits < 10^olength
 // e.g., by passing `olength` as `decimalLength9(digits)`.
 static inline void
-append_d_digits(const uint32_t olength, uint32_t digits, char* const result)
+pf__append_d_digits(const uint32_t olength, uint32_t digits, char* const result)
 {
     uint32_t i = 0;
     while (digits >= 10000)
@@ -347,20 +347,20 @@ append_d_digits(const uint32_t olength, uint32_t digits, char* const result)
 
 static inline void
 pf_append_d_digits(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const uint32_t maximum, // first_available_digits
     const uint32_t digits)
 {
     if (pf_capacity_left(*out) >= maximum) // write directly
     {
-        append_d_digits(
+        pf__append_d_digits(
             maximum, digits, out->data + out->length);
         out->length += maximum + strlen(".");
     }
     else // write only as much as fits
     {
         char buf[10];
-        append_d_digits(maximum, digits, buf);
+        pf__append_d_digits(maximum, digits, buf);
         pf_concat(out, buf, maximum + strlen("."));
     }
 }
@@ -368,7 +368,7 @@ pf_append_d_digits(
 // Convert `digits` to decimal and write the last `count` decimal digits to result.
 // If `digits` contains additional digits, then those are silently ignored.
 static inline void
-append_c_digits(const uint32_t count, uint32_t digits, char* const result)
+pf__append_c_digits(const uint32_t count, uint32_t digits, char* const result)
 {
     // Copy pairs of digits from DIGIT_TABLE.
     uint32_t i = 0;
@@ -388,20 +388,20 @@ append_c_digits(const uint32_t count, uint32_t digits, char* const result)
 
 static inline void
 pf_append_c_digits(
-    struct pf_string out[static 1],
+    struct pf_string* out,
     const uint32_t count,
     const uint32_t digits)
 {
     if (pf_capacity_left(*out) >= count) // write directly
     {
-        append_c_digits(
+        pf__append_c_digits(
             count, digits, out->data + out->length);
         out->length += count;
     }
     else // write only as much as fits
     {
         char buf[10];
-        append_c_digits(
+        pf__append_c_digits(
             count, digits, buf);
         pf_concat(out, buf, count);
     }
@@ -410,7 +410,7 @@ pf_append_c_digits(
 // Convert `digits` to decimal and write the last 9 decimal digits to result.
 // If `digits` contains additional digits, then those are silently ignored.
 static inline void
-append_nine_digits(uint32_t digits, char* const result)
+pf__append_nine_digits(uint32_t digits, char* const result)
 {
     if (digits == 0)
     {
@@ -435,23 +435,23 @@ append_nine_digits(uint32_t digits, char* const result)
 }
 
 static inline void
-pf_append_nine_digits(struct pf_string out[static 1], uint32_t digits)
+pf_append_nine_digits(struct pf_string* out, uint32_t digits)
 {
     if (pf_capacity_left(*out) >= 9) // write directly
     {
-        append_nine_digits(digits, out->data + out->length);
+        pf__append_nine_digits(digits, out->data + out->length);
         out->length += 9;
     }
     else // write only as much as fits
     {
         char buf[10];
-        append_nine_digits(digits, buf);
+        pf__append_nine_digits(digits, buf);
         pf_concat(out, buf, 9);
     }
 }
 
 static inline void
-append_utoa(struct pf_string out[static 1], uint32_t digits)
+append_utoa(struct pf_string* out, uint32_t digits)
 {
     if (pf_capacity_left(*out) >= 9) // write directly
     {
@@ -466,17 +466,17 @@ append_utoa(struct pf_string out[static 1], uint32_t digits)
     }
 }
 
-static inline uint32_t indexForExponent(const uint32_t e)
+static inline uint32_t pf_indexForExponent(const uint32_t e)
 {
     return (e + 15) / 16;
 }
 
-static inline uint32_t pow10BitsForIndex(const uint32_t idx)
+static inline uint32_t pf_pow10BitsForIndex(const uint32_t idx)
 {
     return 16 * idx + POW10_ADDITIONAL_BITS;
 }
 
-static inline uint32_t lengthForIndex(const uint32_t idx)
+static inline uint32_t pf_lengthForIndex(const uint32_t idx)
 {
     // +1 for ceil, +16 for mantissa, +8 to round up when dividing by 9
     return (log10Pow2(16 * (int32_t) idx) + 1 + 16 + 8) / 9;
@@ -488,7 +488,7 @@ static inline uint32_t lengthForIndex(const uint32_t idx)
 
 static inline unsigned
 pf_copy_special_str_printf(
-    struct pf_string out[const static 1],
+    struct pf_string*const out,
     const uint64_t mantissa,
     const bool uppercase)
 {
@@ -582,14 +582,14 @@ pf_d2fixed_buffered_n(
 
     if (e2 >= -52) // store integer part
     {
-        const uint32_t idx = e2 < 0 ? 0 : indexForExponent((uint32_t) e2);
-        const uint32_t p10bits = pow10BitsForIndex(idx);
-        const int32_t len = (int32_t)lengthForIndex(idx);
+        const uint32_t idx = e2 < 0 ? 0 : pf_indexForExponent((uint32_t) e2);
+        const uint32_t p10bits = pf_pow10BitsForIndex(idx);
+        const int32_t len = (int32_t)pf_lengthForIndex(idx);
 
         for (int32_t i = len - 1; i >= 0; --i)
         {
             const uint32_t j = p10bits - e2;
-            const uint32_t digits = mulShift_mod1e9(
+            const uint32_t digits = pf_mulShift_mod1e9(
                 m2 << 8, POW10_SPLIT[POW10_OFFSET[idx] + i], (int32_t) (j + 8));
 
             if ( ! is_zero)
@@ -660,7 +660,7 @@ pf_d2fixed_buffered_n(
                 break;
             }
 
-            digits = mulShift_mod1e9(m2 << 8, POW10_SPLIT_2[p], j + 8);
+            digits = pf_mulShift_mod1e9(m2 << 8, POW10_SPLIT_2[p], j + 8);
             all_digits[digits_length++] = digits;
         }
 
@@ -953,16 +953,16 @@ pf_d2exp_buffered_n(
 
     if (e2 >= -52)
     {
-        const uint32_t idx = e2 < 0 ? 0 : indexForExponent((uint32_t)e2);
-        const uint32_t p10bits = pow10BitsForIndex(idx);
-        const int32_t len = (int32_t)lengthForIndex(idx);
+        const uint32_t idx = e2 < 0 ? 0 : pf_indexForExponent((uint32_t)e2);
+        const uint32_t p10bits = pf_pow10BitsForIndex(idx);
+        const int32_t len = (int32_t)pf_lengthForIndex(idx);
         for (int32_t i = len - 1; i >= 0; --i)
         {
             const uint32_t j = p10bits - e2;
             // Temporary: j is usually around 128, and by shifting a bit, we
             // push it to 128 or above, which is a slightly faster code path in
-            // mulShift_mod1e9. Instead, we can just increase the multipliers.
-            digits = mulShift_mod1e9(
+            // pf_mulShift_mod1e9. Instead, we can just increase the multipliers.
+            digits = pf_mulShift_mod1e9(
                 m2 << 8, POW10_SPLIT[POW10_OFFSET[idx] + i], (int32_t)(j + 8));
 
             if (stored_digits != 0) // never first iteration
@@ -1005,9 +1005,9 @@ pf_d2exp_buffered_n(
             const uint32_t p = POW10_OFFSET_2[idx] + (uint32_t)i - MIN_BLOCK_2[idx];
             // Temporary: j is usually around 128, and by shifting a bit, we
             // push it to 128 or above, which is a slightly faster code path in
-            // mulShift_mod1e9. Instead, we can just increase the multipliers.
+            // pf_mulShift_mod1e9. Instead, we can just increase the multipliers.
             digits = (p >= POW10_OFFSET_2[idx + 1]) ?
-                0 : mulShift_mod1e9(m2 << 8, POW10_SPLIT_2[p], j + 8);
+                0 : pf_mulShift_mod1e9(m2 << 8, POW10_SPLIT_2[p], j + 8);
 
             if (stored_digits != 0) // never first iteration
             { // store fractional part excluding last max 9 digits

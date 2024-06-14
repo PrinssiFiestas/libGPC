@@ -61,8 +61,8 @@ typedef struct pf_va_list
 
 PFFormatSpecifier
 pf_scan_format_string(
-    const char fmt_string[static 1], // should be null-terminated
-    pf_va_list* asterisks); // optional
+    const char* fmt_string, // should be null-terminated
+    pf_va_list* optional_asterisks);
 
 #ifdef __cplusplus
 } // extern "C"

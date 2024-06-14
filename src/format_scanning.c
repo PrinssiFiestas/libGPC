@@ -7,7 +7,7 @@
 
 PFFormatSpecifier
 pf_scan_format_string(
-    const char fmt_string[static 1],
+    const char* fmt_string,
     pf_va_list* va_args)
 {
     PFFormatSpecifier fmt = { fmt_string };

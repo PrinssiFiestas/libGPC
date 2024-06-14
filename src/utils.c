@@ -13,6 +13,20 @@ extern inline bool gp_fapproxf(float x, float y, float max_relative_diff);
 extern inline bool gp_fapprox(double x, double y, double max_relative_diff);
 extern inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff);
 
+extern inline int                gp_imin(int x, int y);
+extern inline long               gp_lmin(long x, long y);
+extern inline long long          gp_llmin(long long x, long long y);
+extern inline unsigned           gp_umin(unsigned x, unsigned y);
+extern inline unsigned long      gp_lumin(unsigned long x, unsigned long y);
+extern inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y);
+
+extern inline int                gp_imax(int x, int y);
+extern inline long               gp_lmax(long x, long y);
+extern inline long long          gp_llmax(long long x, long long y);
+extern inline unsigned           gp_umax(unsigned x, unsigned y);
+extern inline unsigned long      gp_lumax(unsigned long x, unsigned long y);
+extern inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y);
+
 size_t gp_next_power_of_2(size_t x)
 {
     return sizeof x == sizeof(uint32_t) ?
@@ -54,7 +68,6 @@ bool gp_check_bounds(size_t* start, size_t* end, size_t limit)
     }
     return ! clipped;
 }
-
 
 
 // Random stuff

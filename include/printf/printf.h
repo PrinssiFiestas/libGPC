@@ -23,39 +23,68 @@
 extern "C" {
 #endif
 
+#ifdef __GNUC__
+__attribute__((nonnull()))
+#endif
 int pf_vprintf(
-    const char fmt[restrict static 1], va_list args);
+    const char*restrict fmt, va_list args);
+
+#ifdef __GNUC__
+__attribute__((nonnull()))
+#endif
 int pf_vfprintf(
-    FILE stream[restrict static 1], const char fmt[restrict static 1], va_list args);
+    FILE*restrict stream, const char*restrict fmt, va_list args);
+
+#ifdef __GNUC__
+__attribute__((nonnull()))
+#endif
 int pf_vsprintf(
-    char buf[restrict static 1], const char fmt[restrict static 1], va_list args);
+    char*restrict buf, const char*restrict fmt, va_list args);
+
+#ifdef __GNUC__
+__attribute__((nonnull(3)))
+#endif
 int pf_vsnprintf(
-    char* restrict buf, size_t n, const char fmt[restrict static 1], va_list args);
+    char*restrict buf, size_t n, const char*restrict fmt, va_list args);
 
+#ifdef __GNUC__
 __attribute__((format (printf, 1, 2)))
+#endif
 int pf_printf(
-    const char fmt[restrict static 1], ...);
+    const char*restrict fmt, ...);
 
+#ifdef __GNUC__
+__attribute__((nonnull()))
 __attribute__((format (printf, 2, 3)))
+#endif
 int pf_fprintf(
-    FILE stream[restrict static 1], const char fmt[restrict static 1], ...);
+    FILE*restrict stream, const char*restrict fmt, ...);
 
+#ifdef __GNUC__
+__attribute__((nonnull()))
 __attribute__((format (printf, 2, 3)))
-int pf_sprintf(char buf[restrict static 1], const char fmt[restrict static 1], ...);
+#endif
+int pf_sprintf(char*restrict buf, const char*restrict fmt, ...);
 
+#ifdef __GNUC__
+__attribute__((nonnull(3)))
 __attribute__((format (printf, 3, 4)))
+#endif
 int pf_snprintf(
-    char* restrict buf, size_t n, const char fmt[restrict static 1], ...);
+    char*restrict buf, size_t n, const char*restrict fmt, ...);
 
 // Functions taking va_list may or may not consume an argument from the list due
 // to va_list being implementation defined. This limits their applications so
 // pf_vsnprintf() is guranteed to NOT consume an arg from arg list and
 // pf_vsnprintf_consuming() is guranteed to consume an arg from arg list.
 
+#ifdef __GNUC__
+__attribute__((nonnull(3, 4)))
+#endif
 int pf_vsnprintf_consuming(
     char*restrict out_buf,
     const size_t max_size,
-    const char format[restrict static 1],
+    const char*restrict format,
     struct pf_va_list* args);
 
 #ifdef __cplusplus

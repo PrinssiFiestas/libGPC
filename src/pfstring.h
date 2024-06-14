@@ -40,7 +40,7 @@ static inline size_t pf_limit(const struct pf_string me, const size_t x)
 // how much the resulting string grew.
 
 static inline size_t
-pf_concat(struct pf_string me[static 1], const char* src, const size_t length)
+pf_concat(struct pf_string* me, const char* src, const size_t length)
 {
     memcpy(me->data + me->length, src, pf_limit(*me, length));
     me->length += length;
@@ -48,7 +48,7 @@ pf_concat(struct pf_string me[static 1], const char* src, const size_t length)
 }
 
 static inline size_t
-pf_pad(struct pf_string me[static 1], const char c, const size_t length)
+pf_pad(struct pf_string* me, const char c, const size_t length)
 {
     memset(me->data + me->length, c, pf_limit(*me, length));
     me->length += length;
@@ -57,7 +57,7 @@ pf_pad(struct pf_string me[static 1], const char c, const size_t length)
 
 static inline size_t
 pf_insert_pad(
-    struct pf_string me[static 1],
+    struct pf_string* me,
     const size_t i,
     const char c,
     const size_t n)
@@ -84,7 +84,7 @@ pf_insert_pad(
     return n - overflowed;
 }
 
-static inline bool pf_push_char(struct pf_string me[static 1], const char c)
+static inline bool pf_push_char(struct pf_string* me, const char c)
 { // TODO simplify this confusing mess
     if (pf_limit(*me, 1) != 0)
         me->data[me->length] = c;

@@ -146,7 +146,7 @@ bool gp_str_equal_case(
                 return false;
             }
             s1 += s1_codepoint_size;
-            s2 += s2_codepoint_size;
+            s2 = (uint8_t*)s2 + s2_codepoint_size;
         }
         else
         {
@@ -156,7 +156,7 @@ bool gp_str_equal_case(
                 return false;
 
             s1 += wc1_length;
-            s2 += wc2_length;
+            s2 = (uint8_t*)s2 + wc2_length;
         }
     }
     return true;
@@ -245,7 +245,7 @@ void gp_str_slice(
 {
     if (src != NULL) {
         gp_str_reserve(dest, end - start);
-        memcpy(*dest, src + start, end - start);
+        memcpy(*dest, (uint8_t*)src + start, end - start);
         gp_str_header(*dest)->length = end - start;
     } else {
         memmove(*dest, *dest + start,  end - start);
