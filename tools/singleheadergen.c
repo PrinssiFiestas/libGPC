@@ -24,7 +24,6 @@
 #include <errno.h>
 #include <string.h>
 #include <dirent.h>
-#include <locale.h>
 
 #if _WIN32
 #define stat _stat
@@ -66,7 +65,7 @@ static void init_globals(void)
     garena = gp_arena_new(1 << 30);
     garena.growth_coefficient = .25;
 
-    gp_assert(out = fopen(out_name, "w"), strerror(errno));
+    gp_assert(out = fopen(out_name, "wb"), strerror(errno));
 
     include_paths = gp_arr_new(gmem, sizeof*include_paths, 16);
     headers       = gp_arr_new(gmem, sizeof*headers, 64);
@@ -117,7 +116,7 @@ static void init_globals(void)
                 .name = strcpy(gp_mem_alloc(gmem, strlen(entry->d_name) + sizeof""), entry->d_name),
                 .name_length = strlen(entry->d_name),
                 .include_dir = include_paths[i],
-                .fp          = fopen(gp_cstr(full_path), "r")
+                .fp          = fopen(gp_cstr(full_path), "rb")
             };
             Assert(header.fp != NULL, strerror(errno));
 
@@ -141,7 +140,7 @@ static void init_globals(void)
         File source = {
             .name = strcpy(gp_mem_alloc(gmem, strlen(entry->d_name) + sizeof""), entry->d_name),
             .name_length = strlen(entry->d_name),
-            .fp          = fopen(gp_cstr(full_path), "r")
+            .fp          = fopen(gp_cstr(full_path), "rb")
         };
         Assert(source.fp != NULL, strerror(errno));
 
@@ -169,7 +168,7 @@ static void write_license(void)
     if (path == entry->d_name)
     {
         FILE* license;
-        Assert(license = fopen(path, "r"), strerror(errno));
+        Assert(license = fopen(path, "rb"), strerror(errno));
         gp_file_println(out, "/*");
 
         while (gp_file_read_line(&line, license))
@@ -424,7 +423,6 @@ static void write_files(GPArray(File) files)
 int main(void)
 {
     init_globals();
-    Assert(setlocale(LC_ALL, "C.UTF-8"), strerror(errno));
     write_license();
     fputs("/*\n"
         " * This file has been generated. The original code may have gone trough heavy\n"

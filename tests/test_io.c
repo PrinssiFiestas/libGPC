@@ -18,7 +18,7 @@ int main(void)
             // The first character in mode string is used to determine actual
             // mode passed to fopen() to be consistent with gp_str_file(). Also
             // checks for occurrence of '+' and 'b'.
-            FILE* f = gp_file_open("gp_io_test_file.txt", "write");
+            FILE* f = gp_file_open("gp_io_test_file.txt", "write binary");
             gp_assert(f != NULL);
             fwrite(f_contents, 1, strlen(f_contents), f);
             gp_file_close(f);
