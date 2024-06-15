@@ -17,6 +17,10 @@
 #include <stddef.h>
 #include <limits.h>
 
+#if __STDC_VERSION__ >= 201112L
+#include <stdalign.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -57,6 +61,9 @@ extern const union gp_endianness_detector GP_INTEGER; // = {.u16 = 1 }
 
 typedef union gp_uint128
 {
+    #if __STDC_VERSION__ >= 201112L
+    alignas(16)
+    #endif
     struct {
         uint64_t lo;
         uint64_t hi;
@@ -67,7 +74,7 @@ typedef union gp_uint128
         uint64_t lo;
     } big_endian;
 
-    #if __GNUC__ && __SIZEOF_INT128__
+    #if __GNUC__ && defined(__SIZEOF_INT128__)
     __uint128_t u128;
     #endif
 } GPUint128;
