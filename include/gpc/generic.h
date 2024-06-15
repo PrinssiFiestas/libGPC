@@ -148,10 +148,11 @@ static inline GPArray(void) gp_arr99(const GPAllocator* alc,
     (const T*)(gp_arr_on_stack(NULL, GP_COUNT_ARGS(__VA_ARGS__), T, __VA_ARGS__))
 #endif
 
-struct gp_str_maker { const GPAllocator* allocator; const char* init; };
-GPString gp_str_make(struct gp_str_maker maker);
-#define GP_STR_NEW(ALLOCATOR, ...) \
-    gp_str_make((struct gp_str_maker){(GPAllocator*)(ALLOCATOR), __VA_ARGS__})
+#define GP_STR_NEW1(ALC)            gp_str_new((GPAllocator*)(ALC), 16, "")
+#define GP_STR_NEW2(ALC, INIT)      gp_str_new((GPAllocator*)(ALC), 16, INIT)
+#define GP_STR_NEW3(ALC, CAP, INIT) gp_str_new((GPAllocator*)(ALC), CAP, INIT)
+#define GP_STR_NEW(...) \
+    GP_OVERLOAD3(__VA_ARGS__, GP_STR_NEW3, GP_STR_NEW2, GP_STR_NEW1)(__VA_ARGS__)
 
 #define GP_HMAP1(ALC) gp_hash_map_new((GPAllocator*)(ALC), NULL)
 #define GP_HMAP2(ALC, ELEM_SIZE) \

@@ -16,7 +16,7 @@ typedef struct my_type
 
 MyType create(const char* init)
 {
-    return (MyType){ strcpy(malloc(strlen(init) + 1), init), strlen(init) };
+    return (MyType){ strcpy(malloc(strlen(init) + 1), init), strlen(init), false };
 }
 
 // Really takes MyType* as argument but void* avoids awkward func pointer cast

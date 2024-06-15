@@ -32,7 +32,7 @@
 static FILE*                   out            = NULL;
 static const char*             out_name       = "gpc.h";
 static GPString                implementation = NULL;
-static GPArena                 garena         = {{0}};
+static GPArena                 garena;
 static const GPAllocator*const gmem           = (GPAllocator*)&garena;
 static GPString                line           = NULL;
 

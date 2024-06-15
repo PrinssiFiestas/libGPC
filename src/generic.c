@@ -6,14 +6,6 @@
 #include <gpc/utils.h>
 #include "common.h"
 
-GPString gp_str_make(struct gp_str_maker maker)
-{
-    if (maker.init == NULL)
-        maker.init = "";
-    return gp_str_new(
-        maker.allocator, gp_max((size_t)16, gp_next_power_of_2(strlen(maker.init))), maker.init);
-}
-
 // ----------------------------------------------------------------------------
 // String
 

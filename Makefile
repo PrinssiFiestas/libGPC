@@ -4,7 +4,7 @@
 
 CC      = gcc
 CFLAGS  = -Wall -Wextra -Werror
-CFLAGS += -Wno-missing-field-initializers -Wno-comment -Wno-missing-braces
+CFLAGS += -Wno-comment
 CFLAGS += -Iinclude
 CFLAGS += -D_GNU_SOURCE # memmem(), stat64()
 CFLAGS += -lm -lpthread
@@ -12,7 +12,7 @@ CFLAGS += -lm -lpthread
 DEBUG_CFLAGS   = -ggdb3 -gdwarf
 RELEASE_CFLAGS = -O3 -DNDEBUG
 ifeq ($(CC), clang) # in some systems Clang ignores -lm and crashes with -flto
-	CFLAGS += -Wno-error=unused-command-line-argument
+	CFLAGS += -Wno-unused-command-line-argument
 else
 	RELEASE_CFLAGS += -flto
 endif

@@ -10,7 +10,8 @@ pf_scan_format_string(
     const char* fmt_string,
     pf_va_list* va_args)
 {
-    PFFormatSpecifier fmt = { fmt_string };
+    PFFormatSpecifier fmt = {0};
+    fmt.string = fmt_string;
 
     fmt.string = strchr(fmt.string, '%');
     if (fmt.string == NULL)
