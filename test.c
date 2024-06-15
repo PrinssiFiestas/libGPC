@@ -3,5 +3,5 @@
 
 int main(void)
 {
-    gp_println("Henlo");
+    puts("\033[31mBLOINK\033[0m");
 }
