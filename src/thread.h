@@ -39,6 +39,19 @@
     !defined(__MINGW32__)       && \
     !defined(__STDC_NO_THREADS__)
 
+typedef thrd_t GPThread;
+typedef int GPThreadResult;
+
+static inline int gp_thread_create(GPThread* t, GPThreadResult(*f)(void*), void* arg)
+{
+    return thrd_create(t, f, arg);
+}
+
+static inline int gp_thread_join(GPThread t, GPThreadResult* ret)
+{
+    return thrd_join(t, ret);
+}
+
 // ----------------------------------------------------------------------------
 // Mutual exclusion
 
@@ -89,8 +102,20 @@ static inline void gp_thread_once(GPThreadOnce* flag, void(*init)(void))
     call_once(flag, init);
 }
 
-#else // standard threads not supported, use POSIX threads
+#else // standard threads not supported, use POSIX threads // --------------- //
 
+typedef pthread_t GPThread;
+typedef void* GPThreadResult;
+
+static inline int gp_thread_create(GPThread* t, GPThreadResult(*f)(void*), void* arg)
+{
+    return pthread_create(t, NULL, f, arg);
+}
+
+static inline int gp_thread_join(GPThread t, GPThreadResult* ret)
+{
+    return pthread_join(t, ret);
+}
 // ----------------------------------------------------------------------------
 // Mutual exclusion
 

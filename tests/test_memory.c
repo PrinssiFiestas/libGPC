@@ -5,7 +5,7 @@
 #include <gpc/assert.h>
 #include <gpc/io.h>
 #include "../src/memory.c"
-#include <pthread.h>
+#include "../src/thread.h"
 
 #if NDEBUG // Memory tests require functionality only available in debug mode
 int main(void) { return 0; }
@@ -16,7 +16,7 @@ int main(void) { return 0; }
 const GPAllocator* new_test_allocator(void);
 void delete_test_allocator(void);
 
-void override_heap_allocator(void)
+static void override_heap_allocator(void)
 { // gp_heap can only be overridden if NDEBUG is not defined
     gp_heap = new_test_allocator();
 }
@@ -116,7 +116,8 @@ static void* test0(void*_)
         }
     }
     gp_suite(NULL);
-    return NULL;
+
+    return (GPThreadResult)0;
 }
 
 static void* test1_ps[4] = {0};
@@ -132,7 +133,8 @@ static void* test1(void*_)
     test1_ps[1] = gp_mem_alloc(scope1, 8);
     test1_ps[2] = gp_mem_alloc(scope2, 8);
     test1_ps[3] = gp_mem_alloc(scope3, 8);
-    return NULL;
+
+    return (GPThreadResult)0;
 } // All scopes will be cleaned when threads terminate
 
 static void* test2(void*_)
@@ -175,10 +177,10 @@ static void* test2(void*_)
             gp_expect(is_free(ps[1]));
         }
     }
-    return NULL;
+    return (GPThreadResult)0;
 }
 
-static void* test_shared(void* shared_arena)
+static GPThreadResult test_shared(void* shared_arena)
 {
     (void)shared_arena;
     gp_test("Shared arena");
@@ -190,10 +192,10 @@ static void* test_shared(void* shared_arena)
             gp_assert(strcmp(str, "Thread safe!") == 0);
         }
     }
-    return NULL;
+    return (GPThreadResult)0;
 }
 
-static void* test_scratch(void*_)
+static GPThreadResult test_scratch(void*_)
 {
     (void)_;
     gp_test("Scratch arena");
@@ -206,21 +208,21 @@ static void* test_scratch(void*_)
         // Do NOT delete scratch arenas! Scratch arenas get deleted
         // automatically when threads exit.
     }
-    return NULL;
+    return (GPThreadResult)0;
 }
 
 int main(void)
 {
     override_heap_allocator();
 
-    pthread_t tests[3];
-    pthread_create(&tests[0], NULL, test0, NULL);
-    pthread_create(&tests[1], NULL, test1, NULL);
-    pthread_create(&tests[2], NULL, test2, NULL);
+    GPThread tests[3];
+    gp_thread_create(&tests[0], test0, NULL);
+    gp_thread_create(&tests[1], test1, NULL);
+    gp_thread_create(&tests[2], test2, NULL);
 
-    pthread_join(tests[0], NULL);
-    pthread_join(tests[1], NULL);
-    pthread_join(tests[2], NULL);
+    gp_thread_join(tests[0], NULL);
+    gp_thread_join(tests[1], NULL);
+    gp_thread_join(tests[2], NULL);
 
     gp_test("Thread cleaning it's scopes");
     {
@@ -230,15 +232,15 @@ int main(void)
 
     GPArena* shared_arena = gp_arena_new_shared(0);
     for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
-        pthread_create(&tests[i], NULL, test_shared, shared_arena);
+        gp_thread_create(&tests[i], test_shared, shared_arena);
     for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
-        pthread_join(tests[i], NULL);
+        gp_thread_join(tests[i], NULL);
     gp_arena_delete(shared_arena);
 
     for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
-        pthread_create(&tests[i], NULL, test_scratch, NULL);
+        gp_thread_create(&tests[i], test_scratch, NULL);
     for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
-        pthread_join(tests[i], NULL);
+        gp_thread_join(tests[i], NULL);
 
     // Make Valgrind shut up.
     delete_test_allocator();
@@ -267,6 +269,9 @@ typedef struct test_allocator
     void* free_block;
 } TestAllocator;
 
+// We are overriding gp_heap and tests are threaded, a mutex is necessary.
+static GPMutex test_allocator_mutex;
+
 // Since test_allocator inherits from GPAllocator, it could be used like so:
 /*
     // Upcasting to GPAllocator* is safe; test_allocator inherits from it.
@@ -279,6 +284,7 @@ typedef struct test_allocator
 // functionality while also removing the need for ugly upcasts from user.
 const GPAllocator* new_test_allocator(void)
 {
+    gp_mutex_init(&test_allocator_mutex);
     TestAllocator* allocator = malloc(1000 * (1 << 10));
     gp_assert(allocator != NULL);
     *allocator = (TestAllocator) {
@@ -288,16 +294,13 @@ const GPAllocator* new_test_allocator(void)
     return (const GPAllocator*)allocator;
 }
 
-// Since we are overriding gp_heap and tests are threaded, a mutex is necessary.
-static pthread_mutex_t test_allocator_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 // Normally, arena running out of memory should be handled somehow. GPArena and
 // the scope allocator does this by creating new arenas where the size is
 // guranteed to fit the size argument of alloc(). Here we will keep things
 // simple for testing purposes and omit handling out of memory case.
 static void* test_alloc(const GPAllocator*_allocator, size_t size)
 {
-    pthread_mutex_lock(&test_allocator_mutex);
+    gp_mutex_lock(&test_allocator_mutex);
 
     // Downcast to orignial type
     TestAllocator* allocator = (TestAllocator*)_allocator;
@@ -312,7 +315,7 @@ static void* test_alloc(const GPAllocator*_allocator, size_t size)
       + gp_round_to_aligned(sizeof size, GP_ALLOC_ALIGNMENT)
       + gp_round_to_aligned(size,        GP_ALLOC_ALIGNMENT);
 
-    pthread_mutex_unlock(&test_allocator_mutex);
+    gp_mutex_unlock(&test_allocator_mutex);
 
     // block points to its size. We don't want to return that but return the
     // memory right next to it instead.
@@ -325,7 +328,7 @@ static void test_dealloc(const GPAllocator* allocator, void*_block)
     if (!allocator || !_block)
         return;
 
-    pthread_mutex_lock(&test_allocator_mutex);
+    gp_mutex_lock(&test_allocator_mutex);
 
     uint8_t* block = _block;
 
@@ -339,12 +342,12 @@ static void test_dealloc(const GPAllocator* allocator, void*_block)
         gp_round_to_aligned(sizeof block_size, GP_ALLOC_ALIGNMENT)
           + gp_round_to_aligned(block_size, GP_ALLOC_ALIGNMENT));
 
-    pthread_mutex_unlock(&test_allocator_mutex);
+    gp_mutex_unlock(&test_allocator_mutex);
 }
 
 static void private_delete_test_allocator(TestAllocator* allocator)
 {
-    pthread_mutex_destroy(&test_allocator_mutex);
+    gp_mutex_destroy(&test_allocator_mutex);
     free((void*)allocator);
 }
 

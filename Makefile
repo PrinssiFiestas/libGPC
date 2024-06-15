@@ -36,8 +36,9 @@ SRCS       = $(wildcard src/*.c)
 OBJS       = $(patsubst src/%.c, build/%.o,  $(wildcard src/*.c))
 DEBUG_OBJS = $(patsubst src/%.c, build/%d.o, $(wildcard src/*.c))
 
-TESTS         = $(patsubst tests/test_%.c, build/test_%d$(EXE_EXT), $(wildcard tests/test_*.c))
-RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(wildcard tests/test_*.c))
+TEST_SRCS     = $(wildcard tests/test_*.c)
+TESTS         = $(patsubst tests/test_%.c, build/test_%d$(EXE_EXT), $(TEST_SRCS))
+RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(TEST_SRCS))
 
 .PHONY: all release debug install tests build_tests run_tests release_tests
 .PHONY: build_release_tests run_release_tests single_header analyze clean
