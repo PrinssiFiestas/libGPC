@@ -168,7 +168,7 @@ GPArray(void) gp_arr_filter(
 #pragma warning(disable : 4034)
 #endif
 
-#if __GNUC__ && !defined(__clang__)
+#if __GNUC__ && defined(__clang__)
 // Allow {0} for any type
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
