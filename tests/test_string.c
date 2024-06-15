@@ -11,7 +11,6 @@
 
 #if _WIN32
 // quick hack to disable locale dependent tests for now
-// TODO operating system agnostic way to set locale to utf-8
 #define setlocale(...) NULL
 #endif
 
