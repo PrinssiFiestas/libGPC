@@ -28,6 +28,33 @@
 #ifdef GPC_IMPLEMENTATION 
 
 /* * * * * * *
+ * utils.c 
+ */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+// (c) 2014 M.E. O'Neill / pcg-random.org
+// Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
+
+/* * * * * * *
+ * bytes.c 
+ */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/* * * * * * *
+ * string.c 
+ */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/* * * * * * *
  * d2s.c 
  */
 
@@ -61,36 +88,7 @@
 //     performance. Currently requires MSVC intrinsics.
 
 /* * * * * * *
- * d2fixed.c 
- */
-
-// Copyright 2018 Ulf Adams
-//
-// The contents of this file may be used under the terms of the Apache License,
-// Version 2.0.
-//
-//    (See accompanying file LICENSE-Apache or copy at
-//     http://www.apache.org/licenses/LICENSE-2.0)
-//
-// Alternatively, the contents of this file may be used under the terms of
-// the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE-Boost or copy at
-//     https://www.boost.org/LICENSE_1_0.txt)
-//
-// Unless required by applicable law or agreed to in writing, this software
-// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.
-
-// Runtime compiler options:
-// -DRYU_DEBUG Generate verbose debugging output to stdout.
-//
-// -DRYU_ONLY_64_BIT_OPS Avoid using uint128_t or 64-bit intrinsics. Slower,
-//     depending on your compiler.
-//
-// -DRYU_AVOID_UINT128 Avoid using uint128_t. Slower, depending on your compiler.
-
-/* * * * * * *
- * bytes.c 
+ * overload.c 
  */
 
 // MIT License
@@ -106,12 +104,36 @@
 // https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
 
 /* * * * * * *
+ * generic.c 
+ */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/* * * * * * *
+ * hashmap.c 
+ */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/* * * * * * *
  * io.c 
  */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/* * * * * * *
+ * format_scanning.c 
+ */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
 
 /* * * * * * *
  * pcg_basic.c 
@@ -156,73 +178,6 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 /* * * * * * *
- * overload.c 
- */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-
-/* * * * * * *
- * generic.c 
- */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-
-/* * * * * * *
- * string.c 
- */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-
-/* * * * * * *
- * memory.c 
- */
-
-// MIT Litense
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-
-/* * * * * * *
- * conversions.c 
- */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
-
-/* * * * * * *
- * hashmap.c 
- */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-
-/* * * * * * *
- * format_scanning.c 
- */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
-
-/* * * * * * *
- * utils.c 
- */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-
-// (c) 2014 M.E. O'Neill / pcg-random.org
-// Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
-
-/* * * * * * *
  * common.c 
  */
 
@@ -238,144 +193,53 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-
-#endif /* GPC_IMPLEMENTATION */
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* terminal.h */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-
-#ifndef GP_TERMINAL_INCLUDED
-#define GP_TERMINAL_INCLUDED
-
-// ----------------------------------------------------------------------------
-//
-//          API REFERENCE
-//
-// ----------------------------------------------------------------------------
-
-// Use these macros to print coloured output to terminals that support ANSI
-// escape codes. Printing any of these strings changes the output color.
-// Example using string concatenation:
-/*
-    printf(
-        GP_RED                "Printing in red! "
-        GP_WHITE_BG GP_BLACK "Printing in black with white background! "
-        GP_RESET_TERMINAL     "Remember to reset to default color!\n");
-*/
-
-#define GP_RESET_TERMINAL      "\033[0m"
-
-// ----------------------------------------------------------------------------
-// Foreground color
-
-#define GP_BLACK               "\033[30m"
-#define GP_RED                 "\033[31m"
-#define GP_GREEN               "\033[32m"
-#define GP_YELLOW              "\033[33m"
-#define GP_BLUE                "\033[34m"
-#define GP_MAGENTA             "\033[35m"
-#define GP_CYAN                "\033[36m"
-#define GP_WHITE               "\033[37m"
-
-#define GP_BRIGHT_BLACK        "\033[90m"
-#define GP_BRIGHT_RED          "\033[91m"
-#define GP_BRIGHT_GREEN        "\033[92m"
-#define GP_BRIGHT_YELLOW       "\033[93m"
-#define GP_BRIGHT_BLUE         "\033[94m"
-#define GP_BRIGHT_MAGENTA      "\033[95m"
-#define GP_BRIGHT_CYAN         "\033[96m"
-#define GP_BRIGHT_WHITE        "\033[97m"
-
-#define GP_RGB(R, G, B)        "\033[38;2;" #R ";" #G ";" #B "m"
-
-// ----------------------------------------------------------------------------
-// Background color
-
-#define GP_BLACK_BG            "\033[40m"
-#define GP_RED_BG              "\033[41m"
-#define GP_GREEN_BG            "\033[42m"
-#define GP_YELLOW_BG           "\033[43m"
-#define GP_BLUE_BG             "\033[44m"
-#define GP_MAGENTA_BG          "\033[45m"
-#define GP_CYAN_BG             "\033[46m"
-#define GP_WHITE_BG            "\033[47m"
-
-#define GP_BRIGHT_BLACK_BG     "\033[100m"
-#define GP_BRIGHT_RED_BG       "\033[101m"
-#define GP_BRIGHT_GREEN_BG     "\033[102m"
-#define GP_BRIGHT_YELLOW_BG    "\033[103m"
-#define GP_BRIGHT_BLUE_BG      "\033[104m"
-#define GP_BRIGHT_MAGENTA_BG   "\033[105m"
-#define GP_BRIGHT_CYAN_BG      "\033[106m"
-#define GP_BRIGHT_WHITE_BG     "\033[107m"
-
-#define GP_RGB_BG(R, G, B)     "\033[38;2;" #R ";" #G ";" #B "m"
-
-// Swap foreground and background colors.
-#define GP_INVERT_COLORS       "\033[7m"
-#define GP_NO_INVERTED_COLORS  "\033[27m"
-
-// ----------------------------------------------------------------------------
-// Font
-
-#define GP_RESET_FONT          "\033[10m"
-
-#define GP_BOLD                "\033[1m"
-#define GP_FAINT               "\033[2m"
-#define GP_NORMAL_INTENSITY    "\033[22m" // Neither bold nor faint
-#define GP_ITALIC              "\033[3m"  // Rarely supported
-#define GP_GOTHIC              "\033[20m" // Rarely supported
-#define GP_NO_ITALIC           "\033[23m" // Also disables gothic
-#define GP_UNDERLINE           "\033[4m"
-#define GP_DOUBLE_UNDERLINE    "\033[21m" // May disable bold instead
-#define GP_NO_UNDERLINE        "\033[24m" // Also disables double underline
-#define GP_SLOW_BLINK          "\033[5m"
-#define GP_FAST_BLINK          "\033[6m"  // Rarely supported
-#define GP_HIDE                "\033[8m"  // Rarely supported
-#define GP_REVEAL              "\033[28m" // Unhide
-#define GP_CROSSED_OUT         "\033[9m"
-
-// Select alternative font from 0 to 9 where 0 is default font
-#define GP_FONT(N)             "\033[1" #N "m"
-
-// ----------------------------------------------------------------------------
-// Cursor movement
-
-// N = steps to move
-
-#define GP_CURSOR_UP(N)            "\033[" #N "A"
-#define GP_CURSOR_DOWN(N)          "\033[" #N "B"
-#define GP_CURSOR_FORWARD(N)       "\033[" #N "C"
-#define GP_CURSOR_BACK(N)          "\033[" #N "D"
-#define GP_CURSOR_NEXT_LINE(N)     "\033[" #N "E"
-#define GP_CURSOR_PREVIOUS_LINE(N) "\033[" #N "F"
-
-// Moves cursor to row N
-#define GP_CURSOR_ROW(N)           "\033[" #N "G"
-
-// Moves cursor to row N column M
-#define GP_CURSOR_POSITION(N, M)   "\033[" #N ";" #M "H"
-
-#endif // GP_TERMINAL_INCLUDED
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* hashmap.h */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-
-/**
- * @file hashmap.h
- * @brief Dictionary data structure
+/* * * * * * *
+ * memory.c 
  */
 
-#ifndef GPC_HASHMAP_INCLUDED
-#define GPC_HASHMAP_INCLUDED
+// MIT Litense
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/* * * * * * *
+ * d2fixed.c 
+ */
+
+// Copyright 2018 Ulf Adams
+//
+// The contents of this file may be used under the terms of the Apache License,
+// Version 2.0.
+//
+//    (See accompanying file LICENSE-Apache or copy at
+//     http://www.apache.org/licenses/LICENSE-2.0)
+//
+// Alternatively, the contents of this file may be used under the terms of
+// the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE-Boost or copy at
+//     https://www.boost.org/LICENSE_1_0.txt)
+//
+// Unless required by applicable law or agreed to in writing, this software
+// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.
+
+// Runtime compiler options:
+// -DRYU_DEBUG Generate verbose debugging output to stdout.
+//
+// -DRYU_ONLY_64_BIT_OPS Avoid using uint128_t or 64-bit intrinsics. Slower,
+//     depending on your compiler.
+//
+// -DRYU_AVOID_UINT128 Avoid using uint128_t. Slower, depending on your compiler.
+
+/* * * * * * *
+ * conversions.c 
+ */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
+
+
+#endif /* GPC_IMPLEMENTATION */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* memory.h */
@@ -649,192 +513,15 @@ extern const GPAllocator* gp_heap;
 
 #endif // GP_MEMORY_INCLUDED
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <limits.h>
-
-#if __STDC_VERSION__ >= 201112L
-#include <stdalign.h>
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// ----------------------------------------------------------------------------
-//
-//          API REFERENCE
-//
-// ----------------------------------------------------------------------------
-
-typedef struct gp_map      GPMap;
-typedef struct gp_hash_map GPHashMap;
-
-// Optional attributes
-typedef struct gp_map_initializer
-{
-    // If 0, elements are assumed to be pointers.
-    size_t element_size;
-
-    // Should be a power of 2. Defaults to 256
-    size_t capacity;
-
-    // If element_size != 0, argument is pointer to the element, else argument
-    // is the actual pointer. In the latter case an example of a valid
-    // destructor is free().
-    void (*destructor)(void* element);
-} GPMapInitializer;
-
-// ------------------
-// 128-bit uint
-
-union gp_endianness_detector
-{
-    uint16_t u16;
-    struct { uint8_t is_little; uint8_t is_big; } endianness;
-};
-extern const union gp_endianness_detector GP_INTEGER; // = {.u16 = 1 }
-
-typedef union gp_uint128
-{
-    struct {
-        #if __STDC_VERSION__ >= 201112L
-        alignas(16)
-        #endif
-        uint64_t lo;
-        uint64_t hi;
-    } little_endian;
-
-    struct {
-        uint64_t hi;
-        uint64_t lo;
-    } big_endian;
-
-    #if __GNUC__ && defined(__SIZEOF_INT128__)
-    __uint128_t u128;
-    #endif
-} GPUint128;
-
-inline GPUint128 gp_u128(const uint64_t hi_bits, const uint64_t lo_bits)
-{
-    GPUint128 u128;
-    if (GP_INTEGER.endianness.is_big) {
-        u128.big_endian.hi = hi_bits;
-        u128.big_endian.lo = lo_bits;
-    } else {
-        u128.little_endian.hi = hi_bits;
-        u128.little_endian.lo = lo_bits;
-    }
-    return u128;
-}
-
-GP_NONNULL_ARGS_AND_RETURN
-inline uint64_t* gp_u128_lo(const GPUint128* u)
-{
-    return (uint64_t*)(GP_INTEGER.endianness.is_little ?
-        &u->little_endian.lo : &u->big_endian.lo);
-}
-GP_NONNULL_ARGS_AND_RETURN
-inline uint64_t* gp_u128_hi(const GPUint128* u)
-{
-    return (uint64_t*)(GP_INTEGER.endianness.is_little ?
-        &u->little_endian.hi : &u->big_endian.hi);
-}
-
-// ------------------
-// Hash map
-
-GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
-GPHashMap* gp_hash_map_new(
-    const GPAllocator*,
-    const GPMapInitializer* optional);
-
-void gp_hash_map_delete(GPHashMap*);
-
-GP_NONNULL_ARGS(1, 2) GP_NONNULL_RETURN
-void* gp_hash_map_put(
-    GPHashMap*,
-    const void* key,
-    size_t      key_size,
-    const void* optional_value);
-
-// Returns NULL if not found
-GP_NONNULL_ARGS()
-void* gp_hash_map_get(
-    GPHashMap*,
-    const void* key,
-    size_t      key_size);
-
-GP_NONNULL_ARGS()
-bool gp_hash_map_remove(
-    GPHashMap*,
-    const void* key,
-    size_t      key_size);
-
-// ------------------
-// Non-hashed map
-
-GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
-GPMap* gp_map_new(
-    const GPAllocator*,
-    const GPMapInitializer* optional);
-
-void gp_map_delete(GPMap* optional);
-
-GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
-void* gp_map_put(
-    GPMap*,
-    GPUint128   key,
-    const void* optional_value);
-
-// Returns NULL if not found
-GP_NONNULL_ARGS()
-void* gp_map_get(
-    GPMap*,
-    GPUint128 key);
-
-// Returns false if not found
-GP_NONNULL_ARGS()
-bool gp_map_remove(
-    GPMap*,
-    GPUint128 key);
-
-// ------------------
-// Hashing
-
-uint32_t  gp_bytes_hash32 (const void* key, size_t key_size) GP_NONNULL_ARGS();
-uint64_t  gp_bytes_hash64 (const void* key, size_t key_size) GP_NONNULL_ARGS();
-GPUint128 gp_bytes_hash128(const void* key, size_t key_size) GP_NONNULL_ARGS();
-
-
-// ----------------------------------------------------------------------------
-//
-//          END OF API REFERENCE
-//
-//          Code below is for internal usage and may change without notice.
-//
-// ----------------------------------------------------------------------------
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
-
-#endif // GPC_HASHMAP_INCLUDED
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* string.h */
+/* io.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-/**@file string.h
- * String data type.
- */
-
-#ifndef GP_STRING_INCLUDED
-#define GP_STRING_INCLUDED
+#ifndef GP_IO_INCLUDED
+#define GP_IO_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* bytes.h */
@@ -1650,6 +1337,138 @@ size_t gp_bytes_println_internal(
 
 #endif // GP_BYTES_INCLUDED
 
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// ----------------------------------------------------------------------------
+//
+//          API REFERENCE
+//
+// ----------------------------------------------------------------------------
+
+// This is mostly for completeness
+FILE* gp_file_open(const char* path, const char* mode);
+
+// To be passed to gp_defer() with correct function type
+inline void gp_file_close(FILE* file)
+{
+    fclose(file);
+}
+
+#define/* size_t */gp_print(...) \
+    GP_FILE_PRINT(stdout, __VA_ARGS__)
+
+#define/* size_t */gp_println(...) \
+    GP_FILE_PRINTLN(stdout, __VA_ARGS__)
+
+#define/* size_t */gp_file_print(FILE_ptr, ...) \
+    GP_FILE_PRINT(FILE_ptr, __VA_ARGS__)
+
+#define/* size_t */gp_file_println(FILE_ptr, ...) \
+    GP_FILE_PRINTLN(FILE_ptr, __VA_ARGS__)
+
+typedef struct gp_char* GPString;
+
+bool gp_file_read_line(
+    GPString* dest,
+    FILE*     in) GP_NONNULL_ARGS();
+
+bool gp_file_read_until(
+    GPString*   dest,
+    FILE*       in,
+    const char* delimiter) GP_NONNULL_ARGS();
+
+bool gp_file_read_strip(
+    GPString*   dest,
+    FILE*       in,
+    const char* optional_utf8_char_set) GP_NONNULL_ARGS(1, 2);
+
+// Portability wrappers for stat
+
+#if _WIN32
+typedef struct __stat64 GPStat;
+#elif _GNU_SOURCE
+typedef struct stat64 GPStat;
+#else // 64-bit in 64-bit Linux
+typedef struct stat GPStat;
+#endif
+
+GP_NONNULL_ARGS() GP_NODISCARD
+inline int gp_stat(GPStat* s, const char* path)
+{
+    #if _WIN32
+    return _stat64(path, s);
+    #elif _GNU_SOURCE
+    return stat64(path, s);
+    #else
+    return stat(path, s);
+    #endif
+}
+
+// ----------------------------------------------------------------------------
+//
+//          END OF API REFERENCE
+//
+//          Code below is for internal usage and may change without notice.
+//
+// ----------------------------------------------------------------------------
+
+size_t gp_file_print_internal(
+    FILE* file,
+    size_t arg_count,
+    const GPPrintable* objs,
+    ...);
+
+size_t gp_file_println_internal(
+    FILE* file,
+    size_t arg_count,
+    const GPPrintable* objs,
+    ...);
+
+#define GP_FILE_PRINT(OUT, ...) \
+    gp_file_print_internal( \
+        OUT, \
+        GP_COUNT_ARGS(__VA_ARGS__), \
+        (GPPrintable[]) \
+            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+        __VA_ARGS__)
+
+#define GP_FILE_PRINTLN(OUT, ...) \
+    gp_file_println_internal( \
+        OUT, \
+        GP_COUNT_ARGS(__VA_ARGS__), \
+        (GPPrintable[]) \
+            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+        __VA_ARGS__)
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif // GP_IO_INCLUDED
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* string.h */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/**@file string.h
+ * String data type.
+ */
+
+#ifndef GP_STRING_INCLUDED
+#define GP_STRING_INCLUDED
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <limits.h>
@@ -1983,28 +1802,27 @@ size_t gp_str_n_println_internal(
 #endif // GP_STRING_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* utils.h */
+/* hashmap.h */
 
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 /**
- * @file string.h
- * @brief General purpose utilities
+ * @file hashmap.h
+ * @brief Dictionary data structure
  */
 
-#ifndef GP_UTILS_INCLUDED
-#define GP_UTILS_INCLUDED 1
+#ifndef GPC_HASHMAP_INCLUDED
+#define GPC_HASHMAP_INCLUDED
 
-#include <math.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <signal.h>
+#include <limits.h>
 
-#ifdef _WIN32
-#include <intrin.h>
+#if __STDC_VERSION__ >= 201112L
+#include <stdalign.h>
 #endif
 
 #ifdef __cplusplus
@@ -2017,65 +1835,145 @@ extern "C" {
 //
 // ----------------------------------------------------------------------------
 
-// Aligment of all pointers returned by any valid allocators
-#ifndef GP_MEMORY_INCLUDED
-#if __STDC_VERSION__ >= 201112L && !defined(_MSC_VER)
-#define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
-#else
-#define GP_ALLOC_ALIGNMENT (sizeof(long double))
-#endif
-#endif
+typedef struct gp_map      GPMap;
+typedef struct gp_hash_map GPHashMap;
 
-/** Check and limit upper and lower bounds at once.
- * @p end will be limited to @p limit and @p start will be limited to @p end and
- * @p limit.
- * @return true if arguments are in bounds and @p end > @p start.
- */
-bool gp_check_bounds(
-    size_t* optional_start_non_inclusive,
-    size_t* optional_end_inclusive,
-    size_t  limit);
-
-/** Round number up to the next power of 2.
- * Always rounds up so gp_next_power_of_2(1 << n) == 1 << (n + 1).
- */
-size_t   gp_next_power_of_2   (size_t);
-uint32_t gp_next_power_of_2_32(uint32_t);
-uint64_t gp_next_power_of_2_64(uint64_t);
-
-/** Round number up to alignment boundary.
- * @p boundary must be a power of 2.
- * @return @p x if already aligned.
- */
-inline uintptr_t gp_round_to_aligned(const uintptr_t x,const uintptr_t boundary)
+// Optional attributes
+typedef struct gp_map_initializer
 {
-    return x + (boundary - 1) - ((x - 1) & (boundary - 1));
+    // If 0, elements are assumed to be pointers.
+    size_t element_size;
+
+    // Should be a power of 2. Defaults to 256
+    size_t capacity;
+
+    // If element_size != 0, argument is pointer to the element, else argument
+    // is the actual pointer. In the latter case an example of a valid
+    // destructor is free().
+    void (*destructor)(void* element);
+} GPMapInitializer;
+
+// ------------------
+// 128-bit uint
+
+union gp_endianness_detector
+{
+    uint16_t u16;
+    struct { uint8_t is_little; uint8_t is_big; } endianness;
+};
+extern const union gp_endianness_detector GP_INTEGER; // = {.u16 = 1 }
+
+typedef union gp_uint128
+{
+    struct {
+        #if __STDC_VERSION__ >= 201112L
+        alignas(16)
+        #endif
+        uint64_t lo;
+        uint64_t hi;
+    } little_endian;
+
+    struct {
+        uint64_t hi;
+        uint64_t lo;
+    } big_endian;
+
+    #if __GNUC__ && defined(__SIZEOF_INT128__)
+    __uint128_t u128;
+    #endif
+} GPUint128;
+
+inline GPUint128 gp_u128(const uint64_t hi_bits, const uint64_t lo_bits)
+{
+    GPUint128 u128;
+    if (GP_INTEGER.endianness.is_big) {
+        u128.big_endian.hi = hi_bits;
+        u128.big_endian.lo = lo_bits;
+    } else {
+        u128.little_endian.hi = hi_bits;
+        u128.little_endian.lo = lo_bits;
+    }
+    return u128;
 }
 
-#define gp_min(x, y) gp_generic_min(x, y)
-#define gp_max(x, y) gp_generic_max(x, y)
-
-inline bool gp_fapproxf(float x, float y, float max_relative_diff) {
-    return fabsf(x - y) <= max_relative_diff * fmaxf(x, y);
+GP_NONNULL_ARGS_AND_RETURN
+inline uint64_t* gp_u128_lo(const GPUint128* u)
+{
+    return (uint64_t*)(GP_INTEGER.endianness.is_little ?
+        &u->little_endian.lo : &u->big_endian.lo);
 }
-inline bool gp_fapprox(double x, double y, double max_relative_diff) {
-    return fabs(x - y) <= max_relative_diff * fmax(x, y);
+GP_NONNULL_ARGS_AND_RETURN
+inline uint64_t* gp_u128_hi(const GPUint128* u)
+{
+    return (uint64_t*)(GP_INTEGER.endianness.is_little ?
+        &u->little_endian.hi : &u->big_endian.hi);
 }
-inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff){
-    return fabsl(x - y) <= max_rel_diff * fmaxl(x, y);
-}
 
-#define GP_BREAKPOINT            GP_BREAKPOINT_INTERNAL
+// ------------------
+// Hash map
 
-// ----------------------------------------------------------------------------
-// Random functions
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
+GPHashMap* gp_hash_map_new(
+    const GPAllocator*,
+    const GPMapInitializer* optional);
 
-typedef struct gp_random_state GPRandomState;
+void gp_hash_map_delete(GPHashMap*);
 
-GPRandomState gp_new_random_state(uint64_t seed);
-uint32_t gp_random      (GPRandomState*) GP_NONNULL_ARGS();
-double   gp_frandom     (GPRandomState*) GP_NONNULL_ARGS();
-int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_ARGS();
+GP_NONNULL_ARGS(1, 2) GP_NONNULL_RETURN
+void* gp_hash_map_put(
+    GPHashMap*,
+    const void* key,
+    size_t      key_size,
+    const void* optional_value);
+
+// Returns NULL if not found
+GP_NONNULL_ARGS()
+void* gp_hash_map_get(
+    GPHashMap*,
+    const void* key,
+    size_t      key_size);
+
+GP_NONNULL_ARGS()
+bool gp_hash_map_remove(
+    GPHashMap*,
+    const void* key,
+    size_t      key_size);
+
+// ------------------
+// Non-hashed map
+
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
+GPMap* gp_map_new(
+    const GPAllocator*,
+    const GPMapInitializer* optional);
+
+void gp_map_delete(GPMap* optional);
+
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
+void* gp_map_put(
+    GPMap*,
+    GPUint128   key,
+    const void* optional_value);
+
+// Returns NULL if not found
+GP_NONNULL_ARGS()
+void* gp_map_get(
+    GPMap*,
+    GPUint128 key);
+
+// Returns false if not found
+GP_NONNULL_ARGS()
+bool gp_map_remove(
+    GPMap*,
+    GPUint128 key);
+
+// ------------------
+// Hashing
+
+uint32_t  gp_bytes_hash32 (const void* key, size_t key_size) GP_NONNULL_ARGS();
+uint64_t  gp_bytes_hash64 (const void* key, size_t key_size) GP_NONNULL_ARGS();
+GPUint128 gp_bytes_hash128(const void* key, size_t key_size) GP_NONNULL_ARGS();
+
 
 // ----------------------------------------------------------------------------
 //
@@ -2085,81 +1983,25 @@ int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_AR
 //
 // ----------------------------------------------------------------------------
 
-struct gp_random_state
-{
-    uint64_t private_state;
-    uint64_t private_inc;
-};
-
-inline int                gp_imin(int x, int y)                                 { return x < y ? x : y; }
-inline long               gp_lmin(long x, long y)                               { return x < y ? x : y; }
-inline long long          gp_llmin(long long x, long long y)                    { return x < y ? x : y; }
-inline unsigned           gp_umin(unsigned x, unsigned y)                       { return x < y ? x : y; }
-inline unsigned long      gp_lumin(unsigned long x, unsigned long y)            { return x < y ? x : y; }
-inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y) { return x < y ? x : y; }
-
-inline int                gp_imax(int x, int y)                                 { return x > y ? x : y; }
-inline long               gp_lmax(long x, long y)                               { return x > y ? x : y; }
-inline long long          gp_llmax(long long x, long long y)                    { return x > y ? x : y; }
-inline unsigned           gp_umax(unsigned x, unsigned y)                       { return x > y ? x : y; }
-inline unsigned long      gp_lumax(unsigned long x, unsigned long y)            { return x > y ? x : y; }
-inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y) { return x > y ? x : y; }
-
-// gp_min() and gp_max() implementations
-#if defined(__GNUC__)
-#define gp_generic_min(X, Y) ({ \
-    typeof(X) _gp_min_X = (X); typeof(Y) _gp_min_Y = (Y); \
-    _gp_min_X < _gp_min_Y ? _gp_min_X : _gp_min_Y; \
-})
-#define gp_generic_max(X, Y) ({ \
-    typeof(X) _gp_max_X = (X); typeof(Y) _gp_max_Y = (Y); \
-    _gp_max_X > _gp_max_Y ? _gp_max_X : _gp_max_Y; \
-})
-#elif __STDC_VERSION__ >= 201112L
-#define gp_generic_min(X, Y) \
-_Generic(X, \
-    int:                gp_imin  (X, Y), \
-    long:               gp_lmin  (X, Y), \
-    long long:          gp_llmin (X, Y), \
-    unsigned:           gp_umin  (X, Y), \
-    unsigned long:      gp_lumin (X, Y), \
-    unsigned long long: gp_llumin(X, Y), \
-    float:              gp_fminf (X, Y), \
-    double:             gp_fmin  (X, Y), \
-    long double:        gp_fminl (X, Y))
-#define gp_generic_max(X, Y) \
-_Generic(X, \
-    int:                gp_imax  (X, Y), \
-    long:               gp_lmax  (X, Y), \
-    long long:          gp_llmax (X, Y), \
-    unsigned:           gp_umax  (X, Y), \
-    unsigned long:      gp_lumax (X, Y), \
-    unsigned long long: gp_llumax(X, Y), \
-    float:              gp_fmaxf (X, Y), \
-    double:             gp_fmax  (X, Y), \
-    long double:        gp_fmaxl (X, Y))
-#else // Non-GNU C99
-// Not ideal but does the job
-#define gp_generic_min(X, Y) ((X) < (Y) ? (X) : (Y))
-#define gp_generic_max(X, Y) ((X) > (Y) ? (X) : (Y))
-#endif // gp_min() and gp_max() implementations
-
-// Set breakpoint
-#ifdef _WIN32
-#define GP_BREAKPOINT_INTERNAL __debugbreak()
-#elif defined(SIGTRAP)
-#define GP_BREAKPOINT_INTERNAL raise(SIGTRAP)
-#elif (__GNUC__ && __i386__) || (__GNUC__ && __x86_64__)
-#define GP_BREAKPOINT_INTERNAL __asm__("int $3")
-#else // no breakpoints for you
-#define GP_BREAKPOINT_INTERNAL
-#endif // breakpoint
-
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
-#endif // GP_UTILS_INCLUDED
+#endif // GPC_HASHMAP_INCLUDED
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* generic.h */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/**@file generic.h
+ * Type generic macros.
+ */
+
+#ifndef GP_GENERIC_INCLUDED
+#define GP_GENERIC_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* array.h */
@@ -2341,148 +2183,6 @@ GPArray(void) gp_arr_filter(
 #endif
 
 #endif // GPC_ARRAY_H
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* io.h */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-
-#ifndef GP_IO_INCLUDED
-#define GP_IO_INCLUDED
-
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-// ----------------------------------------------------------------------------
-//
-//          API REFERENCE
-//
-// ----------------------------------------------------------------------------
-
-// This is mostly for completeness
-FILE* gp_file_open(const char* path, const char* mode);
-
-// To be passed to gp_defer() with correct function type
-inline void gp_file_close(FILE* file)
-{
-    fclose(file);
-}
-
-#define/* size_t */gp_print(...) \
-    GP_FILE_PRINT(stdout, __VA_ARGS__)
-
-#define/* size_t */gp_println(...) \
-    GP_FILE_PRINTLN(stdout, __VA_ARGS__)
-
-#define/* size_t */gp_file_print(FILE_ptr, ...) \
-    GP_FILE_PRINT(FILE_ptr, __VA_ARGS__)
-
-#define/* size_t */gp_file_println(FILE_ptr, ...) \
-    GP_FILE_PRINTLN(FILE_ptr, __VA_ARGS__)
-
-typedef struct gp_char* GPString;
-
-bool gp_file_read_line(
-    GPString* dest,
-    FILE*     in) GP_NONNULL_ARGS();
-
-bool gp_file_read_until(
-    GPString*   dest,
-    FILE*       in,
-    const char* delimiter) GP_NONNULL_ARGS();
-
-bool gp_file_read_strip(
-    GPString*   dest,
-    FILE*       in,
-    const char* optional_utf8_char_set) GP_NONNULL_ARGS(1, 2);
-
-// Portability wrappers for stat
-
-#if _WIN32
-typedef struct __stat64 GPStat;
-#elif _GNU_SOURCE
-typedef struct stat64 GPStat;
-#else // 64-bit in 64-bit Linux
-typedef struct stat GPStat;
-#endif
-
-GP_NONNULL_ARGS() GP_NODISCARD
-inline int gp_stat(GPStat* s, const char* path)
-{
-    #if _WIN32
-    return _stat64(path, s);
-    #elif _GNU_SOURCE
-    return stat64(path, s);
-    #else
-    return stat(path, s);
-    #endif
-}
-
-// ----------------------------------------------------------------------------
-//
-//          END OF API REFERENCE
-//
-//          Code below is for internal usage and may change without notice.
-//
-// ----------------------------------------------------------------------------
-
-size_t gp_file_print_internal(
-    FILE* file,
-    size_t arg_count,
-    const GPPrintable* objs,
-    ...);
-
-size_t gp_file_println_internal(
-    FILE* file,
-    size_t arg_count,
-    const GPPrintable* objs,
-    ...);
-
-#define GP_FILE_PRINT(OUT, ...) \
-    gp_file_print_internal( \
-        OUT, \
-        GP_COUNT_ARGS(__VA_ARGS__), \
-        (GPPrintable[]) \
-            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
-        __VA_ARGS__)
-
-#define GP_FILE_PRINTLN(OUT, ...) \
-    gp_file_println_internal( \
-        OUT, \
-        GP_COUNT_ARGS(__VA_ARGS__), \
-        (GPPrintable[]) \
-            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
-        __VA_ARGS__)
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
-
-#endif // GP_IO_INCLUDED
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* generic.h */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-
-/**@file generic.h
- * Type generic macros.
- */
-
-#ifndef GP_GENERIC_INCLUDED
-#define GP_GENERIC_INCLUDED
 
 
 #ifdef __cplusplus
@@ -3098,6 +2798,306 @@ static inline GPString gp_file99(size_t a_size, void* a, const char* path, const
 #endif // GP_GENERIC_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* utils.h */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/**
+ * @file string.h
+ * @brief General purpose utilities
+ */
+
+#ifndef GP_UTILS_INCLUDED
+#define GP_UTILS_INCLUDED 1
+
+#include <math.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <signal.h>
+
+#ifdef _WIN32
+#include <intrin.h>
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// ----------------------------------------------------------------------------
+//
+//          API REFERENCE
+//
+// ----------------------------------------------------------------------------
+
+// Aligment of all pointers returned by any valid allocators
+#ifndef GP_MEMORY_INCLUDED
+#if __STDC_VERSION__ >= 201112L && !defined(_MSC_VER)
+#define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
+#else
+#define GP_ALLOC_ALIGNMENT (sizeof(long double))
+#endif
+#endif
+
+/** Check and limit upper and lower bounds at once.
+ * @p end will be limited to @p limit and @p start will be limited to @p end and
+ * @p limit.
+ * @return true if arguments are in bounds and @p end > @p start.
+ */
+bool gp_check_bounds(
+    size_t* optional_start_non_inclusive,
+    size_t* optional_end_inclusive,
+    size_t  limit);
+
+/** Round number up to the next power of 2.
+ * Always rounds up so gp_next_power_of_2(1 << n) == 1 << (n + 1).
+ */
+size_t   gp_next_power_of_2   (size_t);
+uint32_t gp_next_power_of_2_32(uint32_t);
+uint64_t gp_next_power_of_2_64(uint64_t);
+
+/** Round number up to alignment boundary.
+ * @p boundary must be a power of 2.
+ * @return @p x if already aligned.
+ */
+inline uintptr_t gp_round_to_aligned(const uintptr_t x,const uintptr_t boundary)
+{
+    return x + (boundary - 1) - ((x - 1) & (boundary - 1));
+}
+
+#define gp_min(x, y) gp_generic_min(x, y)
+#define gp_max(x, y) gp_generic_max(x, y)
+
+inline bool gp_fapproxf(float x, float y, float max_relative_diff) {
+    return fabsf(x - y) <= max_relative_diff * fmaxf(x, y);
+}
+inline bool gp_fapprox(double x, double y, double max_relative_diff) {
+    return fabs(x - y) <= max_relative_diff * fmax(x, y);
+}
+inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff){
+    return fabsl(x - y) <= max_rel_diff * fmaxl(x, y);
+}
+
+#define GP_BREAKPOINT            GP_BREAKPOINT_INTERNAL
+
+// ----------------------------------------------------------------------------
+// Random functions
+
+typedef struct gp_random_state GPRandomState;
+
+GPRandomState gp_new_random_state(uint64_t seed);
+uint32_t gp_random      (GPRandomState*) GP_NONNULL_ARGS();
+double   gp_frandom     (GPRandomState*) GP_NONNULL_ARGS();
+int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_ARGS();
+
+// ----------------------------------------------------------------------------
+//
+//          END OF API REFERENCE
+//
+//          Code below is for internal usage and may change without notice.
+//
+// ----------------------------------------------------------------------------
+
+struct gp_random_state
+{
+    uint64_t private_state;
+    uint64_t private_inc;
+};
+
+inline int                gp_imin(int x, int y)                                 { return x < y ? x : y; }
+inline long               gp_lmin(long x, long y)                               { return x < y ? x : y; }
+inline long long          gp_llmin(long long x, long long y)                    { return x < y ? x : y; }
+inline unsigned           gp_umin(unsigned x, unsigned y)                       { return x < y ? x : y; }
+inline unsigned long      gp_lumin(unsigned long x, unsigned long y)            { return x < y ? x : y; }
+inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y) { return x < y ? x : y; }
+
+inline int                gp_imax(int x, int y)                                 { return x > y ? x : y; }
+inline long               gp_lmax(long x, long y)                               { return x > y ? x : y; }
+inline long long          gp_llmax(long long x, long long y)                    { return x > y ? x : y; }
+inline unsigned           gp_umax(unsigned x, unsigned y)                       { return x > y ? x : y; }
+inline unsigned long      gp_lumax(unsigned long x, unsigned long y)            { return x > y ? x : y; }
+inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y) { return x > y ? x : y; }
+
+// gp_min() and gp_max() implementations
+#if defined(__GNUC__)
+#define gp_generic_min(X, Y) ({ \
+    typeof(X) _gp_min_X = (X); typeof(Y) _gp_min_Y = (Y); \
+    _gp_min_X < _gp_min_Y ? _gp_min_X : _gp_min_Y; \
+})
+#define gp_generic_max(X, Y) ({ \
+    typeof(X) _gp_max_X = (X); typeof(Y) _gp_max_Y = (Y); \
+    _gp_max_X > _gp_max_Y ? _gp_max_X : _gp_max_Y; \
+})
+#elif __STDC_VERSION__ >= 201112L
+#define gp_generic_min(X, Y) \
+_Generic(X, \
+    int:                gp_imin  (X, Y), \
+    long:               gp_lmin  (X, Y), \
+    long long:          gp_llmin (X, Y), \
+    unsigned:           gp_umin  (X, Y), \
+    unsigned long:      gp_lumin (X, Y), \
+    unsigned long long: gp_llumin(X, Y), \
+    float:              gp_fminf (X, Y), \
+    double:             gp_fmin  (X, Y), \
+    long double:        gp_fminl (X, Y))
+#define gp_generic_max(X, Y) \
+_Generic(X, \
+    int:                gp_imax  (X, Y), \
+    long:               gp_lmax  (X, Y), \
+    long long:          gp_llmax (X, Y), \
+    unsigned:           gp_umax  (X, Y), \
+    unsigned long:      gp_lumax (X, Y), \
+    unsigned long long: gp_llumax(X, Y), \
+    float:              gp_fmaxf (X, Y), \
+    double:             gp_fmax  (X, Y), \
+    long double:        gp_fmaxl (X, Y))
+#else // Non-GNU C99
+// Not ideal but does the job
+#define gp_generic_min(X, Y) ((X) < (Y) ? (X) : (Y))
+#define gp_generic_max(X, Y) ((X) > (Y) ? (X) : (Y))
+#endif // gp_min() and gp_max() implementations
+
+// Set breakpoint
+#ifdef _WIN32
+#define GP_BREAKPOINT_INTERNAL __debugbreak()
+#elif defined(SIGTRAP)
+#define GP_BREAKPOINT_INTERNAL raise(SIGTRAP)
+#elif (__GNUC__ && __i386__) || (__GNUC__ && __x86_64__)
+#define GP_BREAKPOINT_INTERNAL __asm__("int $3")
+#else // no breakpoints for you
+#define GP_BREAKPOINT_INTERNAL
+#endif // breakpoint
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif // GP_UTILS_INCLUDED
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* terminal.h */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+#ifndef GP_TERMINAL_INCLUDED
+#define GP_TERMINAL_INCLUDED
+
+// ----------------------------------------------------------------------------
+//
+//          API REFERENCE
+//
+// ----------------------------------------------------------------------------
+
+// Use these macros to print coloured output to terminals that support ANSI
+// escape codes. Printing any of these strings changes the output color.
+// Example using string concatenation:
+/*
+    printf(
+        GP_RED                "Printing in red! "
+        GP_WHITE_BG GP_BLACK "Printing in black with white background! "
+        GP_RESET_TERMINAL     "Remember to reset to default color!\n");
+*/
+
+#define GP_RESET_TERMINAL      "\033[0m"
+
+// ----------------------------------------------------------------------------
+// Foreground color
+
+#define GP_BLACK               "\033[30m"
+#define GP_RED                 "\033[31m"
+#define GP_GREEN               "\033[32m"
+#define GP_YELLOW              "\033[33m"
+#define GP_BLUE                "\033[34m"
+#define GP_MAGENTA             "\033[35m"
+#define GP_CYAN                "\033[36m"
+#define GP_WHITE               "\033[37m"
+
+#define GP_BRIGHT_BLACK        "\033[90m"
+#define GP_BRIGHT_RED          "\033[91m"
+#define GP_BRIGHT_GREEN        "\033[92m"
+#define GP_BRIGHT_YELLOW       "\033[93m"
+#define GP_BRIGHT_BLUE         "\033[94m"
+#define GP_BRIGHT_MAGENTA      "\033[95m"
+#define GP_BRIGHT_CYAN         "\033[96m"
+#define GP_BRIGHT_WHITE        "\033[97m"
+
+#define GP_RGB(R, G, B)        "\033[38;2;" #R ";" #G ";" #B "m"
+
+// ----------------------------------------------------------------------------
+// Background color
+
+#define GP_BLACK_BG            "\033[40m"
+#define GP_RED_BG              "\033[41m"
+#define GP_GREEN_BG            "\033[42m"
+#define GP_YELLOW_BG           "\033[43m"
+#define GP_BLUE_BG             "\033[44m"
+#define GP_MAGENTA_BG          "\033[45m"
+#define GP_CYAN_BG             "\033[46m"
+#define GP_WHITE_BG            "\033[47m"
+
+#define GP_BRIGHT_BLACK_BG     "\033[100m"
+#define GP_BRIGHT_RED_BG       "\033[101m"
+#define GP_BRIGHT_GREEN_BG     "\033[102m"
+#define GP_BRIGHT_YELLOW_BG    "\033[103m"
+#define GP_BRIGHT_BLUE_BG      "\033[104m"
+#define GP_BRIGHT_MAGENTA_BG   "\033[105m"
+#define GP_BRIGHT_CYAN_BG      "\033[106m"
+#define GP_BRIGHT_WHITE_BG     "\033[107m"
+
+#define GP_RGB_BG(R, G, B)     "\033[38;2;" #R ";" #G ";" #B "m"
+
+// Swap foreground and background colors.
+#define GP_INVERT_COLORS       "\033[7m"
+#define GP_NO_INVERTED_COLORS  "\033[27m"
+
+// ----------------------------------------------------------------------------
+// Font
+
+#define GP_RESET_FONT          "\033[10m"
+
+#define GP_BOLD                "\033[1m"
+#define GP_FAINT               "\033[2m"
+#define GP_NORMAL_INTENSITY    "\033[22m" // Neither bold nor faint
+#define GP_ITALIC              "\033[3m"  // Rarely supported
+#define GP_GOTHIC              "\033[20m" // Rarely supported
+#define GP_NO_ITALIC           "\033[23m" // Also disables gothic
+#define GP_UNDERLINE           "\033[4m"
+#define GP_DOUBLE_UNDERLINE    "\033[21m" // May disable bold instead
+#define GP_NO_UNDERLINE        "\033[24m" // Also disables double underline
+#define GP_SLOW_BLINK          "\033[5m"
+#define GP_FAST_BLINK          "\033[6m"  // Rarely supported
+#define GP_HIDE                "\033[8m"  // Rarely supported
+#define GP_REVEAL              "\033[28m" // Unhide
+#define GP_CROSSED_OUT         "\033[9m"
+
+// Select alternative font from 0 to 9 where 0 is default font
+#define GP_FONT(N)             "\033[1" #N "m"
+
+// ----------------------------------------------------------------------------
+// Cursor movement
+
+// N = steps to move
+
+#define GP_CURSOR_UP(N)            "\033[" #N "A"
+#define GP_CURSOR_DOWN(N)          "\033[" #N "B"
+#define GP_CURSOR_FORWARD(N)       "\033[" #N "C"
+#define GP_CURSOR_BACK(N)          "\033[" #N "D"
+#define GP_CURSOR_NEXT_LINE(N)     "\033[" #N "E"
+#define GP_CURSOR_PREVIOUS_LINE(N) "\033[" #N "F"
+
+// Moves cursor to row N
+#define GP_CURSOR_ROW(N)           "\033[" #N "G"
+
+// Moves cursor to row N column M
+#define GP_CURSOR_POSITION(N, M)   "\033[" #N ";" #M "H"
+
+#endif // GP_TERMINAL_INCLUDED
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* assert.h */
 
 // MIT License
@@ -3188,16 +3188,6 @@ void gp_fail_internal(
 #endif // GP_ASSERT_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* conversions.h */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
-
-#ifndef CONVERSIONS_H_INCLUDED
-#define CONVERSIONS_H_INCLUDED 1
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* format_scanning.h */
 
 // MIT License
@@ -3271,6 +3261,16 @@ pf_scan_format_string(
 #endif
 
 #endif // FORMAT_SCANNING_H_INCLUDED
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* conversions.h */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
+
+#ifndef CONVERSIONS_H_INCLUDED
+#define CONVERSIONS_H_INCLUDED 1
 
 #include <stddef.h>
 
@@ -3396,6 +3396,236 @@ int pf_vsnprintf_consuming(
 #endif
 
 #endif // PRINTF_H_INCLUDED
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* ryu.h */
+
+// Copyright 2018 Ulf Adams
+//
+// The contents of this file may be used under the terms of the Apache License,
+// Version 2.0.
+//
+//    (See accompanying file LICENSE-Apache or copy at
+//     http://www.apache.org/licenses/LICENSE-2.0)
+//
+// Alternatively, the contents of this file may be used under the terms of
+// the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE-Boost or copy at
+//     https://www.boost.org/LICENSE_1_0.txt)
+//
+// Unless required by applicable law or agreed to in writing, this software
+// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.
+#ifndef RYU_H
+#define RYU_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <inttypes.h>
+
+int d2s_buffered_n(double f, char* result);
+void d2s_buffered(double f, char* result);
+char* d2s(double f);
+
+int f2s_buffered_n(float f, char* result);
+void f2s_buffered(float f, char* result);
+char* f2s(float f);
+
+int d2fixed_buffered_n(double d, uint32_t precision, char* result);
+void d2fixed_buffered(double d, uint32_t precision, char* result);
+char* d2fixed(double d, uint32_t precision);
+
+int d2exp_buffered_n(double d, uint32_t precision, char* result);
+void d2exp_buffered(double d, uint32_t precision, char* result);
+char* d2exp(double d, uint32_t precision);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // RYU_H
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* pcg_basic.h */
+
+/*
+ * PCG Random Number Generation for C.
+ *
+ * Copyright 2014 Melissa O'Neill <oneill@pcg-random.org>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For additional information about the PCG random number generation scheme,
+ * including its license and other licensing options, visit
+ *
+ *     http://www.pcg-random.org
+ */
+
+/*
+ * This code is derived from the full C implementation, which is in turn
+ * derived from the canonical C++ PCG implementation. The C++ version
+ * has many additional features and is preferable if you can use C++ in
+ * your project.
+ */
+
+#ifndef PCG_BASIC_H_INCLUDED
+#define PCG_BASIC_H_INCLUDED 1
+
+#include <inttypes.h>
+
+#if __cplusplus
+extern "C" {
+#endif
+
+struct pcg_state_setseq_64 {    // Internals are *Private*.
+    uint64_t state;             // RNG state.  All values are possible.
+    uint64_t inc;               // Controls which RNG sequence (stream) is
+                                // selected. Must *always* be odd.
+};
+typedef struct pcg_state_setseq_64 pcg32_random_t;
+
+// If you *must* statically initialize it, here's one.
+
+#define PCG32_INITIALIZER   { 0x853c49e6748fea9bULL, 0xda3e39cb94b95bdbULL }
+
+// pcg32_srandom(initstate, initseq)
+// pcg32_srandom_r(rng, initstate, initseq):
+//     Seed the rng.  Specified in two parts, state initializer and a
+//     sequence selection constant (a.k.a. stream id)
+
+void pcg32_srandom(uint64_t initstate, uint64_t initseq);
+void pcg32_srandom_r(pcg32_random_t* rng, uint64_t initstate,
+                     uint64_t initseq);
+
+// pcg32_random()
+// pcg32_random_r(rng)
+//     Generate a uniformly distributed 32-bit random number
+
+uint32_t pcg32_random(void);
+uint32_t pcg32_random_r(pcg32_random_t* rng);
+
+// pcg32_boundedrand(bound):
+// pcg32_boundedrand_r(rng, bound):
+//     Generate a uniformly distributed number, r, where 0 <= r < bound
+
+uint32_t pcg32_boundedrand(uint32_t bound);
+uint32_t pcg32_boundedrand_r(pcg32_random_t* rng, uint32_t bound);
+
+#if __cplusplus
+}
+#endif
+
+#endif // PCG_BASIC_H_INCLUDED
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* pfstring.h */
+
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
+
+#ifndef PFSTRING_H_INCLUDED
+#define PFSTRING_H_INCLUDED
+
+#include <string.h>
+#include <stdbool.h>
+
+typedef struct pf_string
+{
+    // length is used to store the return value of printf() so it may exceed
+    // capacity.
+
+    char* data;
+    size_t length;
+    const size_t capacity;
+} PFString;
+
+static inline size_t pf_min(const size_t a, const size_t b)
+{
+    return a < b ? a : b;
+}
+
+static inline size_t pf_capacity_left(const struct pf_string me)
+{
+    return me.length >= me.capacity ? 0 : me.capacity - me.length;
+}
+
+// Useful for memcpy(), memmove(), memset(), etc.
+static inline size_t pf_limit(const struct pf_string me, const size_t x)
+{
+    const size_t cap_left = pf_capacity_left(me);
+    return pf_min(cap_left, x);
+}
+
+// Mutating functions return successfully written characters, or in other words,
+// how much the resulting string grew.
+
+static inline size_t
+pf_concat(struct pf_string* me, const char* src, const size_t length)
+{
+    memcpy(me->data + me->length, src, pf_limit(*me, length));
+    me->length += length;
+    return pf_limit(*me, length);
+}
+
+static inline size_t
+pf_pad(struct pf_string* me, const char c, const size_t length)
+{
+    memset(me->data + me->length, c, pf_limit(*me, length));
+    me->length += length;
+    return pf_limit(*me, length);
+}
+
+static inline size_t
+pf_insert_pad(
+    struct pf_string* me,
+    const size_t i,
+    const char c,
+    const size_t n)
+{
+    const size_t real_length = pf_min(me->length, me->capacity);
+    me->length += n;
+
+    if (i >= real_length)
+        return 0;
+
+    // Ignore string head by subtracting i // TODO simplify this insanity
+    const size_t cap = me->capacity - i;
+    const size_t len = real_length - i;
+    const size_t uncut_result_len = len + n;
+    const size_t clipped_result_len = pf_min(cap, uncut_result_len);
+    const size_t overflowed = uncut_result_len - clipped_result_len;
+    const size_t max_move = len - overflowed;
+    // End of ignoring i
+
+    if (i + n < me->capacity)
+        memmove(me->data + i + n, me->data + i, max_move);
+    memset(me->data + i, c, pf_min(n, clipped_result_len));
+
+    return n - overflowed;
+}
+
+static inline bool pf_push_char(struct pf_string* me, const char c)
+{ // TODO simplify this confusing mess
+    if (pf_limit(*me, 1) != 0)
+        me->data[me->length] = c;
+    me->length++;
+    return pf_limit(*me, 1);
+}
+
+#endif // PFSTRING_H_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* d2s_intrinsics.h */
@@ -3877,88 +4107,6 @@ static inline uint64_t mulShiftAll64(uint64_t m, const uint64_t* const mul, cons
 #endif // RYU_D2S_INTRINSICS_H
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* pcg_basic.h */
-
-/*
- * PCG Random Number Generation for C.
- *
- * Copyright 2014 Melissa O'Neill <oneill@pcg-random.org>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * For additional information about the PCG random number generation scheme,
- * including its license and other licensing options, visit
- *
- *     http://www.pcg-random.org
- */
-
-/*
- * This code is derived from the full C implementation, which is in turn
- * derived from the canonical C++ PCG implementation. The C++ version
- * has many additional features and is preferable if you can use C++ in
- * your project.
- */
-
-#ifndef PCG_BASIC_H_INCLUDED
-#define PCG_BASIC_H_INCLUDED 1
-
-#include <inttypes.h>
-
-#if __cplusplus
-extern "C" {
-#endif
-
-struct pcg_state_setseq_64 {    // Internals are *Private*.
-    uint64_t state;             // RNG state.  All values are possible.
-    uint64_t inc;               // Controls which RNG sequence (stream) is
-                                // selected. Must *always* be odd.
-};
-typedef struct pcg_state_setseq_64 pcg32_random_t;
-
-// If you *must* statically initialize it, here's one.
-
-#define PCG32_INITIALIZER   { 0x853c49e6748fea9bULL, 0xda3e39cb94b95bdbULL }
-
-// pcg32_srandom(initstate, initseq)
-// pcg32_srandom_r(rng, initstate, initseq):
-//     Seed the rng.  Specified in two parts, state initializer and a
-//     sequence selection constant (a.k.a. stream id)
-
-void pcg32_srandom(uint64_t initstate, uint64_t initseq);
-void pcg32_srandom_r(pcg32_random_t* rng, uint64_t initstate,
-                     uint64_t initseq);
-
-// pcg32_random()
-// pcg32_random_r(rng)
-//     Generate a uniformly distributed 32-bit random number
-
-uint32_t pcg32_random(void);
-uint32_t pcg32_random_r(pcg32_random_t* rng);
-
-// pcg32_boundedrand(bound):
-// pcg32_boundedrand_r(rng, bound):
-//     Generate a uniformly distributed number, r, where 0 <= r < bound
-
-uint32_t pcg32_boundedrand(uint32_t bound);
-uint32_t pcg32_boundedrand_r(pcg32_random_t* rng, uint32_t bound);
-
-#if __cplusplus
-}
-#endif
-
-#endif // PCG_BASIC_H_INCLUDED
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* thread.h */
 
 // MIT License
@@ -4132,475 +4280,6 @@ static inline void gp_thread_once(GPThreadOnce* flag, void(*init)(void))
 #endif // environment specific wrappers
 
 #endif // GP_THREAD_INCLUDED
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* d2s_full_table.h */
-
-// Copyright 2018 Ulf Adams
-//
-// The contents of this file may be used under the terms of the Apache License,
-// Version 2.0.
-//
-//    (See accompanying file LICENSE-Apache or copy at
-//     http://www.apache.org/licenses/LICENSE-2.0)
-//
-// Alternatively, the contents of this file may be used under the terms of
-// the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE-Boost or copy at
-//     https://www.boost.org/LICENSE_1_0.txt)
-//
-// Unless required by applicable law or agreed to in writing, this software
-// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.
-#ifndef RYU_D2S_FULL_TABLE_H
-#define RYU_D2S_FULL_TABLE_H
-
-// These tables are generated by PrintDoubleLookupTable.
-#define DOUBLE_POW5_INV_BITCOUNT 125
-#define DOUBLE_POW5_BITCOUNT 125
-
-#define DOUBLE_POW5_INV_TABLE_SIZE 342
-#define DOUBLE_POW5_TABLE_SIZE 326
-
-static const uint64_t DOUBLE_POW5_INV_SPLIT[DOUBLE_POW5_INV_TABLE_SIZE][2] = {
-  {                    1u, 2305843009213693952u }, { 11068046444225730970u, 1844674407370955161u },
-  {  5165088340638674453u, 1475739525896764129u }, {  7821419487252849886u, 1180591620717411303u },
-  {  8824922364862649494u, 1888946593147858085u }, {  7059937891890119595u, 1511157274518286468u },
-  { 13026647942995916322u, 1208925819614629174u }, {  9774590264567735146u, 1934281311383406679u },
-  { 11509021026396098440u, 1547425049106725343u }, { 16585914450600699399u, 1237940039285380274u },
-  { 15469416676735388068u, 1980704062856608439u }, { 16064882156130220778u, 1584563250285286751u },
-  {  9162556910162266299u, 1267650600228229401u }, {  7281393426775805432u, 2028240960365167042u },
-  { 16893161185646375315u, 1622592768292133633u }, {  2446482504291369283u, 1298074214633706907u },
-  {  7603720821608101175u, 2076918743413931051u }, {  2393627842544570617u, 1661534994731144841u },
-  { 16672297533003297786u, 1329227995784915872u }, { 11918280793837635165u, 2126764793255865396u },
-  {  5845275820328197809u, 1701411834604692317u }, { 15744267100488289217u, 1361129467683753853u },
-  {  3054734472329800808u, 2177807148294006166u }, { 17201182836831481939u, 1742245718635204932u },
-  {  6382248639981364905u, 1393796574908163946u }, {  2832900194486363201u, 2230074519853062314u },
-  {  5955668970331000884u, 1784059615882449851u }, {  1075186361522890384u, 1427247692705959881u },
-  { 12788344622662355584u, 2283596308329535809u }, { 13920024512871794791u, 1826877046663628647u },
-  {  3757321980813615186u, 1461501637330902918u }, { 10384555214134712795u, 1169201309864722334u },
-  {  5547241898389809503u, 1870722095783555735u }, {  4437793518711847602u, 1496577676626844588u },
-  { 10928932444453298728u, 1197262141301475670u }, { 17486291911125277965u, 1915619426082361072u },
-  {  6610335899416401726u, 1532495540865888858u }, { 12666966349016942027u, 1225996432692711086u },
-  { 12888448528943286597u, 1961594292308337738u }, { 17689456452638449924u, 1569275433846670190u },
-  { 14151565162110759939u, 1255420347077336152u }, {  7885109000409574610u, 2008672555323737844u },
-  {  9997436015069570011u, 1606938044258990275u }, {  7997948812055656009u, 1285550435407192220u },
-  { 12796718099289049614u, 2056880696651507552u }, {  2858676849947419045u, 1645504557321206042u },
-  { 13354987924183666206u, 1316403645856964833u }, { 17678631863951955605u, 2106245833371143733u },
-  {  3074859046935833515u, 1684996666696914987u }, { 13527933681774397782u, 1347997333357531989u },
-  { 10576647446613305481u, 2156795733372051183u }, { 15840015586774465031u, 1725436586697640946u },
-  {  8982663654677661702u, 1380349269358112757u }, { 18061610662226169046u, 2208558830972980411u },
-  { 10759939715039024913u, 1766847064778384329u }, { 12297300586773130254u, 1413477651822707463u },
-  { 15986332124095098083u, 2261564242916331941u }, {  9099716884534168143u, 1809251394333065553u },
-  { 14658471137111155161u, 1447401115466452442u }, {  4348079280205103483u, 1157920892373161954u },
-  { 14335624477811986218u, 1852673427797059126u }, {  7779150767507678651u, 1482138742237647301u },
-  {  2533971799264232598u, 1185710993790117841u }, { 15122401323048503126u, 1897137590064188545u },
-  { 12097921058438802501u, 1517710072051350836u }, {  5988988032009131678u, 1214168057641080669u },
-  { 16961078480698431330u, 1942668892225729070u }, { 13568862784558745064u, 1554135113780583256u },
-  {  7165741412905085728u, 1243308091024466605u }, { 11465186260648137165u, 1989292945639146568u },
-  { 16550846638002330379u, 1591434356511317254u }, { 16930026125143774626u, 1273147485209053803u },
-  {  4951948911778577463u, 2037035976334486086u }, {   272210314680951647u, 1629628781067588869u },
-  {  3907117066486671641u, 1303703024854071095u }, {  6251387306378674625u, 2085924839766513752u },
-  { 16069156289328670670u, 1668739871813211001u }, {  9165976216721026213u, 1334991897450568801u },
-  {  7286864317269821294u, 2135987035920910082u }, { 16897537898041588005u, 1708789628736728065u },
-  { 13518030318433270404u, 1367031702989382452u }, {  6871453250525591353u, 2187250724783011924u },
-  {  9186511415162383406u, 1749800579826409539u }, { 11038557946871817048u, 1399840463861127631u },
-  { 10282995085511086630u, 2239744742177804210u }, {  8226396068408869304u, 1791795793742243368u },
-  { 13959814484210916090u, 1433436634993794694u }, { 11267656730511734774u, 2293498615990071511u },
-  {  5324776569667477496u, 1834798892792057209u }, {  7949170070475892320u, 1467839114233645767u },
-  { 17427382500606444826u, 1174271291386916613u }, {  5747719112518849781u, 1878834066219066582u },
-  { 15666221734240810795u, 1503067252975253265u }, { 12532977387392648636u, 1202453802380202612u },
-  {  5295368560860596524u, 1923926083808324180u }, {  4236294848688477220u, 1539140867046659344u },
-  {  7078384693692692099u, 1231312693637327475u }, { 11325415509908307358u, 1970100309819723960u },
-  {  9060332407926645887u, 1576080247855779168u }, { 14626963555825137356u, 1260864198284623334u },
-  { 12335095245094488799u, 2017382717255397335u }, {  9868076196075591040u, 1613906173804317868u },
-  { 15273158586344293478u, 1291124939043454294u }, { 13369007293925138595u, 2065799902469526871u },
-  {  7005857020398200553u, 1652639921975621497u }, { 16672732060544291412u, 1322111937580497197u },
-  { 11918976037903224966u, 2115379100128795516u }, {  5845832015580669650u, 1692303280103036413u },
-  { 12055363241948356366u, 1353842624082429130u }, {   841837113407818570u, 2166148198531886609u },
-  {  4362818505468165179u, 1732918558825509287u }, { 14558301248600263113u, 1386334847060407429u },
-  { 12225235553534690011u, 2218135755296651887u }, {  2401490813343931363u, 1774508604237321510u },
-  {  1921192650675145090u, 1419606883389857208u }, { 17831303500047873437u, 2271371013423771532u },
-  {  6886345170554478103u, 1817096810739017226u }, {  1819727321701672159u, 1453677448591213781u },
-  { 16213177116328979020u, 1162941958872971024u }, { 14873036941900635463u, 1860707134196753639u },
-  { 15587778368262418694u, 1488565707357402911u }, {  8780873879868024632u, 1190852565885922329u },
-  {  2981351763563108441u, 1905364105417475727u }, { 13453127855076217722u, 1524291284333980581u },
-  {  7073153469319063855u, 1219433027467184465u }, { 11317045550910502167u, 1951092843947495144u },
-  { 12742985255470312057u, 1560874275157996115u }, { 10194388204376249646u, 1248699420126396892u },
-  {  1553625868034358140u, 1997919072202235028u }, {  8621598323911307159u, 1598335257761788022u },
-  { 17965325103354776697u, 1278668206209430417u }, { 13987124906400001422u, 2045869129935088668u },
-  {   121653480894270168u, 1636695303948070935u }, {    97322784715416134u, 1309356243158456748u },
-  { 14913111714512307107u, 2094969989053530796u }, {  8241140556867935363u, 1675975991242824637u },
-  { 17660958889720079260u, 1340780792994259709u }, { 17189487779326395846u, 2145249268790815535u },
-  { 13751590223461116677u, 1716199415032652428u }, { 18379969808252713988u, 1372959532026121942u },
-  { 14650556434236701088u, 2196735251241795108u }, {   652398703163629901u, 1757388200993436087u },
-  { 11589965406756634890u, 1405910560794748869u }, {  7475898206584884855u, 2249456897271598191u },
-  {  2291369750525997561u, 1799565517817278553u }, {  9211793429904618695u, 1439652414253822842u },
-  { 18428218302589300235u, 2303443862806116547u }, {  7363877012587619542u, 1842755090244893238u },
-  { 13269799239553916280u, 1474204072195914590u }, { 10615839391643133024u, 1179363257756731672u },
-  {  2227947767661371545u, 1886981212410770676u }, { 16539753473096738529u, 1509584969928616540u },
-  { 13231802778477390823u, 1207667975942893232u }, {  6413489186596184024u, 1932268761508629172u },
-  { 16198837793502678189u, 1545815009206903337u }, {  5580372605318321905u, 1236652007365522670u },
-  {  8928596168509315048u, 1978643211784836272u }, { 18210923379033183008u, 1582914569427869017u },
-  {  7190041073742725760u, 1266331655542295214u }, {   436019273762630246u, 2026130648867672343u },
-  {  7727513048493924843u, 1620904519094137874u }, {  9871359253537050198u, 1296723615275310299u },
-  {  4726128361433549347u, 2074757784440496479u }, {  7470251503888749801u, 1659806227552397183u },
-  { 13354898832594820487u, 1327844982041917746u }, { 13989140502667892133u, 2124551971267068394u },
-  { 14880661216876224029u, 1699641577013654715u }, { 11904528973500979224u, 1359713261610923772u },
-  {  4289851098633925465u, 2175541218577478036u }, { 18189276137874781665u, 1740432974861982428u },
-  {  3483374466074094362u, 1392346379889585943u }, {  1884050330976640656u, 2227754207823337509u },
-  {  5196589079523222848u, 1782203366258670007u }, { 15225317707844309248u, 1425762693006936005u },
-  {  5913764258841343181u, 2281220308811097609u }, {  8420360221814984868u, 1824976247048878087u },
-  { 17804334621677718864u, 1459980997639102469u }, { 17932816512084085415u, 1167984798111281975u },
-  { 10245762345624985047u, 1868775676978051161u }, {  4507261061758077715u, 1495020541582440929u },
-  {  7295157664148372495u, 1196016433265952743u }, {  7982903447895485668u, 1913626293225524389u },
-  { 10075671573058298858u, 1530901034580419511u }, {  4371188443704728763u, 1224720827664335609u },
-  { 14372599139411386667u, 1959553324262936974u }, { 15187428126271019657u, 1567642659410349579u },
-  { 15839291315758726049u, 1254114127528279663u }, {  3206773216762499739u, 2006582604045247462u },
-  { 13633465017635730761u, 1605266083236197969u }, { 14596120828850494932u, 1284212866588958375u },
-  {  4907049252451240275u, 2054740586542333401u }, {   236290587219081897u, 1643792469233866721u },
-  { 14946427728742906810u, 1315033975387093376u }, { 16535586736504830250u, 2104054360619349402u },
-  {  5849771759720043554u, 1683243488495479522u }, { 15747863852001765813u, 1346594790796383617u },
-  { 10439186904235184007u, 2154551665274213788u }, { 15730047152871967852u, 1723641332219371030u },
-  { 12584037722297574282u, 1378913065775496824u }, {  9066413911450387881u, 2206260905240794919u },
-  { 10942479943902220628u, 1765008724192635935u }, {  8753983955121776503u, 1412006979354108748u },
-  { 10317025513452932081u, 2259211166966573997u }, {   874922781278525018u, 1807368933573259198u },
-  {  8078635854506640661u, 1445895146858607358u }, { 13841606313089133175u, 1156716117486885886u },
-  { 14767872471458792434u, 1850745787979017418u }, {   746251532941302978u, 1480596630383213935u },
-  {   597001226353042382u, 1184477304306571148u }, { 15712597221132509104u, 1895163686890513836u },
-  {  8880728962164096960u, 1516130949512411069u }, { 10793931984473187891u, 1212904759609928855u },
-  { 17270291175157100626u, 1940647615375886168u }, {  2748186495899949531u, 1552518092300708935u },
-  {  2198549196719959625u, 1242014473840567148u }, { 18275073973719576693u, 1987223158144907436u },
-  { 10930710364233751031u, 1589778526515925949u }, { 12433917106128911148u, 1271822821212740759u },
-  {  8826220925580526867u, 2034916513940385215u }, {  7060976740464421494u, 1627933211152308172u },
-  { 16716827836597268165u, 1302346568921846537u }, { 11989529279587987770u, 2083754510274954460u },
-  {  9591623423670390216u, 1667003608219963568u }, { 15051996368420132820u, 1333602886575970854u },
-  { 13015147745246481542u, 2133764618521553367u }, {  3033420566713364587u, 1707011694817242694u },
-  {  6116085268112601993u, 1365609355853794155u }, {  9785736428980163188u, 2184974969366070648u },
-  { 15207286772667951197u, 1747979975492856518u }, {  1097782973908629988u, 1398383980394285215u },
-  {  1756452758253807981u, 2237414368630856344u }, {  5094511021344956708u, 1789931494904685075u },
-  {  4075608817075965366u, 1431945195923748060u }, {  6520974107321544586u, 2291112313477996896u },
-  {  1527430471115325346u, 1832889850782397517u }, { 12289990821117991246u, 1466311880625918013u },
-  { 17210690286378213644u, 1173049504500734410u }, {  9090360384495590213u, 1876879207201175057u },
-  { 18340334751822203140u, 1501503365760940045u }, { 14672267801457762512u, 1201202692608752036u },
-  { 16096930852848599373u, 1921924308174003258u }, {  1809498238053148529u, 1537539446539202607u },
-  { 12515645034668249793u, 1230031557231362085u }, {  1578287981759648052u, 1968050491570179337u },
-  { 12330676829633449412u, 1574440393256143469u }, { 13553890278448669853u, 1259552314604914775u },
-  {  3239480371808320148u, 2015283703367863641u }, { 17348979556414297411u, 1612226962694290912u },
-  {  6500486015647617283u, 1289781570155432730u }, { 10400777625036187652u, 2063650512248692368u },
-  { 15699319729512770768u, 1650920409798953894u }, { 16248804598352126938u, 1320736327839163115u },
-  {  7551343283653851484u, 2113178124542660985u }, {  6041074626923081187u, 1690542499634128788u },
-  { 12211557331022285596u, 1352433999707303030u }, {  1091747655926105338u, 2163894399531684849u },
-  {  4562746939482794594u, 1731115519625347879u }, {  7339546366328145998u, 1384892415700278303u },
-  {  8053925371383123274u, 2215827865120445285u }, {  6443140297106498619u, 1772662292096356228u },
-  { 12533209867169019542u, 1418129833677084982u }, {  5295740528502789974u, 2269007733883335972u },
-  { 15304638867027962949u, 1815206187106668777u }, {  4865013464138549713u, 1452164949685335022u },
-  { 14960057215536570740u, 1161731959748268017u }, {  9178696285890871890u, 1858771135597228828u },
-  { 14721654658196518159u, 1487016908477783062u }, {  4398626097073393881u, 1189613526782226450u },
-  {  7037801755317430209u, 1903381642851562320u }, {  5630241404253944167u, 1522705314281249856u },
-  {   814844308661245011u, 1218164251424999885u }, {  1303750893857992017u, 1949062802279999816u },
-  { 15800395974054034906u, 1559250241823999852u }, {  5261619149759407279u, 1247400193459199882u },
-  { 12107939454356961969u, 1995840309534719811u }, {  5997002748743659252u, 1596672247627775849u },
-  {  8486951013736837725u, 1277337798102220679u }, {  2511075177753209390u, 2043740476963553087u },
-  { 13076906586428298482u, 1634992381570842469u }, { 14150874083884549109u, 1307993905256673975u },
-  {  4194654460505726958u, 2092790248410678361u }, { 18113118827372222859u, 1674232198728542688u },
-  {  3422448617672047318u, 1339385758982834151u }, { 16543964232501006678u, 2143017214372534641u },
-  {  9545822571258895019u, 1714413771498027713u }, { 15015355686490936662u, 1371531017198422170u },
-  {  5577825024675947042u, 2194449627517475473u }, { 11840957649224578280u, 1755559702013980378u },
-  { 16851463748863483271u, 1404447761611184302u }, { 12204946739213931940u, 2247116418577894884u },
-  { 13453306206113055875u, 1797693134862315907u }, {  3383947335406624054u, 1438154507889852726u },
-  { 16482362180876329456u, 2301047212623764361u }, {  9496540929959153242u, 1840837770099011489u },
-  { 11286581558709232917u, 1472670216079209191u }, {  5339916432225476010u, 1178136172863367353u },
-  {  4854517476818851293u, 1885017876581387765u }, {  3883613981455081034u, 1508014301265110212u },
-  { 14174937629389795797u, 1206411441012088169u }, { 11611853762797942306u, 1930258305619341071u },
-  {  5600134195496443521u, 1544206644495472857u }, { 15548153800622885787u, 1235365315596378285u },
-  {  6430302007287065643u, 1976584504954205257u }, { 16212288050055383484u, 1581267603963364205u },
-  { 12969830440044306787u, 1265014083170691364u }, {  9683682259845159889u, 2024022533073106183u },
-  { 15125643437359948558u, 1619218026458484946u }, {  8411165935146048523u, 1295374421166787957u },
-  { 17147214310975587960u, 2072599073866860731u }, { 10028422634038560045u, 1658079259093488585u },
-  {  8022738107230848036u, 1326463407274790868u }, {  9147032156827446534u, 2122341451639665389u },
-  { 11006974540203867551u, 1697873161311732311u }, {  5116230817421183718u, 1358298529049385849u },
-  { 15564666937357714594u, 2173277646479017358u }, {  1383687105660440706u, 1738622117183213887u },
-  { 12174996128754083534u, 1390897693746571109u }, {  8411947361780802685u, 2225436309994513775u },
-  {  6729557889424642148u, 1780349047995611020u }, {  5383646311539713719u, 1424279238396488816u },
-  {  1235136468979721303u, 2278846781434382106u }, { 15745504434151418335u, 1823077425147505684u },
-  { 16285752362063044992u, 1458461940118004547u }, {  5649904260166615347u, 1166769552094403638u },
-  {  5350498001524674232u, 1866831283351045821u }, {   591049586477829062u, 1493465026680836657u },
-  { 11540886113407994219u, 1194772021344669325u }, {    18673707743239135u, 1911635234151470921u },
-  { 14772334225162232601u, 1529308187321176736u }, {  8128518565387875758u, 1223446549856941389u },
-  {  1937583260394870242u, 1957514479771106223u }, {  8928764237799716840u, 1566011583816884978u },
-  { 14521709019723594119u, 1252809267053507982u }, {  8477339172590109297u, 2004494827285612772u },
-  { 17849917782297818407u, 1603595861828490217u }, {  6901236596354434079u, 1282876689462792174u },
-  { 18420676183650915173u, 2052602703140467478u }, {  3668494502695001169u, 1642082162512373983u },
-  { 10313493231639821582u, 1313665730009899186u }, {  9122891541139893884u, 2101865168015838698u },
-  { 14677010862395735754u, 1681492134412670958u }, {   673562245690857633u, 1345193707530136767u }
-};
-
-static const uint64_t DOUBLE_POW5_SPLIT[DOUBLE_POW5_TABLE_SIZE][2] = {
-  {                    0u, 1152921504606846976u }, {                    0u, 1441151880758558720u },
-  {                    0u, 1801439850948198400u }, {                    0u, 2251799813685248000u },
-  {                    0u, 1407374883553280000u }, {                    0u, 1759218604441600000u },
-  {                    0u, 2199023255552000000u }, {                    0u, 1374389534720000000u },
-  {                    0u, 1717986918400000000u }, {                    0u, 2147483648000000000u },
-  {                    0u, 1342177280000000000u }, {                    0u, 1677721600000000000u },
-  {                    0u, 2097152000000000000u }, {                    0u, 1310720000000000000u },
-  {                    0u, 1638400000000000000u }, {                    0u, 2048000000000000000u },
-  {                    0u, 1280000000000000000u }, {                    0u, 1600000000000000000u },
-  {                    0u, 2000000000000000000u }, {                    0u, 1250000000000000000u },
-  {                    0u, 1562500000000000000u }, {                    0u, 1953125000000000000u },
-  {                    0u, 1220703125000000000u }, {                    0u, 1525878906250000000u },
-  {                    0u, 1907348632812500000u }, {                    0u, 1192092895507812500u },
-  {                    0u, 1490116119384765625u }, {  4611686018427387904u, 1862645149230957031u },
-  {  9799832789158199296u, 1164153218269348144u }, { 12249790986447749120u, 1455191522836685180u },
-  { 15312238733059686400u, 1818989403545856475u }, { 14528612397897220096u, 2273736754432320594u },
-  { 13692068767113150464u, 1421085471520200371u }, { 12503399940464050176u, 1776356839400250464u },
-  { 15629249925580062720u, 2220446049250313080u }, {  9768281203487539200u, 1387778780781445675u },
-  {  7598665485932036096u, 1734723475976807094u }, {   274959820560269312u, 2168404344971008868u },
-  {  9395221924704944128u, 1355252715606880542u }, {  2520655369026404352u, 1694065894508600678u },
-  { 12374191248137781248u, 2117582368135750847u }, { 14651398557727195136u, 1323488980084844279u },
-  { 13702562178731606016u, 1654361225106055349u }, {  3293144668132343808u, 2067951531382569187u },
-  { 18199116482078572544u, 1292469707114105741u }, {  8913837547316051968u, 1615587133892632177u },
-  { 15753982952572452864u, 2019483917365790221u }, { 12152082354571476992u, 1262177448353618888u },
-  { 15190102943214346240u, 1577721810442023610u }, {  9764256642163156992u, 1972152263052529513u },
-  { 17631875447420442880u, 1232595164407830945u }, {  8204786253993389888u, 1540743955509788682u },
-  {  1032610780636961552u, 1925929944387235853u }, {  2951224747111794922u, 1203706215242022408u },
-  {  3689030933889743652u, 1504632769052528010u }, { 13834660704216955373u, 1880790961315660012u },
-  { 17870034976990372916u, 1175494350822287507u }, { 17725857702810578241u, 1469367938527859384u },
-  {  3710578054803671186u, 1836709923159824231u }, {    26536550077201078u, 2295887403949780289u },
-  { 11545800389866720434u, 1434929627468612680u }, { 14432250487333400542u, 1793662034335765850u },
-  {  8816941072311974870u, 2242077542919707313u }, { 17039803216263454053u, 1401298464324817070u },
-  { 12076381983474541759u, 1751623080406021338u }, {  5872105442488401391u, 2189528850507526673u },
-  { 15199280947623720629u, 1368455531567204170u }, {  9775729147674874978u, 1710569414459005213u },
-  { 16831347453020981627u, 2138211768073756516u }, {  1296220121283337709u, 1336382355046097823u },
-  { 15455333206886335848u, 1670477943807622278u }, { 10095794471753144002u, 2088097429759527848u },
-  {  6309871544845715001u, 1305060893599704905u }, { 12499025449484531656u, 1631326116999631131u },
-  { 11012095793428276666u, 2039157646249538914u }, { 11494245889320060820u, 1274473528905961821u },
-  {   532749306367912313u, 1593091911132452277u }, {  5277622651387278295u, 1991364888915565346u },
-  {  7910200175544436838u, 1244603055572228341u }, { 14499436237857933952u, 1555753819465285426u },
-  {  8900923260467641632u, 1944692274331606783u }, { 12480606065433357876u, 1215432671457254239u },
-  { 10989071563364309441u, 1519290839321567799u }, {  9124653435777998898u, 1899113549151959749u },
-  {  8008751406574943263u, 1186945968219974843u }, {  5399253239791291175u, 1483682460274968554u },
-  { 15972438586593889776u, 1854603075343710692u }, {   759402079766405302u, 1159126922089819183u },
-  { 14784310654990170340u, 1448908652612273978u }, {  9257016281882937117u, 1811135815765342473u },
-  { 16182956370781059300u, 2263919769706678091u }, {  7808504722524468110u, 1414949856066673807u },
-  {  5148944884728197234u, 1768687320083342259u }, {  1824495087482858639u, 2210859150104177824u },
-  {  1140309429676786649u, 1381786968815111140u }, {  1425386787095983311u, 1727233711018888925u },
-  {  6393419502297367043u, 2159042138773611156u }, { 13219259225790630210u, 1349401336733506972u },
-  { 16524074032238287762u, 1686751670916883715u }, { 16043406521870471799u, 2108439588646104644u },
-  {   803757039314269066u, 1317774742903815403u }, { 14839754354425000045u, 1647218428629769253u },
-  {  4714634887749086344u, 2059023035787211567u }, {  9864175832484260821u, 1286889397367007229u },
-  { 16941905809032713930u, 1608611746708759036u }, {  2730638187581340797u, 2010764683385948796u },
-  { 10930020904093113806u, 1256727927116217997u }, { 18274212148543780162u, 1570909908895272496u },
-  {  4396021111970173586u, 1963637386119090621u }, {  5053356204195052443u, 1227273366324431638u },
-  { 15540067292098591362u, 1534091707905539547u }, { 14813398096695851299u, 1917614634881924434u },
-  { 13870059828862294966u, 1198509146801202771u }, { 12725888767650480803u, 1498136433501503464u },
-  { 15907360959563101004u, 1872670541876879330u }, { 14553786618154326031u, 1170419088673049581u },
-  {  4357175217410743827u, 1463023860841311977u }, { 10058155040190817688u, 1828779826051639971u },
-  {  7961007781811134206u, 2285974782564549964u }, { 14199001900486734687u, 1428734239102843727u },
-  { 13137066357181030455u, 1785917798878554659u }, { 11809646928048900164u, 2232397248598193324u },
-  { 16604401366885338411u, 1395248280373870827u }, { 16143815690179285109u, 1744060350467338534u },
-  { 10956397575869330579u, 2180075438084173168u }, {  6847748484918331612u, 1362547148802608230u },
-  { 17783057643002690323u, 1703183936003260287u }, { 17617136035325974999u, 2128979920004075359u },
-  { 17928239049719816230u, 1330612450002547099u }, { 17798612793722382384u, 1663265562503183874u },
-  { 13024893955298202172u, 2079081953128979843u }, {  5834715712847682405u, 1299426220705612402u },
-  { 16516766677914378815u, 1624282775882015502u }, { 11422586310538197711u, 2030353469852519378u },
-  { 11750802462513761473u, 1268970918657824611u }, { 10076817059714813937u, 1586213648322280764u },
-  { 12596021324643517422u, 1982767060402850955u }, {  5566670318688504437u, 1239229412751781847u },
-  {  2346651879933242642u, 1549036765939727309u }, {  7545000868343941206u, 1936295957424659136u },
-  {  4715625542714963254u, 1210184973390411960u }, {  5894531928393704067u, 1512731216738014950u },
-  { 16591536947346905892u, 1890914020922518687u }, { 17287239619732898039u, 1181821263076574179u },
-  { 16997363506238734644u, 1477276578845717724u }, {  2799960309088866689u, 1846595723557147156u },
-  { 10973347230035317489u, 1154122327223216972u }, { 13716684037544146861u, 1442652909029021215u },
-  { 12534169028502795672u, 1803316136286276519u }, { 11056025267201106687u, 2254145170357845649u },
-  { 18439230838069161439u, 1408840731473653530u }, { 13825666510731675991u, 1761050914342066913u },
-  {  3447025083132431277u, 2201313642927583642u }, {  6766076695385157452u, 1375821026829739776u },
-  {  8457595869231446815u, 1719776283537174720u }, { 10571994836539308519u, 2149720354421468400u },
-  {  6607496772837067824u, 1343575221513417750u }, { 17482743002901110588u, 1679469026891772187u },
-  { 17241742735199000331u, 2099336283614715234u }, { 15387775227926763111u, 1312085177259197021u },
-  {  5399660979626290177u, 1640106471573996277u }, { 11361262242960250625u, 2050133089467495346u },
-  { 11712474920277544544u, 1281333180917184591u }, { 10028907631919542777u, 1601666476146480739u },
-  {  7924448521472040567u, 2002083095183100924u }, { 14176152362774801162u, 1251301934489438077u },
-  {  3885132398186337741u, 1564127418111797597u }, {  9468101516160310080u, 1955159272639746996u },
-  { 15140935484454969608u, 1221974545399841872u }, {   479425281859160394u, 1527468181749802341u },
-  {  5210967620751338397u, 1909335227187252926u }, { 17091912818251750210u, 1193334516992033078u },
-  { 12141518985959911954u, 1491668146240041348u }, { 15176898732449889943u, 1864585182800051685u },
-  { 11791404716994875166u, 1165365739250032303u }, { 10127569877816206054u, 1456707174062540379u },
-  {  8047776328842869663u, 1820883967578175474u }, {   836348374198811271u, 2276104959472719343u },
-  {  7440246761515338900u, 1422565599670449589u }, { 13911994470321561530u, 1778206999588061986u },
-  {  8166621051047176104u, 2222758749485077483u }, {  2798295147690791113u, 1389224218428173427u },
-  { 17332926989895652603u, 1736530273035216783u }, { 17054472718942177850u, 2170662841294020979u },
-  {  8353202440125167204u, 1356664275808763112u }, { 10441503050156459005u, 1695830344760953890u },
-  {  3828506775840797949u, 2119787930951192363u }, {    86973725686804766u, 1324867456844495227u },
-  { 13943775212390669669u, 1656084321055619033u }, {  3594660960206173375u, 2070105401319523792u },
-  {  2246663100128858359u, 1293815875824702370u }, { 12031700912015848757u, 1617269844780877962u },
-  {  5816254103165035138u, 2021587305976097453u }, {  5941001823691840913u, 1263492066235060908u },
-  {  7426252279614801142u, 1579365082793826135u }, {  4671129331091113523u, 1974206353492282669u },
-  {  5225298841145639904u, 1233878970932676668u }, {  6531623551432049880u, 1542348713665845835u },
-  {  3552843420862674446u, 1927935892082307294u }, { 16055585193321335241u, 1204959932551442058u },
-  { 10846109454796893243u, 1506199915689302573u }, { 18169322836923504458u, 1882749894611628216u },
-  { 11355826773077190286u, 1176718684132267635u }, {  9583097447919099954u, 1470898355165334544u },
-  { 11978871809898874942u, 1838622943956668180u }, { 14973589762373593678u, 2298278679945835225u },
-  {  2440964573842414192u, 1436424174966147016u }, {  3051205717303017741u, 1795530218707683770u },
-  { 13037379183483547984u, 2244412773384604712u }, {  8148361989677217490u, 1402757983365377945u },
-  { 14797138505523909766u, 1753447479206722431u }, { 13884737113477499304u, 2191809349008403039u },
-  { 15595489723564518921u, 1369880843130251899u }, { 14882676136028260747u, 1712351053912814874u },
-  {  9379973133180550126u, 2140438817391018593u }, { 17391698254306313589u, 1337774260869386620u },
-  {  3292878744173340370u, 1672217826086733276u }, {  4116098430216675462u, 2090272282608416595u },
-  {   266718509671728212u, 1306420176630260372u }, {   333398137089660265u, 1633025220787825465u },
-  {  5028433689789463235u, 2041281525984781831u }, { 10060300083759496378u, 1275800953740488644u },
-  { 12575375104699370472u, 1594751192175610805u }, {  1884160825592049379u, 1993438990219513507u },
-  { 17318501580490888525u, 1245899368887195941u }, {  7813068920331446945u, 1557374211108994927u },
-  {  5154650131986920777u, 1946717763886243659u }, {   915813323278131534u, 1216698602428902287u },
-  { 14979824709379828129u, 1520873253036127858u }, {  9501408849870009354u, 1901091566295159823u },
-  { 12855909558809837702u, 1188182228934474889u }, {  2234828893230133415u, 1485227786168093612u },
-  {  2793536116537666769u, 1856534732710117015u }, {  8663489100477123587u, 1160334207943823134u },
-  {  1605989338741628675u, 1450417759929778918u }, { 11230858710281811652u, 1813022199912223647u },
-  {  9426887369424876662u, 2266277749890279559u }, { 12809333633531629769u, 1416423593681424724u },
-  { 16011667041914537212u, 1770529492101780905u }, {  6179525747111007803u, 2213161865127226132u },
-  { 13085575628799155685u, 1383226165704516332u }, { 16356969535998944606u, 1729032707130645415u },
-  { 15834525901571292854u, 2161290883913306769u }, {  2979049660840976177u, 1350806802445816731u },
-  { 17558870131333383934u, 1688508503057270913u }, {  8113529608884566205u, 2110635628821588642u },
-  {  9682642023980241782u, 1319147268013492901u }, { 16714988548402690132u, 1648934085016866126u },
-  { 11670363648648586857u, 2061167606271082658u }, { 11905663298832754689u, 1288229753919426661u },
-  {  1047021068258779650u, 1610287192399283327u }, { 15143834390605638274u, 2012858990499104158u },
-  {  4853210475701136017u, 1258036869061940099u }, {  1454827076199032118u, 1572546086327425124u },
-  {  1818533845248790147u, 1965682607909281405u }, {  3442426662494187794u, 1228551629943300878u },
-  { 13526405364972510550u, 1535689537429126097u }, {  3072948650933474476u, 1919611921786407622u },
-  { 15755650962115585259u, 1199757451116504763u }, { 15082877684217093670u, 1499696813895630954u },
-  {  9630225068416591280u, 1874621017369538693u }, {  8324733676974063502u, 1171638135855961683u },
-  {  5794231077790191473u, 1464547669819952104u }, {  7242788847237739342u, 1830684587274940130u },
-  { 18276858095901949986u, 2288355734093675162u }, { 16034722328366106645u, 1430222333808546976u },
-  {  1596658836748081690u, 1787777917260683721u }, {  6607509564362490017u, 2234722396575854651u },
-  {  1823850468512862308u, 1396701497859909157u }, {  6891499104068465790u, 1745876872324886446u },
-  { 17837745916940358045u, 2182346090406108057u }, {  4231062170446641922u, 1363966306503817536u },
-  {  5288827713058302403u, 1704957883129771920u }, {  6611034641322878003u, 2131197353912214900u },
-  { 13355268687681574560u, 1331998346195134312u }, { 16694085859601968200u, 1664997932743917890u },
-  { 11644235287647684442u, 2081247415929897363u }, {  4971804045566108824u, 1300779634956185852u },
-  {  6214755056957636030u, 1625974543695232315u }, {  3156757802769657134u, 2032468179619040394u },
-  {  6584659645158423613u, 1270292612261900246u }, { 17454196593302805324u, 1587865765327375307u },
-  { 17206059723201118751u, 1984832206659219134u }, {  6142101308573311315u, 1240520129162011959u },
-  {  3065940617289251240u, 1550650161452514949u }, {  8444111790038951954u, 1938312701815643686u },
-  {   665883850346957067u, 1211445438634777304u }, {   832354812933696334u, 1514306798293471630u },
-  { 10263815553021896226u, 1892883497866839537u }, { 17944099766707154901u, 1183052186166774710u },
-  { 13206752671529167818u, 1478815232708468388u }, { 16508440839411459773u, 1848519040885585485u },
-  { 12623618533845856310u, 1155324400553490928u }, { 15779523167307320387u, 1444155500691863660u },
-  {  1277659885424598868u, 1805194375864829576u }, {  1597074856780748586u, 2256492969831036970u },
-  {  5609857803915355770u, 1410308106144398106u }, { 16235694291748970521u, 1762885132680497632u },
-  {  1847873790976661535u, 2203606415850622041u }, { 12684136165428883219u, 1377254009906638775u },
-  { 11243484188358716120u, 1721567512383298469u }, {   219297180166231438u, 2151959390479123087u },
-  {  7054589765244976505u, 1344974619049451929u }, { 13429923224983608535u, 1681218273811814911u },
-  { 12175718012802122765u, 2101522842264768639u }, { 14527352785642408584u, 1313451776415480399u },
-  { 13547504963625622826u, 1641814720519350499u }, { 12322695186104640628u, 2052268400649188124u },
-  { 16925056528170176201u, 1282667750405742577u }, {  7321262604930556539u, 1603334688007178222u },
-  { 18374950293017971482u, 2004168360008972777u }, {  4566814905495150320u, 1252605225005607986u },
-  { 14931890668723713708u, 1565756531257009982u }, {  9441491299049866327u, 1957195664071262478u },
-  {  1289246043478778550u, 1223247290044539049u }, {  6223243572775861092u, 1529059112555673811u },
-  {  3167368447542438461u, 1911323890694592264u }, {  1979605279714024038u, 1194577431684120165u },
-  {  7086192618069917952u, 1493221789605150206u }, { 18081112809442173248u, 1866527237006437757u },
-  { 13606538515115052232u, 1166579523129023598u }, {  7784801107039039482u, 1458224403911279498u },
-  {   507629346944023544u, 1822780504889099373u }, {  5246222702107417334u, 2278475631111374216u },
-  {  3278889188817135834u, 1424047269444608885u }, {  8710297504448807696u, 1780059086805761106u }
-};
-
-#endif // RYU_D2S_FULL_TABLE_H
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* pfstring.h */
-
-// MIT License
-// Copyright (c) 2023 Lauri Lorenzo Fiestas
-// https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
-
-#ifndef PFSTRING_H_INCLUDED
-#define PFSTRING_H_INCLUDED
-
-#include <string.h>
-#include <stdbool.h>
-
-typedef struct pf_string
-{
-    // length is used to store the return value of printf() so it may exceed
-    // capacity.
-
-    char* data;
-    size_t length;
-    const size_t capacity;
-} PFString;
-
-static inline size_t pf_min(const size_t a, const size_t b)
-{
-    return a < b ? a : b;
-}
-
-static inline size_t pf_capacity_left(const struct pf_string me)
-{
-    return me.length >= me.capacity ? 0 : me.capacity - me.length;
-}
-
-// Useful for memcpy(), memmove(), memset(), etc.
-static inline size_t pf_limit(const struct pf_string me, const size_t x)
-{
-    const size_t cap_left = pf_capacity_left(me);
-    return pf_min(cap_left, x);
-}
-
-// Mutating functions return successfully written characters, or in other words,
-// how much the resulting string grew.
-
-static inline size_t
-pf_concat(struct pf_string* me, const char* src, const size_t length)
-{
-    memcpy(me->data + me->length, src, pf_limit(*me, length));
-    me->length += length;
-    return pf_limit(*me, length);
-}
-
-static inline size_t
-pf_pad(struct pf_string* me, const char c, const size_t length)
-{
-    memset(me->data + me->length, c, pf_limit(*me, length));
-    me->length += length;
-    return pf_limit(*me, length);
-}
-
-static inline size_t
-pf_insert_pad(
-    struct pf_string* me,
-    const size_t i,
-    const char c,
-    const size_t n)
-{
-    const size_t real_length = pf_min(me->length, me->capacity);
-    me->length += n;
-
-    if (i >= real_length)
-        return 0;
-
-    // Ignore string head by subtracting i // TODO simplify this insanity
-    const size_t cap = me->capacity - i;
-    const size_t len = real_length - i;
-    const size_t uncut_result_len = len + n;
-    const size_t clipped_result_len = pf_min(cap, uncut_result_len);
-    const size_t overflowed = uncut_result_len - clipped_result_len;
-    const size_t max_move = len - overflowed;
-    // End of ignoring i
-
-    if (i + n < me->capacity)
-        memmove(me->data + i + n, me->data + i, max_move);
-    memset(me->data + i, c, pf_min(n, clipped_result_len));
-
-    return n - overflowed;
-}
-
-static inline bool pf_push_char(struct pf_string* me, const char c)
-{ // TODO simplify this confusing mess
-    if (pf_limit(*me, 1) != 0)
-        me->data[me->length] = c;
-    me->length++;
-    return pf_limit(*me, 1);
-}
-
-#endif // PFSTRING_H_INCLUDED
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* d2fixed_full_table.h */
@@ -9027,6 +8706,416 @@ static const uint64_t POW10_SPLIT_2[3133][3] = {
 #endif // RYU_D2FIXED_FULL_TABLE_H
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* d2s_full_table.h */
+
+// Copyright 2018 Ulf Adams
+//
+// The contents of this file may be used under the terms of the Apache License,
+// Version 2.0.
+//
+//    (See accompanying file LICENSE-Apache or copy at
+//     http://www.apache.org/licenses/LICENSE-2.0)
+//
+// Alternatively, the contents of this file may be used under the terms of
+// the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE-Boost or copy at
+//     https://www.boost.org/LICENSE_1_0.txt)
+//
+// Unless required by applicable law or agreed to in writing, this software
+// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.
+#ifndef RYU_D2S_FULL_TABLE_H
+#define RYU_D2S_FULL_TABLE_H
+
+// These tables are generated by PrintDoubleLookupTable.
+#define DOUBLE_POW5_INV_BITCOUNT 125
+#define DOUBLE_POW5_BITCOUNT 125
+
+#define DOUBLE_POW5_INV_TABLE_SIZE 342
+#define DOUBLE_POW5_TABLE_SIZE 326
+
+static const uint64_t DOUBLE_POW5_INV_SPLIT[DOUBLE_POW5_INV_TABLE_SIZE][2] = {
+  {                    1u, 2305843009213693952u }, { 11068046444225730970u, 1844674407370955161u },
+  {  5165088340638674453u, 1475739525896764129u }, {  7821419487252849886u, 1180591620717411303u },
+  {  8824922364862649494u, 1888946593147858085u }, {  7059937891890119595u, 1511157274518286468u },
+  { 13026647942995916322u, 1208925819614629174u }, {  9774590264567735146u, 1934281311383406679u },
+  { 11509021026396098440u, 1547425049106725343u }, { 16585914450600699399u, 1237940039285380274u },
+  { 15469416676735388068u, 1980704062856608439u }, { 16064882156130220778u, 1584563250285286751u },
+  {  9162556910162266299u, 1267650600228229401u }, {  7281393426775805432u, 2028240960365167042u },
+  { 16893161185646375315u, 1622592768292133633u }, {  2446482504291369283u, 1298074214633706907u },
+  {  7603720821608101175u, 2076918743413931051u }, {  2393627842544570617u, 1661534994731144841u },
+  { 16672297533003297786u, 1329227995784915872u }, { 11918280793837635165u, 2126764793255865396u },
+  {  5845275820328197809u, 1701411834604692317u }, { 15744267100488289217u, 1361129467683753853u },
+  {  3054734472329800808u, 2177807148294006166u }, { 17201182836831481939u, 1742245718635204932u },
+  {  6382248639981364905u, 1393796574908163946u }, {  2832900194486363201u, 2230074519853062314u },
+  {  5955668970331000884u, 1784059615882449851u }, {  1075186361522890384u, 1427247692705959881u },
+  { 12788344622662355584u, 2283596308329535809u }, { 13920024512871794791u, 1826877046663628647u },
+  {  3757321980813615186u, 1461501637330902918u }, { 10384555214134712795u, 1169201309864722334u },
+  {  5547241898389809503u, 1870722095783555735u }, {  4437793518711847602u, 1496577676626844588u },
+  { 10928932444453298728u, 1197262141301475670u }, { 17486291911125277965u, 1915619426082361072u },
+  {  6610335899416401726u, 1532495540865888858u }, { 12666966349016942027u, 1225996432692711086u },
+  { 12888448528943286597u, 1961594292308337738u }, { 17689456452638449924u, 1569275433846670190u },
+  { 14151565162110759939u, 1255420347077336152u }, {  7885109000409574610u, 2008672555323737844u },
+  {  9997436015069570011u, 1606938044258990275u }, {  7997948812055656009u, 1285550435407192220u },
+  { 12796718099289049614u, 2056880696651507552u }, {  2858676849947419045u, 1645504557321206042u },
+  { 13354987924183666206u, 1316403645856964833u }, { 17678631863951955605u, 2106245833371143733u },
+  {  3074859046935833515u, 1684996666696914987u }, { 13527933681774397782u, 1347997333357531989u },
+  { 10576647446613305481u, 2156795733372051183u }, { 15840015586774465031u, 1725436586697640946u },
+  {  8982663654677661702u, 1380349269358112757u }, { 18061610662226169046u, 2208558830972980411u },
+  { 10759939715039024913u, 1766847064778384329u }, { 12297300586773130254u, 1413477651822707463u },
+  { 15986332124095098083u, 2261564242916331941u }, {  9099716884534168143u, 1809251394333065553u },
+  { 14658471137111155161u, 1447401115466452442u }, {  4348079280205103483u, 1157920892373161954u },
+  { 14335624477811986218u, 1852673427797059126u }, {  7779150767507678651u, 1482138742237647301u },
+  {  2533971799264232598u, 1185710993790117841u }, { 15122401323048503126u, 1897137590064188545u },
+  { 12097921058438802501u, 1517710072051350836u }, {  5988988032009131678u, 1214168057641080669u },
+  { 16961078480698431330u, 1942668892225729070u }, { 13568862784558745064u, 1554135113780583256u },
+  {  7165741412905085728u, 1243308091024466605u }, { 11465186260648137165u, 1989292945639146568u },
+  { 16550846638002330379u, 1591434356511317254u }, { 16930026125143774626u, 1273147485209053803u },
+  {  4951948911778577463u, 2037035976334486086u }, {   272210314680951647u, 1629628781067588869u },
+  {  3907117066486671641u, 1303703024854071095u }, {  6251387306378674625u, 2085924839766513752u },
+  { 16069156289328670670u, 1668739871813211001u }, {  9165976216721026213u, 1334991897450568801u },
+  {  7286864317269821294u, 2135987035920910082u }, { 16897537898041588005u, 1708789628736728065u },
+  { 13518030318433270404u, 1367031702989382452u }, {  6871453250525591353u, 2187250724783011924u },
+  {  9186511415162383406u, 1749800579826409539u }, { 11038557946871817048u, 1399840463861127631u },
+  { 10282995085511086630u, 2239744742177804210u }, {  8226396068408869304u, 1791795793742243368u },
+  { 13959814484210916090u, 1433436634993794694u }, { 11267656730511734774u, 2293498615990071511u },
+  {  5324776569667477496u, 1834798892792057209u }, {  7949170070475892320u, 1467839114233645767u },
+  { 17427382500606444826u, 1174271291386916613u }, {  5747719112518849781u, 1878834066219066582u },
+  { 15666221734240810795u, 1503067252975253265u }, { 12532977387392648636u, 1202453802380202612u },
+  {  5295368560860596524u, 1923926083808324180u }, {  4236294848688477220u, 1539140867046659344u },
+  {  7078384693692692099u, 1231312693637327475u }, { 11325415509908307358u, 1970100309819723960u },
+  {  9060332407926645887u, 1576080247855779168u }, { 14626963555825137356u, 1260864198284623334u },
+  { 12335095245094488799u, 2017382717255397335u }, {  9868076196075591040u, 1613906173804317868u },
+  { 15273158586344293478u, 1291124939043454294u }, { 13369007293925138595u, 2065799902469526871u },
+  {  7005857020398200553u, 1652639921975621497u }, { 16672732060544291412u, 1322111937580497197u },
+  { 11918976037903224966u, 2115379100128795516u }, {  5845832015580669650u, 1692303280103036413u },
+  { 12055363241948356366u, 1353842624082429130u }, {   841837113407818570u, 2166148198531886609u },
+  {  4362818505468165179u, 1732918558825509287u }, { 14558301248600263113u, 1386334847060407429u },
+  { 12225235553534690011u, 2218135755296651887u }, {  2401490813343931363u, 1774508604237321510u },
+  {  1921192650675145090u, 1419606883389857208u }, { 17831303500047873437u, 2271371013423771532u },
+  {  6886345170554478103u, 1817096810739017226u }, {  1819727321701672159u, 1453677448591213781u },
+  { 16213177116328979020u, 1162941958872971024u }, { 14873036941900635463u, 1860707134196753639u },
+  { 15587778368262418694u, 1488565707357402911u }, {  8780873879868024632u, 1190852565885922329u },
+  {  2981351763563108441u, 1905364105417475727u }, { 13453127855076217722u, 1524291284333980581u },
+  {  7073153469319063855u, 1219433027467184465u }, { 11317045550910502167u, 1951092843947495144u },
+  { 12742985255470312057u, 1560874275157996115u }, { 10194388204376249646u, 1248699420126396892u },
+  {  1553625868034358140u, 1997919072202235028u }, {  8621598323911307159u, 1598335257761788022u },
+  { 17965325103354776697u, 1278668206209430417u }, { 13987124906400001422u, 2045869129935088668u },
+  {   121653480894270168u, 1636695303948070935u }, {    97322784715416134u, 1309356243158456748u },
+  { 14913111714512307107u, 2094969989053530796u }, {  8241140556867935363u, 1675975991242824637u },
+  { 17660958889720079260u, 1340780792994259709u }, { 17189487779326395846u, 2145249268790815535u },
+  { 13751590223461116677u, 1716199415032652428u }, { 18379969808252713988u, 1372959532026121942u },
+  { 14650556434236701088u, 2196735251241795108u }, {   652398703163629901u, 1757388200993436087u },
+  { 11589965406756634890u, 1405910560794748869u }, {  7475898206584884855u, 2249456897271598191u },
+  {  2291369750525997561u, 1799565517817278553u }, {  9211793429904618695u, 1439652414253822842u },
+  { 18428218302589300235u, 2303443862806116547u }, {  7363877012587619542u, 1842755090244893238u },
+  { 13269799239553916280u, 1474204072195914590u }, { 10615839391643133024u, 1179363257756731672u },
+  {  2227947767661371545u, 1886981212410770676u }, { 16539753473096738529u, 1509584969928616540u },
+  { 13231802778477390823u, 1207667975942893232u }, {  6413489186596184024u, 1932268761508629172u },
+  { 16198837793502678189u, 1545815009206903337u }, {  5580372605318321905u, 1236652007365522670u },
+  {  8928596168509315048u, 1978643211784836272u }, { 18210923379033183008u, 1582914569427869017u },
+  {  7190041073742725760u, 1266331655542295214u }, {   436019273762630246u, 2026130648867672343u },
+  {  7727513048493924843u, 1620904519094137874u }, {  9871359253537050198u, 1296723615275310299u },
+  {  4726128361433549347u, 2074757784440496479u }, {  7470251503888749801u, 1659806227552397183u },
+  { 13354898832594820487u, 1327844982041917746u }, { 13989140502667892133u, 2124551971267068394u },
+  { 14880661216876224029u, 1699641577013654715u }, { 11904528973500979224u, 1359713261610923772u },
+  {  4289851098633925465u, 2175541218577478036u }, { 18189276137874781665u, 1740432974861982428u },
+  {  3483374466074094362u, 1392346379889585943u }, {  1884050330976640656u, 2227754207823337509u },
+  {  5196589079523222848u, 1782203366258670007u }, { 15225317707844309248u, 1425762693006936005u },
+  {  5913764258841343181u, 2281220308811097609u }, {  8420360221814984868u, 1824976247048878087u },
+  { 17804334621677718864u, 1459980997639102469u }, { 17932816512084085415u, 1167984798111281975u },
+  { 10245762345624985047u, 1868775676978051161u }, {  4507261061758077715u, 1495020541582440929u },
+  {  7295157664148372495u, 1196016433265952743u }, {  7982903447895485668u, 1913626293225524389u },
+  { 10075671573058298858u, 1530901034580419511u }, {  4371188443704728763u, 1224720827664335609u },
+  { 14372599139411386667u, 1959553324262936974u }, { 15187428126271019657u, 1567642659410349579u },
+  { 15839291315758726049u, 1254114127528279663u }, {  3206773216762499739u, 2006582604045247462u },
+  { 13633465017635730761u, 1605266083236197969u }, { 14596120828850494932u, 1284212866588958375u },
+  {  4907049252451240275u, 2054740586542333401u }, {   236290587219081897u, 1643792469233866721u },
+  { 14946427728742906810u, 1315033975387093376u }, { 16535586736504830250u, 2104054360619349402u },
+  {  5849771759720043554u, 1683243488495479522u }, { 15747863852001765813u, 1346594790796383617u },
+  { 10439186904235184007u, 2154551665274213788u }, { 15730047152871967852u, 1723641332219371030u },
+  { 12584037722297574282u, 1378913065775496824u }, {  9066413911450387881u, 2206260905240794919u },
+  { 10942479943902220628u, 1765008724192635935u }, {  8753983955121776503u, 1412006979354108748u },
+  { 10317025513452932081u, 2259211166966573997u }, {   874922781278525018u, 1807368933573259198u },
+  {  8078635854506640661u, 1445895146858607358u }, { 13841606313089133175u, 1156716117486885886u },
+  { 14767872471458792434u, 1850745787979017418u }, {   746251532941302978u, 1480596630383213935u },
+  {   597001226353042382u, 1184477304306571148u }, { 15712597221132509104u, 1895163686890513836u },
+  {  8880728962164096960u, 1516130949512411069u }, { 10793931984473187891u, 1212904759609928855u },
+  { 17270291175157100626u, 1940647615375886168u }, {  2748186495899949531u, 1552518092300708935u },
+  {  2198549196719959625u, 1242014473840567148u }, { 18275073973719576693u, 1987223158144907436u },
+  { 10930710364233751031u, 1589778526515925949u }, { 12433917106128911148u, 1271822821212740759u },
+  {  8826220925580526867u, 2034916513940385215u }, {  7060976740464421494u, 1627933211152308172u },
+  { 16716827836597268165u, 1302346568921846537u }, { 11989529279587987770u, 2083754510274954460u },
+  {  9591623423670390216u, 1667003608219963568u }, { 15051996368420132820u, 1333602886575970854u },
+  { 13015147745246481542u, 2133764618521553367u }, {  3033420566713364587u, 1707011694817242694u },
+  {  6116085268112601993u, 1365609355853794155u }, {  9785736428980163188u, 2184974969366070648u },
+  { 15207286772667951197u, 1747979975492856518u }, {  1097782973908629988u, 1398383980394285215u },
+  {  1756452758253807981u, 2237414368630856344u }, {  5094511021344956708u, 1789931494904685075u },
+  {  4075608817075965366u, 1431945195923748060u }, {  6520974107321544586u, 2291112313477996896u },
+  {  1527430471115325346u, 1832889850782397517u }, { 12289990821117991246u, 1466311880625918013u },
+  { 17210690286378213644u, 1173049504500734410u }, {  9090360384495590213u, 1876879207201175057u },
+  { 18340334751822203140u, 1501503365760940045u }, { 14672267801457762512u, 1201202692608752036u },
+  { 16096930852848599373u, 1921924308174003258u }, {  1809498238053148529u, 1537539446539202607u },
+  { 12515645034668249793u, 1230031557231362085u }, {  1578287981759648052u, 1968050491570179337u },
+  { 12330676829633449412u, 1574440393256143469u }, { 13553890278448669853u, 1259552314604914775u },
+  {  3239480371808320148u, 2015283703367863641u }, { 17348979556414297411u, 1612226962694290912u },
+  {  6500486015647617283u, 1289781570155432730u }, { 10400777625036187652u, 2063650512248692368u },
+  { 15699319729512770768u, 1650920409798953894u }, { 16248804598352126938u, 1320736327839163115u },
+  {  7551343283653851484u, 2113178124542660985u }, {  6041074626923081187u, 1690542499634128788u },
+  { 12211557331022285596u, 1352433999707303030u }, {  1091747655926105338u, 2163894399531684849u },
+  {  4562746939482794594u, 1731115519625347879u }, {  7339546366328145998u, 1384892415700278303u },
+  {  8053925371383123274u, 2215827865120445285u }, {  6443140297106498619u, 1772662292096356228u },
+  { 12533209867169019542u, 1418129833677084982u }, {  5295740528502789974u, 2269007733883335972u },
+  { 15304638867027962949u, 1815206187106668777u }, {  4865013464138549713u, 1452164949685335022u },
+  { 14960057215536570740u, 1161731959748268017u }, {  9178696285890871890u, 1858771135597228828u },
+  { 14721654658196518159u, 1487016908477783062u }, {  4398626097073393881u, 1189613526782226450u },
+  {  7037801755317430209u, 1903381642851562320u }, {  5630241404253944167u, 1522705314281249856u },
+  {   814844308661245011u, 1218164251424999885u }, {  1303750893857992017u, 1949062802279999816u },
+  { 15800395974054034906u, 1559250241823999852u }, {  5261619149759407279u, 1247400193459199882u },
+  { 12107939454356961969u, 1995840309534719811u }, {  5997002748743659252u, 1596672247627775849u },
+  {  8486951013736837725u, 1277337798102220679u }, {  2511075177753209390u, 2043740476963553087u },
+  { 13076906586428298482u, 1634992381570842469u }, { 14150874083884549109u, 1307993905256673975u },
+  {  4194654460505726958u, 2092790248410678361u }, { 18113118827372222859u, 1674232198728542688u },
+  {  3422448617672047318u, 1339385758982834151u }, { 16543964232501006678u, 2143017214372534641u },
+  {  9545822571258895019u, 1714413771498027713u }, { 15015355686490936662u, 1371531017198422170u },
+  {  5577825024675947042u, 2194449627517475473u }, { 11840957649224578280u, 1755559702013980378u },
+  { 16851463748863483271u, 1404447761611184302u }, { 12204946739213931940u, 2247116418577894884u },
+  { 13453306206113055875u, 1797693134862315907u }, {  3383947335406624054u, 1438154507889852726u },
+  { 16482362180876329456u, 2301047212623764361u }, {  9496540929959153242u, 1840837770099011489u },
+  { 11286581558709232917u, 1472670216079209191u }, {  5339916432225476010u, 1178136172863367353u },
+  {  4854517476818851293u, 1885017876581387765u }, {  3883613981455081034u, 1508014301265110212u },
+  { 14174937629389795797u, 1206411441012088169u }, { 11611853762797942306u, 1930258305619341071u },
+  {  5600134195496443521u, 1544206644495472857u }, { 15548153800622885787u, 1235365315596378285u },
+  {  6430302007287065643u, 1976584504954205257u }, { 16212288050055383484u, 1581267603963364205u },
+  { 12969830440044306787u, 1265014083170691364u }, {  9683682259845159889u, 2024022533073106183u },
+  { 15125643437359948558u, 1619218026458484946u }, {  8411165935146048523u, 1295374421166787957u },
+  { 17147214310975587960u, 2072599073866860731u }, { 10028422634038560045u, 1658079259093488585u },
+  {  8022738107230848036u, 1326463407274790868u }, {  9147032156827446534u, 2122341451639665389u },
+  { 11006974540203867551u, 1697873161311732311u }, {  5116230817421183718u, 1358298529049385849u },
+  { 15564666937357714594u, 2173277646479017358u }, {  1383687105660440706u, 1738622117183213887u },
+  { 12174996128754083534u, 1390897693746571109u }, {  8411947361780802685u, 2225436309994513775u },
+  {  6729557889424642148u, 1780349047995611020u }, {  5383646311539713719u, 1424279238396488816u },
+  {  1235136468979721303u, 2278846781434382106u }, { 15745504434151418335u, 1823077425147505684u },
+  { 16285752362063044992u, 1458461940118004547u }, {  5649904260166615347u, 1166769552094403638u },
+  {  5350498001524674232u, 1866831283351045821u }, {   591049586477829062u, 1493465026680836657u },
+  { 11540886113407994219u, 1194772021344669325u }, {    18673707743239135u, 1911635234151470921u },
+  { 14772334225162232601u, 1529308187321176736u }, {  8128518565387875758u, 1223446549856941389u },
+  {  1937583260394870242u, 1957514479771106223u }, {  8928764237799716840u, 1566011583816884978u },
+  { 14521709019723594119u, 1252809267053507982u }, {  8477339172590109297u, 2004494827285612772u },
+  { 17849917782297818407u, 1603595861828490217u }, {  6901236596354434079u, 1282876689462792174u },
+  { 18420676183650915173u, 2052602703140467478u }, {  3668494502695001169u, 1642082162512373983u },
+  { 10313493231639821582u, 1313665730009899186u }, {  9122891541139893884u, 2101865168015838698u },
+  { 14677010862395735754u, 1681492134412670958u }, {   673562245690857633u, 1345193707530136767u }
+};
+
+static const uint64_t DOUBLE_POW5_SPLIT[DOUBLE_POW5_TABLE_SIZE][2] = {
+  {                    0u, 1152921504606846976u }, {                    0u, 1441151880758558720u },
+  {                    0u, 1801439850948198400u }, {                    0u, 2251799813685248000u },
+  {                    0u, 1407374883553280000u }, {                    0u, 1759218604441600000u },
+  {                    0u, 2199023255552000000u }, {                    0u, 1374389534720000000u },
+  {                    0u, 1717986918400000000u }, {                    0u, 2147483648000000000u },
+  {                    0u, 1342177280000000000u }, {                    0u, 1677721600000000000u },
+  {                    0u, 2097152000000000000u }, {                    0u, 1310720000000000000u },
+  {                    0u, 1638400000000000000u }, {                    0u, 2048000000000000000u },
+  {                    0u, 1280000000000000000u }, {                    0u, 1600000000000000000u },
+  {                    0u, 2000000000000000000u }, {                    0u, 1250000000000000000u },
+  {                    0u, 1562500000000000000u }, {                    0u, 1953125000000000000u },
+  {                    0u, 1220703125000000000u }, {                    0u, 1525878906250000000u },
+  {                    0u, 1907348632812500000u }, {                    0u, 1192092895507812500u },
+  {                    0u, 1490116119384765625u }, {  4611686018427387904u, 1862645149230957031u },
+  {  9799832789158199296u, 1164153218269348144u }, { 12249790986447749120u, 1455191522836685180u },
+  { 15312238733059686400u, 1818989403545856475u }, { 14528612397897220096u, 2273736754432320594u },
+  { 13692068767113150464u, 1421085471520200371u }, { 12503399940464050176u, 1776356839400250464u },
+  { 15629249925580062720u, 2220446049250313080u }, {  9768281203487539200u, 1387778780781445675u },
+  {  7598665485932036096u, 1734723475976807094u }, {   274959820560269312u, 2168404344971008868u },
+  {  9395221924704944128u, 1355252715606880542u }, {  2520655369026404352u, 1694065894508600678u },
+  { 12374191248137781248u, 2117582368135750847u }, { 14651398557727195136u, 1323488980084844279u },
+  { 13702562178731606016u, 1654361225106055349u }, {  3293144668132343808u, 2067951531382569187u },
+  { 18199116482078572544u, 1292469707114105741u }, {  8913837547316051968u, 1615587133892632177u },
+  { 15753982952572452864u, 2019483917365790221u }, { 12152082354571476992u, 1262177448353618888u },
+  { 15190102943214346240u, 1577721810442023610u }, {  9764256642163156992u, 1972152263052529513u },
+  { 17631875447420442880u, 1232595164407830945u }, {  8204786253993389888u, 1540743955509788682u },
+  {  1032610780636961552u, 1925929944387235853u }, {  2951224747111794922u, 1203706215242022408u },
+  {  3689030933889743652u, 1504632769052528010u }, { 13834660704216955373u, 1880790961315660012u },
+  { 17870034976990372916u, 1175494350822287507u }, { 17725857702810578241u, 1469367938527859384u },
+  {  3710578054803671186u, 1836709923159824231u }, {    26536550077201078u, 2295887403949780289u },
+  { 11545800389866720434u, 1434929627468612680u }, { 14432250487333400542u, 1793662034335765850u },
+  {  8816941072311974870u, 2242077542919707313u }, { 17039803216263454053u, 1401298464324817070u },
+  { 12076381983474541759u, 1751623080406021338u }, {  5872105442488401391u, 2189528850507526673u },
+  { 15199280947623720629u, 1368455531567204170u }, {  9775729147674874978u, 1710569414459005213u },
+  { 16831347453020981627u, 2138211768073756516u }, {  1296220121283337709u, 1336382355046097823u },
+  { 15455333206886335848u, 1670477943807622278u }, { 10095794471753144002u, 2088097429759527848u },
+  {  6309871544845715001u, 1305060893599704905u }, { 12499025449484531656u, 1631326116999631131u },
+  { 11012095793428276666u, 2039157646249538914u }, { 11494245889320060820u, 1274473528905961821u },
+  {   532749306367912313u, 1593091911132452277u }, {  5277622651387278295u, 1991364888915565346u },
+  {  7910200175544436838u, 1244603055572228341u }, { 14499436237857933952u, 1555753819465285426u },
+  {  8900923260467641632u, 1944692274331606783u }, { 12480606065433357876u, 1215432671457254239u },
+  { 10989071563364309441u, 1519290839321567799u }, {  9124653435777998898u, 1899113549151959749u },
+  {  8008751406574943263u, 1186945968219974843u }, {  5399253239791291175u, 1483682460274968554u },
+  { 15972438586593889776u, 1854603075343710692u }, {   759402079766405302u, 1159126922089819183u },
+  { 14784310654990170340u, 1448908652612273978u }, {  9257016281882937117u, 1811135815765342473u },
+  { 16182956370781059300u, 2263919769706678091u }, {  7808504722524468110u, 1414949856066673807u },
+  {  5148944884728197234u, 1768687320083342259u }, {  1824495087482858639u, 2210859150104177824u },
+  {  1140309429676786649u, 1381786968815111140u }, {  1425386787095983311u, 1727233711018888925u },
+  {  6393419502297367043u, 2159042138773611156u }, { 13219259225790630210u, 1349401336733506972u },
+  { 16524074032238287762u, 1686751670916883715u }, { 16043406521870471799u, 2108439588646104644u },
+  {   803757039314269066u, 1317774742903815403u }, { 14839754354425000045u, 1647218428629769253u },
+  {  4714634887749086344u, 2059023035787211567u }, {  9864175832484260821u, 1286889397367007229u },
+  { 16941905809032713930u, 1608611746708759036u }, {  2730638187581340797u, 2010764683385948796u },
+  { 10930020904093113806u, 1256727927116217997u }, { 18274212148543780162u, 1570909908895272496u },
+  {  4396021111970173586u, 1963637386119090621u }, {  5053356204195052443u, 1227273366324431638u },
+  { 15540067292098591362u, 1534091707905539547u }, { 14813398096695851299u, 1917614634881924434u },
+  { 13870059828862294966u, 1198509146801202771u }, { 12725888767650480803u, 1498136433501503464u },
+  { 15907360959563101004u, 1872670541876879330u }, { 14553786618154326031u, 1170419088673049581u },
+  {  4357175217410743827u, 1463023860841311977u }, { 10058155040190817688u, 1828779826051639971u },
+  {  7961007781811134206u, 2285974782564549964u }, { 14199001900486734687u, 1428734239102843727u },
+  { 13137066357181030455u, 1785917798878554659u }, { 11809646928048900164u, 2232397248598193324u },
+  { 16604401366885338411u, 1395248280373870827u }, { 16143815690179285109u, 1744060350467338534u },
+  { 10956397575869330579u, 2180075438084173168u }, {  6847748484918331612u, 1362547148802608230u },
+  { 17783057643002690323u, 1703183936003260287u }, { 17617136035325974999u, 2128979920004075359u },
+  { 17928239049719816230u, 1330612450002547099u }, { 17798612793722382384u, 1663265562503183874u },
+  { 13024893955298202172u, 2079081953128979843u }, {  5834715712847682405u, 1299426220705612402u },
+  { 16516766677914378815u, 1624282775882015502u }, { 11422586310538197711u, 2030353469852519378u },
+  { 11750802462513761473u, 1268970918657824611u }, { 10076817059714813937u, 1586213648322280764u },
+  { 12596021324643517422u, 1982767060402850955u }, {  5566670318688504437u, 1239229412751781847u },
+  {  2346651879933242642u, 1549036765939727309u }, {  7545000868343941206u, 1936295957424659136u },
+  {  4715625542714963254u, 1210184973390411960u }, {  5894531928393704067u, 1512731216738014950u },
+  { 16591536947346905892u, 1890914020922518687u }, { 17287239619732898039u, 1181821263076574179u },
+  { 16997363506238734644u, 1477276578845717724u }, {  2799960309088866689u, 1846595723557147156u },
+  { 10973347230035317489u, 1154122327223216972u }, { 13716684037544146861u, 1442652909029021215u },
+  { 12534169028502795672u, 1803316136286276519u }, { 11056025267201106687u, 2254145170357845649u },
+  { 18439230838069161439u, 1408840731473653530u }, { 13825666510731675991u, 1761050914342066913u },
+  {  3447025083132431277u, 2201313642927583642u }, {  6766076695385157452u, 1375821026829739776u },
+  {  8457595869231446815u, 1719776283537174720u }, { 10571994836539308519u, 2149720354421468400u },
+  {  6607496772837067824u, 1343575221513417750u }, { 17482743002901110588u, 1679469026891772187u },
+  { 17241742735199000331u, 2099336283614715234u }, { 15387775227926763111u, 1312085177259197021u },
+  {  5399660979626290177u, 1640106471573996277u }, { 11361262242960250625u, 2050133089467495346u },
+  { 11712474920277544544u, 1281333180917184591u }, { 10028907631919542777u, 1601666476146480739u },
+  {  7924448521472040567u, 2002083095183100924u }, { 14176152362774801162u, 1251301934489438077u },
+  {  3885132398186337741u, 1564127418111797597u }, {  9468101516160310080u, 1955159272639746996u },
+  { 15140935484454969608u, 1221974545399841872u }, {   479425281859160394u, 1527468181749802341u },
+  {  5210967620751338397u, 1909335227187252926u }, { 17091912818251750210u, 1193334516992033078u },
+  { 12141518985959911954u, 1491668146240041348u }, { 15176898732449889943u, 1864585182800051685u },
+  { 11791404716994875166u, 1165365739250032303u }, { 10127569877816206054u, 1456707174062540379u },
+  {  8047776328842869663u, 1820883967578175474u }, {   836348374198811271u, 2276104959472719343u },
+  {  7440246761515338900u, 1422565599670449589u }, { 13911994470321561530u, 1778206999588061986u },
+  {  8166621051047176104u, 2222758749485077483u }, {  2798295147690791113u, 1389224218428173427u },
+  { 17332926989895652603u, 1736530273035216783u }, { 17054472718942177850u, 2170662841294020979u },
+  {  8353202440125167204u, 1356664275808763112u }, { 10441503050156459005u, 1695830344760953890u },
+  {  3828506775840797949u, 2119787930951192363u }, {    86973725686804766u, 1324867456844495227u },
+  { 13943775212390669669u, 1656084321055619033u }, {  3594660960206173375u, 2070105401319523792u },
+  {  2246663100128858359u, 1293815875824702370u }, { 12031700912015848757u, 1617269844780877962u },
+  {  5816254103165035138u, 2021587305976097453u }, {  5941001823691840913u, 1263492066235060908u },
+  {  7426252279614801142u, 1579365082793826135u }, {  4671129331091113523u, 1974206353492282669u },
+  {  5225298841145639904u, 1233878970932676668u }, {  6531623551432049880u, 1542348713665845835u },
+  {  3552843420862674446u, 1927935892082307294u }, { 16055585193321335241u, 1204959932551442058u },
+  { 10846109454796893243u, 1506199915689302573u }, { 18169322836923504458u, 1882749894611628216u },
+  { 11355826773077190286u, 1176718684132267635u }, {  9583097447919099954u, 1470898355165334544u },
+  { 11978871809898874942u, 1838622943956668180u }, { 14973589762373593678u, 2298278679945835225u },
+  {  2440964573842414192u, 1436424174966147016u }, {  3051205717303017741u, 1795530218707683770u },
+  { 13037379183483547984u, 2244412773384604712u }, {  8148361989677217490u, 1402757983365377945u },
+  { 14797138505523909766u, 1753447479206722431u }, { 13884737113477499304u, 2191809349008403039u },
+  { 15595489723564518921u, 1369880843130251899u }, { 14882676136028260747u, 1712351053912814874u },
+  {  9379973133180550126u, 2140438817391018593u }, { 17391698254306313589u, 1337774260869386620u },
+  {  3292878744173340370u, 1672217826086733276u }, {  4116098430216675462u, 2090272282608416595u },
+  {   266718509671728212u, 1306420176630260372u }, {   333398137089660265u, 1633025220787825465u },
+  {  5028433689789463235u, 2041281525984781831u }, { 10060300083759496378u, 1275800953740488644u },
+  { 12575375104699370472u, 1594751192175610805u }, {  1884160825592049379u, 1993438990219513507u },
+  { 17318501580490888525u, 1245899368887195941u }, {  7813068920331446945u, 1557374211108994927u },
+  {  5154650131986920777u, 1946717763886243659u }, {   915813323278131534u, 1216698602428902287u },
+  { 14979824709379828129u, 1520873253036127858u }, {  9501408849870009354u, 1901091566295159823u },
+  { 12855909558809837702u, 1188182228934474889u }, {  2234828893230133415u, 1485227786168093612u },
+  {  2793536116537666769u, 1856534732710117015u }, {  8663489100477123587u, 1160334207943823134u },
+  {  1605989338741628675u, 1450417759929778918u }, { 11230858710281811652u, 1813022199912223647u },
+  {  9426887369424876662u, 2266277749890279559u }, { 12809333633531629769u, 1416423593681424724u },
+  { 16011667041914537212u, 1770529492101780905u }, {  6179525747111007803u, 2213161865127226132u },
+  { 13085575628799155685u, 1383226165704516332u }, { 16356969535998944606u, 1729032707130645415u },
+  { 15834525901571292854u, 2161290883913306769u }, {  2979049660840976177u, 1350806802445816731u },
+  { 17558870131333383934u, 1688508503057270913u }, {  8113529608884566205u, 2110635628821588642u },
+  {  9682642023980241782u, 1319147268013492901u }, { 16714988548402690132u, 1648934085016866126u },
+  { 11670363648648586857u, 2061167606271082658u }, { 11905663298832754689u, 1288229753919426661u },
+  {  1047021068258779650u, 1610287192399283327u }, { 15143834390605638274u, 2012858990499104158u },
+  {  4853210475701136017u, 1258036869061940099u }, {  1454827076199032118u, 1572546086327425124u },
+  {  1818533845248790147u, 1965682607909281405u }, {  3442426662494187794u, 1228551629943300878u },
+  { 13526405364972510550u, 1535689537429126097u }, {  3072948650933474476u, 1919611921786407622u },
+  { 15755650962115585259u, 1199757451116504763u }, { 15082877684217093670u, 1499696813895630954u },
+  {  9630225068416591280u, 1874621017369538693u }, {  8324733676974063502u, 1171638135855961683u },
+  {  5794231077790191473u, 1464547669819952104u }, {  7242788847237739342u, 1830684587274940130u },
+  { 18276858095901949986u, 2288355734093675162u }, { 16034722328366106645u, 1430222333808546976u },
+  {  1596658836748081690u, 1787777917260683721u }, {  6607509564362490017u, 2234722396575854651u },
+  {  1823850468512862308u, 1396701497859909157u }, {  6891499104068465790u, 1745876872324886446u },
+  { 17837745916940358045u, 2182346090406108057u }, {  4231062170446641922u, 1363966306503817536u },
+  {  5288827713058302403u, 1704957883129771920u }, {  6611034641322878003u, 2131197353912214900u },
+  { 13355268687681574560u, 1331998346195134312u }, { 16694085859601968200u, 1664997932743917890u },
+  { 11644235287647684442u, 2081247415929897363u }, {  4971804045566108824u, 1300779634956185852u },
+  {  6214755056957636030u, 1625974543695232315u }, {  3156757802769657134u, 2032468179619040394u },
+  {  6584659645158423613u, 1270292612261900246u }, { 17454196593302805324u, 1587865765327375307u },
+  { 17206059723201118751u, 1984832206659219134u }, {  6142101308573311315u, 1240520129162011959u },
+  {  3065940617289251240u, 1550650161452514949u }, {  8444111790038951954u, 1938312701815643686u },
+  {   665883850346957067u, 1211445438634777304u }, {   832354812933696334u, 1514306798293471630u },
+  { 10263815553021896226u, 1892883497866839537u }, { 17944099766707154901u, 1183052186166774710u },
+  { 13206752671529167818u, 1478815232708468388u }, { 16508440839411459773u, 1848519040885585485u },
+  { 12623618533845856310u, 1155324400553490928u }, { 15779523167307320387u, 1444155500691863660u },
+  {  1277659885424598868u, 1805194375864829576u }, {  1597074856780748586u, 2256492969831036970u },
+  {  5609857803915355770u, 1410308106144398106u }, { 16235694291748970521u, 1762885132680497632u },
+  {  1847873790976661535u, 2203606415850622041u }, { 12684136165428883219u, 1377254009906638775u },
+  { 11243484188358716120u, 1721567512383298469u }, {   219297180166231438u, 2151959390479123087u },
+  {  7054589765244976505u, 1344974619049451929u }, { 13429923224983608535u, 1681218273811814911u },
+  { 12175718012802122765u, 2101522842264768639u }, { 14527352785642408584u, 1313451776415480399u },
+  { 13547504963625622826u, 1641814720519350499u }, { 12322695186104640628u, 2052268400649188124u },
+  { 16925056528170176201u, 1282667750405742577u }, {  7321262604930556539u, 1603334688007178222u },
+  { 18374950293017971482u, 2004168360008972777u }, {  4566814905495150320u, 1252605225005607986u },
+  { 14931890668723713708u, 1565756531257009982u }, {  9441491299049866327u, 1957195664071262478u },
+  {  1289246043478778550u, 1223247290044539049u }, {  6223243572775861092u, 1529059112555673811u },
+  {  3167368447542438461u, 1911323890694592264u }, {  1979605279714024038u, 1194577431684120165u },
+  {  7086192618069917952u, 1493221789605150206u }, { 18081112809442173248u, 1866527237006437757u },
+  { 13606538515115052232u, 1166579523129023598u }, {  7784801107039039482u, 1458224403911279498u },
+  {   507629346944023544u, 1822780504889099373u }, {  5246222702107417334u, 2278475631111374216u },
+  {  3278889188817135834u, 1424047269444608885u }, {  8710297504448807696u, 1780059086805761106u }
+};
+
+#endif // RYU_D2S_FULL_TABLE_H
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* digit_table.h */
+
+// Copyright 2018 Ulf Adams
+//
+// The contents of this file may be used under the terms of the Apache License,
+// Version 2.0.
+//
+//    (See accompanying file LICENSE-Apache or copy at
+//     http://www.apache.org/licenses/LICENSE-2.0)
+//
+// Alternatively, the contents of this file may be used under the terms of
+// the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE-Boost or copy at
+//     https://www.boost.org/LICENSE_1_0.txt)
+//
+// Unless required by applicable law or agreed to in writing, this software
+// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.
+#ifndef RYU_DIGIT_TABLE_H
+#define RYU_DIGIT_TABLE_H
+
+// A table of all two-digit numbers. This is used to speed up decimal digit
+// generation by copying pairs of digits into the final output.
+static const char DIGIT_TABLE[200] = {
+  '0','0','0','1','0','2','0','3','0','4','0','5','0','6','0','7','0','8','0','9',
+  '1','0','1','1','1','2','1','3','1','4','1','5','1','6','1','7','1','8','1','9',
+  '2','0','2','1','2','2','2','3','2','4','2','5','2','6','2','7','2','8','2','9',
+  '3','0','3','1','3','2','3','3','3','4','3','5','3','6','3','7','3','8','3','9',
+  '4','0','4','1','4','2','4','3','4','4','4','5','4','6','4','7','4','8','4','9',
+  '5','0','5','1','5','2','5','3','5','4','5','5','5','6','5','7','5','8','5','9',
+  '6','0','6','1','6','2','6','3','6','4','6','5','6','6','6','7','6','8','6','9',
+  '7','0','7','1','7','2','7','3','7','4','7','5','7','6','7','7','7','8','7','9',
+  '8','0','8','1','8','2','8','3','8','4','8','5','8','6','8','7','8','8','8','9',
+  '9','0','9','1','9','2','9','3','9','4','9','5','9','6','9','7','9','8','9','9'
+};
+
+#endif // RYU_DIGIT_TABLE_H
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* common.h */
 
 // MIT License
@@ -9110,95 +9199,6 @@ size_t gp_bytes_print_objects(
 
 #endif // GP_PRINT_COMMON_INCLUDED
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* digit_table.h */
-
-// Copyright 2018 Ulf Adams
-//
-// The contents of this file may be used under the terms of the Apache License,
-// Version 2.0.
-//
-//    (See accompanying file LICENSE-Apache or copy at
-//     http://www.apache.org/licenses/LICENSE-2.0)
-//
-// Alternatively, the contents of this file may be used under the terms of
-// the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE-Boost or copy at
-//     https://www.boost.org/LICENSE_1_0.txt)
-//
-// Unless required by applicable law or agreed to in writing, this software
-// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.
-#ifndef RYU_DIGIT_TABLE_H
-#define RYU_DIGIT_TABLE_H
-
-// A table of all two-digit numbers. This is used to speed up decimal digit
-// generation by copying pairs of digits into the final output.
-static const char DIGIT_TABLE[200] = {
-  '0','0','0','1','0','2','0','3','0','4','0','5','0','6','0','7','0','8','0','9',
-  '1','0','1','1','1','2','1','3','1','4','1','5','1','6','1','7','1','8','1','9',
-  '2','0','2','1','2','2','2','3','2','4','2','5','2','6','2','7','2','8','2','9',
-  '3','0','3','1','3','2','3','3','3','4','3','5','3','6','3','7','3','8','3','9',
-  '4','0','4','1','4','2','4','3','4','4','4','5','4','6','4','7','4','8','4','9',
-  '5','0','5','1','5','2','5','3','5','4','5','5','5','6','5','7','5','8','5','9',
-  '6','0','6','1','6','2','6','3','6','4','6','5','6','6','6','7','6','8','6','9',
-  '7','0','7','1','7','2','7','3','7','4','7','5','7','6','7','7','7','8','7','9',
-  '8','0','8','1','8','2','8','3','8','4','8','5','8','6','8','7','8','8','8','9',
-  '9','0','9','1','9','2','9','3','9','4','9','5','9','6','9','7','9','8','9','9'
-};
-
-#endif // RYU_DIGIT_TABLE_H
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* ryu.h */
-
-// Copyright 2018 Ulf Adams
-//
-// The contents of this file may be used under the terms of the Apache License,
-// Version 2.0.
-//
-//    (See accompanying file LICENSE-Apache or copy at
-//     http://www.apache.org/licenses/LICENSE-2.0)
-//
-// Alternatively, the contents of this file may be used under the terms of
-// the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE-Boost or copy at
-//     https://www.boost.org/LICENSE_1_0.txt)
-//
-// Unless required by applicable law or agreed to in writing, this software
-// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.
-#ifndef RYU_H
-#define RYU_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <inttypes.h>
-
-int d2s_buffered_n(double f, char* result);
-void d2s_buffered(double f, char* result);
-char* d2s(double f);
-
-int f2s_buffered_n(float f, char* result);
-void f2s_buffered(float f, char* result);
-char* f2s(float f);
-
-int d2fixed_buffered_n(double d, uint32_t precision, char* result);
-void d2fixed_buffered(double d, uint32_t precision, char* result);
-char* d2fixed(double d, uint32_t precision);
-
-int d2exp_buffered_n(double d, uint32_t precision, char* result);
-void d2exp_buffered(double d, uint32_t precision, char* result);
-char* d2exp(double d, uint32_t precision);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // RYU_H
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *
  */
@@ -9206,6 +9206,1390 @@ char* d2exp(double d, uint32_t precision);
 /*
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* utils.c */
+
+
+extern inline uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary);
+extern inline bool gp_fapproxf(float x, float y, float max_relative_diff);
+extern inline bool gp_fapprox(double x, double y, double max_relative_diff);
+extern inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff);
+
+extern inline int                gp_imin(int x, int y);
+extern inline long               gp_lmin(long x, long y);
+extern inline long long          gp_llmin(long long x, long long y);
+extern inline unsigned           gp_umin(unsigned x, unsigned y);
+extern inline unsigned long      gp_lumin(unsigned long x, unsigned long y);
+extern inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y);
+
+extern inline int                gp_imax(int x, int y);
+extern inline long               gp_lmax(long x, long y);
+extern inline long long          gp_llmax(long long x, long long y);
+extern inline unsigned           gp_umax(unsigned x, unsigned y);
+extern inline unsigned long      gp_lumax(unsigned long x, unsigned long y);
+extern inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y);
+
+size_t gp_next_power_of_2(size_t x)
+{
+    return sizeof x == sizeof(uint32_t) ?
+        gp_next_power_of_2_32(x) : gp_next_power_of_2_64(x);
+}
+
+uint32_t gp_next_power_of_2_32(uint32_t x)
+{
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    return x + 1;
+}
+
+uint64_t gp_next_power_of_2_64(uint64_t x)
+{
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x |= x >> 32;
+    return x + 1;
+}
+
+bool gp_check_bounds(size_t* start, size_t* end, size_t limit)
+{
+    bool clipped = false;
+    end = end != NULL ? end : &(size_t){ limit };
+    if (*end > limit) {
+        *end = limit;
+        clipped = true;
+    }
+    if (start != NULL && *start >= *end) {
+        *start  = *end - (limit != 0);
+        clipped = true;
+    }
+    return ! clipped;
+}
+
+
+// Random stuff
+
+//static pcg32_random_t pcg32_global = PCG32_INITIALIZER;
+
+GPRandomState gp_new_random_state(uint64_t seed)
+{
+    GPRandomState state;
+    pcg32_srandom_r((pcg32_random_t*)&state, seed, 0xf35d3918378e53c4ULL);
+    return state;
+}
+
+uint32_t gp_random(GPRandomState* state)
+{
+    return pcg32_random_r((pcg32_random_t*)state);
+}
+
+double gp_frandom(GPRandomState* state)
+{
+    return ldexp(pcg32_random_r((pcg32_random_t*)state), -32);
+}
+
+int32_t gp_random_range(GPRandomState* state, int32_t min, int32_t max)
+{
+    if (max - min > 0)
+        return  (int32_t)pcg32_boundedrand_r((pcg32_random_t*)state,(uint32_t)( max - min + 1)) + min;
+    else
+        return -(int32_t)pcg32_boundedrand_r((pcg32_random_t*)state,(uint32_t)(-max + min - 1)) + min;
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* bytes.c */
+
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <wchar.h>
+#include <wctype.h>
+#include <limits.h>
+
+static void* gp_memmem(
+    const void* haystack, const size_t hlen, const void* needle, const size_t nlen)
+{
+    #if defined(_GNU_SOURCE) && defined(__linux__)
+    return memmem(haystack, hlen, needle, nlen);
+    #endif
+    if (hlen == 0 || nlen == 0)
+        return NULL;
+
+    const char n0 = *(char*)needle;
+    for (char* p = memchr(haystack, n0, hlen); p != NULL;)
+    {
+        if (p + nlen > (char*)haystack + hlen)
+            return NULL;
+        if (memcmp(p, needle, nlen) == 0)
+            return p;
+
+        p++;
+        p = memchr(p, n0, hlen - (p - (char*)haystack));
+    }
+    return NULL;
+}
+
+size_t gp_bytes_find_first(
+    const void*  haystack,
+    const size_t haystack_size,
+    const void*  needle,
+    const size_t needle_size,
+    const size_t start)
+{
+    const char* result = gp_memmem(
+        (char*)haystack + start, haystack_size - start, needle, needle_size);
+    return result ? (size_t)(result - (char*)haystack) : GP_NOT_FOUND;
+}
+
+// Find first occurrence of ch looking from right to left
+static const char* gp_memchr_r(const char* ptr_r, const char ch, size_t count)
+{
+    const char* position = NULL;
+    while (--ptr_r, --count != (size_t)-1) // <=> count >= 0
+    {
+        if (*ptr_r == ch) {
+            position = ptr_r;
+            break;
+        }
+    }
+    return position;
+}
+
+size_t gp_bytes_find_last(
+    const void*  _haystack,
+    const size_t haystack_length,
+    const void*  needle,
+    const size_t needle_length)
+{
+    const char* haystack = (const char*)_haystack;
+
+    if (needle_length > haystack_length || needle_length==0 || haystack_length==0)
+        return GP_NOT_FOUND;
+
+    size_t position = GP_NOT_FOUND;
+    const size_t needle_last = needle_length - 1;
+    const char* data = haystack + haystack_length - needle_last;
+    size_t to_be_searched = haystack_length - needle_last;
+
+    while ((data = gp_memchr_r(data, *(char*)needle, to_be_searched)))
+    {
+        if (memcmp(data, needle, needle_length) == 0)
+        {
+            position = (size_t)(data - haystack);
+            break;
+        }
+        data--;
+        const char* haystack_end = haystack + haystack_length;
+        to_be_searched = haystack_length - (size_t)(haystack_end - data);
+    }
+    return position;
+}
+
+size_t gp_bytes_find_first_of(
+    const void*const haystack,
+    const size_t haystack_size,
+    const char*const char_set,
+    const size_t start)
+{
+    const uint8_t*const hay = haystack;
+    for (size_t i = start; i < haystack_size; i++)
+        if (strchr(char_set, hay[i]) != NULL)
+            return i;
+    return GP_NOT_FOUND;
+}
+
+size_t gp_bytes_find_first_not_of(
+    const void*const haystack,
+    const size_t haystack_size,
+    const char*const char_set,
+    const size_t start)
+{
+    const uint8_t*const hay = haystack;
+    for (size_t i = start; i < haystack_size; i++)
+        if (strchr(char_set, hay[i]) == NULL)
+            return i;
+    return GP_NOT_FOUND;
+}
+
+size_t gp_bytes_count(
+    const void*  haystack,
+    const size_t haystack_length,
+    const void*  needle,
+    const size_t needle_size)
+{
+    size_t count = 0;
+    size_t i = 0;
+    while ((i = gp_bytes_find_first(haystack, haystack_length, needle, needle_size, i))
+        != GP_NOT_FOUND)
+    {
+        count++;
+        i++;
+    }
+    return count;
+}
+
+bool gp_bytes_equal(
+    const void*  s1,
+    const size_t s1_size,
+    const void*  s2,
+    const size_t s2_size)
+{
+    if (s1_size != s2_size)
+        return false;
+    else
+        return memcmp(s1, s2, s2_size) == 0;
+}
+
+bool gp_bytes_equal_case(
+    const void* _s1,
+    const size_t s1_size,
+    const void* _s2,
+    const size_t s2_size)
+{
+    if (s1_size != s2_size)
+        return false;
+
+    const char* s1 = _s1;
+    const char* s2 = _s2;
+    for (size_t i = 0; i < s1_size; i++)
+    {
+        const char c1 = s1[i] + ('A' <= s1[i] && s1[i] <= 'Z') * ('a' - 'A');
+        const char c2 = s2[i] + ('A' <= s2[i] && s2[i] <= 'Z') * ('a' - 'A');
+        if (c1 != c2)
+            return false;
+    }
+    return true;
+}
+
+bool gp_bytes_is_valid(
+    const void* _str,
+    const size_t n,
+    size_t* invalid_index)
+{
+    const uint8_t* str = _str;
+    const size_t align_offset = (uintptr_t)str     % 8;
+    const size_t remaining    = (n - align_offset) % 8;
+    size_t i = 0;
+
+    for (size_t len = gp_min(align_offset, n); i < len; i++) {
+        if (str[i] & 0x80) {
+            if (invalid_index != NULL)
+                *invalid_index = i;
+            return false;
+        }
+    }
+    for (; i < n - remaining; i += 8) {
+        uint64_t x;
+        memcpy(&x, str + i, sizeof x);
+        if (x & 0x8080808080808080) // invalid detected
+            break; // find the index for the invalid in the next loop
+    }
+    for (; i < n; i++) {
+        if (str[i] & 0x80) {
+            if (invalid_index != NULL)
+                *invalid_index = i;
+            return false;
+        }
+    }
+    return true;
+}
+
+size_t gp_bytes_slice(
+    void*restrict dest,
+    const void*restrict src,
+    size_t start,
+    size_t end)
+{
+    if (src != NULL)
+        memcpy(dest, (uint8_t*)src + start, end - start);
+    else
+        memmove(dest, (uint8_t*)dest + start, end - start);
+    return end - start;
+}
+
+size_t gp_bytes_repeat(
+    void*restrict dest,
+    const size_t n,
+    const void*restrict mem,
+    const size_t mem_length)
+{
+    if (mem_length == 1) {
+        memset(dest, *(uint8_t*)mem, n);
+    } else for (size_t i = 0; i < n; i++) {
+        memcpy((uint8_t*)dest + i * mem_length, mem, mem_length);
+    }
+    return n * mem_length;
+}
+
+size_t gp_bytes_append(
+    void*restrict dest,
+    const size_t dest_length,
+    const void* src,
+    const size_t src_length)
+{
+    memcpy((uint8_t*)dest + dest_length, src, src_length + sizeof(""));
+    return dest_length + src_length;
+}
+
+size_t gp_bytes_insert(
+    void*restrict dest,
+    const size_t dest_length,
+    size_t pos,
+    const void*restrict src,
+    size_t n)
+{
+    memmove((uint8_t*)dest + pos + n, (uint8_t*)dest + pos, dest_length - pos);
+    memcpy((uint8_t*)dest + pos, src, n);
+    return dest_length + n;
+}
+
+size_t gp_bytes_replace_range(
+    void*restrict me,
+    const size_t me_length,
+    const size_t start,
+    const size_t end,
+    const void*restrict replacement,
+    const size_t replacement_length)
+{
+    memmove(
+        (uint8_t*)me + start + replacement_length,
+        (uint8_t*)me + end,
+        me_length - end);
+
+    memcpy((uint8_t*)me + start, replacement, replacement_length);
+    return me_length + replacement_length - (end - start);
+}
+
+size_t gp_bytes_replace(
+    void*restrict haystack,
+    const size_t haystack_length,
+    const void*restrict needle,
+    const size_t needle_length,
+    const void*restrict replacement,
+    const size_t replacement_length,
+    size_t* in_start_out_pos)
+{
+    size_t start = in_start_out_pos != NULL ? *in_start_out_pos : 0;
+    if ((start = gp_bytes_find_first(haystack, haystack_length, needle, needle_length, start))
+        == GP_NOT_FOUND) {
+        return GP_NOT_FOUND;
+    }
+
+    if (in_start_out_pos != NULL)
+        *in_start_out_pos = start;
+
+    const size_t end = start + needle_length;
+    return gp_bytes_replace_range(
+        haystack,
+        haystack_length,
+        start,
+        end,
+        replacement,
+        replacement_length);
+}
+
+size_t gp_bytes_replace_all(
+    void*restrict haystack,
+    size_t haystack_length,
+    const void*restrict needle,
+    const size_t needle_length,
+    const void*restrict replacement,
+    const size_t replacement_length,
+    size_t* optional_replacement_count)
+{
+    size_t start = 0;
+    size_t replacement_count = 0;
+    while ((start = gp_bytes_find_first(haystack, haystack_length, needle, needle_length, start))
+        != GP_NOT_FOUND)
+    {
+        haystack_length = gp_bytes_replace_range(
+            haystack,
+            haystack_length,
+            start,
+            start + needle_length,
+            replacement,
+            replacement_length);
+
+        start += replacement_length;
+        replacement_count++;
+    }
+    if (optional_replacement_count != NULL)
+        *optional_replacement_count = replacement_count;
+    return haystack_length;
+}
+
+size_t gp_bytes_print_internal(
+    void*restrict out,
+    const size_t n,
+    const size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    size_t length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        length += gp_bytes_print_objects(
+            n >= length ? n - length : 0,
+            (uint8_t*)out + length,
+            &args,
+            &i,
+            objs[i]);
+    }
+    va_end(_args);
+    va_end(args.list);
+
+    return length;
+}
+
+size_t gp_bytes_println_internal(
+    void*restrict out,
+    const size_t n,
+    const size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    size_t length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        length += gp_bytes_print_objects(
+            n >= length ? n - length : 0,
+            (uint8_t*)out + length,
+            &args,
+            &i,
+            objs[i]);
+
+        if (n > length)
+            ((char*)out)[length++] = ' ';
+    }
+    va_end(_args);
+    va_end(args.list);
+
+    if (n > (length - !!length)) // overwrite last space
+        ((char*)out)[length - 1] = '\n';
+
+    return length;
+}
+
+size_t gp_bytes_trim(
+    void*restrict _str,
+    size_t length,
+    void**restrict optional_out_ptr,
+    const char*restrict optional_char_set,
+    int flags)
+{
+    if (length == 0)
+        return 0;
+
+    char* str = _str;
+    const bool left  = flags & 0x04;
+    const bool right = flags & 0x02;
+
+    const char* char_set = optional_char_set != NULL ?
+        optional_char_set :
+        GP_ASCII_WHITESPACE;
+
+    if (left)
+    {
+        char last = str[length - 1];
+        str[length - 1] = '\0';
+        size_t prefix_length = strspn(str, char_set);
+        str[length - 1] = last;
+
+        if (prefix_length == length - 1 && strchr(char_set, last) != NULL)
+            prefix_length++;
+
+        length -= prefix_length;
+
+        if (optional_out_ptr != NULL)
+            *optional_out_ptr = str + prefix_length;
+        else
+            memmove(str, str + prefix_length, length);
+    }
+
+    if (right && length > 0)
+    {
+        while (strchr(char_set, ((char*)str)[length - 1]) != NULL) {
+            length--;
+            if (length == 0)
+                break;
+        }
+    }
+    return length;
+}
+
+size_t gp_bytes_to_upper(
+    void* _bytes,
+    size_t bytes_size)
+{
+    char* bytes = _bytes;
+    for (size_t i = 0; i < bytes_size; i++)
+    {
+        if ('a' <= bytes[i] && bytes[i] <= 'z')
+            bytes[i] -= 'a' - 'A';
+    }
+    return bytes_size;
+}
+
+size_t gp_bytes_to_lower(
+    void* _bytes,
+    size_t bytes_size)
+{
+    char* bytes = _bytes;
+    for (size_t i = 0; i < bytes_size; i++)
+    {
+        if ('A' <= bytes[i] && bytes[i] <= 'Z')
+            bytes[i] += 'a' - 'A';
+    }
+    return bytes_size;
+}
+
+static size_t gp_bytes_find_invalid(
+    const void* _haystack,
+    const size_t start,
+    const size_t length)
+{
+    const uint8_t* haystack = _haystack;
+    for (size_t i = start; i < length; i++)
+    {
+        if (haystack[i] >= 0x80)
+            return i;
+    }
+    return GP_NOT_FOUND;
+}
+
+static size_t gp_bytes_find_valid(
+    const void* _haystack,
+    const size_t start,
+    const size_t length)
+{
+    const uint8_t* haystack = _haystack;
+    for (size_t i = start; i < length; i++)
+    {
+        if (haystack[i] < 0x80)
+            return i;
+    }
+    return length;
+}
+
+size_t gp_bytes_to_valid(
+    void*restrict str,
+    size_t length,
+    const char* replacement)
+{
+    const size_t replacement_length = strlen(replacement);
+
+    size_t start = 0;
+    while ((start = gp_bytes_find_invalid(str, start, length)) != GP_NOT_FOUND)
+    {
+        length = gp_bytes_replace_range(
+            str,
+            length,
+            start,
+            gp_bytes_find_valid(str, start, length),
+            replacement,
+            replacement_length);
+
+        start += replacement_length;
+    }
+    return length;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* string.c */
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <wchar.h>
+#include <wctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+GPString gp_str_new(
+    const GPAllocator*const allocator,
+    size_t capacity,
+    const char*const init)
+{
+    const size_t init_length = strlen(init);
+    capacity = gp_max(init_length, capacity);
+    GPStringHeader* me = gp_mem_alloc(allocator, sizeof*me + capacity + sizeof"");
+    *me = (GPStringHeader) {
+        .length     = init_length,
+        .capacity   = capacity,
+        .allocator  = allocator,
+        .allocation = me };
+    return memcpy(me + 1, init, init_length);
+}
+
+void gp_str_delete(GPString me)
+{
+    if (me != NULL && gp_str_allocation(me) != NULL)
+        gp_mem_dealloc(gp_str_allocator(me), gp_str_allocation(me));
+}
+
+static GPStringHeader* gp_str_header(const GPString str)
+{
+    return (GPStringHeader*)str - 1;
+}
+
+size_t             gp_str_length    (GPString s) { return gp_str_header(s)->length;    }
+size_t             gp_str_capacity  (GPString s) { return gp_str_header(s)->capacity;  }
+void*              gp_str_allocation(GPString s) { return gp_str_header(s)->allocation;}
+const GPAllocator* gp_str_allocator (GPString s) { return gp_str_header(s)->allocator; }
+
+size_t gp_str_find_first(
+    GPString    haystack,
+    const void* needle,
+    size_t      needle_size,
+    size_t      start)
+{
+    return gp_bytes_find_first(haystack, gp_str_length(haystack), needle, needle_size, start);
+}
+
+size_t gp_str_find_last(
+    GPString    haystack,
+    const void* needle,
+    size_t      needle_length)
+{
+    return gp_bytes_find_last(haystack, gp_str_length(haystack), needle, needle_length);
+}
+
+size_t gp_str_find_first_of(
+    const GPString   haystack,
+    const char*const char_set,
+    const size_t     start)
+{
+    for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
+        cplen = gp_str_codepoint_length(haystack, i);
+        if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) != NULL)
+            return i;
+    }
+    return GP_NOT_FOUND;
+}
+
+size_t gp_str_find_first_not_of(
+    const GPString   haystack,
+    const char*const char_set,
+    const size_t     start)
+{
+    for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
+        cplen = gp_str_codepoint_length(haystack, i);
+        if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) == NULL)
+            return i;
+    }
+    return GP_NOT_FOUND;
+}
+
+size_t gp_str_count(
+    GPString haystack,
+    const void* needle,
+    size_t      needle_size)
+{
+    return gp_bytes_count(haystack, gp_str_length(haystack), needle, needle_size);
+}
+
+bool gp_str_equal(
+    GPString  s1,
+    const void* s2,
+    size_t      s2_size)
+{
+    if (gp_str_length(s1) != s2_size)
+        return false;
+    else
+        return memcmp(s1, s2, s2_size) == 0;
+}
+
+bool gp_str_equal_case(
+    GPString    s1,
+    const void* s2,
+    size_t      s2_size)
+{
+    size_t s1_length = gp_bytes_codepoint_count(s1, gp_str_length(s1));
+    size_t s2_length = gp_bytes_codepoint_count(s2, s2_size);
+    if (s1_length != s2_length)
+        return false;
+
+    mbstate_t state1 = {0};
+    mbstate_t state2 = {0};
+    wchar_t wc1;
+    wchar_t wc2;
+    for (size_t i = 0; i < s1_length; i++)
+    {
+        size_t wc1_length = mbrtowc(&wc1, (char*)s1, sizeof(wchar_t), &state1);
+        size_t wc2_length = mbrtowc(&wc2, (char*)s2, sizeof(wchar_t), &state2);
+        if (sizeof(wchar_t) < sizeof(uint32_t)/* Windows probably */&&
+            (wc1_length == (size_t)-2) != (wc2_length == (size_t)-2))
+        { // one fits to wchar_t and other doesn't so most likely different
+            return false;
+        }
+        else if (sizeof(wchar_t) < sizeof(uint32_t) &&
+                 wc1_length == (size_t)-2) // char wider than sizeof(wchar_t)
+        {                                  // so just compare raw bytes
+            size_t s1_codepoint_size = gp_str_codepoint_length(s1, 0);
+            size_t s2_codepoint_size = gp_str_codepoint_length((GPString)s2, 0);
+            if (s1_codepoint_size != s2_codepoint_size ||
+                memcmp(s1, s2, s1_codepoint_size) != 0)
+            {
+                return false;
+            }
+            s1 += s1_codepoint_size;
+            s2 = (uint8_t*)s2 + s2_codepoint_size;
+        }
+        else
+        {
+            wc1 = towlower(wc1);
+            wc2 = towlower(wc2);
+            if (wc1 != wc2)
+                return false;
+
+            s1 += wc1_length;
+            s2 = (uint8_t*)s2 + wc2_length;
+        }
+    }
+    return true;
+}
+
+size_t gp_str_codepoint_count(
+    GPString str)
+{
+    return gp_bytes_codepoint_count(str, gp_str_length(str));
+}
+
+bool gp_str_is_valid(
+    GPString str,
+    size_t* invalid_index)
+{
+    return gp_bytes_is_valid_utf8(str, gp_str_length(str), invalid_index);
+}
+
+size_t gp_str_codepoint_length(
+    GPString _str, const size_t i)
+{
+    const uint8_t* str = (uint8_t*)_str;
+    static const size_t sizes[] = {
+        1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+        0,0,0,0,0,0,0,0, 2,2,2,2,3,3,4,0 };
+    return sizes[str[i] >> 3];
+}
+
+bool gp_str_codepoint_classify(
+    GPString str,
+    const size_t i,
+    int (*const classifier)(wint_t c))
+{
+    const size_t codepoint_length = gp_str_codepoint_length(str, i);
+    if (codepoint_length == 0)
+        return false;
+    wchar_t wc;
+    mbrtowc(&wc, (char*)str + i, codepoint_length, &(mbstate_t){0});
+    return classifier(wc);
+}
+
+const char* gp_cstr(GPString str)
+{
+    str[gp_str_length(str)].c = '\0';
+    return (const char*)str;
+}
+
+void gp_str_reserve(
+    GPString* str,
+    size_t capacity)
+{
+    *str = gp_arr_reserve(sizeof**str, *str, capacity + sizeof"");
+    gp_str_header(*str)->capacity -= sizeof"";
+}
+
+void gp_str_copy(
+    GPString* dest,
+    const void*restrict src,
+    size_t n)
+{
+    gp_str_reserve(dest, n);
+    memcpy(*dest, src, n);
+    gp_str_header(*dest)->length = n;
+}
+
+void gp_str_repeat(
+    GPString* dest,
+    const size_t n,
+    const void*restrict mem,
+    const size_t mem_length)
+{
+    gp_str_reserve(dest, n * mem_length);
+    if (mem_length == 1) {
+        memset(*dest, *(uint8_t*)mem, n);
+    } else for (size_t i = 0; i < n; i++) {
+        memcpy(*dest + i * mem_length, mem, mem_length);
+    }
+    gp_str_header(*dest)->length = n * mem_length;
+}
+
+void gp_str_slice(
+    GPString* dest,
+    const void*restrict src,
+    size_t start,
+    size_t end)
+{
+    if (src != NULL) {
+        gp_str_reserve(dest, end - start);
+        memcpy(*dest, (uint8_t*)src + start, end - start);
+        gp_str_header(*dest)->length = end - start;
+    } else {
+        memmove(*dest, *dest + start,  end - start);
+        gp_str_header(*dest)->length = end - start;
+    }
+}
+
+void gp_str_append(
+    GPString* dest,
+    const void* src,
+    size_t src_length)
+{
+    gp_str_reserve(dest, gp_str_length(*dest) + src_length);
+    memcpy(*dest + gp_str_length(*dest), src, src_length + sizeof"");
+    gp_str_header(*dest)->length += src_length;
+}
+
+void gp_str_insert(
+    GPString* dest,
+    size_t pos,
+    const void*restrict src,
+    size_t n)
+{
+    gp_str_reserve(dest, gp_str_length(*dest) + n);
+    memmove(*dest + pos + n, *dest + pos, gp_str_length(*dest) - pos);
+    memcpy(*dest + pos, src, n);
+    gp_str_header(*dest)->length += n;
+}
+
+size_t gp_str_replace(
+    GPString* haystack,
+    const void*restrict needle,
+    const size_t needle_length,
+    const void*restrict replacement,
+    const size_t replacement_length,
+    size_t start)
+{
+    if ((start = gp_str_find_first(*haystack, needle, needle_length, start)) == GP_NOT_FOUND)
+        return GP_NOT_FOUND;
+
+    gp_str_reserve(haystack,
+        gp_str_length(*haystack) + replacement_length - needle_length);
+
+    const size_t end = start + needle_length;
+    gp_str_header(*haystack)->length = gp_bytes_replace_range(
+        *haystack,
+        gp_str_length(*haystack),
+        start,
+        end,
+        replacement,
+        replacement_length);
+
+    return start;
+}
+
+size_t gp_str_replace_all(
+    GPString* haystack,
+    const void*restrict needle,
+    const size_t needle_length,
+    const void*restrict replacement,
+    const size_t replacement_length)
+{
+    size_t start = 0;
+    size_t replacement_count = 0;
+    while ((start = gp_str_find_first(*haystack, needle, needle_length, start)) != GP_NOT_FOUND)
+    {
+        gp_str_reserve(haystack,
+            gp_str_length(*haystack) + replacement_length - needle_length);
+
+        gp_str_header(*haystack)->length = gp_bytes_replace_range(
+            *haystack,
+            gp_str_length(*haystack),
+            start,
+            start + needle_length,
+            replacement,
+            replacement_length);
+
+        start += replacement_length;
+        replacement_count++;
+    }
+    return replacement_count;
+}
+
+static size_t gp_str_print_object_size(GPPrintable object, pf_va_list _args)
+{
+    va_list args;
+    va_copy(args, _args.list);
+
+    size_t length = 0;
+    if (object.identifier[0] == '\"')
+    {
+        const char* fmt = va_arg(args, char*);
+        length = pf_vsnprintf(
+            NULL,
+            0,
+            fmt,
+            args);
+    } else {
+        switch (object.type)
+        {
+            case GP_CHAR:
+            case GP_SIGNED_CHAR:
+            case GP_UNSIGNED_CHAR:
+                length = 1;
+                break;
+
+            case GP_BOOL:
+                length = strlen("false");
+                break;
+
+            char* p;
+            size_t p_len;
+            case GP_CHAR_PTR:
+                p = va_arg(args, char*);
+                p_len = strlen(p);
+                length = p_len;
+                break;
+
+            GPString s;
+            case GP_STRING:
+                s = va_arg(args, GPString);
+                length = gp_str_length(s);
+                break;
+
+            default:
+                length = gp_max_digits_in(object.type);
+        }
+    }
+    va_end(args);
+    return length;
+}
+
+size_t gp_str_print_internal(
+    GPString* out,
+    size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    // Avoid many small allocations by estimating a sufficient buffer size. This
+    // estimation is currently completely arbitrary.
+    if (gp_str_allocator(*out) != NULL)
+        gp_str_reserve(out, arg_count * 10);
+
+    gp_str_header(*out)->length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        if (gp_str_allocator(*out) != NULL)
+            gp_str_reserve(out, gp_str_length(*out) + gp_str_print_object_size(objs[i], args));
+        gp_str_header(*out)->length += gp_bytes_print_objects(
+            (size_t)-1,
+            *out + gp_str_length(*out),
+            &args,
+            &i,
+            objs[i]);
+    }
+    va_end(_args);
+    va_end(args.list);
+
+    return gp_str_header(*out)->length;
+}
+
+size_t gp_str_n_print_internal(
+    GPString* out,
+    size_t n,
+    size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    gp_str_reserve(out, n);
+    gp_str_header(*out)->length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        gp_str_header(*out)->length += gp_bytes_print_objects(
+            n >= gp_str_length(*out) ? n - gp_str_length(*out) : 0,
+            *out + gp_str_length(*out),
+            &args,
+            &i,
+            objs[i]);
+    }
+    va_end(_args);
+    va_end(args.list);
+
+    const size_t out_length = gp_str_length(*out);
+    if (out_length > n)
+        gp_str_header(*out)->length = n;
+    return out_length;
+}
+
+size_t gp_str_println_internal(
+    GPString* out,
+    size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    // Avoid many small allocations by estimating a sufficient buffer size. This
+    // estimation is currently completely arbitrary.
+    if (gp_str_allocator(*out) != NULL)
+        gp_str_reserve(out, arg_count * 10);
+
+    gp_str_header(*out)->length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        if (gp_str_allocator(*out) != NULL)
+            gp_str_reserve(out,
+                gp_str_length(*out) + strlen(" ") + gp_str_print_object_size(objs[i], args));
+
+        gp_str_header(*out)->length += gp_bytes_print_objects(
+            (size_t)-1,
+            *out + gp_str_length(*out),
+            &args,
+            &i,
+            objs[i]);
+
+        (*out)[gp_str_header(*out)->length++].c = ' ';
+    }
+    va_end(_args);
+    va_end(args.list);
+
+    (*out)[gp_str_length(*out) - 1].c = '\n';
+    return gp_str_header(*out)->length;
+}
+
+size_t gp_str_n_println_internal(
+    GPString* out,
+    size_t n,
+    size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    gp_str_reserve(out, n);
+    gp_str_header(*out)->length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        gp_str_header(*out)->length += gp_bytes_print_objects(
+            n >= gp_str_length(*out) ? n - gp_str_length(*out) : 0,
+            *out + gp_str_length(*out),
+            &args,
+            &i,
+            objs[i]);
+
+        if (n > gp_str_length(*out))
+            (*out)[gp_str_header(*out)->length++].c = ' ';
+    }
+    va_end(_args);
+    va_end(args.list);
+
+    if (n > (gp_str_length(*out) - !!gp_str_length(*out))) // overwrite last space
+        (*out)[gp_str_length(*out) - 1].c = '\n';
+
+    const size_t out_length = gp_str_length(*out);
+    if (out_length > n)
+        gp_str_header(*out)->length = n;
+    return out_length;
+}
+
+void gp_str_trim(
+    GPString* str,
+    const char*restrict optional_char_set,
+    int flags)
+{
+    if (gp_str_length(*str) == 0)
+        return;
+
+    const bool ascii = flags & 0x01;
+    if (ascii) {
+        gp_str_header(*str)->length = gp_bytes_trim(
+            *str, gp_str_length(*str), NULL, optional_char_set, flags);
+        return;
+    }
+    // else utf8
+
+    size_t      length   = gp_str_length(*str);
+    const bool  left     = flags & 0x04;
+    const bool  right    = flags & 0x02;
+    const char* char_set = optional_char_set != NULL ?
+        optional_char_set :
+        GP_WHITESPACE;
+
+    if (left)
+    {
+        size_t prefix_length = 0;
+        while (true)
+        {
+            char codepoint[8] = "";
+            size_t size = gp_str_codepoint_length(*str, prefix_length);
+            memcpy(codepoint, *str + prefix_length, size);
+            if (strstr(char_set, codepoint) == NULL)
+                break;
+
+            prefix_length += size;
+            if (prefix_length >= gp_str_length(*str)) {
+                gp_str_header(*str)->length = 0;
+                return;
+            }
+        }
+        length -= prefix_length;
+
+        memmove(*str, *str + prefix_length, length);
+    }
+    if (right) while (length > 0)
+    {
+        char codepoint[8] = "";
+        size_t i = length - 1;
+        size_t size;
+        while ((size = gp_str_codepoint_length(*str, i)) == 0 && --i != 0);
+        memcpy(codepoint, *str + i, size);
+        if (strstr(char_set, codepoint) == NULL)
+            break;
+
+        length -= size;
+    }
+    gp_str_header(*str)->length = length;
+}
+
+static void gp_str_to_something(
+    GPString* str,
+    wint_t(*const towsomething)(wint_t))
+{
+    size_t length = gp_str_length(*str);
+
+    wchar_t  stack_buf[1 << 10];
+    size_t   buf_cap = sizeof stack_buf / sizeof*stack_buf;
+    wchar_t* buf = stack_buf;
+    if (length + sizeof"" > buf_cap) {
+        buf_cap = length + sizeof"";
+        buf = gp_mem_alloc(gp_heap, buf_cap * sizeof*buf);
+    }
+    const char* src = gp_cstr(*str);
+    size_t buf_length = mbsrtowcs(buf, &src, buf_cap, &(mbstate_t){0});
+
+    for (size_t i = 0; i < buf_length; i++)
+        buf[i] = towsomething(buf[i]);
+
+    const wchar_t* pbuf = (const wchar_t*)buf;
+    gp_str_reserve(str, wcsrtombs(NULL, &pbuf, 0, &(mbstate_t){0}));
+
+    gp_str_header(*str)->length = wcsrtombs((char*)*str,
+        &pbuf, sizeof(buf[0]) * buf_length, &(mbstate_t){0});
+
+    if (buf != stack_buf)
+        gp_mem_dealloc(gp_heap, buf);
+}
+
+void gp_str_to_upper(
+    GPString* str)
+{
+    gp_str_to_something(str, towupper);
+}
+
+void gp_str_to_lower(
+    GPString* str)
+{
+    gp_str_to_something(str, towlower);
+}
+
+static size_t gp_str_find_invalid(
+    const void* _haystack,
+    const size_t start,
+    const size_t length)
+{
+    const char* haystack = _haystack;
+    for (size_t i = start; i < length;)
+    {
+        size_t cp_length = gp_str_codepoint_length((GPString)haystack, i);
+        if (cp_length == 0 || i + cp_length > length)
+            return i;
+
+        uint32_t codepoint = 0;
+        for (size_t j = 0; j < cp_length; j++)
+            codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
+        if ( ! gp_valid_codepoint(codepoint))
+            return i;
+
+        i += cp_length;
+    }
+    return GP_NOT_FOUND;
+}
+
+static size_t gp_str_find_valid(
+    const void* _haystack,
+    const size_t start,
+    const size_t length)
+{
+    const char* haystack = _haystack;
+    for (size_t i = start; i < length; i++)
+    {
+        size_t cp_length = gp_str_codepoint_length((GPString)haystack, i);
+        if (cp_length == 1)
+            return i;
+        if (cp_length == 0)
+            continue;
+
+        if (cp_length + i < length) {
+            uint32_t codepoint = 0;
+            for (size_t j = 0; j < cp_length; j++)
+                codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
+            if (gp_valid_codepoint(codepoint))
+                return i;
+        } // else maybe there's ascii in last bytes so continue
+    }
+    return length;
+}
+
+void gp_str_to_valid(
+    GPString* str,
+    const char* replacement)
+{
+          size_t length = gp_str_length(*str);
+    const size_t replacement_length = strlen(replacement);
+
+    size_t start = 0;
+    while ((start = gp_str_find_invalid(*str, start, length)) != GP_NOT_FOUND)
+    {
+        const size_t end = gp_str_find_valid(*str, start, length);
+        gp_str_reserve(str,
+            gp_str_length(*str) + replacement_length - (end - start));
+
+        length = gp_bytes_replace_range(
+            *str,
+            length,
+            start,
+            end,
+            replacement,
+            replacement_length);
+
+        start += replacement_length;
+    }
+    gp_str_header(*str)->length = length;
+}
+
+int gp_str_case_compare(
+    const GPString _s1,
+    const GPString _s2)
+{
+    const char* s1 = (const char*)_s1;
+    const char* s2 = (const char*)_s2;
+
+    wchar_t stack_buf1[1 << 10];
+    wchar_t stack_buf2[sizeof stack_buf1 / sizeof*stack_buf1];
+    size_t  buf1_cap = sizeof stack_buf1 / sizeof*stack_buf1;
+    size_t  buf2_cap = buf1_cap;
+    wchar_t*buf1     = stack_buf1;
+    wchar_t*buf2     = stack_buf2;
+
+    GPArena arena;
+    const GPAllocator* scope = NULL;
+    const size_t max_length = gp_max(gp_str_length(_s1), gp_str_length(_s2));
+    if (max_length + 1 >= buf1_cap)
+    {
+        arena = gp_arena_new(2 * max_length * sizeof*buf1 +/*internals*/64);
+        scope = (const GPAllocator*)&arena;
+    }
+    if (gp_str_length(_s1) + 1 >= buf1_cap) {
+        buf1_cap = gp_str_length(_s1) + 1;
+        buf1 = gp_mem_alloc(scope, buf1_cap * sizeof(wchar_t));
+    }
+    if (gp_str_length(_s2) + 1 >= buf2_cap) {
+        buf2_cap = gp_str_length(_s2) + 1;
+        buf2 = gp_mem_alloc(scope, buf2_cap * sizeof(wchar_t));
+    }
+    mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0});
+    mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0});
+
+    int result = wcscoll(buf1, buf2);
+    gp_arena_delete((GPArena*)scope);
+    return result;
+}
+
+int gp_str_file(
+    GPString*   str,
+    const char* file_path,
+    const char* operation)
+{
+    switch (operation[0])
+    {
+        case 'r':
+        {
+            #if _WIN32
+            struct __stat64 s;
+            if (_stat64(file_path, &s) != 0)
+            #elif _GNU_SOURCE
+            struct stat64 s;
+            if (stat64(file_path, &s) != 0)
+            #else
+            struct stat s;
+            if (stat(file_path, &s) != 0)
+            #endif
+                return -1;
+
+            if ((uint64_t)s.st_size > SIZE_MAX)
+                return 1;
+
+            FILE* f = fopen(file_path, "r");
+            if (f == NULL)
+                return -1;
+
+            gp_str_reserve(str, s.st_size);
+            if (fread(*str, sizeof**str, s.st_size, f) != (size_t)s.st_size) {
+                fclose(f);
+                return -1;
+            }
+            gp_str_header(*str)->length = s.st_size;
+
+            fclose(f);
+        } break;
+
+        default:
+        {
+            const char mode[2] = { operation[0], '\0' };
+            FILE* f = fopen(file_path, mode);
+            if (f == NULL)
+                return -1;
+            if (fwrite(*str, sizeof**str, gp_str_length(*str), f) != gp_str_length(*str))
+                return -1;
+            fclose(f);
+        }
+    }
+    return 0;
+}
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* d2s.c */
@@ -9632,6 +11016,3016 @@ char* d2s(double f) {
   return result;
 }
 #endif
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* overload.c */
+
+
+extern inline size_t gp_sizeof     (const GPType T);
+extern inline bool   gp_is_unsigned(const GPType T);
+extern inline bool   gp_is_integer (const GPType T);
+extern inline bool   gp_is_floating(const GPType T);
+extern inline bool   gp_is_pointer (const GPType T);
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* printf.c */
+
+
+
+#include <stdlib.h>
+#include <inttypes.h>
+#include <math.h>
+#include <limits.h>
+
+struct MiscData
+{
+    bool has_sign;
+    bool has_0x;
+    bool is_nan_or_inf;
+};
+
+static uintmax_t get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
+{
+    if (fmt.conversion_format == 'p')
+        return va_arg(args->list, uintptr_t);
+
+    switch (fmt.length_modifier)
+    {
+        case 'j':
+            return va_arg(args->list, uintmax_t);
+
+        case 'l' * 2:
+            return va_arg(args->list, unsigned long long);
+
+        case 'l':
+            return va_arg(args->list, unsigned long);
+
+        case 'h':
+            return (unsigned short)va_arg(args->list, unsigned);
+
+        case 'h' * 2:
+            return (unsigned char)va_arg(args->list, unsigned);
+
+        case 'z':
+            return (size_t)va_arg(args->list, size_t);
+
+        case 'B': // byte
+            return (uint8_t)va_arg(args->list, unsigned);
+
+        case 'W': // word
+            return (uint16_t)va_arg(args->list, unsigned);
+
+        case 'D': // double word
+            return (uint32_t)va_arg(args->list, uint32_t);
+
+        case 'Q': // quad word
+            return (uint64_t)va_arg(args->list, uint64_t);
+
+        default:
+            return va_arg(args->list, unsigned);
+    }
+}
+
+static void c_string_padding(
+    struct pf_string* out,
+    const PFFormatSpecifier fmt,
+    const void* string,
+    const size_t length)
+{
+    const unsigned field_width = fmt.field.width > length ?
+        fmt.field.width : length;
+    const unsigned diff = field_width - length;
+    if (fmt.flag.dash) // left justified
+    { // first string, then pad
+        pf_concat(out, string, length);
+        pf_pad(out, ' ', diff);
+    }
+    else // first pad, then string
+    {
+        pf_pad(out, ' ', diff);
+        pf_concat(out, string, length);
+    }
+
+}
+
+static unsigned write_s(
+    struct pf_string* out,
+    pf_va_list* args,
+    const PFFormatSpecifier fmt)
+{
+    const size_t original_length = out->length;
+    const char* cstr = va_arg(args->list, const char*);
+
+    size_t cstr_len = 0;
+    if (fmt.precision.option == PF_NONE) // should be null-terminated
+        cstr_len = strlen(cstr);
+    else // who knows if null-terminated
+        while (cstr_len < fmt.precision.width && cstr[cstr_len] != '\0')
+            cstr_len++;
+
+    c_string_padding(out, fmt, cstr, cstr_len);
+    return out->length - original_length;
+}
+
+static void utf8_string_padding(
+    struct pf_string* out,
+    const PFFormatSpecifier fmt,
+    const void* bytes,
+    const size_t bytes_length,
+    const size_t codepoint_count)
+{
+    const unsigned field_width = fmt.field.width > codepoint_count ?
+        fmt.field.width : codepoint_count;
+    const unsigned diff = field_width - codepoint_count;
+    if (fmt.flag.dash) // left justified
+    { // first string, then pad
+        pf_concat(out, bytes, bytes_length);
+        pf_pad(out, ' ', diff);
+    }
+    else // first pad, then string
+    {
+        pf_pad(out, ' ', diff);
+        pf_concat(out, bytes, bytes_length);
+    }
+
+}
+
+static unsigned write_S(
+    struct pf_string* out,
+    pf_va_list* args,
+    const PFFormatSpecifier fmt)
+{
+    const size_t original_length = out->length;
+    const GPString str = va_arg(args->list, GPString);
+
+    size_t length = gp_str_length(str);
+    if (fmt.precision.option != PF_NONE)
+        length = pf_min(length, fmt.precision.width);
+
+    size_t codepoint_count = 0;
+    size_t last_cp_length  = 0;
+    size_t i = 0;
+    while (true)
+    {
+        if (i > length) {
+            codepoint_count--;
+            length = i - last_cp_length;
+            break;
+        } else if (i == length) {
+            break;
+        }
+        codepoint_count++;
+        i += last_cp_length = gp_str_codepoint_length(str, i);
+    }
+    utf8_string_padding(out, fmt, str, length, codepoint_count);
+    return out->length - original_length;
+}
+
+static void write_leading_zeroes(
+    struct pf_string* out,
+    const unsigned written_by_utoa,
+    const PFFormatSpecifier fmt)
+{
+    if (fmt.precision.option != PF_NONE)
+    {
+        const unsigned diff =
+            fmt.precision.width <= written_by_utoa ? 0 :
+            fmt.precision.width - written_by_utoa;
+        memmove(
+            out->data + out->length + diff,
+            out->data + out->length,
+            pf_limit(*out, written_by_utoa));
+        memset(out->data + out->length, '0', pf_limit(*out, diff));
+        out->length += written_by_utoa + diff;
+    }
+    else
+    {
+        out->length += written_by_utoa;
+    }
+}
+
+static unsigned write_i(
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
+    const PFFormatSpecifier fmt)
+{
+    intmax_t i;
+    switch (fmt.length_modifier)
+    {
+        case 'j':
+            i = va_arg(args->list, intmax_t);
+            break;
+
+        case 'l' * 2:
+            i = va_arg(args->list, long long);
+            break;
+
+        case 'l':
+            i = va_arg(args->list, long);
+            break;
+
+        case 'h':
+            i = (short)va_arg(args->list, int);
+            break;
+
+        case 'h' * 2: // signed char is NOT char!
+            i = (signed char)va_arg(args->list, int);
+            break;
+
+        case 't':
+            i = (ptrdiff_t)va_arg(args->list, ptrdiff_t);
+            break;
+
+        case 'B': // byte
+            i = (int8_t)va_arg(args->list, int);
+            break;
+
+        case 'W': // word
+            i = (int16_t)va_arg(args->list, int);
+            break;
+
+        case 'D': // double word
+            i = (int32_t)va_arg(args->list, int32_t);
+            break;
+
+        case 'Q': // quad word
+            i = (int64_t)va_arg(args->list, int64_t);
+            break;
+
+        default:
+            i = va_arg(args->list, int);
+    }
+
+    const size_t original_length = out->length;
+
+    const char sign = i < 0 ? '-' : fmt.flag.plus ? '+' : fmt.flag.space ? ' ' : 0;
+    if (sign)
+    {
+        pf_push_char(out, sign);
+        md->has_sign = true;
+    }
+
+    const unsigned max_written = pf_utoa(
+        pf_capacity_left(*out), out->data + out->length, imaxabs(i));
+
+    write_leading_zeroes(out, max_written, fmt);
+    return out->length - original_length;
+}
+
+static unsigned write_o(
+    struct pf_string* out,
+    pf_va_list* args,
+    const PFFormatSpecifier fmt)
+{
+    const size_t original_length = out->length;
+    const uintmax_t u = get_uint(args, fmt);
+
+    bool zero_written = false;
+    if (fmt.flag.hash && u > 0)
+    {
+        pf_push_char(out, '0');
+        zero_written = true;
+    }
+
+    const unsigned max_written = pf_otoa(
+        pf_capacity_left(*out), out->data + out->length, u);
+
+    // zero_written tells pad_zeroes() to add 1 less '0'
+    write_leading_zeroes(out, zero_written + max_written, fmt);
+    // compensate for added zero_written to write_leading_zeroes()
+    out->length -= zero_written;
+
+    return out->length - original_length;
+}
+
+static unsigned write_x(
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
+    const PFFormatSpecifier fmt)
+{
+    const size_t original_length = out->length;
+    const uintmax_t u = get_uint(args, fmt);
+
+    if (fmt.flag.hash && u > 0)
+    {
+        pf_concat(out, "0x", strlen("0x"));
+        md->has_0x = true;
+    }
+
+    const unsigned max_written = pf_xtoa(
+        pf_capacity_left(*out), out->data + out->length, u);
+
+    write_leading_zeroes(out, max_written, fmt);
+    return out->length - original_length;
+}
+
+static unsigned write_X(
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
+    const PFFormatSpecifier fmt)
+{
+    const size_t original_length = out->length;
+    const uintmax_t u = get_uint(args, fmt);
+
+    if (fmt.flag.hash && u > 0)
+    {
+        pf_concat(out, "0X", strlen("0X"));
+        md->has_0x = true;
+    }
+
+    const unsigned max_written = pf_Xtoa(
+        pf_capacity_left(*out), out->data + out->length, u);
+
+    write_leading_zeroes(out, max_written, fmt);
+    return out->length - original_length;
+}
+
+static unsigned write_u(
+    struct pf_string* out,
+    pf_va_list* args,
+    const PFFormatSpecifier fmt)
+{
+    const size_t original_length = out->length;
+    const uintmax_t u = get_uint(args, fmt);
+    const unsigned max_written = pf_utoa(
+        pf_capacity_left(*out), out->data + out->length, u);
+    write_leading_zeroes(out, max_written, fmt);
+    return out->length - original_length;
+}
+
+static unsigned write_p(
+    struct pf_string* out,
+    pf_va_list* args,
+    const PFFormatSpecifier fmt)
+{
+    const size_t original_length = out->length;
+    const uintmax_t u = get_uint(args, fmt);
+
+    if (u > 0)
+    {
+        pf_concat(out, "0x", strlen("0x"));
+        const unsigned max_written = pf_xtoa(
+            pf_capacity_left(*out), out->data + out->length, u);
+        write_leading_zeroes(out, max_written, fmt);
+    }
+    else
+    {
+        pf_concat(out, "(nil)", strlen("(nil)"));
+    }
+    return out->length - original_length;
+}
+
+static unsigned write_f(
+    struct pf_string* out,
+    struct MiscData* md,
+    pf_va_list* args,
+    const PFFormatSpecifier fmt)
+{
+    const double f = va_arg(args->list, double);
+    const unsigned written_by_conversion = pf_strfromd(
+        out->data + out->length, out->capacity, fmt, f);
+    out->length += written_by_conversion;
+
+    md->has_sign = signbit(f) || fmt.flag.plus || fmt.flag.space;
+    md->is_nan_or_inf = isnan(f) || isinf(f);
+
+    return written_by_conversion;
+}
+
+static unsigned add_padding(
+    struct pf_string* out,
+    const unsigned written,
+    const struct MiscData md,
+    const PFFormatSpecifier fmt)
+{
+    size_t start = out->length - written;
+    const unsigned diff = fmt.field.width - written;
+
+    const bool is_int_with_precision =
+        strchr("diouxX", fmt.conversion_format) && fmt.precision.option != PF_NONE;
+    const bool ignore_zero = is_int_with_precision || md.is_nan_or_inf;
+
+    if (fmt.flag.dash) // left justified, append padding
+    {
+        pf_pad(out, ' ', diff);
+    }
+    else if (fmt.flag.zero && ! ignore_zero) // fill in zeroes
+    { // 0-padding minding "0x" or sign prefix
+        const unsigned offset = md.has_sign + 2 * md.has_0x;
+        pf_insert_pad(out, start + offset, '0', diff);
+    }
+    else // fill in spaces
+    {
+        pf_insert_pad(out, start, ' ', diff);
+    }
+
+    return diff;
+}
+
+
+
+// ---------------------------------------------------------------------------
+//
+//
+//
+// IMPLEMENTATIONS OF PUBLIC FUNCTIONS
+//
+//
+//
+// ---------------------------------------------------------------------------
+
+
+
+// ------------------------------
+// String functtions
+
+int pf_vsnprintf_consuming(
+    char*restrict out_buf,
+    const size_t max_size,
+    const char* format,
+    pf_va_list* args)
+{
+    struct pf_string out = { out_buf ? out_buf : "", .capacity = max_size };
+
+    while (1)
+    {
+        const PFFormatSpecifier fmt = pf_scan_format_string(format, args);
+        if (fmt.string == NULL)
+            break;
+
+        pf_concat(&out, format, fmt.string - format);
+
+        // Jump over format specifier for next iteration
+        format = fmt.string + fmt.string_length;
+
+        unsigned written_by_conversion = 0;
+        struct MiscData misc = {};
+
+        switch (fmt.conversion_format)
+        {
+            case 'c':
+                pf_push_char(&out, (char)va_arg(args->list, int));
+                written_by_conversion = 1;
+                break;
+
+            case 's':
+                written_by_conversion += write_s(
+                    &out, args, fmt);
+                break;
+
+            case 'S':
+                written_by_conversion += write_S(
+                    &out, args, fmt);
+                break;
+
+            case 'd':
+            case 'i':
+                written_by_conversion += write_i(
+                    &out, &misc, args, fmt);
+                break;
+
+            case 'o':
+                written_by_conversion += write_o(
+                    &out, args, fmt);
+                break;
+
+            case 'x':
+                written_by_conversion += write_x(
+                    &out, &misc, args, fmt);
+                break;
+
+            case 'X':
+                written_by_conversion += write_X(
+                    &out, &misc, args, fmt);
+                break;
+
+            case 'u':
+                written_by_conversion += write_u(
+                    &out, args, fmt);
+                break;
+
+            case 'p':
+                written_by_conversion += write_p(
+                    &out, args, fmt);
+                break;
+
+            case 'f': case 'F':
+            case 'e': case 'E':
+            case 'g': case 'G':
+                written_by_conversion += write_f(
+                    &out, &misc, args, fmt);
+                break;
+
+            case '%':
+                pf_push_char(&out, '%');
+                break;
+        }
+
+        if (written_by_conversion < fmt.field.width)
+            add_padding(
+                &out,
+                written_by_conversion,
+                misc,
+                fmt);
+    }
+
+    // Write what's left in format string
+    pf_concat(&out, format, strlen(format));
+    if (out.length < out.capacity)
+        out.data[out.length] = '\0';
+    return out.length;
+}
+
+int pf_vsnprintf(
+    char* restrict out_buf,
+    const size_t max_size,
+    const char*restrict format,
+    va_list _args)
+{
+    pf_va_list args;
+    va_copy(args.list, _args);
+    int result = pf_vsnprintf_consuming(out_buf, max_size, format, &args);
+    va_end(args.list);
+    return result;
+}
+
+int pf_vsprintf(
+    char*restrict buf, const char*restrict fmt, va_list args)
+{
+    return pf_vsnprintf(buf, SIZE_MAX, fmt, args);
+}
+
+int pf_sprintf(char*restrict buf, const char*restrict fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    int written = pf_vsnprintf(buf, INT_MAX, fmt, args);
+    va_end(args);
+    return written;
+}
+
+int pf_snprintf(
+    char* restrict buf, const size_t n, const char*restrict fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    int written = pf_vsnprintf(buf, n, fmt, args);
+    va_end(args);
+    return written;
+}
+
+// ------------------------------
+// IO functtions
+
+#define PAGE_SIZE 4096
+#define BUF_SIZE (PAGE_SIZE + sizeof(""))
+
+int pf_vfprintf(
+    FILE*restrict stream, const char*restrict fmt, va_list args)
+{
+    char buf[BUF_SIZE];
+    char* pbuf = buf;
+    va_list args_copy;
+    va_copy(args_copy, args);
+
+    const int out_length = pf_vsnprintf(buf, BUF_SIZE, fmt, args);
+    if (out_length >= (int)BUF_SIZE) // try again
+    {
+        pbuf = malloc(out_length + sizeof(""));
+        pf_vsprintf(pbuf, fmt, args_copy);
+    }
+    fwrite(pbuf, sizeof(char), out_length, stream);
+
+    if (pbuf != buf)
+        free(pbuf);
+    va_end(args_copy);
+    return out_length;
+}
+
+int pf_vprintf(
+    const char*restrict fmt, va_list args)
+{
+    return pf_vfprintf(stdout, fmt, args);
+}
+
+int pf_printf(
+    const char*restrict fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    int n = pf_vfprintf(stdout, fmt, args);
+    va_end(args);
+    return n;
+}
+
+int pf_fprintf(
+    FILE*restrict stream, const char*restrict fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    int n = pf_vfprintf(stream, fmt, args);
+    va_end(args);
+    return n;
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* generic.c */
+
+
+// ----------------------------------------------------------------------------
+// String
+
+size_t gp_codepoint_count99(GPStrIn s)
+{
+    return gp_bytes_codepoint_count(s.data, s.length);
+}
+
+bool gp_is_valid99(GPStrIn s, size_t*i)
+{
+    return gp_bytes_is_valid_utf8(s.data, s.length, i);
+}
+
+// ----------------------------------------------------------------------------
+// Srtings and arrays
+
+void gp_reserve99(const size_t elem_size, void* px, const size_t capacity)
+{
+    if (gp_arr_allocator(*(void**)px) == NULL)
+        return;
+
+    if (elem_size == sizeof(GPChar))
+        gp_str_reserve(px, capacity);
+    else
+        *(void**)px = gp_arr_reserve(elem_size, *(void**)px, capacity);
+}
+
+static size_t gp_length99(const void* x, const char* ident, const size_t length)
+//static size_t gp_length99(const void* x, const char* ident, const size_t length, const size_t size)
+{
+    //return ident == NULL ?
+    //    length            : ident[0] == '"' ?
+    //    length - sizeof"" : strchr(ident, '{') ?
+    //    length / size     : gp_arr_length(x);
+    return
+        ident == NULL ? length : ident[0] == '"' ? length - sizeof"" : gp_arr_length(x);
+}
+
+void* gp_copy99(const size_t y_size, void* y,
+    const void* x, const char* x_ident, size_t x_length, const size_t x_size)
+{
+    x_length = gp_length99(x, x_ident, x_length);
+    if (y_size >= sizeof(GPAllocator)) {
+        void* out = gp_arr_new(y, x_size, x_length + sizeof"");
+        ((GPArrayHeader*)out - 1)->length = x_length;
+        return memcpy(out, x, x_size * x_length);
+    }
+
+    if (x_size == 1)
+        gp_str_copy(y, x, x_length);
+    else
+        *(void**)y = gp_arr_copy(x_size, *(void**)y, x, x_length);
+    return *(void**)y;
+}
+
+void* gp_slice99(
+    const size_t y_size, const void* y,
+    const size_t x_size, const void* x,
+    const size_t start, const size_t end)
+{
+    if (y_size >= sizeof(GPAllocator)) {
+        void* out = gp_arr_new(y, x_size, end - start + sizeof"");
+        ((GPArrayHeader*)out - 1)->length = end - start;
+        return memcpy(out, (uint8_t*)x + start * x_size, (end - start) * x_size);
+    }
+    return gp_arr_slice(x_size, *(void**)y, x, start, end);
+}
+
+void* gp_append99(
+    const size_t a_size, void* a,
+    const void* b, const char* b_ident, size_t b_length, const size_t b_size,
+    const void* c, const char* c_ident, size_t c_length)
+{
+    b_length = gp_length99(b, b_ident, b_length);
+    if (a_size < sizeof(GPAllocator))
+    {
+        if (b_size == 1) {
+            gp_str_append(a, b, b_length);
+            return *(GPString*)a;
+        } else {
+            return gp_arr_append(b_size, *(void**)a, b, b_length);
+        }
+    }
+    c_length = gp_length99(c, c_ident, c_length);
+    void* out = gp_arr_new(a, b_size, b_length + c_length + sizeof"");
+    memcpy(out, b, b_length * b_size);
+    memcpy((uint8_t*)out + b_length * b_size, c, c_length * b_size);
+    ((GPArrayHeader*)out - 1)->length = b_length + c_length;
+    return out;
+}
+
+void* gp_insert99(
+    const size_t a_size, void* a, const size_t pos,
+    const void* b, const char* b_ident, size_t b_length, const size_t b_size,
+    const void* c, const char* c_ident, size_t c_length)
+{
+    b_length = gp_length99(b, b_ident, b_length);
+    if (a_size < sizeof(GPAllocator))
+    {
+        if (b_size == 1) {
+            gp_str_insert(a, pos, b, b_length);
+            return *(GPString*)a;
+        } else {
+            return gp_arr_insert(b_size, *(void**)a, pos, b, b_length);
+        }
+    }
+    c_length = gp_length99(c, c_ident, c_length);
+    void* out = gp_arr_new(a, b_size, b_length + c_length + sizeof"");
+    memcpy(out, b, pos * b_size);
+    memcpy((uint8_t*)out + pos * b_size, c, c_length * b_size);
+    memcpy((uint8_t*)out + (pos + c_length) * b_size, (uint8_t*)b + pos * b_size, (b_length - pos) * b_size);
+    ((GPArrayHeader*)out - 1)->length = b_length + c_length;
+    return out;
+}
+
+// ----------------------------------------------------------------------------
+// Arrays
+
+GPArray(void) gp_map99(const size_t a_size, const void* a,
+    const GPArray(void)const src, const char*const src_ident,
+    const size_t src_size, const size_t src_elem_size,
+    void(*f)(void*,const void*))
+{
+    const size_t src_length = gp_length99(src, src_ident, src_size);
+    if (a_size < sizeof(GPAllocator))
+        return gp_arr_map(src_elem_size, *(GPArray(void)*)a, src, src_length, f);
+
+    GPArray(void) out = gp_arr_new(a, src_elem_size, src_length);
+    return gp_arr_map(src_elem_size, out, src, src_length, f);
+}
+
+GPArray(void) gp_filter99(size_t a_size, const void* a,
+    const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,
+    bool(*f)(const void* element))
+{
+    const size_t src_length = gp_length99(src, src_ident, src_size);
+    if (a_size < sizeof(GPAllocator))
+        return gp_arr_filter(src_elem_size, *(GPArray(void)*)a, src, src_length, f);
+
+    GPArray(void) out = gp_arr_new(a, src_elem_size, src_length);
+    return gp_arr_filter(src_elem_size, out, src, src_length, f);
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* hashmap.c */
+
+#include <string.h>
+
+const union gp_endianness_detector GP_INTEGER = {.u16 = 1 };
+
+extern inline uint64_t* gp_u128_lo(const GPUint128*t);
+extern inline uint64_t* gp_u128_hi(const GPUint128*t);
+#if !(__GNUC__ && __SIZEOF_INT128__) // unused static function
+static void gp_mult64to128(
+    uint64_t u, uint64_t v, uint64_t* h, uint64_t* l)
+{
+    uint64_t u1 = (u & 0xffffffff);
+    uint64_t v1 = (v & 0xffffffff);
+    uint64_t t = (u1 * v1);
+    uint64_t w3 = (t & 0xffffffff);
+    uint64_t k = (t >> 32);
+
+    u >>= 32;
+    t = (u * v1) + k;
+    k = (t & 0xffffffff);
+    uint64_t w1 = (t >> 32);
+
+    v >>= 32;
+    t = (u1 * v) + k;
+    k = (t >> 32);
+
+    *h = (u * v) + w1 + k;
+    *l = (t << 32) + w3;
+}
+#endif
+static void gp_mult128(const GPUint128 N, const GPUint128 M, GPUint128*const Ans)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    Ans->u128 = N.u128 * M.u128;
+    #else
+    gp_mult64to128(*gp_u128_lo(&N), *gp_u128_lo(&M), gp_u128_hi(Ans), gp_u128_lo(Ans));
+    *gp_u128_hi(Ans) += *gp_u128_hi(&N) * *gp_u128_lo(&M) + *gp_u128_lo(&N) * *gp_u128_hi(&M);
+    #endif
+}
+
+uint32_t gp_bytes_hash32(const void* str, const size_t str_size)
+{
+    const uint32_t FNV_prime        = 0x01000193;
+    const uint32_t FNV_offset_basis = 0x811c9dc5;
+    const uint8_t* ustr = str;
+
+    uint32_t hash = FNV_offset_basis;
+    for (size_t i = 0; i < str_size; i++)
+    {
+        hash ^= ustr[i];
+        hash *= FNV_prime;
+    }
+    return hash;
+}
+
+uint64_t gp_bytes_hash64(const void* str, const size_t str_size)
+{
+    const uint64_t FNV_prime        = 0x00000100000001B3;
+    const uint64_t FNV_offset_basis = 0xcbf29ce484222325;
+    const uint8_t* ustr = str;
+
+    uint64_t hash = FNV_offset_basis;
+    for (size_t i = 0; i < str_size; i++)
+    {
+        hash ^= ustr[i];
+        hash *= FNV_prime;
+    }
+    return hash;
+}
+
+GPUint128 gp_bytes_hash128(const void* str, const size_t str_size)
+{
+    GPUint128 FNV_prime        = gp_u128(0x0000000001000000, 0x000000000000013B);
+    GPUint128 FNV_offset_basis = gp_u128(0x6c62272e07bb0142, 0x62b821756295c58d);
+    const uint8_t* ustr = str;
+
+    GPUint128 hash = FNV_offset_basis;
+    for (size_t i = 0; i < str_size; i++)
+    {
+        *gp_u128_lo(&hash) ^= ustr[i];
+        gp_mult128(hash, FNV_prime, &hash);
+    }
+    return hash;
+}
+
+// ----------------------------------------------------------------------------
+
+struct gp_map
+{
+    const size_t length; // number of slots
+    const size_t element_size; // if 0, elements is in GPSlot
+    const GPAllocator*const allocator;
+    void (*const destructor)(void* element); // may be NULL
+};
+
+struct gp_hash_map
+{
+    struct gp_map map;
+};
+
+#define GP_EMPTY  ((size_t) 0)
+#define GP_IN_USE ((size_t)-1)
+typedef struct gp_slot
+{
+    GPUint128 key;
+    union {
+        uintptr_t slot;
+        void*     slots;
+    };
+    const void* element;
+} GPSlot;
+
+// GPMap in memory:
+// |GPMap|Slot 0|Slot 1|...|Slot n|Element 0|Element 1|...|Element n|
+//
+// Subsequent slots in memory in case of collissions:
+// |New slot 0|...|New slot n/2|New element 1|...|New element n/2|
+// ^
+// Slot i info points here where i is the index of the colliding slot.
+//
+// If GPMap.element_not_pointer, element is in Slot array, not element array.
+
+static void gp_no_op_destructor(void*_) { (void)_; }
+
+GPMap* gp_map_new(const GPAllocator* allocator, const GPMapInitializer*_init)
+{
+    #define GP_DEFAULT_MAP_CAP (1 << 8) // somewhat arbitrary atm
+    static const GPMapInitializer defaults = { .capacity = GP_DEFAULT_MAP_CAP };
+    const GPMapInitializer* init = _init == NULL ? &defaults : _init;
+
+    const size_t length = init->capacity == 0 ?
+        GP_DEFAULT_MAP_CAP
+      : gp_next_power_of_2(init->capacity) >> 1;
+
+    const GPMap init_map = {
+        .length       = length,
+        .element_size = init->element_size,
+        .allocator    = allocator,
+        .destructor   = init->destructor == NULL ?
+            gp_no_op_destructor
+          : init->destructor
+    };
+    GPMap* block = gp_mem_alloc_zeroes(allocator,
+        sizeof init_map + length * sizeof(GPSlot) + length * init->element_size);
+    return memcpy(block, &init_map, sizeof init_map);
+}
+
+static inline size_t gp_next_length(const size_t length)
+{
+    return length/2 < 4 ? 4 : length/2;
+}
+static inline GPUint128 gp_shift_key(const GPUint128 key, const size_t length)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    if      (sizeof length == sizeof(unsigned))
+        return (GPUint128){.u128 =
+            key.u128 >> (sizeof(int)  * CHAR_BIT -__builtin_clz  (length) - 1)};
+    else if (sizeof length == sizeof(long))
+        return (GPUint128){.u128 =
+            key.u128 >> (sizeof(long) * CHAR_BIT -__builtin_clzl (length) - 1)};
+    return
+        (GPUint128){.u128 =
+        key.u128 >> (sizeof(long long)* CHAR_BIT -__builtin_clzll(length) - 1)};
+    #else
+
+    // Find bit width of length which is assumed to be a power of 2.
+    // https://graphics.stanford.edu/~seander/bithacks.html#IntegerLog
+    static const uint64_t b[] = {
+        0xAAAAAAAAAAAAAAAA, 0xCCCCCCCCCCCCCCCC, 0xF0F0F0F0F0F0F0F0,
+        0xFF00FF00FF00FF00, 0xFFFF0000FFFF0000, 0xFFFFFFFF00000000
+    };
+    uint64_t
+    bitw  =  ((uint64_t)length & b[0]) != 0;
+    bitw |= (((uint64_t)length & b[5]) != 0) << 5;
+    bitw |= (((uint64_t)length & b[4]) != 0) << 4;
+    bitw |= (((uint64_t)length & b[3]) != 0) << 3;
+    bitw |= (((uint64_t)length & b[2]) != 0) << 2;
+    bitw |= (((uint64_t)length & b[1]) != 0) << 1;
+
+    // 128-bit bit shift right
+    GPUint128 new_key = {0};
+    *gp_u128_hi(&new_key) = *gp_u128_hi(&key) >> bitw;
+    *gp_u128_lo(&new_key) =(*gp_u128_lo(&key) >> bitw) | (*gp_u128_hi(&key)<<(64-bitw));
+
+    return new_key;
+    #endif
+}
+
+// ----------------------------------------------------------------------------
+
+void gp_map_delete_elems(
+    GPMap*const  map,
+    GPSlot*const slots,
+    const size_t length)
+{
+    for (size_t i = 0; i < length; i++)
+    {
+        if (slots[i].slot == GP_IN_USE)
+        {
+            if (slots[i].element == NULL)
+                continue;
+
+            map->destructor((void*)slots[i].element);
+        }
+        else if (slots[i].slot != GP_EMPTY)
+        {
+            if (slots[i].element != NULL)
+                map->destructor((void*)slots[i].element);
+            gp_map_delete_elems(map, slots[i].slots, gp_next_length(length));
+        }
+    }
+    if (slots != (GPSlot*)(map + 1))
+        gp_mem_dealloc(map->allocator, slots);
+    else
+        gp_mem_dealloc(map->allocator, map);
+}
+
+void gp_map_delete(GPMap* map)
+{
+    gp_map_delete_elems(map, (GPSlot*)(map + 1), map->length);
+}
+
+static void* gp_map_put_elem(
+    const GPAllocator*const allocator,
+    GPSlot*const            slots,
+    const size_t            length,
+    const GPUint128         key,
+    const void*const        elem,
+    const size_t            elem_size)
+{
+    uint8_t* values = (uint8_t*)(slots + length);
+    const size_t i  = *gp_u128_lo(&key) & (length - 1);
+
+    if (slots[i].slot == GP_EMPTY)
+    {
+        if (elem_size != 0) {
+            if (elem != NULL)
+                memcpy(values + i * elem_size, elem, elem_size);
+            slots[i].element = values + i * elem_size;
+        } else {
+            slots[i].element = elem;
+        }
+        slots[i].slot = GP_IN_USE;
+        slots[i].key  = key;
+        return (void*)slots[i].element;
+    }
+    const size_t next_length = gp_next_length(length);
+    if (slots[i].slot == GP_IN_USE)
+    {
+        GPSlot* new_slots = gp_mem_alloc_zeroes(allocator,
+            next_length * sizeof*new_slots + next_length * elem_size);
+        slots[i].slots = new_slots;
+    }
+    return gp_map_put_elem(
+        allocator,
+        slots[i].slots,
+        next_length,
+        gp_shift_key(key, length),
+        elem,
+        elem_size);
+}
+
+void* gp_map_put(
+    GPMap* map,
+    GPUint128 key,
+    const void* value)
+{
+    return gp_map_put_elem(
+        map->allocator,
+        (GPSlot*)(map + 1),
+        map->length,
+        key,
+        value,
+        map->element_size);
+}
+
+static void* gp_map_get_elem(
+    const GPSlot*const slots,
+    const size_t length,
+    const GPUint128 key,
+    const size_t elem_size)
+{
+    const size_t i  = *gp_u128_lo(&key) & (length - 1);
+
+    if (slots[i].slot == GP_EMPTY)
+        return NULL;
+    else if (slots[i].slot == GP_IN_USE || memcmp(&slots[i].key, &key, sizeof key) == 0)
+        return (void*)slots[i].element;
+
+    return gp_map_get_elem(
+        slots[i].slots, gp_next_length(length), gp_shift_key(key, length), elem_size);
+}
+
+void* gp_map_get(GPMap* map, GPUint128 key)
+{
+    return gp_map_get_elem(
+        (GPSlot*)(map + 1),
+        map->length,
+        key,
+        map->element_size);
+}
+
+static bool gp_map_remove_elem(
+    GPSlot*const slots,
+    const size_t length,
+    const GPUint128 key,
+    const size_t elem_size,
+    void (*const destructor)(void*))
+{
+    const size_t i  = *gp_u128_lo(&key) & (length - 1);
+    if (slots[i].slot == GP_IN_USE) {
+        slots[i].slot = GP_EMPTY;
+        destructor((void*)slots[i].element);
+        slots[i].element = NULL;
+        return true;
+    }
+    else if (slots[i].slot == GP_EMPTY) {
+        return false;
+    }
+    else if (memcmp(&slots[i].key, &key, sizeof key) == 0) {
+        slots[i].key = gp_bytes_hash128(&key, sizeof key);
+        destructor((void*)slots[i].element);
+        slots[i].element = NULL;
+        return true;
+    }
+    return gp_map_remove_elem(
+        slots, gp_next_length(length), gp_shift_key(key, length), elem_size, destructor);
+}
+
+bool gp_map_remove(GPMap* map, GPUint128 key)
+{
+    return gp_map_remove_elem(
+        (GPSlot*)(map + 1),
+        map->length,
+        key,
+        map->element_size,
+        map->destructor);
+}
+
+GPHashMap* gp_hash_map_new(const GPAllocator* alc, const GPMapInitializer* init)
+{
+    return (GPHashMap*)gp_map_new(alc, init);
+}
+
+void gp_hash_map_delete(GPHashMap* map) { gp_map_delete((GPMap*)map); }
+
+void* gp_hash_map_put(
+    GPHashMap*  map,
+    const void* key,
+    size_t      key_size,
+    const void* value)
+{
+    return gp_map_put((GPMap*)map, gp_bytes_hash128(key, key_size), value);
+}
+
+void* gp_hash_map_get(
+    GPHashMap*  map,
+    const void* key,
+    size_t      key_size)
+{
+    return gp_map_get((GPMap*)map, gp_bytes_hash128(key, key_size));
+}
+
+bool gp_hash_map_remove(
+    GPHashMap*  map,
+    const void* key,
+    size_t      key_size)
+{
+    return gp_map_remove((GPMap*)map, gp_bytes_hash128(key, key_size));
+}
+
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* io.c */
+
+
+FILE* gp_file_open(const char* path, const char* mode)
+{ // All this processing is here just to make this consistent with gp_str_file()
+    size_t len = 0;
+    char mode_buf[4] = { mode[len++] };
+    if (strchr(mode, 'b'))
+        mode_buf[len++] = 'b';
+    if (strchr(mode, '+'))
+        mode_buf[len++] = '+';
+    return fopen(path, mode_buf);
+}
+
+extern inline void gp_file_close(FILE*);
+extern inline int  gp_stat(GPStat*, const char* path);
+
+bool gp_file_read_line(GPString* out, FILE* in)
+{
+    int c = fgetc(in);
+    if (c == EOF)
+        return false;
+
+    (*out)[0].c = c;
+    ((GPStringHeader*)*out - 1)->length = 1;
+
+    while (true)
+    {
+        while (gp_str_length(*out) < gp_str_capacity(*out))
+        {
+            if (c == '\n')
+                goto end;
+            c = fgetc(in);
+            if (c == EOF)
+                goto end;
+            (*out)[((GPStringHeader*)*out - 1)->length++].c = c;
+        }
+        gp_str_reserve(out, gp_str_capacity(*out) + 1); // doubles cap
+    }
+    end:
+    return true;
+}
+
+bool gp_file_read_until(
+    GPString*   out,
+    FILE*       in,
+    const char* delimiter)
+{
+    int c = fgetc(in);
+    if (c == EOF)
+        return false;
+
+    (*out)[0].c = c;
+    ((GPStringHeader*)*out - 1)->length = 1;
+
+    const char* match = delimiter;
+    while (true)
+    {
+        while (gp_str_length(*out) < gp_str_capacity(*out))
+        {
+            if (*match == '\0')
+                goto end;
+            c = fgetc(in);
+            if (c == EOF)
+                goto end;
+            (*out)[((GPStringHeader*)*out - 1)->length++].c = c;
+            if (c == *match)
+                match++;
+            else
+                match = delimiter;
+        }
+        gp_str_reserve(out, gp_str_capacity(*out) + 1); // doubles cap
+    }
+    end:
+    return true;
+}
+
+bool gp_file_read_strip(
+    GPString*   out,
+    FILE*       in,
+    const char* char_set)
+{
+    while (true) // strip left
+    {
+        int c = fgetc(in);
+        if (c == EOF)
+            return false;
+        char codepoint[8] = {c};
+        size_t codepoint_length = gp_str_codepoint_length((GPString)codepoint, 0);
+        for (size_t i = 1; i < codepoint_length; i++) {
+            if ((c = fgetc(in)) == EOF)
+                return false;
+            codepoint[i] = c;
+        }
+        if (strstr(char_set, codepoint) != NULL)
+            break;
+    }
+    while (true) // write until codepoint found in char set
+    {
+        int c = fgetc(in);
+        if (c == EOF)
+            return false;
+        char codepoint[8] = {c};
+        size_t codepoint_length = gp_str_codepoint_length((GPString)codepoint, 0);
+        for (size_t i = 1; i < codepoint_length; i++) {
+            if ((c = fgetc(in)) == EOF)
+                return false;
+            codepoint[i] = c;
+        }
+        if (strstr(char_set, codepoint) == NULL)
+            break;
+        gp_str_append(out, codepoint, codepoint_length);
+    }
+    return true;
+}
+
+static size_t gp_print_va_arg(
+    FILE* out,
+    pf_va_list*restrict const args,
+    const GPType type)
+{
+    size_t length = 0;
+    switch (type)
+    {
+        case GP_CHAR:
+        case GP_SIGNED_CHAR:
+        case GP_UNSIGNED_CHAR:
+            length = 1;
+            fputc(va_arg(args->list, int), out);
+            break;
+
+        case GP_UNSIGNED_SHORT:
+        case GP_UNSIGNED:
+            length = fprintf(out, "%u", va_arg(args->list, unsigned));
+            break;
+
+        case GP_UNSIGNED_LONG:
+            length = fprintf(out, "%lu", va_arg(args->list, unsigned long));
+            break;
+
+        case GP_UNSIGNED_LONG_LONG:
+            length = fprintf(out, "%llu", va_arg(args->list, unsigned long long));
+            break;
+
+        case GP_BOOL:
+            if (va_arg(args->list, int)) {
+                length = strlen("true");
+                fputs("true", out);
+            } else {
+                length = strlen("false");
+                fputs("false", out);
+            } break;
+
+        case GP_SHORT:
+        case GP_INT:
+            length = fprintf(out, "%i", va_arg(args->list, int));
+            break;
+
+        case GP_LONG:
+            length = fprintf(out, "%li", va_arg(args->list, long));
+            break;
+
+        case GP_LONG_LONG:
+            length = fprintf(out, "%lli", va_arg(args->list, long long));
+            break;
+
+        case GP_FLOAT:
+        case GP_DOUBLE:
+            length = fprintf(out, "%g", va_arg(args->list, double));
+            break;
+
+        case GP_CHAR_PTR:
+            length = fprintf(out, "%s", va_arg(args->list, char*));
+            break;
+
+        GPString s;
+        case GP_STRING:
+            s = va_arg(args->list, GPString);
+            length = gp_arr_length(s);
+            fwrite(s, 1, length, out);
+            break;
+
+        case GP_PTR:
+            length = fprintf(out, "%p", va_arg(args->list, void*));
+            break;
+    }
+    return length;
+}
+
+static size_t gp_print_objects(
+    FILE* out,
+    pf_va_list* args,
+    size_t*const i,
+    GPPrintable obj)
+{
+    size_t length = 0;
+    if (obj.identifier[0] == '\"')
+    {
+        const char* fmt = va_arg(args->list, char*);
+        *i += gp_count_fmt_specs(fmt);
+
+        length += pf_vfprintf (out,     fmt, args->list);
+
+        // Dummy consumption. TODO this is useless work, write a dedicated dummy
+        // consumer.
+        pf_vsnprintf_consuming(NULL, 0, fmt, args);
+    } else {
+        length += gp_print_va_arg(out, args, obj.type);
+    }
+    return length;
+}
+
+size_t gp_file_print_internal(
+    FILE* out,
+    const size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    size_t length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        length += gp_print_objects(
+            out,
+            &args,
+            &i,
+            objs[i]);
+    }
+    va_end(_args);
+    va_end(args.list);
+
+    return length;
+}
+
+size_t gp_file_println_internal(
+    FILE* out,
+    const size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    size_t length = 0;
+    for (size_t i = 0; i < arg_count; i++)
+    {
+        length += strlen(" ") + gp_print_objects(
+            out,
+            &args,
+            &i,
+            objs[i]);
+
+        if (i < arg_count - 1)
+            fputs(" ",  out);
+    }
+    fputs("\n", out);
+    va_end(_args);
+    va_end(args.list);
+
+    return length;
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* format_scanning.c */
+
+#include <string.h>
+
+PFFormatSpecifier
+pf_scan_format_string(
+    const char* fmt_string,
+    pf_va_list* va_args)
+{
+    PFFormatSpecifier fmt = {0};
+    fmt.string = fmt_string;
+
+    fmt.string = strchr(fmt.string, '%');
+    if (fmt.string == NULL)
+    {
+        return fmt;
+    }
+    if (fmt.string[1] == '%')
+    {
+        fmt.string_length = 2;
+        fmt.conversion_format = '%';
+    }
+
+    // Iterator
+    const char* c = fmt.string + strlen("%");
+
+    // Find all flags if any
+    for (const char* flag; (flag = strchr("-+ #0", *c)); c++)
+    {
+        switch (*flag)
+        {
+            case '-': fmt.flag.dash  = 1; break;
+            case '+': fmt.flag.plus  = 1; break;
+            case ' ': fmt.flag.space = 1; break;
+            case '#': fmt.flag.hash  = 1; break;
+            case '0': fmt.flag.zero  = 1; break;
+        }
+    }
+
+    // Find field width
+    {
+        if (*c == '*')
+        {
+            fmt.field.asterisk = true;
+
+            int width = 0;
+            if (va_args != NULL && (width = va_arg(va_args->list, int)) >= 0)
+            {
+                fmt.field.asterisk = false; // prevent recalling va_arg()
+                fmt.field.width = width;
+            }
+            else if (width < 0)
+            {
+                fmt.field.asterisk = false;
+            }
+            c++;
+        }
+        else if ('1' <= *c && *c <= '9') // can't be 0. Leading 0 is a flag.
+        {
+            const char* num = c;
+            unsigned digits = 0;
+            do {
+                digits++;
+                c++;
+            } while ('0' <= *c && *c <= '9');
+
+            unsigned digit = 1;
+            while (digits)
+            {
+                fmt.field.width += (num[digits - 1] - '0') * digit;
+                digit *= 10;
+                digits--;
+            }
+        }
+    }
+
+    // Find precision
+    if (*c == '.')
+    {
+        c++; // ignore '.'
+
+        if (*c == '*')
+        {
+            fmt.precision.option = PF_ASTERISK;
+
+            int width = 0;
+            if (va_args != NULL && (width = va_arg(va_args->list, int)) >= 0)
+            {
+                fmt.precision.option = PF_SOME;
+                fmt.precision.width = width;
+            }
+            else if (width < 0)
+            {
+                fmt.precision.option = PF_NONE;
+            }
+
+            c++;
+        }
+        else
+        {
+            fmt.precision.option = PF_SOME;
+            const char* num = c;
+            unsigned digits = 0;
+
+            while ('0' <= *c && *c <= '9')
+            {
+                digits++;
+                c++;
+            }
+
+            unsigned digit = 1;
+            while (digits)
+            {
+                fmt.precision.width += (num[digits - 1] - '0') * digit;
+                digit *= 10;
+                digits--;
+            }
+        }
+    }
+
+    // Find length modifier
+    const char* modifier = strchr("hljztLBWDQ", *c);
+    if (modifier != NULL)
+    {
+        fmt.length_modifier = *modifier;
+        c++;
+        if (*modifier == 'h' && *c == 'h') {
+            fmt.length_modifier += 'h';
+            c++;
+        }
+        if (*modifier == 'l' && *c == 'l') {
+            fmt.length_modifier += 'l';
+            c++;
+        }
+    }
+
+    fmt.conversion_format = *c;
+    c++; // get to the end of string
+    fmt.string_length = c - fmt.string;
+
+    return fmt;
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* pcg_basic.c */
+
+
+// state for global RNGs
+
+static pcg32_random_t pcg32_global = PCG32_INITIALIZER;
+
+// pcg32_srandom(initstate, initseq)
+// pcg32_srandom_r(rng, initstate, initseq):
+//     Seed the rng.  Specified in two parts, state initializer and a
+//     sequence selection constant (a.k.a. stream id)
+
+void pcg32_srandom_r(pcg32_random_t* rng, uint64_t initstate, uint64_t initseq)
+{
+    rng->state = 0U;
+    rng->inc = (initseq << 1u) | 1u;
+    pcg32_random_r(rng);
+    rng->state += initstate;
+    pcg32_random_r(rng);
+}
+
+void pcg32_srandom(uint64_t seed, uint64_t seq)
+{
+    pcg32_srandom_r(&pcg32_global, seed, seq);
+}
+
+// pcg32_random()
+// pcg32_random_r(rng)
+//     Generate a uniformly distributed 32-bit random number
+
+uint32_t pcg32_random_r(pcg32_random_t* rng)
+{
+    uint64_t oldstate = rng->state;
+    rng->state = oldstate * 6364136223846793005ULL + rng->inc;
+    uint32_t xorshifted = (uint32_t)(((oldstate >> 18u) ^ oldstate) >> 27u);
+    uint32_t rot = (uint32_t)(oldstate >> 59u);
+    return (xorshifted >> rot) | (xorshifted << ((0-rot) & 31));
+}
+
+uint32_t pcg32_random()
+{
+    return pcg32_random_r(&pcg32_global);
+}
+
+
+// pcg32_boundedrand(bound):
+// pcg32_boundedrand_r(rng, bound):
+//     Generate a uniformly distributed number, r, where 0 <= r < bound
+
+uint32_t pcg32_boundedrand_r(pcg32_random_t* rng, uint32_t bound)
+{
+    // To avoid bias, we need to make the range of the RNG a multiple of
+    // bound, which we do by dropping output less than a threshold.
+    // A naive scheme to calculate the threshold would be to do
+    //
+    //     uint32_t threshold = 0x100000000ull % bound;
+    //
+    // but 64-bit div/mod is slower than 32-bit div/mod (especially on
+    // 32-bit platforms).  In essence, we do
+    //
+    //     uint32_t threshold = (0x100000000ull-bound) % bound;
+    //
+    // because this version will calculate the same modulus, but the LHS
+    // value is less than 2^32.
+
+    uint32_t threshold = (0-bound) % bound;
+
+    // Uniformity guarantees that this loop will terminate.  In practice, it
+    // should usually terminate quickly; on average (assuming all bounds are
+    // equally likely), 82.25% of the time, we can expect it to require just
+    // one iteration.  In the worst case, someone passes a bound of 2^31 + 1
+    // (i.e., 2147483649), which invalidates almost 50% of the range.  In
+    // practice, bounds are typically small and only a tiny amount of the range
+    // is eliminated.
+    for (;;) {
+        uint32_t r = pcg32_random_r(rng);
+        if (r >= threshold)
+            return r % bound;
+    }
+}
+
+
+uint32_t pcg32_boundedrand(uint32_t bound)
+{
+    return pcg32_boundedrand_r(&pcg32_global, bound);
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* array.c */
+
+#include <string.h>
+
+size_t gp_arr_length(const void* arr)
+{
+    return ((GPArrayHeader*)arr - 1)->length;
+}
+
+size_t gp_arr_capacity(const void* arr)
+{
+    return ((GPArrayHeader*)arr - 1)->capacity;
+}
+
+void* gp_arr_allocation(const void* arr)
+{
+    return ((GPArrayHeader*)arr - 1)->allocation;
+}
+
+const GPAllocator* gp_arr_allocator(const void* arr)
+{
+    return ((GPArrayHeader*)arr - 1)->allocator;
+}
+
+GPArray(void) gp_arr_new(
+    const GPAllocator* allocator,
+    const size_t element_size,
+    const size_t element_count)
+{
+    const size_t size = gp_round_to_aligned(element_size * element_count, GP_ALLOC_ALIGNMENT);
+    GPArrayHeader* me = gp_mem_alloc(allocator, sizeof(*me) + size);
+    *me = (GPArrayHeader) { 0, size / element_size, allocator, me };
+    return me + 1;
+}
+
+void gp_arr_delete(GPArray(void) arr)
+{
+    if (arr != NULL && gp_arr_allocator(arr) != NULL)
+        gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
+}
+
+GPArray(void) gp_arr_reserve(
+    const size_t element_size,
+    GPArray(void) arr,
+    size_t        capacity)
+{
+    if (capacity > gp_arr_capacity(arr))
+    {
+        capacity = gp_next_power_of_2(capacity);
+        if (gp_arr_allocator(arr)->dealloc == gp_arena_dealloc &&
+            gp_arr_allocation(arr) != NULL)
+        { // gp_mem_realloc() knows how to just extend block in arena
+            GPArrayHeader* new_block = gp_mem_realloc(
+                gp_arr_allocator(arr),
+                gp_arr_allocation(arr),
+                sizeof*new_block + gp_arr_capacity(arr) * element_size,
+                sizeof*new_block + capacity             * element_size);
+            new_block->capacity   = capacity;
+            new_block->allocation = new_block;
+            return new_block + 1;
+        } // else not arena or must copy contens from stack
+        GPArrayHeader* new_block = gp_mem_alloc(
+            gp_arr_allocator(arr),
+            sizeof*new_block + capacity * element_size);
+
+        memcpy(new_block, (GPArrayHeader*)arr - 1,
+            sizeof*new_block + gp_arr_length(arr) * element_size);
+
+        new_block->capacity   = capacity;
+        new_block->allocation = new_block;
+
+        gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
+        arr = new_block + 1;
+    }
+    return arr;
+}
+
+GPArray(void) gp_arr_copy(
+    const size_t        element_size,
+    GPArray(void)       dest,
+    const void*restrict src,
+    const size_t        src_length)
+{
+    dest = gp_arr_reserve(element_size, dest, src_length);
+    memcpy(dest, src, src_length * element_size);
+    ((GPArrayHeader*)dest - 1)->length = src_length;
+    return dest;
+}
+
+GPArray(void) gp_arr_slice(
+    const size_t elem_size,
+    GPArray(void)       dest,
+    const void*restrict const src,
+    const size_t i_start,
+    const size_t i_end)
+{
+    size_t length = i_end - i_start;
+
+    if (src == NULL) {
+        memmove(dest, (uint8_t*)dest + i_start * elem_size, length * elem_size);
+    } else {
+        dest = gp_arr_reserve(elem_size, dest, length);
+        memcpy(dest, (uint8_t*)src + i_start * elem_size, length * elem_size);
+    }
+    ((GPArrayHeader*)dest - 1)->length = length;
+    return dest;
+}
+
+GPArray(void) gp_arr_push(
+    const size_t element_size,
+    GPArray(void)       arr,
+    const void*restrict element)
+{
+    const size_t length = gp_arr_length(arr);
+    arr = gp_arr_reserve(element_size, arr, length + 1);
+    memcpy((uint8_t*)arr + length * element_size, element, element_size);
+    ((GPArrayHeader*)arr - 1)->length++;
+    return arr;
+}
+
+void* gp_arr_pop(
+    const size_t element_size,
+    GPArray(void) arr)
+{
+    return (uint8_t*)arr + --((GPArrayHeader*)arr - 1)->length * element_size;
+}
+
+GPArray(void) gp_arr_append(
+    const size_t element_size,
+    GPArray(void)       arr,
+    const void*restrict src,
+    const size_t n)
+{
+    const size_t length = gp_arr_length(arr);
+    arr = gp_arr_reserve(element_size, arr, length + n);
+    memcpy((uint8_t*)arr + length * element_size, src, n * element_size);
+    ((GPArrayHeader*)arr - 1)->length += n;
+    return arr;
+}
+
+GPArray(void) gp_arr_insert(
+    const size_t elem_size,
+    GPArray(void) arr,
+    const size_t pos,
+    const void*restrict src,
+    const size_t n)
+{
+    const size_t length = gp_arr_length(arr);
+    arr = gp_arr_reserve(elem_size, arr, length + n);
+
+    memmove(
+        (uint8_t*)arr + (pos + n) * elem_size,
+        (uint8_t*)arr +  pos      * elem_size,
+        (length - pos)            * elem_size);
+    memcpy(
+        (uint8_t*)arr +  pos * elem_size, src, n * elem_size);
+
+    ((GPArrayHeader*)arr - 1)->length += n;
+    return arr;
+}
+
+GPArray(void) gp_arr_erase(
+    const size_t  elem_size,
+    GPArray(void) arr,
+    const size_t  pos,
+    const size_t  count)
+{
+    size_t* length = &((GPArrayHeader*)arr - 1)->length;
+    const size_t tail_length = *length - (pos + count);
+    memmove(
+        (uint8_t*)arr +  pos          * elem_size,
+        (uint8_t*)arr + (pos + count) * elem_size,
+        tail_length                   * elem_size);
+    *length -= count;
+    return arr;
+}
+
+GPArray(void) gp_arr_map(
+    const size_t elem_size,
+    GPArray(void) arr,
+    const void*restrict optional_src, // mutates arr if NULL
+    const size_t src_length,
+    void (*const f)(void* out, const void* in))
+{
+    if (optional_src == NULL) {
+        for (size_t i = 0; i < gp_arr_length(arr); i++)
+            f((uint8_t*)arr + i * elem_size, (uint8_t*)arr + i * elem_size);
+    } else {
+        arr = gp_arr_reserve(elem_size, arr, src_length);
+        for (size_t i = 0; i < src_length; i++)
+            f((uint8_t*)arr + i * elem_size, (uint8_t*)optional_src + i * elem_size);
+        ((GPArrayHeader*)arr - 1)->length = src_length;
+    }
+    return arr;
+}
+
+void* gp_arr_fold(
+    const size_t elem_size,
+    const GPArray(void) arr,
+    void* accumulator,
+    void* (*const f)(void* accumulator, const void* element))
+{
+    for (size_t i = 0; i < gp_arr_length(arr); i++)
+        accumulator = f(accumulator, (uint8_t*)arr + i * elem_size);
+    return accumulator;
+}
+
+void* gp_arr_foldr(
+    const size_t elem_size,
+    const GPArray(void) arr,
+    void* accumulator,
+    void* (*const f)(void* accumulator, const void* element))
+{
+    for (size_t i = gp_arr_length(arr) - 1; i != (size_t)-1; i--)
+        accumulator = f(accumulator, (uint8_t*)arr + i * elem_size);
+    return accumulator;
+}
+
+static GPArray(void) gp_arr_filter_aliasing(
+    const size_t elem_size,
+    GPArray(void)restrict const arr,
+    const size_t length,
+    bool (*const f)(const void* x))
+{
+    size_t i = 0;
+    ((GPArrayHeader*)arr - 1)->length = 0;
+
+    for (; i < length; i++) // skip copying first matching elements
+    {
+        if (f((uint8_t*)arr + i * elem_size)) {
+            ((GPArrayHeader*)arr - 1)->length++;
+        } else {
+            i++; // after this i > length(arr) so arr[i] and arr[length(arr)]
+                 // will not alias
+            break;
+        }
+    }
+    for (; i < length; i++)
+    {
+        if (f((uint8_t*)arr + i * elem_size))
+            memcpy(
+                (uint8_t*)arr + ((GPArrayHeader*)arr - 1)->length++ * elem_size,
+                (uint8_t*)arr + i * elem_size,
+                elem_size);
+    }
+    return arr;
+}
+
+static GPArray(void) gp_arr_filter_non_aliasing(
+    const size_t elem_size,
+    GPArray(void)restrict arr,
+    const void*restrict src,
+    const size_t src_length,
+    bool (*const f)(const void* x))
+{
+    arr = gp_arr_reserve(elem_size, arr, src_length);
+    ((GPArrayHeader*)arr - 1)->length = 0;
+
+    for (size_t i = 0; i < src_length; i++)
+    {
+        if (f((uint8_t*)src + i * elem_size))
+            memcpy(
+                (uint8_t*)arr + ((GPArrayHeader*)arr - 1)->length++ * elem_size,
+                (uint8_t*)src + i * elem_size,
+                elem_size);
+    }
+    return arr;
+}
+
+GPArray(void) gp_arr_filter(
+    const size_t elem_size,
+    GPArray(void) arr,
+    const void*restrict optional_src,
+    const size_t src_length,
+    bool (*const f)(const void* x))
+{
+    if (optional_src == NULL)
+        return gp_arr_filter_aliasing(
+            elem_size,
+            arr,
+            gp_arr_length(arr),
+            f);
+    else
+        return gp_arr_filter_non_aliasing(
+            elem_size,
+            arr,
+            optional_src,
+            src_length,
+            f);
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* common.c */
+
+#include <stdint.h>
+#include <wchar.h>
+
+extern inline void   gp_arena_dealloc(const GPAllocator*, void*);
+extern inline size_t gp_max_digits_in  (const GPType T);
+extern inline size_t gp_count_fmt_specs(const char* fmt);
+
+// https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
+bool gp_valid_codepoint(
+    const uint32_t c)
+{
+    if (c <= 0x7Fu)
+        return true;
+
+    if (0xC280u <= c && c <= 0xDFBFu)
+       return ((c & 0xE0C0u) == 0xC080u);
+
+    if (0xEDA080u <= c && c <= 0xEDBFBFu)
+       return 0; // Reject UTF-16 surrogates
+
+    if (0xE0A080u <= c && c <= 0xEFBFBFu)
+       return ((c & 0xF0C0C0u) == 0xE08080u);
+
+    if (0xF0908080u <= c && c <= 0xF48FBFBFu)
+       return ((c & 0xF8C0C0C0u) == 0xF0808080u);
+
+    return false;
+}
+
+bool gp_bytes_is_valid_utf8(
+    const void*_str,
+    const size_t length,
+    size_t* invalid_index)
+{
+    const char* str = (const char*)_str;
+    for (size_t i = 0; i < length;)
+    {
+        size_t cp_length = gp_str_codepoint_length((GPString)str, i);
+        if (cp_length == 0 || i + cp_length > length) {
+            if (invalid_index != NULL)
+                *invalid_index = i;
+            return false;
+        }
+        uint32_t codepoint = 0;
+        for (size_t j = 0; j < cp_length; j++)
+            codepoint = codepoint << 8 | (uint8_t)str[i + j];
+        if ( ! gp_valid_codepoint(codepoint)) {
+            if (invalid_index != NULL)
+                *invalid_index = i;
+            return false;
+        }
+        i += cp_length;
+    }
+    return true;
+}
+
+size_t gp_bytes_codepoint_count(
+    const void* _str,
+    const size_t n)
+{
+    size_t count = 0;
+    const char* str = _str;
+    static const size_t valid_leading_nibble[] = {
+        1,1,1,1, 1,1,1,1, 0,0,0,0, 1,1,1,1
+    };
+    const size_t align_offset = (uintptr_t)str     % 8;
+    const size_t remaining    = (n - align_offset) % 8;
+    size_t i = 0;
+
+    for (size_t len = gp_min(align_offset, n); i < len; i++)
+        count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
+
+    for (; i < n - remaining; i += 8)
+    {
+        // Read 8 bytes to be processed in parallel
+        uint64_t x;
+        memcpy(&x, str + i, sizeof x);
+
+        // Extract bytes that start with 0b10
+        const uint64_t a =   x & 0x8080808080808080llu;
+        const uint64_t b = (~x & 0x4040404040404040llu) << 1;
+
+        // Each byte in c is either 0 or 0b10000000
+        uint64_t c = a & b;
+
+        uint32_t bit_count;
+        #ifdef __clang__ // only Clang seems to benefit from popcount()
+        bit_count = __builtin_popcountll(c);
+        #else
+        //https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+        uint32_t v0 = c & 0xffffffffllu;
+        uint32_t v1 = c >> 32;
+
+        v0 = v0 - (v0 >> 1);
+        v0 = (v0 & 0x33333333) + ((v0 >> 2) & 0x33333333);
+        bit_count = (((v0 + (v0 >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+
+        v1 = v1 - (v1 >> 1);
+        v1 = (v1 & 0x33333333) + ((v1 >> 2) & 0x33333333);
+        bit_count += (((v1 + (v1 >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+        #endif
+
+        count += 8 - bit_count;
+    }
+    for (; i < n; i++)
+        count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
+
+    return count;
+}
+
+size_t gp_convert_va_arg(
+    const size_t limit,
+    void*restrict const out,
+    pf_va_list*restrict const args,
+    const GPType type)
+{
+    size_t length = 0;
+    switch (type)
+    {
+        case GP_CHAR:
+        case GP_SIGNED_CHAR:
+        case GP_UNSIGNED_CHAR:
+            length++;
+            if (limit > 0)
+                *(uint8_t*)out = (char)va_arg(args->list, int);
+            break;
+
+        case GP_UNSIGNED_SHORT:
+        case GP_UNSIGNED:
+            length += pf_utoa(
+                limit,
+                out,
+                va_arg(args->list, unsigned));
+            break;
+
+        case GP_UNSIGNED_LONG:
+            length += pf_utoa(
+                limit,
+                out,
+                va_arg(args->list, unsigned long));
+            break;
+
+        case GP_UNSIGNED_LONG_LONG:
+            length += pf_utoa(
+                limit,
+                out,
+                va_arg(args->list, unsigned long long));
+            break;
+
+        case GP_BOOL:
+            if (va_arg(args->list, int)) {
+                length += strlen("true");
+                memcpy(out, "true", gp_min(4llu, limit));
+            } else {
+                length += strlen("false");
+                memcpy(out, "false", gp_min(5llu, limit));
+            } break;
+
+        case GP_SHORT:
+        case GP_INT:
+            length += pf_itoa(
+                limit,
+                out,
+                va_arg(args->list, int));
+            break;
+
+        case GP_LONG:
+            length += pf_itoa(
+                limit,
+                out,
+                va_arg(args->list, long int));
+            break;
+
+        case GP_LONG_LONG:
+            length += pf_itoa(
+                limit,
+                out,
+                va_arg(args->list, long long int));
+            break;
+
+        case GP_FLOAT:
+        case GP_DOUBLE:
+            length += pf_gtoa(
+                limit,
+                out,
+                va_arg(args->list, double));
+            break;
+
+        char* p;
+        size_t p_len;
+        case GP_CHAR_PTR:
+            p = va_arg(args->list, char*);
+            p_len = strlen(p);
+            memcpy(out, p, gp_min(p_len, limit));
+            length += p_len;
+            break;
+
+        GPString s;
+        case GP_STRING:
+            s = va_arg(args->list, GPString);
+            memcpy(out, s, gp_min(gp_arr_length(s), limit));
+            length += gp_arr_length(s);
+            break;
+
+        case GP_PTR:
+            p = va_arg(args->list, void*);
+            if (p != NULL) {
+                memcpy(out, "0x", gp_min(2llu, limit));
+                length += strlen("0x") + pf_xtoa(
+                    limit > 2 ? limit - 2 : 0, (char*)out + strlen("0x"), (uintptr_t)p);
+            } else {
+                length += strlen("(nil)");
+                memcpy(out, "(nil)", gp_min(strlen("(nil)"), limit));
+            } break;
+    }
+    return length;
+}
+
+size_t gp_bytes_print_objects(
+    const size_t limit,
+    void*restrict out,
+    pf_va_list* args,
+    size_t*const i,
+    GPPrintable obj)
+{
+    size_t length = 0;
+    if (obj.identifier[0] == '\"')
+    {
+        const char* fmt = va_arg(args->list, char*);
+        *i += gp_count_fmt_specs(fmt);
+
+        length += pf_vsnprintf_consuming(
+            out,
+            limit,
+            fmt,
+            args);
+    } else {
+        length += gp_convert_va_arg(limit, out, args, obj.type);
+    }
+    return length;
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* assert.c */
+
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdint.h>
+
+#ifdef _WIN32
+#include <windows.h> // GetModuleFileNameA()
+#endif
+
+static GP_MAYBE_THREAD_LOCAL const char* gp_current_test  = NULL;
+static GP_MAYBE_THREAD_LOCAL const char* gp_current_suite = NULL;
+static GP_MAYBE_THREAD_LOCAL bool gp_test_failed  = false;
+static GP_MAYBE_THREAD_LOCAL bool gp_suite_failed = false;
+static GP_MAYBE_ATOMIC uint32_t gp_test_count    = 0;
+static GP_MAYBE_ATOMIC uint32_t gp_suite_count   = 0;
+static GP_MAYBE_ATOMIC uint32_t gp_tests_failed  = 0;
+static GP_MAYBE_ATOMIC uint32_t gp_suites_failed = 0;
+static GP_MAYBE_ATOMIC uint32_t gp_initialized_testing = false;
+#define GP_FAILED_STR GP_RED          "[FAILED]" GP_RESET_TERMINAL
+#define GP_PASSED_STR GP_BRIGHT_GREEN "[PASSED]" GP_RESET_TERMINAL
+static const char* prog_name = "";
+
+// ----------------------------------------------------------------------------
+// Implementations for gp_suite(), gp_test(), and relevant
+
+void gp_end_testing(void)
+{
+    if (gp_test_count + gp_suite_count == 0)
+        return;
+
+    gp_test(NULL);
+    gp_suite(NULL);
+
+    printf("Finished testing%s%s\n", *prog_name ? " in " : ".", prog_name);
+    printf("A total of %u tests ran in %u suites\n", gp_test_count, gp_suite_count);
+
+    if (gp_tests_failed || gp_suites_failed)
+        fprintf(stderr,
+            GP_RED "%u tests failed and %u suites failed!" GP_RESET_TERMINAL "\n",
+            gp_tests_failed, gp_suites_failed);
+    else
+        printf(GP_BRIGHT_GREEN "Passed all tests!" GP_RESET_TERMINAL "\n");
+
+    puts("---------------------------------------------------------------");
+
+    if (gp_tests_failed || gp_suites_failed)
+        exit(EXIT_FAILURE);
+
+    // Prevent redundant reporting at exit. Also user may want to restart tests.
+    gp_test_count    = 0;
+    gp_suite_count   = 0;
+    gp_tests_failed  = 0;
+    gp_suites_failed = 0;
+    gp_initialized_testing = false;
+}
+
+static void gp_init_testing(void)
+{
+    if ( ! gp_initialized_testing)
+    {
+        gp_initialized_testing = true;
+
+        #if (__GNUC__ && __linux__) || BSD
+        extern const char* __progname;
+        prog_name = __progname;
+        #elif _WIN32
+        static char prog_name_buf[MAX_PATH] = "";
+        size_t length = GetModuleFileNameA(NULL, prog_name_buf, MAX_PATH);
+
+        bool valid_ascii = 0 < length && length < MAX_PATH;
+        for (size_t i = 0; i < length && valid_ascii; i++)
+            valid_ascii = ~prog_name_buf[i] & 0x80;
+        if (valid_ascii) {
+            const char* trimmed = strrchr(prog_name_buf, '\\');
+            prog_name = trimmed ? trimmed + strlen("\\") : prog_name_buf;
+        }
+        #endif
+
+        puts("---------------------------------------------------------------");
+        printf("Starting tests%s%s\n\n", *prog_name ? " in " : "", prog_name);
+        atexit(gp_end_testing);
+    }
+}
+
+void gp_test(const char* name)
+{
+    gp_init_testing();
+
+    // End current test
+    if (gp_current_test != NULL)
+    {
+        const char* indent = gp_current_suite == NULL ? "" : "\t";
+        if (gp_test_failed) {
+            gp_tests_failed++;
+            fprintf(stderr,
+            "%s" GP_FAILED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_current_test);
+        } else {
+            printf(
+            "%s" GP_PASSED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_current_test);
+        }
+
+        gp_current_test = NULL;
+    }
+
+    // Start new test
+    if (name != NULL)
+    {
+        // No starting message cluttering output
+
+        gp_current_test = name;
+        gp_test_failed = false;
+        gp_test_count++;
+    }
+}
+
+void gp_suite(const char* name)
+{
+    gp_init_testing();
+    gp_test(NULL); // End current test
+
+    // End current suite
+    if (gp_current_suite != NULL)
+    {
+        if (gp_suite_failed) {
+            gp_suites_failed++;
+            fprintf(stderr, GP_FAILED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_current_suite);
+        } else {
+            printf(GP_PASSED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_current_suite);
+        }
+        gp_current_suite = NULL;
+    }
+
+    // Start new suite
+    if (name != NULL)
+    {
+        printf("Starting suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n", name);
+
+        gp_current_suite = name;
+        gp_suite_failed = false;
+        gp_suite_count++;
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Implementations for gp_assert() and gp_expect()
+
+void gp_fail_internal(
+    const char* file,
+    int line,
+    const char* func,
+    size_t arg_count,
+    const GPPrintable* objs,
+    ...)
+{
+    va_list _args;
+    va_start(_args, objs);
+    pf_va_list args;
+    va_copy(args.list, _args);
+
+    if (gp_current_test != NULL)
+    {
+        gp_test_failed = true;
+        func = gp_current_test;
+    }
+    if (gp_current_suite != NULL)
+    {
+        gp_suite_failed = true;
+        if (gp_current_test == NULL)
+            func = gp_current_suite;
+    }
+
+    const char* condition = objs[0].identifier;
+    if (gp_sizeof(objs[0].type) == sizeof(uint64_t))
+        (void)va_arg(args.list, uint64_t);
+    else
+        (void)va_arg(args.list, uint32_t);
+
+    const char* indent = gp_current_test != NULL ? "\t" : "";
+    fprintf(stderr,
+        "%s%s " GP_WHITE_BG GP_BLACK "line %i" GP_RESET_TERMINAL
+        " in " GP_CYAN "%s" GP_RESET_TERMINAL "\n"
+        "%sCondition " GP_RED "%s " GP_FAILED_STR "\n",
+        indent, file, line, func, indent, condition);
+
+    char* buf = NULL;
+    size_t buf_capacity = 0;
+    for (size_t i = 1; i < arg_count; i++)
+    {
+        fputs(indent, stderr);
+        if (objs[i].identifier[0] == '\"')
+        {
+            const char* fmt = va_arg(args.list, char*);
+            size_t fmt_spec_count = 0;
+            size_t asterisk_count = 0;
+            char* fmt_spec = NULL;
+            const char* l_braces = "([{<";
+            const char* r_braces = ")]}>";
+            const char* brace = strchr(l_braces, fmt[0]);
+
+            for (const char* c = fmt; (c = strchr(c, '%')) != NULL; c++)
+            {
+                if (c[1] == '%') {
+                    c++;
+                } else {
+                    fmt_spec_count++;
+                    fmt_spec = strpbrk(c, "csSdioxXufFeEgGp");
+                    for (const char* _c = c; _c < fmt_spec; _c++) if (*_c == '*')
+                        asterisk_count++;
+
+                    if (fmt_spec == NULL) {
+                        fprintf(stderr, "Invalid format specifier \"%s\".", fmt);
+                        continue;
+                    }
+                }
+            }
+            size_t printed = 0;
+            if (fmt_spec_count == 0) // user comment
+            {
+                fprintf(stderr, "%s\n", fmt);
+                continue;
+            }
+            else if (fmt_spec_count == 1 && asterisk_count == 0)
+            {
+                fprintf(stderr,
+                    GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ",
+                    objs[i + 1/*0 is fmt so next one*/].identifier);
+
+                // Color and opening quote if string or char
+                if (*fmt_spec == 'c') // character
+                    fprintf(stderr, GP_YELLOW);
+                else if (*fmt_spec == 's' || *fmt_spec == 'S') // string
+                    fprintf(stderr, GP_BRIGHT_RED);
+                else if (strchr("dibBouxX", *fmt_spec)) // integer
+                    fprintf(stderr, GP_BRIGHT_BLUE);
+                else if (strchr("fFeEgG", *fmt_spec)) // floating point
+                    fprintf(stderr, GP_BRIGHT_MAGENTA);
+                else if (*fmt_spec == 'p') // pointer
+                    fprintf(stderr, GP_BLUE);
+            }
+            else
+            {
+                if (brace != NULL) {
+                    fputc(*brace, stderr);
+                    printed++;
+                    if (fmt[1] == ' ') {
+                        fputc(' ', stderr);
+                        printed++;
+                    }
+                }
+                const char* _fmt = fmt; // must detect and skip asterisks
+                for (size_t j = 0; j < fmt_spec_count + asterisk_count - 1;)
+                {
+                    while (true) {
+                        _fmt = strchr(_fmt, '%');
+                        if (_fmt[1] != '%')
+                            break;
+                    }
+                    const char* spec = strpbrk(_fmt, "csdioxXufFeEgGp");
+                    for (const char* _c = _fmt; _c < spec; _c++) if (*_c == '*')
+                        j++;
+                    if (j >= fmt_spec_count + asterisk_count - 1)
+                        break;
+                    printed += fprintf(stderr,"%s, ",objs[i + 1 + j].identifier);
+                    j++;
+                    _fmt++;
+                }
+                printed += fprintf(stderr,
+                    "%s", objs[i + fmt_spec_count + asterisk_count].identifier);
+
+                if (brace != NULL) {
+                    if (fmt[1] == ' ') {
+                        printed++;
+                        fputc(' ', stderr);
+                    }
+                    size_t brace_i = brace - l_braces;
+                    fputc(r_braces[brace_i], stderr);
+                    printed++;
+                }
+                fprintf(stderr, GP_RESET_TERMINAL " = " GP_BRIGHT_CYAN);
+                printed += strlen(" = ");
+            }
+
+            size_t required_capacity = pf_vsnprintf(NULL, 0, fmt, args.list) + 1;
+            if (required_capacity >= buf_capacity) {
+                buf = realloc(
+                    buf, buf_capacity = gp_next_power_of_2(required_capacity));
+            }
+            if (printed + required_capacity > 120)
+                fprintf(stderr, "\n\t");
+
+            pf_vsnprintf_consuming(buf, buf_capacity, fmt, &args);
+            fprintf(stderr, "%s", buf);
+
+            fprintf(stderr, GP_RESET_TERMINAL "\n");
+
+            i += fmt_spec_count + asterisk_count;
+            continue;
+        } // end if string literal
+
+        fprintf(stderr,
+            GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ", objs[i].identifier);
+
+        switch (objs[i].type)
+        {
+            case GP_CHAR:
+            case GP_SIGNED_CHAR:
+            case GP_UNSIGNED_CHAR:
+                fprintf(stderr,
+                    GP_YELLOW "\'%c\'", (char)va_arg(args.list, int));
+                break;
+
+            case GP_UNSIGNED_SHORT:
+            case GP_UNSIGNED:
+                fprintf(stderr, GP_BRIGHT_BLUE "%u", va_arg(args.list, unsigned));
+                break;
+
+            case GP_UNSIGNED_LONG:
+                fprintf(stderr,
+                    GP_BRIGHT_BLUE "%lu", va_arg(args.list, unsigned long));
+                break;
+
+            case GP_UNSIGNED_LONG_LONG:
+                fprintf(stderr,
+                    GP_BRIGHT_BLUE "%llu", va_arg(args.list, unsigned long long));
+                break;
+
+            case GP_BOOL:
+                fprintf(stderr, va_arg(args.list, int) ? "true" : "false");
+                break;
+
+            case GP_SHORT:
+            case GP_INT:
+                fprintf(stderr, GP_BRIGHT_BLUE "%i", va_arg(args.list, int));
+                break;
+
+            case GP_LONG:
+                fprintf(stderr, GP_BRIGHT_BLUE "%li", va_arg(args.list, long));
+                break;
+
+            case GP_LONG_LONG:
+                fprintf(stderr, GP_BRIGHT_BLUE "%lli", va_arg(args.list, long long));
+                break;
+
+            double f;
+            case GP_FLOAT:
+            case GP_DOUBLE:
+                f = va_arg(args.list, double);
+                fprintf(stderr, GP_BRIGHT_MAGENTA "%g", f);
+                if (f - (int64_t)f == f/* whole number */&&
+                    (int64_t)f < 100000) { // not printed using %e style
+                    fprintf(stderr, ".0");
+                } break;
+
+            const char* char_ptr;
+            case GP_CHAR_PTR:
+                char_ptr = va_arg(args.list, char*);
+                if (char_ptr != NULL)
+                    fprintf(stderr, GP_BRIGHT_RED "\"%s\"", char_ptr);
+                else
+                    fprintf(stderr, GP_BRIGHT_RED "(null)");
+                break;
+
+            GPString str;
+            case GP_STRING:
+                str = va_arg(args.list, GPString);
+                if (str != NULL)
+                    fprintf(stderr, GP_BRIGHT_RED "\"%.*s\"",
+                        (int)gp_str_length(str), (char*)str);
+                else
+                    fprintf(stderr, GP_BRIGHT_RED "(null)");
+                break;
+
+            case GP_PTR:
+                fprintf(stderr, GP_BLUE "%p", va_arg(args.list, void*));
+                break;
+        }
+        fprintf(stderr, GP_RESET_TERMINAL "\n");
+    } // end for args
+    fputs("\n", stderr);
+
+    free(buf);
+    va_end(_args);
+    va_end(args.list);
+}
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* memory.c */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#ifdef GP_TESTS
+#endif
+
+#ifdef __GNUC__
+#define GP_UNLIKELY(COND) __builtin_expect(!!(COND), 0)
+#else
+#define GP_UNLIKELY(COND) (COND)
+#endif
+
+extern inline void* gp_mem_alloc       (const GPAllocator*,size_t);
+extern inline void* gp_mem_alloc_zeroes(const GPAllocator*,size_t);
+extern inline void  gp_mem_dealloc     (const GPAllocator*,void*);
+
+static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size)
+{
+    (void)unused;
+    void* mem = malloc(block_size);
+    if (mem == NULL) {
+        GP_BREAKPOINT;
+        perror("malloc() failed");
+        abort();
+    }
+    return mem;
+}
+
+static void gp_heap_dealloc(const GPAllocator* unused, void* block)
+{
+    (void)unused;
+    free(block);
+}
+
+static const GPAllocator gp_mallocator = {
+    .alloc   = gp_heap_alloc,
+    .dealloc = gp_heap_dealloc
+};
+#ifdef NDEBUG
+const GPAllocator*const gp_heap = &gp_mallocator;
+#else
+const GPAllocator*      gp_heap = &gp_mallocator;
+#endif
+
+// ----------------------------------------------------------------------------
+
+// Instances of these live in the beginning of the arenas memory block so the
+// first object is in &node + 1;
+typedef struct gp_arena_node
+{
+    void* position;
+    struct gp_arena_node* tail;
+    size_t capacity;
+    void* _padding; // to round size to aligment boundary and for future use
+} GPArenaNode;
+
+static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
+{
+    GPArena* arena = (GPArena*)allocator;
+    const size_t size = gp_round_to_aligned(_size, arena->alignment);
+    GPArenaNode* head = arena->head;
+
+    void* block = head->position;
+    if ((uint8_t*)block + size > (uint8_t*)(head + 1) + arena->head->capacity)
+    { // out of memory, create new arena
+        const size_t new_cap = gp_round_to_aligned(
+            arena->growth_coefficient * arena->head->capacity, arena->alignment);
+        GPArenaNode* new_node = gp_mem_alloc(gp_heap,
+            sizeof(GPArenaNode) + gp_max(new_cap, size));
+        new_node->tail     = head;
+        new_node->capacity = new_cap;
+
+        block = new_node->position = new_node + 1;
+        new_node->position = (uint8_t*)(new_node->position) + size;
+        arena->head = new_node;
+    }
+    else
+    {
+        head->position = (uint8_t*)block + size;
+    }
+    return block;
+}
+
+static void* gp_arena_shared_alloc(const GPAllocator* allocator, const size_t size)
+{
+    gp_mutex_lock((GPMutex*)((GPArena*)allocator + 1));
+    void* block = gp_arena_alloc(allocator, size);
+    gp_mutex_unlock((GPMutex*)((GPArena*)allocator + 1));
+    return block;
+}
+
+GPArena gp_arena_new(const size_t capacity)
+{
+    const size_t cap  = capacity != 0 ?
+        gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT)
+      : 256;
+    GPArenaNode* node = gp_mem_alloc(gp_heap, sizeof(GPArenaNode) + cap);
+    node->position = node + 1;
+    node->tail     = NULL;
+    node->capacity = cap;
+    return (GPArena) {
+        .allocator          = { gp_arena_alloc, gp_arena_dealloc },
+        .growth_coefficient = 2.,
+        .max_size           = 1 << 15,
+        .alignment          = GP_ALLOC_ALIGNMENT,
+        .head               = node,
+    };
+}
+
+GPArena* gp_arena_new_shared(const size_t capacity)
+{
+    GPArena arena_data = gp_arena_new(capacity + sizeof arena_data + sizeof(GPMutex));
+    GPArena*arena = gp_mem_alloc(gp_heap, sizeof*arena + sizeof(GPMutex));
+    arena_data.allocator.alloc = gp_arena_shared_alloc;
+    *arena = arena_data;
+    GPMutex* mutex = (GPMutex*)(arena + 1);
+    gp_mutex_init(mutex);
+    return arena;
+}
+
+static bool gp_in_this_node(GPArenaNode* node, void* _pos)
+{
+    uint8_t* pos = _pos;
+    uint8_t* block_start = (uint8_t*)(node + 1);
+    return block_start <= pos && pos <= block_start + node->capacity;
+}
+
+static void gp_arena_node_delete(GPArena* arena)
+{
+    GPArenaNode* old_head = arena->head;
+    arena->head = arena->head->tail;
+    gp_mem_dealloc(gp_heap, old_head);
+}
+
+void gp_arena_rewind(GPArena* arena, void* new_pos)
+{
+    while ( ! gp_in_this_node(arena->head, new_pos))
+        gp_arena_node_delete(arena);
+    arena->head->position = new_pos;
+}
+
+// With -03 GCC inlined bunch of functions and ignored the last if statement in
+// gp_arena_delete() giving a false positive for -Wfree-nonheap-object and
+// refusing to compile with -Werror so this pointless wrapper is needed.
+#if __GNUC__ && ! __clang__
+__attribute__((noinline))
+#endif
+static void gp_arena_shared_heap_dealloc(GPArena* arena)
+{
+    gp_mem_dealloc(gp_heap, arena);
+}
+
+void gp_arena_delete(GPArena* arena)
+{
+    if (arena == NULL)
+        return;
+    while (arena->head != NULL) {
+        GPArenaNode* old_head = arena->head;
+        arena->head = arena->head->tail;
+        gp_mem_dealloc(gp_heap, old_head);
+    }
+    if (arena->allocator.alloc == gp_arena_shared_alloc)
+        gp_arena_shared_heap_dealloc(arena);
+}
+
+// ----------------------------------------------------------------------------
+// Scratch arena
+
+static GPThreadKey  gp_scratch_arena_key;
+static GPThreadOnce gp_scratch_arena_key_once = GP_THREAD_ONCE_INIT;
+#ifndef GP_NO_THREAD_LOCALS // Avoid unnecessary heap allocation
+static GP_MAYBE_THREAD_LOCAL GPArena gp_scratch_allocator = {0};
+#endif
+
+static void gp_delete_scratch_arena(void* arena)
+{
+    gp_arena_delete(arena);
+    #ifdef GP_NO_THREAD_LOCALS
+    gp_mem_dealloc(gp_heap, arena);
+    #endif
+}
+
+// Make Valgrind shut up.
+static void gp_delete_main_thread_scratch_arena(void)
+{
+    GPArena* arena = gp_thread_local_get(gp_scratch_arena_key);
+    if (arena != NULL)
+        gp_delete_scratch_arena(arena);
+}
+
+static void gp_make_scratch_arena_key(void)
+{
+    atexit(gp_delete_main_thread_scratch_arena);
+    gp_thread_key_create(&gp_scratch_arena_key, gp_delete_scratch_arena);
+}
+
+static GPArena* gp_new_scratch_arena(void)
+{
+    #ifdef GP_NO_THREAD_LOCALS
+    GPArena _arena = gp_arena_new(GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE);
+    GPArena* arena = gp_mem_alloc(gp_heap, sizeof*arena);
+    *arena = _arena;
+    #else
+    gp_scratch_allocator = gp_arena_new(GP_SCOPE_DEFAULT_INIT_SIZE);
+    GPArena* arena       = &gp_scratch_allocator;
+    #endif
+    arena->max_size           = GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE;
+    arena->growth_coefficient = GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT;
+    gp_thread_local_set(gp_scratch_arena_key, arena);
+    return arena;
+}
+
+GPArena* gp_scratch_arena(void)
+{
+    gp_thread_once(&gp_scratch_arena_key_once, gp_make_scratch_arena_key);
+
+    GPArena* arena = gp_thread_local_get(gp_scratch_arena_key);
+    if (GP_UNLIKELY(arena == NULL))
+        arena = gp_new_scratch_arena();
+    return arena;
+}
+
+// ----------------------------------------------------------------------------
+
+void* gp_mem_realloc(
+    const GPAllocator* allocator,
+    void* old_block,
+    size_t old_size,
+    size_t new_size)
+{
+    GPArena* arena = (GPArena*)allocator;
+    if (allocator->dealloc == gp_arena_dealloc &&
+        (char*)old_block + gp_round_to_aligned(old_size, arena->alignment)
+          == (char*)arena->head->position)
+    { // extend block instead of reallocating and copying
+        arena->head->position = old_block;
+        void* new_block = gp_arena_alloc(allocator, new_size);
+        if (new_block != old_block) // arena ran out of space and reallocated
+            memcpy(new_block, old_block, old_size);
+        return new_block;
+    }
+    void* new_block = gp_mem_alloc(allocator, new_size);
+    if (old_block != NULL)
+        memcpy(new_block, old_block, old_size);
+    gp_mem_dealloc(allocator, old_block);
+    return new_block;
+}
+
+// ----------------------------------------------------------------------------
+// Scope allocator
+
+typedef struct gp_defer
+{
+    void (*f)(void* arg);
+    void* arg;
+} GPDefer;
+
+typedef struct gp_defer_stack
+{
+    GPDefer* stack;
+    uint32_t length;
+    uint32_t capacity;
+} GPDeferStack;
+
+typedef struct gp_scope
+{
+    GPArena          arena;
+    struct gp_scope* parent;
+    GPDeferStack*    defer_stack;
+} GPScope;
+
+static GPThreadKey  gp_scope_factory_key;
+static GPThreadOnce gp_scope_factory_key_once = GP_THREAD_ONCE_INIT;
+
+static void gp_end_scopes(GPScope* scope, GPScope*const last_to_be_ended)
+{
+    if (scope->defer_stack != NULL) {
+        for (size_t i = scope->defer_stack->length - 1; i != (size_t)-1; i--) {
+            scope->defer_stack->stack[i].f(scope->defer_stack->stack[i].arg);
+        }
+    }
+    GPScope* previous = scope->parent;
+    gp_arena_delete((GPArena*)scope);
+    if (previous != NULL && scope != last_to_be_ended)
+        gp_end_scopes(previous, last_to_be_ended);
+}
+
+// scope_factory lives in it's own arena so returns &scope_factory if there is
+// no scopes.
+static GPScope* gp_last_scope_of(GPArena* scope_factory)
+{
+    return (GPScope*) ((uint8_t*)(scope_factory->head->position) -
+       gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT));
+}
+
+GPAllocator* gp_last_scope(GPAllocator* fallback)
+{
+    GPArena* factory = gp_thread_local_get(gp_scope_factory_key);
+    GPScope* scope = NULL;
+    if (factory == NULL || (scope = gp_last_scope_of(factory)) == (GPScope*)factory)
+        return fallback;
+    return (GPAllocator*)scope;
+}
+
+static void gp_delete_scope_factory(void*_factory)
+{
+    GPArena* factory = _factory;
+    GPScope* remaining = gp_last_scope_of(factory);
+    if (remaining != (GPScope*)factory)
+        gp_end_scopes(remaining, NULL);
+
+    gp_mem_dealloc(gp_heap, factory->head);
+}
+
+// Make Valgrind shut up.
+static void gp_delete_main_thread_scope_factory(void)
+{
+    GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
+    if (scope_factory != NULL)
+        gp_delete_scope_factory(scope_factory);
+}
+static void gp_make_scope_factory_key(void)
+{
+    atexit(gp_delete_main_thread_scope_factory);
+    gp_thread_key_create(&gp_scope_factory_key, gp_delete_scope_factory);
+}
+
+#if __STDC_VERSION__ >= 201112L  && \
+    !defined(__STDC_NO_ATOMICS__) && \
+    ATOMIC_LLONG_LOCK_FREE == 2 // always lock-free
+// Keeping track of average scope size allows scope allocator to estimate
+// optimal scope arena size when creating scopes.
+static _Atomic uint64_t gp_total_scope_sizes = 0;
+static _Atomic size_t   gp_total_scope_count = 0;
+#define GP_ATOMIC_OP(OP) OP
+#else
+#define GP_ATOMIC_OP(OP)
+#endif
+
+static size_t gp_scope_average_memory_usage(void)
+{
+    return GP_ATOMIC_OP(gp_total_scope_sizes/gp_total_scope_count) - 0;
+}
+
+static void* gp_scope_alloc(const GPAllocator* scope, size_t _size)
+{
+    const size_t size = gp_round_to_aligned(_size, ((GPScope*)scope)->arena.alignment);
+    GP_ATOMIC_OP(gp_total_scope_sizes += size);
+    return gp_arena_alloc(scope, size);
+}
+
+GPArena* gp_new_scope_factory(void)
+{
+    const size_t nested_scopes = 64; // before reallocation
+    GPArena scope_factory_arena = gp_arena_new(
+        (nested_scopes + 1/*self*/) * gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT));
+
+    // Extend lifetime
+    GPArena* scope_factory = gp_arena_alloc(
+        (GPAllocator*)&scope_factory_arena,
+        sizeof(GPScope)); // gets rounded in gp_arena_alloc()
+    memset(scope_factory, 0, sizeof*scope_factory);
+    memcpy(scope_factory, &scope_factory_arena, sizeof*scope_factory);
+
+    gp_thread_local_set(gp_scope_factory_key, scope_factory);
+    return scope_factory;
+}
+
+GPAllocator* gp_begin(const size_t _size)
+{
+    gp_thread_once(&gp_scope_factory_key_once, gp_make_scope_factory_key);
+
+    // scope_factory should only allocate gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT)
+    // sized objects for consistent pointer arithmetic.
+    GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
+    if (GP_UNLIKELY(scope_factory == NULL)) // initialize scope factory
+        scope_factory = gp_new_scope_factory();
+
+    GP_ATOMIC_OP(gp_total_scope_count++);
+    const size_t size = _size == 0 ?
+        gp_max(2 * gp_scope_average_memory_usage(), (size_t)GP_SCOPE_DEFAULT_INIT_SIZE)
+      : _size;
+
+    GPScope* previous = gp_last_scope_of(scope_factory);
+    if (previous == (GPScope*)scope_factory)
+        previous = NULL;
+
+    GPScope* scope = gp_arena_alloc((GPAllocator*)scope_factory, sizeof*scope);
+    *(GPArena*)scope = gp_arena_new(size);
+    scope->arena.allocator.alloc    = gp_scope_alloc;
+    scope->arena.max_size           = GP_SCOPE_DEFAULT_MAX_SIZE;
+    scope->arena.growth_coefficient = GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT;
+    scope->parent = previous;
+    scope->defer_stack = NULL;
+
+    return (GPAllocator*)scope;
+}
+
+void gp_end(GPAllocator*_scope)
+{
+    if (_scope == NULL)
+        return;
+    GPScope* scope = (GPScope*)_scope;
+    GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
+    gp_end_scopes(gp_last_scope_of(scope_factory), scope);
+    gp_arena_rewind(scope_factory, scope);
+}
+
+void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
+{
+    GPScope* scope = (GPScope*)_scope;
+    if (scope->defer_stack == NULL)
+    {
+        const size_t init_cap = 4;
+        scope->defer_stack = gp_arena_alloc((GPAllocator*)scope,
+            sizeof*(scope->defer_stack) + init_cap * sizeof(GPDefer));
+
+        scope->defer_stack->length   = 0;
+        scope->defer_stack->capacity = init_cap;
+        scope->defer_stack->stack    = (GPDefer*)(scope->defer_stack + 1);
+    }
+    else if (scope->defer_stack->length == scope->defer_stack->capacity)
+    {
+        GPDefer* old_stack  = scope->defer_stack->stack;
+        scope->defer_stack->stack = gp_arena_alloc((GPAllocator*)scope,
+            scope->defer_stack->capacity * 2 * sizeof(GPDefer));
+        memcpy(scope->defer_stack->stack, old_stack,
+            scope->defer_stack->length * sizeof(GPDefer));
+        scope->defer_stack->capacity *= 2;
+    }
+    scope->defer_stack->stack[scope->defer_stack->length].f   = f;
+    scope->defer_stack->stack[scope->defer_stack->length].arg = arg;
+    scope->defer_stack->length++;
+}
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* d2fixed.c */
@@ -10428,3149 +14822,6 @@ char* d2exp(double d, uint32_t precision) {
   return buffer;
 }
 #endif
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* bytes.c */
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <wchar.h>
-#include <wctype.h>
-#include <limits.h>
-
-static void* gp_memmem(
-    const void* haystack, const size_t hlen, const void* needle, const size_t nlen)
-{
-    #if defined(_GNU_SOURCE) && defined(__linux__)
-    return memmem(haystack, hlen, needle, nlen);
-    #endif
-    if (hlen == 0 || nlen == 0)
-        return NULL;
-
-    const char n0 = *(char*)needle;
-    for (char* p = memchr(haystack, n0, hlen); p != NULL;)
-    {
-        if (p + nlen > (char*)haystack + hlen)
-            return NULL;
-        if (memcmp(p, needle, nlen) == 0)
-            return p;
-
-        p++;
-        p = memchr(p, n0, hlen - (p - (char*)haystack));
-    }
-    return NULL;
-}
-
-size_t gp_bytes_find_first(
-    const void*  haystack,
-    const size_t haystack_size,
-    const void*  needle,
-    const size_t needle_size,
-    const size_t start)
-{
-    const char* result = gp_memmem(
-        (char*)haystack + start, haystack_size - start, needle, needle_size);
-    return result ? (size_t)(result - (char*)haystack) : GP_NOT_FOUND;
-}
-
-// Find first occurrence of ch looking from right to left
-static const char* gp_memchr_r(const char* ptr_r, const char ch, size_t count)
-{
-    const char* position = NULL;
-    while (--ptr_r, --count != (size_t)-1) // <=> count >= 0
-    {
-        if (*ptr_r == ch) {
-            position = ptr_r;
-            break;
-        }
-    }
-    return position;
-}
-
-size_t gp_bytes_find_last(
-    const void*  _haystack,
-    const size_t haystack_length,
-    const void*  needle,
-    const size_t needle_length)
-{
-    const char* haystack = (const char*)_haystack;
-
-    if (needle_length > haystack_length || needle_length==0 || haystack_length==0)
-        return GP_NOT_FOUND;
-
-    size_t position = GP_NOT_FOUND;
-    const size_t needle_last = needle_length - 1;
-    const char* data = haystack + haystack_length - needle_last;
-    size_t to_be_searched = haystack_length - needle_last;
-
-    while ((data = gp_memchr_r(data, *(char*)needle, to_be_searched)))
-    {
-        if (memcmp(data, needle, needle_length) == 0)
-        {
-            position = (size_t)(data - haystack);
-            break;
-        }
-        data--;
-        const char* haystack_end = haystack + haystack_length;
-        to_be_searched = haystack_length - (size_t)(haystack_end - data);
-    }
-    return position;
-}
-
-size_t gp_bytes_find_first_of(
-    const void*const haystack,
-    const size_t haystack_size,
-    const char*const char_set,
-    const size_t start)
-{
-    const uint8_t*const hay = haystack;
-    for (size_t i = start; i < haystack_size; i++)
-        if (strchr(char_set, hay[i]) != NULL)
-            return i;
-    return GP_NOT_FOUND;
-}
-
-size_t gp_bytes_find_first_not_of(
-    const void*const haystack,
-    const size_t haystack_size,
-    const char*const char_set,
-    const size_t start)
-{
-    const uint8_t*const hay = haystack;
-    for (size_t i = start; i < haystack_size; i++)
-        if (strchr(char_set, hay[i]) == NULL)
-            return i;
-    return GP_NOT_FOUND;
-}
-
-size_t gp_bytes_count(
-    const void*  haystack,
-    const size_t haystack_length,
-    const void*  needle,
-    const size_t needle_size)
-{
-    size_t count = 0;
-    size_t i = 0;
-    while ((i = gp_bytes_find_first(haystack, haystack_length, needle, needle_size, i))
-        != GP_NOT_FOUND)
-    {
-        count++;
-        i++;
-    }
-    return count;
-}
-
-bool gp_bytes_equal(
-    const void*  s1,
-    const size_t s1_size,
-    const void*  s2,
-    const size_t s2_size)
-{
-    if (s1_size != s2_size)
-        return false;
-    else
-        return memcmp(s1, s2, s2_size) == 0;
-}
-
-bool gp_bytes_equal_case(
-    const void* _s1,
-    const size_t s1_size,
-    const void* _s2,
-    const size_t s2_size)
-{
-    if (s1_size != s2_size)
-        return false;
-
-    const char* s1 = _s1;
-    const char* s2 = _s2;
-    for (size_t i = 0; i < s1_size; i++)
-    {
-        const char c1 = s1[i] + ('A' <= s1[i] && s1[i] <= 'Z') * ('a' - 'A');
-        const char c2 = s2[i] + ('A' <= s2[i] && s2[i] <= 'Z') * ('a' - 'A');
-        if (c1 != c2)
-            return false;
-    }
-    return true;
-}
-
-bool gp_bytes_is_valid(
-    const void* _str,
-    const size_t n,
-    size_t* invalid_index)
-{
-    const uint8_t* str = _str;
-    const size_t align_offset = (uintptr_t)str     % 8;
-    const size_t remaining    = (n - align_offset) % 8;
-    size_t i = 0;
-
-    for (size_t len = gp_min(align_offset, n); i < len; i++) {
-        if (str[i] & 0x80) {
-            if (invalid_index != NULL)
-                *invalid_index = i;
-            return false;
-        }
-    }
-    for (; i < n - remaining; i += 8) {
-        uint64_t x;
-        memcpy(&x, str + i, sizeof x);
-        if (x & 0x8080808080808080) // invalid detected
-            break; // find the index for the invalid in the next loop
-    }
-    for (; i < n; i++) {
-        if (str[i] & 0x80) {
-            if (invalid_index != NULL)
-                *invalid_index = i;
-            return false;
-        }
-    }
-    return true;
-}
-
-size_t gp_bytes_slice(
-    void*restrict dest,
-    const void*restrict src,
-    size_t start,
-    size_t end)
-{
-    if (src != NULL)
-        memcpy(dest, (uint8_t*)src + start, end - start);
-    else
-        memmove(dest, (uint8_t*)dest + start, end - start);
-    return end - start;
-}
-
-size_t gp_bytes_repeat(
-    void*restrict dest,
-    const size_t n,
-    const void*restrict mem,
-    const size_t mem_length)
-{
-    if (mem_length == 1) {
-        memset(dest, *(uint8_t*)mem, n);
-    } else for (size_t i = 0; i < n; i++) {
-        memcpy((uint8_t*)dest + i * mem_length, mem, mem_length);
-    }
-    return n * mem_length;
-}
-
-size_t gp_bytes_append(
-    void*restrict dest,
-    const size_t dest_length,
-    const void* src,
-    const size_t src_length)
-{
-    memcpy((uint8_t*)dest + dest_length, src, src_length + sizeof(""));
-    return dest_length + src_length;
-}
-
-size_t gp_bytes_insert(
-    void*restrict dest,
-    const size_t dest_length,
-    size_t pos,
-    const void*restrict src,
-    size_t n)
-{
-    memmove((uint8_t*)dest + pos + n, (uint8_t*)dest + pos, dest_length - pos);
-    memcpy((uint8_t*)dest + pos, src, n);
-    return dest_length + n;
-}
-
-size_t gp_bytes_replace_range(
-    void*restrict me,
-    const size_t me_length,
-    const size_t start,
-    const size_t end,
-    const void*restrict replacement,
-    const size_t replacement_length)
-{
-    memmove(
-        (uint8_t*)me + start + replacement_length,
-        (uint8_t*)me + end,
-        me_length - end);
-
-    memcpy((uint8_t*)me + start, replacement, replacement_length);
-    return me_length + replacement_length - (end - start);
-}
-
-size_t gp_bytes_replace(
-    void*restrict haystack,
-    const size_t haystack_length,
-    const void*restrict needle,
-    const size_t needle_length,
-    const void*restrict replacement,
-    const size_t replacement_length,
-    size_t* in_start_out_pos)
-{
-    size_t start = in_start_out_pos != NULL ? *in_start_out_pos : 0;
-    if ((start = gp_bytes_find_first(haystack, haystack_length, needle, needle_length, start))
-        == GP_NOT_FOUND) {
-        return GP_NOT_FOUND;
-    }
-
-    if (in_start_out_pos != NULL)
-        *in_start_out_pos = start;
-
-    const size_t end = start + needle_length;
-    return gp_bytes_replace_range(
-        haystack,
-        haystack_length,
-        start,
-        end,
-        replacement,
-        replacement_length);
-}
-
-size_t gp_bytes_replace_all(
-    void*restrict haystack,
-    size_t haystack_length,
-    const void*restrict needle,
-    const size_t needle_length,
-    const void*restrict replacement,
-    const size_t replacement_length,
-    size_t* optional_replacement_count)
-{
-    size_t start = 0;
-    size_t replacement_count = 0;
-    while ((start = gp_bytes_find_first(haystack, haystack_length, needle, needle_length, start))
-        != GP_NOT_FOUND)
-    {
-        haystack_length = gp_bytes_replace_range(
-            haystack,
-            haystack_length,
-            start,
-            start + needle_length,
-            replacement,
-            replacement_length);
-
-        start += replacement_length;
-        replacement_count++;
-    }
-    if (optional_replacement_count != NULL)
-        *optional_replacement_count = replacement_count;
-    return haystack_length;
-}
-
-size_t gp_bytes_print_internal(
-    void*restrict out,
-    const size_t n,
-    const size_t arg_count,
-    const GPPrintable* objs,
-    ...)
-{
-    va_list _args;
-    va_start(_args, objs);
-    pf_va_list args;
-    va_copy(args.list, _args);
-
-    size_t length = 0;
-    for (size_t i = 0; i < arg_count; i++)
-    {
-        length += gp_bytes_print_objects(
-            n >= length ? n - length : 0,
-            (uint8_t*)out + length,
-            &args,
-            &i,
-            objs[i]);
-    }
-    va_end(_args);
-    va_end(args.list);
-
-    return length;
-}
-
-size_t gp_bytes_println_internal(
-    void*restrict out,
-    const size_t n,
-    const size_t arg_count,
-    const GPPrintable* objs,
-    ...)
-{
-    va_list _args;
-    va_start(_args, objs);
-    pf_va_list args;
-    va_copy(args.list, _args);
-
-    size_t length = 0;
-    for (size_t i = 0; i < arg_count; i++)
-    {
-        length += gp_bytes_print_objects(
-            n >= length ? n - length : 0,
-            (uint8_t*)out + length,
-            &args,
-            &i,
-            objs[i]);
-
-        if (n > length)
-            ((char*)out)[length++] = ' ';
-    }
-    va_end(_args);
-    va_end(args.list);
-
-    if (n > (length - !!length)) // overwrite last space
-        ((char*)out)[length - 1] = '\n';
-
-    return length;
-}
-
-size_t gp_bytes_trim(
-    void*restrict _str,
-    size_t length,
-    void**restrict optional_out_ptr,
-    const char*restrict optional_char_set,
-    int flags)
-{
-    if (length == 0)
-        return 0;
-
-    char* str = _str;
-    const bool left  = flags & 0x04;
-    const bool right = flags & 0x02;
-
-    const char* char_set = optional_char_set != NULL ?
-        optional_char_set :
-        GP_ASCII_WHITESPACE;
-
-    if (left)
-    {
-        char last = str[length - 1];
-        str[length - 1] = '\0';
-        size_t prefix_length = strspn(str, char_set);
-        str[length - 1] = last;
-
-        if (prefix_length == length - 1 && strchr(char_set, last) != NULL)
-            prefix_length++;
-
-        length -= prefix_length;
-
-        if (optional_out_ptr != NULL)
-            *optional_out_ptr = str + prefix_length;
-        else
-            memmove(str, str + prefix_length, length);
-    }
-
-    if (right && length > 0)
-    {
-        while (strchr(char_set, ((char*)str)[length - 1]) != NULL) {
-            length--;
-            if (length == 0)
-                break;
-        }
-    }
-    return length;
-}
-
-size_t gp_bytes_to_upper(
-    void* _bytes,
-    size_t bytes_size)
-{
-    char* bytes = _bytes;
-    for (size_t i = 0; i < bytes_size; i++)
-    {
-        if ('a' <= bytes[i] && bytes[i] <= 'z')
-            bytes[i] -= 'a' - 'A';
-    }
-    return bytes_size;
-}
-
-size_t gp_bytes_to_lower(
-    void* _bytes,
-    size_t bytes_size)
-{
-    char* bytes = _bytes;
-    for (size_t i = 0; i < bytes_size; i++)
-    {
-        if ('A' <= bytes[i] && bytes[i] <= 'Z')
-            bytes[i] += 'a' - 'A';
-    }
-    return bytes_size;
-}
-
-static size_t gp_bytes_find_invalid(
-    const void* _haystack,
-    const size_t start,
-    const size_t length)
-{
-    const uint8_t* haystack = _haystack;
-    for (size_t i = start; i < length; i++)
-    {
-        if (haystack[i] >= 0x80)
-            return i;
-    }
-    return GP_NOT_FOUND;
-}
-
-static size_t gp_bytes_find_valid(
-    const void* _haystack,
-    const size_t start,
-    const size_t length)
-{
-    const uint8_t* haystack = _haystack;
-    for (size_t i = start; i < length; i++)
-    {
-        if (haystack[i] < 0x80)
-            return i;
-    }
-    return length;
-}
-
-size_t gp_bytes_to_valid(
-    void*restrict str,
-    size_t length,
-    const char* replacement)
-{
-    const size_t replacement_length = strlen(replacement);
-
-    size_t start = 0;
-    while ((start = gp_bytes_find_invalid(str, start, length)) != GP_NOT_FOUND)
-    {
-        length = gp_bytes_replace_range(
-            str,
-            length,
-            start,
-            gp_bytes_find_valid(str, start, length),
-            replacement,
-            replacement_length);
-
-        start += replacement_length;
-    }
-    return length;
-}
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* printf.c */
-
-
-
-#include <stdlib.h>
-#include <inttypes.h>
-#include <math.h>
-#include <limits.h>
-
-struct MiscData
-{
-    bool has_sign;
-    bool has_0x;
-    bool is_nan_or_inf;
-};
-
-static uintmax_t get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
-{
-    if (fmt.conversion_format == 'p')
-        return va_arg(args->list, uintptr_t);
-
-    switch (fmt.length_modifier)
-    {
-        case 'j':
-            return va_arg(args->list, uintmax_t);
-
-        case 'l' * 2:
-            return va_arg(args->list, unsigned long long);
-
-        case 'l':
-            return va_arg(args->list, unsigned long);
-
-        case 'h':
-            return (unsigned short)va_arg(args->list, unsigned);
-
-        case 'h' * 2:
-            return (unsigned char)va_arg(args->list, unsigned);
-
-        case 'z':
-            return (size_t)va_arg(args->list, size_t);
-
-        case 'B': // byte
-            return (uint8_t)va_arg(args->list, unsigned);
-
-        case 'W': // word
-            return (uint16_t)va_arg(args->list, unsigned);
-
-        case 'D': // double word
-            return (uint32_t)va_arg(args->list, uint32_t);
-
-        case 'Q': // quad word
-            return (uint64_t)va_arg(args->list, uint64_t);
-
-        default:
-            return va_arg(args->list, unsigned);
-    }
-}
-
-static void c_string_padding(
-    struct pf_string* out,
-    const PFFormatSpecifier fmt,
-    const void* string,
-    const size_t length)
-{
-    const unsigned field_width = fmt.field.width > length ?
-        fmt.field.width : length;
-    const unsigned diff = field_width - length;
-    if (fmt.flag.dash) // left justified
-    { // first string, then pad
-        pf_concat(out, string, length);
-        pf_pad(out, ' ', diff);
-    }
-    else // first pad, then string
-    {
-        pf_pad(out, ' ', diff);
-        pf_concat(out, string, length);
-    }
-
-}
-
-static unsigned write_s(
-    struct pf_string* out,
-    pf_va_list* args,
-    const PFFormatSpecifier fmt)
-{
-    const size_t original_length = out->length;
-    const char* cstr = va_arg(args->list, const char*);
-
-    size_t cstr_len = 0;
-    if (fmt.precision.option == PF_NONE) // should be null-terminated
-        cstr_len = strlen(cstr);
-    else // who knows if null-terminated
-        while (cstr_len < fmt.precision.width && cstr[cstr_len] != '\0')
-            cstr_len++;
-
-    c_string_padding(out, fmt, cstr, cstr_len);
-    return out->length - original_length;
-}
-
-static void utf8_string_padding(
-    struct pf_string* out,
-    const PFFormatSpecifier fmt,
-    const void* bytes,
-    const size_t bytes_length,
-    const size_t codepoint_count)
-{
-    const unsigned field_width = fmt.field.width > codepoint_count ?
-        fmt.field.width : codepoint_count;
-    const unsigned diff = field_width - codepoint_count;
-    if (fmt.flag.dash) // left justified
-    { // first string, then pad
-        pf_concat(out, bytes, bytes_length);
-        pf_pad(out, ' ', diff);
-    }
-    else // first pad, then string
-    {
-        pf_pad(out, ' ', diff);
-        pf_concat(out, bytes, bytes_length);
-    }
-
-}
-
-static unsigned write_S(
-    struct pf_string* out,
-    pf_va_list* args,
-    const PFFormatSpecifier fmt)
-{
-    const size_t original_length = out->length;
-    const GPString str = va_arg(args->list, GPString);
-
-    size_t length = gp_str_length(str);
-    if (fmt.precision.option != PF_NONE)
-        length = pf_min(length, fmt.precision.width);
-
-    size_t codepoint_count = 0;
-    size_t last_cp_length  = 0;
-    size_t i = 0;
-    while (true)
-    {
-        if (i > length) {
-            codepoint_count--;
-            length = i - last_cp_length;
-            break;
-        } else if (i == length) {
-            break;
-        }
-        codepoint_count++;
-        i += last_cp_length = gp_str_codepoint_length(str, i);
-    }
-    utf8_string_padding(out, fmt, str, length, codepoint_count);
-    return out->length - original_length;
-}
-
-static void write_leading_zeroes(
-    struct pf_string* out,
-    const unsigned written_by_utoa,
-    const PFFormatSpecifier fmt)
-{
-    if (fmt.precision.option != PF_NONE)
-    {
-        const unsigned diff =
-            fmt.precision.width <= written_by_utoa ? 0 :
-            fmt.precision.width - written_by_utoa;
-        memmove(
-            out->data + out->length + diff,
-            out->data + out->length,
-            pf_limit(*out, written_by_utoa));
-        memset(out->data + out->length, '0', pf_limit(*out, diff));
-        out->length += written_by_utoa + diff;
-    }
-    else
-    {
-        out->length += written_by_utoa;
-    }
-}
-
-static unsigned write_i(
-    struct pf_string* out,
-    struct MiscData* md,
-    pf_va_list* args,
-    const PFFormatSpecifier fmt)
-{
-    intmax_t i;
-    switch (fmt.length_modifier)
-    {
-        case 'j':
-            i = va_arg(args->list, intmax_t);
-            break;
-
-        case 'l' * 2:
-            i = va_arg(args->list, long long);
-            break;
-
-        case 'l':
-            i = va_arg(args->list, long);
-            break;
-
-        case 'h':
-            i = (short)va_arg(args->list, int);
-            break;
-
-        case 'h' * 2: // signed char is NOT char!
-            i = (signed char)va_arg(args->list, int);
-            break;
-
-        case 't':
-            i = (ptrdiff_t)va_arg(args->list, ptrdiff_t);
-            break;
-
-        case 'B': // byte
-            i = (int8_t)va_arg(args->list, int);
-            break;
-
-        case 'W': // word
-            i = (int16_t)va_arg(args->list, int);
-            break;
-
-        case 'D': // double word
-            i = (int32_t)va_arg(args->list, int32_t);
-            break;
-
-        case 'Q': // quad word
-            i = (int64_t)va_arg(args->list, int64_t);
-            break;
-
-        default:
-            i = va_arg(args->list, int);
-    }
-
-    const size_t original_length = out->length;
-
-    const char sign = i < 0 ? '-' : fmt.flag.plus ? '+' : fmt.flag.space ? ' ' : 0;
-    if (sign)
-    {
-        pf_push_char(out, sign);
-        md->has_sign = true;
-    }
-
-    const unsigned max_written = pf_utoa(
-        pf_capacity_left(*out), out->data + out->length, imaxabs(i));
-
-    write_leading_zeroes(out, max_written, fmt);
-    return out->length - original_length;
-}
-
-static unsigned write_o(
-    struct pf_string* out,
-    pf_va_list* args,
-    const PFFormatSpecifier fmt)
-{
-    const size_t original_length = out->length;
-    const uintmax_t u = get_uint(args, fmt);
-
-    bool zero_written = false;
-    if (fmt.flag.hash && u > 0)
-    {
-        pf_push_char(out, '0');
-        zero_written = true;
-    }
-
-    const unsigned max_written = pf_otoa(
-        pf_capacity_left(*out), out->data + out->length, u);
-
-    // zero_written tells pad_zeroes() to add 1 less '0'
-    write_leading_zeroes(out, zero_written + max_written, fmt);
-    // compensate for added zero_written to write_leading_zeroes()
-    out->length -= zero_written;
-
-    return out->length - original_length;
-}
-
-static unsigned write_x(
-    struct pf_string* out,
-    struct MiscData* md,
-    pf_va_list* args,
-    const PFFormatSpecifier fmt)
-{
-    const size_t original_length = out->length;
-    const uintmax_t u = get_uint(args, fmt);
-
-    if (fmt.flag.hash && u > 0)
-    {
-        pf_concat(out, "0x", strlen("0x"));
-        md->has_0x = true;
-    }
-
-    const unsigned max_written = pf_xtoa(
-        pf_capacity_left(*out), out->data + out->length, u);
-
-    write_leading_zeroes(out, max_written, fmt);
-    return out->length - original_length;
-}
-
-static unsigned write_X(
-    struct pf_string* out,
-    struct MiscData* md,
-    pf_va_list* args,
-    const PFFormatSpecifier fmt)
-{
-    const size_t original_length = out->length;
-    const uintmax_t u = get_uint(args, fmt);
-
-    if (fmt.flag.hash && u > 0)
-    {
-        pf_concat(out, "0X", strlen("0X"));
-        md->has_0x = true;
-    }
-
-    const unsigned max_written = pf_Xtoa(
-        pf_capacity_left(*out), out->data + out->length, u);
-
-    write_leading_zeroes(out, max_written, fmt);
-    return out->length - original_length;
-}
-
-static unsigned write_u(
-    struct pf_string* out,
-    pf_va_list* args,
-    const PFFormatSpecifier fmt)
-{
-    const size_t original_length = out->length;
-    const uintmax_t u = get_uint(args, fmt);
-    const unsigned max_written = pf_utoa(
-        pf_capacity_left(*out), out->data + out->length, u);
-    write_leading_zeroes(out, max_written, fmt);
-    return out->length - original_length;
-}
-
-static unsigned write_p(
-    struct pf_string* out,
-    pf_va_list* args,
-    const PFFormatSpecifier fmt)
-{
-    const size_t original_length = out->length;
-    const uintmax_t u = get_uint(args, fmt);
-
-    if (u > 0)
-    {
-        pf_concat(out, "0x", strlen("0x"));
-        const unsigned max_written = pf_xtoa(
-            pf_capacity_left(*out), out->data + out->length, u);
-        write_leading_zeroes(out, max_written, fmt);
-    }
-    else
-    {
-        pf_concat(out, "(nil)", strlen("(nil)"));
-    }
-    return out->length - original_length;
-}
-
-static unsigned write_f(
-    struct pf_string* out,
-    struct MiscData* md,
-    pf_va_list* args,
-    const PFFormatSpecifier fmt)
-{
-    const double f = va_arg(args->list, double);
-    const unsigned written_by_conversion = pf_strfromd(
-        out->data + out->length, out->capacity, fmt, f);
-    out->length += written_by_conversion;
-
-    md->has_sign = signbit(f) || fmt.flag.plus || fmt.flag.space;
-    md->is_nan_or_inf = isnan(f) || isinf(f);
-
-    return written_by_conversion;
-}
-
-static unsigned add_padding(
-    struct pf_string* out,
-    const unsigned written,
-    const struct MiscData md,
-    const PFFormatSpecifier fmt)
-{
-    size_t start = out->length - written;
-    const unsigned diff = fmt.field.width - written;
-
-    const bool is_int_with_precision =
-        strchr("diouxX", fmt.conversion_format) && fmt.precision.option != PF_NONE;
-    const bool ignore_zero = is_int_with_precision || md.is_nan_or_inf;
-
-    if (fmt.flag.dash) // left justified, append padding
-    {
-        pf_pad(out, ' ', diff);
-    }
-    else if (fmt.flag.zero && ! ignore_zero) // fill in zeroes
-    { // 0-padding minding "0x" or sign prefix
-        const unsigned offset = md.has_sign + 2 * md.has_0x;
-        pf_insert_pad(out, start + offset, '0', diff);
-    }
-    else // fill in spaces
-    {
-        pf_insert_pad(out, start, ' ', diff);
-    }
-
-    return diff;
-}
-
-
-
-// ---------------------------------------------------------------------------
-//
-//
-//
-// IMPLEMENTATIONS OF PUBLIC FUNCTIONS
-//
-//
-//
-// ---------------------------------------------------------------------------
-
-
-
-// ------------------------------
-// String functtions
-
-int pf_vsnprintf_consuming(
-    char*restrict out_buf,
-    const size_t max_size,
-    const char* format,
-    pf_va_list* args)
-{
-    struct pf_string out = { out_buf ? out_buf : "", .capacity = max_size };
-
-    while (1)
-    {
-        const PFFormatSpecifier fmt = pf_scan_format_string(format, args);
-        if (fmt.string == NULL)
-            break;
-
-        pf_concat(&out, format, fmt.string - format);
-
-        // Jump over format specifier for next iteration
-        format = fmt.string + fmt.string_length;
-
-        unsigned written_by_conversion = 0;
-        struct MiscData misc = {};
-
-        switch (fmt.conversion_format)
-        {
-            case 'c':
-                pf_push_char(&out, (char)va_arg(args->list, int));
-                written_by_conversion = 1;
-                break;
-
-            case 's':
-                written_by_conversion += write_s(
-                    &out, args, fmt);
-                break;
-
-            case 'S':
-                written_by_conversion += write_S(
-                    &out, args, fmt);
-                break;
-
-            case 'd':
-            case 'i':
-                written_by_conversion += write_i(
-                    &out, &misc, args, fmt);
-                break;
-
-            case 'o':
-                written_by_conversion += write_o(
-                    &out, args, fmt);
-                break;
-
-            case 'x':
-                written_by_conversion += write_x(
-                    &out, &misc, args, fmt);
-                break;
-
-            case 'X':
-                written_by_conversion += write_X(
-                    &out, &misc, args, fmt);
-                break;
-
-            case 'u':
-                written_by_conversion += write_u(
-                    &out, args, fmt);
-                break;
-
-            case 'p':
-                written_by_conversion += write_p(
-                    &out, args, fmt);
-                break;
-
-            case 'f': case 'F':
-            case 'e': case 'E':
-            case 'g': case 'G':
-                written_by_conversion += write_f(
-                    &out, &misc, args, fmt);
-                break;
-
-            case '%':
-                pf_push_char(&out, '%');
-                break;
-        }
-
-        if (written_by_conversion < fmt.field.width)
-            add_padding(
-                &out,
-                written_by_conversion,
-                misc,
-                fmt);
-    }
-
-    // Write what's left in format string
-    pf_concat(&out, format, strlen(format));
-    if (out.length < out.capacity)
-        out.data[out.length] = '\0';
-    return out.length;
-}
-
-int pf_vsnprintf(
-    char* restrict out_buf,
-    const size_t max_size,
-    const char*restrict format,
-    va_list _args)
-{
-    pf_va_list args;
-    va_copy(args.list, _args);
-    int result = pf_vsnprintf_consuming(out_buf, max_size, format, &args);
-    va_end(args.list);
-    return result;
-}
-
-int pf_vsprintf(
-    char*restrict buf, const char*restrict fmt, va_list args)
-{
-    return pf_vsnprintf(buf, SIZE_MAX, fmt, args);
-}
-
-int pf_sprintf(char*restrict buf, const char*restrict fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    int written = pf_vsnprintf(buf, INT_MAX, fmt, args);
-    va_end(args);
-    return written;
-}
-
-int pf_snprintf(
-    char* restrict buf, const size_t n, const char*restrict fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    int written = pf_vsnprintf(buf, n, fmt, args);
-    va_end(args);
-    return written;
-}
-
-// ------------------------------
-// IO functtions
-
-#define PAGE_SIZE 4096
-#define BUF_SIZE (PAGE_SIZE + sizeof(""))
-
-int pf_vfprintf(
-    FILE*restrict stream, const char*restrict fmt, va_list args)
-{
-    char buf[BUF_SIZE];
-    char* pbuf = buf;
-    va_list args_copy;
-    va_copy(args_copy, args);
-
-    const int out_length = pf_vsnprintf(buf, BUF_SIZE, fmt, args);
-    if (out_length >= (int)BUF_SIZE) // try again
-    {
-        pbuf = malloc(out_length + sizeof(""));
-        pf_vsprintf(pbuf, fmt, args_copy);
-    }
-    fwrite(pbuf, sizeof(char), out_length, stream);
-
-    if (pbuf != buf)
-        free(pbuf);
-    va_end(args_copy);
-    return out_length;
-}
-
-int pf_vprintf(
-    const char*restrict fmt, va_list args)
-{
-    return pf_vfprintf(stdout, fmt, args);
-}
-
-int pf_printf(
-    const char*restrict fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    int n = pf_vfprintf(stdout, fmt, args);
-    va_end(args);
-    return n;
-}
-
-int pf_fprintf(
-    FILE*restrict stream, const char*restrict fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    int n = pf_vfprintf(stream, fmt, args);
-    va_end(args);
-    return n;
-}
-
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* io.c */
-
-
-FILE* gp_file_open(const char* path, const char* mode)
-{ // All this processing is here just to make this consistent with gp_str_file()
-    size_t len = 0;
-    char mode_buf[4] = { mode[len++] };
-    if (strchr(mode, 'b'))
-        mode_buf[len++] = 'b';
-    if (strchr(mode, '+'))
-        mode_buf[len++] = '+';
-    return fopen(path, mode_buf);
-}
-
-extern inline void gp_file_close(FILE*);
-extern inline int  gp_stat(GPStat*, const char* path);
-
-bool gp_file_read_line(GPString* out, FILE* in)
-{
-    int c = fgetc(in);
-    if (c == EOF)
-        return false;
-
-    (*out)[0].c = c;
-    ((GPStringHeader*)*out - 1)->length = 1;
-
-    while (true)
-    {
-        while (gp_str_length(*out) < gp_str_capacity(*out))
-        {
-            if (c == '\n')
-                goto end;
-            c = fgetc(in);
-            if (c == EOF)
-                goto end;
-            (*out)[((GPStringHeader*)*out - 1)->length++].c = c;
-        }
-        gp_str_reserve(out, gp_str_capacity(*out) + 1); // doubles cap
-    }
-    end:
-    return true;
-}
-
-bool gp_file_read_until(
-    GPString*   out,
-    FILE*       in,
-    const char* delimiter)
-{
-    int c = fgetc(in);
-    if (c == EOF)
-        return false;
-
-    (*out)[0].c = c;
-    ((GPStringHeader*)*out - 1)->length = 1;
-
-    const char* match = delimiter;
-    while (true)
-    {
-        while (gp_str_length(*out) < gp_str_capacity(*out))
-        {
-            if (*match == '\0')
-                goto end;
-            c = fgetc(in);
-            if (c == EOF)
-                goto end;
-            (*out)[((GPStringHeader*)*out - 1)->length++].c = c;
-            if (c == *match)
-                match++;
-            else
-                match = delimiter;
-        }
-        gp_str_reserve(out, gp_str_capacity(*out) + 1); // doubles cap
-    }
-    end:
-    return true;
-}
-
-bool gp_file_read_strip(
-    GPString*   out,
-    FILE*       in,
-    const char* char_set)
-{
-    while (true) // strip left
-    {
-        int c = fgetc(in);
-        if (c == EOF)
-            return false;
-        char codepoint[8] = {c};
-        size_t codepoint_length = gp_str_codepoint_length((GPString)codepoint, 0);
-        for (size_t i = 1; i < codepoint_length; i++) {
-            if ((c = fgetc(in)) == EOF)
-                return false;
-            codepoint[i] = c;
-        }
-        if (strstr(char_set, codepoint) != NULL)
-            break;
-    }
-    while (true) // write until codepoint found in char set
-    {
-        int c = fgetc(in);
-        if (c == EOF)
-            return false;
-        char codepoint[8] = {c};
-        size_t codepoint_length = gp_str_codepoint_length((GPString)codepoint, 0);
-        for (size_t i = 1; i < codepoint_length; i++) {
-            if ((c = fgetc(in)) == EOF)
-                return false;
-            codepoint[i] = c;
-        }
-        if (strstr(char_set, codepoint) == NULL)
-            break;
-        gp_str_append(out, codepoint, codepoint_length);
-    }
-    return true;
-}
-
-static size_t gp_print_va_arg(
-    FILE* out,
-    pf_va_list*restrict const args,
-    const GPType type)
-{
-    size_t length = 0;
-    switch (type)
-    {
-        case GP_CHAR:
-        case GP_SIGNED_CHAR:
-        case GP_UNSIGNED_CHAR:
-            length = 1;
-            fputc(va_arg(args->list, int), out);
-            break;
-
-        case GP_UNSIGNED_SHORT:
-        case GP_UNSIGNED:
-            length = fprintf(out, "%u", va_arg(args->list, unsigned));
-            break;
-
-        case GP_UNSIGNED_LONG:
-            length = fprintf(out, "%lu", va_arg(args->list, unsigned long));
-            break;
-
-        case GP_UNSIGNED_LONG_LONG:
-            length = fprintf(out, "%llu", va_arg(args->list, unsigned long long));
-            break;
-
-        case GP_BOOL:
-            if (va_arg(args->list, int)) {
-                length = strlen("true");
-                fputs("true", out);
-            } else {
-                length = strlen("false");
-                fputs("false", out);
-            } break;
-
-        case GP_SHORT:
-        case GP_INT:
-            length = fprintf(out, "%i", va_arg(args->list, int));
-            break;
-
-        case GP_LONG:
-            length = fprintf(out, "%li", va_arg(args->list, long));
-            break;
-
-        case GP_LONG_LONG:
-            length = fprintf(out, "%lli", va_arg(args->list, long long));
-            break;
-
-        case GP_FLOAT:
-        case GP_DOUBLE:
-            length = fprintf(out, "%g", va_arg(args->list, double));
-            break;
-
-        case GP_CHAR_PTR:
-            length = fprintf(out, "%s", va_arg(args->list, char*));
-            break;
-
-        GPString s;
-        case GP_STRING:
-            s = va_arg(args->list, GPString);
-            length = gp_arr_length(s);
-            fwrite(s, 1, length, out);
-            break;
-
-        case GP_PTR:
-            length = fprintf(out, "%p", va_arg(args->list, void*));
-            break;
-    }
-    return length;
-}
-
-static size_t gp_print_objects(
-    FILE* out,
-    pf_va_list* args,
-    size_t*const i,
-    GPPrintable obj)
-{
-    size_t length = 0;
-    if (obj.identifier[0] == '\"')
-    {
-        const char* fmt = va_arg(args->list, char*);
-        *i += gp_count_fmt_specs(fmt);
-
-        length += pf_vfprintf (out,     fmt, args->list);
-
-        // Dummy consumption. TODO this is useless work, write a dedicated dummy
-        // consumer.
-        pf_vsnprintf_consuming(NULL, 0, fmt, args);
-    } else {
-        length += gp_print_va_arg(out, args, obj.type);
-    }
-    return length;
-}
-
-size_t gp_file_print_internal(
-    FILE* out,
-    const size_t arg_count,
-    const GPPrintable* objs,
-    ...)
-{
-    va_list _args;
-    va_start(_args, objs);
-    pf_va_list args;
-    va_copy(args.list, _args);
-
-    size_t length = 0;
-    for (size_t i = 0; i < arg_count; i++)
-    {
-        length += gp_print_objects(
-            out,
-            &args,
-            &i,
-            objs[i]);
-    }
-    va_end(_args);
-    va_end(args.list);
-
-    return length;
-}
-
-size_t gp_file_println_internal(
-    FILE* out,
-    const size_t arg_count,
-    const GPPrintable* objs,
-    ...)
-{
-    va_list _args;
-    va_start(_args, objs);
-    pf_va_list args;
-    va_copy(args.list, _args);
-
-    size_t length = 0;
-    for (size_t i = 0; i < arg_count; i++)
-    {
-        length += strlen(" ") + gp_print_objects(
-            out,
-            &args,
-            &i,
-            objs[i]);
-
-        if (i < arg_count - 1)
-            fputs(" ",  out);
-    }
-    fputs("\n", out);
-    va_end(_args);
-    va_end(args.list);
-
-    return length;
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* pcg_basic.c */
-
-
-// state for global RNGs
-
-static pcg32_random_t pcg32_global = PCG32_INITIALIZER;
-
-// pcg32_srandom(initstate, initseq)
-// pcg32_srandom_r(rng, initstate, initseq):
-//     Seed the rng.  Specified in two parts, state initializer and a
-//     sequence selection constant (a.k.a. stream id)
-
-void pcg32_srandom_r(pcg32_random_t* rng, uint64_t initstate, uint64_t initseq)
-{
-    rng->state = 0U;
-    rng->inc = (initseq << 1u) | 1u;
-    pcg32_random_r(rng);
-    rng->state += initstate;
-    pcg32_random_r(rng);
-}
-
-void pcg32_srandom(uint64_t seed, uint64_t seq)
-{
-    pcg32_srandom_r(&pcg32_global, seed, seq);
-}
-
-// pcg32_random()
-// pcg32_random_r(rng)
-//     Generate a uniformly distributed 32-bit random number
-
-uint32_t pcg32_random_r(pcg32_random_t* rng)
-{
-    uint64_t oldstate = rng->state;
-    rng->state = oldstate * 6364136223846793005ULL + rng->inc;
-    uint32_t xorshifted = (uint32_t)(((oldstate >> 18u) ^ oldstate) >> 27u);
-    uint32_t rot = (uint32_t)(oldstate >> 59u);
-    return (xorshifted >> rot) | (xorshifted << ((0-rot) & 31));
-}
-
-uint32_t pcg32_random()
-{
-    return pcg32_random_r(&pcg32_global);
-}
-
-
-// pcg32_boundedrand(bound):
-// pcg32_boundedrand_r(rng, bound):
-//     Generate a uniformly distributed number, r, where 0 <= r < bound
-
-uint32_t pcg32_boundedrand_r(pcg32_random_t* rng, uint32_t bound)
-{
-    // To avoid bias, we need to make the range of the RNG a multiple of
-    // bound, which we do by dropping output less than a threshold.
-    // A naive scheme to calculate the threshold would be to do
-    //
-    //     uint32_t threshold = 0x100000000ull % bound;
-    //
-    // but 64-bit div/mod is slower than 32-bit div/mod (especially on
-    // 32-bit platforms).  In essence, we do
-    //
-    //     uint32_t threshold = (0x100000000ull-bound) % bound;
-    //
-    // because this version will calculate the same modulus, but the LHS
-    // value is less than 2^32.
-
-    uint32_t threshold = (0-bound) % bound;
-
-    // Uniformity guarantees that this loop will terminate.  In practice, it
-    // should usually terminate quickly; on average (assuming all bounds are
-    // equally likely), 82.25% of the time, we can expect it to require just
-    // one iteration.  In the worst case, someone passes a bound of 2^31 + 1
-    // (i.e., 2147483649), which invalidates almost 50% of the range.  In
-    // practice, bounds are typically small and only a tiny amount of the range
-    // is eliminated.
-    for (;;) {
-        uint32_t r = pcg32_random_r(rng);
-        if (r >= threshold)
-            return r % bound;
-    }
-}
-
-
-uint32_t pcg32_boundedrand(uint32_t bound)
-{
-    return pcg32_boundedrand_r(&pcg32_global, bound);
-}
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* array.c */
-
-#include <string.h>
-
-size_t gp_arr_length(const void* arr)
-{
-    return ((GPArrayHeader*)arr - 1)->length;
-}
-
-size_t gp_arr_capacity(const void* arr)
-{
-    return ((GPArrayHeader*)arr - 1)->capacity;
-}
-
-void* gp_arr_allocation(const void* arr)
-{
-    return ((GPArrayHeader*)arr - 1)->allocation;
-}
-
-const GPAllocator* gp_arr_allocator(const void* arr)
-{
-    return ((GPArrayHeader*)arr - 1)->allocator;
-}
-
-GPArray(void) gp_arr_new(
-    const GPAllocator* allocator,
-    const size_t element_size,
-    const size_t element_count)
-{
-    const size_t size = gp_round_to_aligned(element_size * element_count, GP_ALLOC_ALIGNMENT);
-    GPArrayHeader* me = gp_mem_alloc(allocator, sizeof(*me) + size);
-    *me = (GPArrayHeader) { 0, size / element_size, allocator, me };
-    return me + 1;
-}
-
-void gp_arr_delete(GPArray(void) arr)
-{
-    if (arr != NULL && gp_arr_allocator(arr) != NULL)
-        gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
-}
-
-GPArray(void) gp_arr_reserve(
-    const size_t element_size,
-    GPArray(void) arr,
-    size_t        capacity)
-{
-    if (capacity > gp_arr_capacity(arr))
-    {
-        capacity = gp_next_power_of_2(capacity);
-        if (gp_arr_allocator(arr)->dealloc == gp_arena_dealloc &&
-            gp_arr_allocation(arr) != NULL)
-        { // gp_mem_realloc() knows how to just extend block in arena
-            GPArrayHeader* new_block = gp_mem_realloc(
-                gp_arr_allocator(arr),
-                gp_arr_allocation(arr),
-                sizeof*new_block + gp_arr_capacity(arr) * element_size,
-                sizeof*new_block + capacity             * element_size);
-            new_block->capacity   = capacity;
-            new_block->allocation = new_block;
-            return new_block + 1;
-        } // else not arena or must copy contens from stack
-        GPArrayHeader* new_block = gp_mem_alloc(
-            gp_arr_allocator(arr),
-            sizeof*new_block + capacity * element_size);
-
-        memcpy(new_block, (GPArrayHeader*)arr - 1,
-            sizeof*new_block + gp_arr_length(arr) * element_size);
-
-        new_block->capacity   = capacity;
-        new_block->allocation = new_block;
-
-        gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
-        arr = new_block + 1;
-    }
-    return arr;
-}
-
-GPArray(void) gp_arr_copy(
-    const size_t        element_size,
-    GPArray(void)       dest,
-    const void*restrict src,
-    const size_t        src_length)
-{
-    dest = gp_arr_reserve(element_size, dest, src_length);
-    memcpy(dest, src, src_length * element_size);
-    ((GPArrayHeader*)dest - 1)->length = src_length;
-    return dest;
-}
-
-GPArray(void) gp_arr_slice(
-    const size_t elem_size,
-    GPArray(void)       dest,
-    const void*restrict const src,
-    const size_t i_start,
-    const size_t i_end)
-{
-    size_t length = i_end - i_start;
-
-    if (src == NULL) {
-        memmove(dest, (uint8_t*)dest + i_start * elem_size, length * elem_size);
-    } else {
-        dest = gp_arr_reserve(elem_size, dest, length);
-        memcpy(dest, (uint8_t*)src + i_start * elem_size, length * elem_size);
-    }
-    ((GPArrayHeader*)dest - 1)->length = length;
-    return dest;
-}
-
-GPArray(void) gp_arr_push(
-    const size_t element_size,
-    GPArray(void)       arr,
-    const void*restrict element)
-{
-    const size_t length = gp_arr_length(arr);
-    arr = gp_arr_reserve(element_size, arr, length + 1);
-    memcpy((uint8_t*)arr + length * element_size, element, element_size);
-    ((GPArrayHeader*)arr - 1)->length++;
-    return arr;
-}
-
-void* gp_arr_pop(
-    const size_t element_size,
-    GPArray(void) arr)
-{
-    return (uint8_t*)arr + --((GPArrayHeader*)arr - 1)->length * element_size;
-}
-
-GPArray(void) gp_arr_append(
-    const size_t element_size,
-    GPArray(void)       arr,
-    const void*restrict src,
-    const size_t n)
-{
-    const size_t length = gp_arr_length(arr);
-    arr = gp_arr_reserve(element_size, arr, length + n);
-    memcpy((uint8_t*)arr + length * element_size, src, n * element_size);
-    ((GPArrayHeader*)arr - 1)->length += n;
-    return arr;
-}
-
-GPArray(void) gp_arr_insert(
-    const size_t elem_size,
-    GPArray(void) arr,
-    const size_t pos,
-    const void*restrict src,
-    const size_t n)
-{
-    const size_t length = gp_arr_length(arr);
-    arr = gp_arr_reserve(elem_size, arr, length + n);
-
-    memmove(
-        (uint8_t*)arr + (pos + n) * elem_size,
-        (uint8_t*)arr +  pos      * elem_size,
-        (length - pos)            * elem_size);
-    memcpy(
-        (uint8_t*)arr +  pos * elem_size, src, n * elem_size);
-
-    ((GPArrayHeader*)arr - 1)->length += n;
-    return arr;
-}
-
-GPArray(void) gp_arr_erase(
-    const size_t  elem_size,
-    GPArray(void) arr,
-    const size_t  pos,
-    const size_t  count)
-{
-    size_t* length = &((GPArrayHeader*)arr - 1)->length;
-    const size_t tail_length = *length - (pos + count);
-    memmove(
-        (uint8_t*)arr +  pos          * elem_size,
-        (uint8_t*)arr + (pos + count) * elem_size,
-        tail_length                   * elem_size);
-    *length -= count;
-    return arr;
-}
-
-GPArray(void) gp_arr_map(
-    const size_t elem_size,
-    GPArray(void) arr,
-    const void*restrict optional_src, // mutates arr if NULL
-    const size_t src_length,
-    void (*const f)(void* out, const void* in))
-{
-    if (optional_src == NULL) {
-        for (size_t i = 0; i < gp_arr_length(arr); i++)
-            f((uint8_t*)arr + i * elem_size, (uint8_t*)arr + i * elem_size);
-    } else {
-        arr = gp_arr_reserve(elem_size, arr, src_length);
-        for (size_t i = 0; i < src_length; i++)
-            f((uint8_t*)arr + i * elem_size, (uint8_t*)optional_src + i * elem_size);
-        ((GPArrayHeader*)arr - 1)->length = src_length;
-    }
-    return arr;
-}
-
-void* gp_arr_fold(
-    const size_t elem_size,
-    const GPArray(void) arr,
-    void* accumulator,
-    void* (*const f)(void* accumulator, const void* element))
-{
-    for (size_t i = 0; i < gp_arr_length(arr); i++)
-        accumulator = f(accumulator, (uint8_t*)arr + i * elem_size);
-    return accumulator;
-}
-
-void* gp_arr_foldr(
-    const size_t elem_size,
-    const GPArray(void) arr,
-    void* accumulator,
-    void* (*const f)(void* accumulator, const void* element))
-{
-    for (size_t i = gp_arr_length(arr) - 1; i != (size_t)-1; i--)
-        accumulator = f(accumulator, (uint8_t*)arr + i * elem_size);
-    return accumulator;
-}
-
-static GPArray(void) gp_arr_filter_aliasing(
-    const size_t elem_size,
-    GPArray(void)restrict const arr,
-    const size_t length,
-    bool (*const f)(const void* x))
-{
-    size_t i = 0;
-    ((GPArrayHeader*)arr - 1)->length = 0;
-
-    for (; i < length; i++) // skip copying first matching elements
-    {
-        if (f((uint8_t*)arr + i * elem_size)) {
-            ((GPArrayHeader*)arr - 1)->length++;
-        } else {
-            i++; // after this i > length(arr) so arr[i] and arr[length(arr)]
-                 // will not alias
-            break;
-        }
-    }
-    for (; i < length; i++)
-    {
-        if (f((uint8_t*)arr + i * elem_size))
-            memcpy(
-                (uint8_t*)arr + ((GPArrayHeader*)arr - 1)->length++ * elem_size,
-                (uint8_t*)arr + i * elem_size,
-                elem_size);
-    }
-    return arr;
-}
-
-static GPArray(void) gp_arr_filter_non_aliasing(
-    const size_t elem_size,
-    GPArray(void)restrict arr,
-    const void*restrict src,
-    const size_t src_length,
-    bool (*const f)(const void* x))
-{
-    arr = gp_arr_reserve(elem_size, arr, src_length);
-    ((GPArrayHeader*)arr - 1)->length = 0;
-
-    for (size_t i = 0; i < src_length; i++)
-    {
-        if (f((uint8_t*)src + i * elem_size))
-            memcpy(
-                (uint8_t*)arr + ((GPArrayHeader*)arr - 1)->length++ * elem_size,
-                (uint8_t*)src + i * elem_size,
-                elem_size);
-    }
-    return arr;
-}
-
-GPArray(void) gp_arr_filter(
-    const size_t elem_size,
-    GPArray(void) arr,
-    const void*restrict optional_src,
-    const size_t src_length,
-    bool (*const f)(const void* x))
-{
-    if (optional_src == NULL)
-        return gp_arr_filter_aliasing(
-            elem_size,
-            arr,
-            gp_arr_length(arr),
-            f);
-    else
-        return gp_arr_filter_non_aliasing(
-            elem_size,
-            arr,
-            optional_src,
-            src_length,
-            f);
-}
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* overload.c */
-
-
-extern inline size_t gp_sizeof     (const GPType T);
-extern inline bool   gp_is_unsigned(const GPType T);
-extern inline bool   gp_is_integer (const GPType T);
-extern inline bool   gp_is_floating(const GPType T);
-extern inline bool   gp_is_pointer (const GPType T);
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* generic.c */
-
-
-// ----------------------------------------------------------------------------
-// String
-
-size_t gp_codepoint_count99(GPStrIn s)
-{
-    return gp_bytes_codepoint_count(s.data, s.length);
-}
-
-bool gp_is_valid99(GPStrIn s, size_t*i)
-{
-    return gp_bytes_is_valid_utf8(s.data, s.length, i);
-}
-
-// ----------------------------------------------------------------------------
-// Srtings and arrays
-
-void gp_reserve99(const size_t elem_size, void* px, const size_t capacity)
-{
-    if (gp_arr_allocator(*(void**)px) == NULL)
-        return;
-
-    if (elem_size == sizeof(GPChar))
-        gp_str_reserve(px, capacity);
-    else
-        *(void**)px = gp_arr_reserve(elem_size, *(void**)px, capacity);
-}
-
-static size_t gp_length99(const void* x, const char* ident, const size_t length)
-//static size_t gp_length99(const void* x, const char* ident, const size_t length, const size_t size)
-{
-    //return ident == NULL ?
-    //    length            : ident[0] == '"' ?
-    //    length - sizeof"" : strchr(ident, '{') ?
-    //    length / size     : gp_arr_length(x);
-    return
-        ident == NULL ? length : ident[0] == '"' ? length - sizeof"" : gp_arr_length(x);
-}
-
-void* gp_copy99(const size_t y_size, void* y,
-    const void* x, const char* x_ident, size_t x_length, const size_t x_size)
-{
-    x_length = gp_length99(x, x_ident, x_length);
-    if (y_size >= sizeof(GPAllocator)) {
-        void* out = gp_arr_new(y, x_size, x_length + sizeof"");
-        ((GPArrayHeader*)out - 1)->length = x_length;
-        return memcpy(out, x, x_size * x_length);
-    }
-
-    if (x_size == 1)
-        gp_str_copy(y, x, x_length);
-    else
-        *(void**)y = gp_arr_copy(x_size, *(void**)y, x, x_length);
-    return *(void**)y;
-}
-
-void* gp_slice99(
-    const size_t y_size, const void* y,
-    const size_t x_size, const void* x,
-    const size_t start, const size_t end)
-{
-    if (y_size >= sizeof(GPAllocator)) {
-        void* out = gp_arr_new(y, x_size, end - start + sizeof"");
-        ((GPArrayHeader*)out - 1)->length = end - start;
-        return memcpy(out, (uint8_t*)x + start * x_size, (end - start) * x_size);
-    }
-    return gp_arr_slice(x_size, *(void**)y, x, start, end);
-}
-
-void* gp_append99(
-    const size_t a_size, void* a,
-    const void* b, const char* b_ident, size_t b_length, const size_t b_size,
-    const void* c, const char* c_ident, size_t c_length)
-{
-    b_length = gp_length99(b, b_ident, b_length);
-    if (a_size < sizeof(GPAllocator))
-    {
-        if (b_size == 1) {
-            gp_str_append(a, b, b_length);
-            return *(GPString*)a;
-        } else {
-            return gp_arr_append(b_size, *(void**)a, b, b_length);
-        }
-    }
-    c_length = gp_length99(c, c_ident, c_length);
-    void* out = gp_arr_new(a, b_size, b_length + c_length + sizeof"");
-    memcpy(out, b, b_length * b_size);
-    memcpy((uint8_t*)out + b_length * b_size, c, c_length * b_size);
-    ((GPArrayHeader*)out - 1)->length = b_length + c_length;
-    return out;
-}
-
-void* gp_insert99(
-    const size_t a_size, void* a, const size_t pos,
-    const void* b, const char* b_ident, size_t b_length, const size_t b_size,
-    const void* c, const char* c_ident, size_t c_length)
-{
-    b_length = gp_length99(b, b_ident, b_length);
-    if (a_size < sizeof(GPAllocator))
-    {
-        if (b_size == 1) {
-            gp_str_insert(a, pos, b, b_length);
-            return *(GPString*)a;
-        } else {
-            return gp_arr_insert(b_size, *(void**)a, pos, b, b_length);
-        }
-    }
-    c_length = gp_length99(c, c_ident, c_length);
-    void* out = gp_arr_new(a, b_size, b_length + c_length + sizeof"");
-    memcpy(out, b, pos * b_size);
-    memcpy((uint8_t*)out + pos * b_size, c, c_length * b_size);
-    memcpy((uint8_t*)out + (pos + c_length) * b_size, (uint8_t*)b + pos * b_size, (b_length - pos) * b_size);
-    ((GPArrayHeader*)out - 1)->length = b_length + c_length;
-    return out;
-}
-
-// ----------------------------------------------------------------------------
-// Arrays
-
-GPArray(void) gp_map99(const size_t a_size, const void* a,
-    const GPArray(void)const src, const char*const src_ident,
-    const size_t src_size, const size_t src_elem_size,
-    void(*f)(void*,const void*))
-{
-    const size_t src_length = gp_length99(src, src_ident, src_size);
-    if (a_size < sizeof(GPAllocator))
-        return gp_arr_map(src_elem_size, *(GPArray(void)*)a, src, src_length, f);
-
-    GPArray(void) out = gp_arr_new(a, src_elem_size, src_length);
-    return gp_arr_map(src_elem_size, out, src, src_length, f);
-}
-
-GPArray(void) gp_filter99(size_t a_size, const void* a,
-    const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,
-    bool(*f)(const void* element))
-{
-    const size_t src_length = gp_length99(src, src_ident, src_size);
-    if (a_size < sizeof(GPAllocator))
-        return gp_arr_filter(src_elem_size, *(GPArray(void)*)a, src, src_length, f);
-
-    GPArray(void) out = gp_arr_new(a, src_elem_size, src_length);
-    return gp_arr_filter(src_elem_size, out, src, src_length, f);
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* string.c */
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <wchar.h>
-#include <wctype.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-GPString gp_str_new(
-    const GPAllocator*const allocator,
-    size_t capacity,
-    const char*const init)
-{
-    const size_t init_length = strlen(init);
-    capacity = gp_max(init_length, capacity);
-    GPStringHeader* me = gp_mem_alloc(allocator, sizeof*me + capacity + sizeof"");
-    *me = (GPStringHeader) {
-        .length     = init_length,
-        .capacity   = capacity,
-        .allocator  = allocator,
-        .allocation = me };
-    return memcpy(me + 1, init, init_length);
-}
-
-void gp_str_delete(GPString me)
-{
-    if (me != NULL && gp_str_allocation(me) != NULL)
-        gp_mem_dealloc(gp_str_allocator(me), gp_str_allocation(me));
-}
-
-static GPStringHeader* gp_str_header(const GPString str)
-{
-    return (GPStringHeader*)str - 1;
-}
-
-size_t             gp_str_length    (GPString s) { return gp_str_header(s)->length;    }
-size_t             gp_str_capacity  (GPString s) { return gp_str_header(s)->capacity;  }
-void*              gp_str_allocation(GPString s) { return gp_str_header(s)->allocation;}
-const GPAllocator* gp_str_allocator (GPString s) { return gp_str_header(s)->allocator; }
-
-size_t gp_str_find_first(
-    GPString    haystack,
-    const void* needle,
-    size_t      needle_size,
-    size_t      start)
-{
-    return gp_bytes_find_first(haystack, gp_str_length(haystack), needle, needle_size, start);
-}
-
-size_t gp_str_find_last(
-    GPString    haystack,
-    const void* needle,
-    size_t      needle_length)
-{
-    return gp_bytes_find_last(haystack, gp_str_length(haystack), needle, needle_length);
-}
-
-size_t gp_str_find_first_of(
-    const GPString   haystack,
-    const char*const char_set,
-    const size_t     start)
-{
-    for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
-        cplen = gp_str_codepoint_length(haystack, i);
-        if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) != NULL)
-            return i;
-    }
-    return GP_NOT_FOUND;
-}
-
-size_t gp_str_find_first_not_of(
-    const GPString   haystack,
-    const char*const char_set,
-    const size_t     start)
-{
-    for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
-        cplen = gp_str_codepoint_length(haystack, i);
-        if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) == NULL)
-            return i;
-    }
-    return GP_NOT_FOUND;
-}
-
-size_t gp_str_count(
-    GPString haystack,
-    const void* needle,
-    size_t      needle_size)
-{
-    return gp_bytes_count(haystack, gp_str_length(haystack), needle, needle_size);
-}
-
-bool gp_str_equal(
-    GPString  s1,
-    const void* s2,
-    size_t      s2_size)
-{
-    if (gp_str_length(s1) != s2_size)
-        return false;
-    else
-        return memcmp(s1, s2, s2_size) == 0;
-}
-
-bool gp_str_equal_case(
-    GPString    s1,
-    const void* s2,
-    size_t      s2_size)
-{
-    size_t s1_length = gp_bytes_codepoint_count(s1, gp_str_length(s1));
-    size_t s2_length = gp_bytes_codepoint_count(s2, s2_size);
-    if (s1_length != s2_length)
-        return false;
-
-    mbstate_t state1 = {0};
-    mbstate_t state2 = {0};
-    wchar_t wc1;
-    wchar_t wc2;
-    for (size_t i = 0; i < s1_length; i++)
-    {
-        size_t wc1_length = mbrtowc(&wc1, (char*)s1, sizeof(wchar_t), &state1);
-        size_t wc2_length = mbrtowc(&wc2, (char*)s2, sizeof(wchar_t), &state2);
-        if (sizeof(wchar_t) < sizeof(uint32_t)/* Windows probably */&&
-            (wc1_length == (size_t)-2) != (wc2_length == (size_t)-2))
-        { // one fits to wchar_t and other doesn't so most likely different
-            return false;
-        }
-        else if (sizeof(wchar_t) < sizeof(uint32_t) &&
-                 wc1_length == (size_t)-2) // char wider than sizeof(wchar_t)
-        {                                  // so just compare raw bytes
-            size_t s1_codepoint_size = gp_str_codepoint_length(s1, 0);
-            size_t s2_codepoint_size = gp_str_codepoint_length((GPString)s2, 0);
-            if (s1_codepoint_size != s2_codepoint_size ||
-                memcmp(s1, s2, s1_codepoint_size) != 0)
-            {
-                return false;
-            }
-            s1 += s1_codepoint_size;
-            s2 = (uint8_t*)s2 + s2_codepoint_size;
-        }
-        else
-        {
-            wc1 = towlower(wc1);
-            wc2 = towlower(wc2);
-            if (wc1 != wc2)
-                return false;
-
-            s1 += wc1_length;
-            s2 = (uint8_t*)s2 + wc2_length;
-        }
-    }
-    return true;
-}
-
-size_t gp_str_codepoint_count(
-    GPString str)
-{
-    return gp_bytes_codepoint_count(str, gp_str_length(str));
-}
-
-bool gp_str_is_valid(
-    GPString str,
-    size_t* invalid_index)
-{
-    return gp_bytes_is_valid_utf8(str, gp_str_length(str), invalid_index);
-}
-
-size_t gp_str_codepoint_length(
-    GPString _str, const size_t i)
-{
-    const uint8_t* str = (uint8_t*)_str;
-    static const size_t sizes[] = {
-        1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
-        0,0,0,0,0,0,0,0, 2,2,2,2,3,3,4,0 };
-    return sizes[str[i] >> 3];
-}
-
-bool gp_str_codepoint_classify(
-    GPString str,
-    const size_t i,
-    int (*const classifier)(wint_t c))
-{
-    const size_t codepoint_length = gp_str_codepoint_length(str, i);
-    if (codepoint_length == 0)
-        return false;
-    wchar_t wc;
-    mbrtowc(&wc, (char*)str + i, codepoint_length, &(mbstate_t){0});
-    return classifier(wc);
-}
-
-const char* gp_cstr(GPString str)
-{
-    str[gp_str_length(str)].c = '\0';
-    return (const char*)str;
-}
-
-void gp_str_reserve(
-    GPString* str,
-    size_t capacity)
-{
-    *str = gp_arr_reserve(sizeof**str, *str, capacity + sizeof"");
-    gp_str_header(*str)->capacity -= sizeof"";
-}
-
-void gp_str_copy(
-    GPString* dest,
-    const void*restrict src,
-    size_t n)
-{
-    gp_str_reserve(dest, n);
-    memcpy(*dest, src, n);
-    gp_str_header(*dest)->length = n;
-}
-
-void gp_str_repeat(
-    GPString* dest,
-    const size_t n,
-    const void*restrict mem,
-    const size_t mem_length)
-{
-    gp_str_reserve(dest, n * mem_length);
-    if (mem_length == 1) {
-        memset(*dest, *(uint8_t*)mem, n);
-    } else for (size_t i = 0; i < n; i++) {
-        memcpy(*dest + i * mem_length, mem, mem_length);
-    }
-    gp_str_header(*dest)->length = n * mem_length;
-}
-
-void gp_str_slice(
-    GPString* dest,
-    const void*restrict src,
-    size_t start,
-    size_t end)
-{
-    if (src != NULL) {
-        gp_str_reserve(dest, end - start);
-        memcpy(*dest, (uint8_t*)src + start, end - start);
-        gp_str_header(*dest)->length = end - start;
-    } else {
-        memmove(*dest, *dest + start,  end - start);
-        gp_str_header(*dest)->length = end - start;
-    }
-}
-
-void gp_str_append(
-    GPString* dest,
-    const void* src,
-    size_t src_length)
-{
-    gp_str_reserve(dest, gp_str_length(*dest) + src_length);
-    memcpy(*dest + gp_str_length(*dest), src, src_length + sizeof"");
-    gp_str_header(*dest)->length += src_length;
-}
-
-void gp_str_insert(
-    GPString* dest,
-    size_t pos,
-    const void*restrict src,
-    size_t n)
-{
-    gp_str_reserve(dest, gp_str_length(*dest) + n);
-    memmove(*dest + pos + n, *dest + pos, gp_str_length(*dest) - pos);
-    memcpy(*dest + pos, src, n);
-    gp_str_header(*dest)->length += n;
-}
-
-size_t gp_str_replace(
-    GPString* haystack,
-    const void*restrict needle,
-    const size_t needle_length,
-    const void*restrict replacement,
-    const size_t replacement_length,
-    size_t start)
-{
-    if ((start = gp_str_find_first(*haystack, needle, needle_length, start)) == GP_NOT_FOUND)
-        return GP_NOT_FOUND;
-
-    gp_str_reserve(haystack,
-        gp_str_length(*haystack) + replacement_length - needle_length);
-
-    const size_t end = start + needle_length;
-    gp_str_header(*haystack)->length = gp_bytes_replace_range(
-        *haystack,
-        gp_str_length(*haystack),
-        start,
-        end,
-        replacement,
-        replacement_length);
-
-    return start;
-}
-
-size_t gp_str_replace_all(
-    GPString* haystack,
-    const void*restrict needle,
-    const size_t needle_length,
-    const void*restrict replacement,
-    const size_t replacement_length)
-{
-    size_t start = 0;
-    size_t replacement_count = 0;
-    while ((start = gp_str_find_first(*haystack, needle, needle_length, start)) != GP_NOT_FOUND)
-    {
-        gp_str_reserve(haystack,
-            gp_str_length(*haystack) + replacement_length - needle_length);
-
-        gp_str_header(*haystack)->length = gp_bytes_replace_range(
-            *haystack,
-            gp_str_length(*haystack),
-            start,
-            start + needle_length,
-            replacement,
-            replacement_length);
-
-        start += replacement_length;
-        replacement_count++;
-    }
-    return replacement_count;
-}
-
-static size_t gp_str_print_object_size(GPPrintable object, pf_va_list _args)
-{
-    va_list args;
-    va_copy(args, _args.list);
-
-    size_t length = 0;
-    if (object.identifier[0] == '\"')
-    {
-        const char* fmt = va_arg(args, char*);
-        length = pf_vsnprintf(
-            NULL,
-            0,
-            fmt,
-            args);
-    } else {
-        switch (object.type)
-        {
-            case GP_CHAR:
-            case GP_SIGNED_CHAR:
-            case GP_UNSIGNED_CHAR:
-                length = 1;
-                break;
-
-            case GP_BOOL:
-                length = strlen("false");
-                break;
-
-            char* p;
-            size_t p_len;
-            case GP_CHAR_PTR:
-                p = va_arg(args, char*);
-                p_len = strlen(p);
-                length = p_len;
-                break;
-
-            GPString s;
-            case GP_STRING:
-                s = va_arg(args, GPString);
-                length = gp_str_length(s);
-                break;
-
-            default:
-                length = gp_max_digits_in(object.type);
-        }
-    }
-    va_end(args);
-    return length;
-}
-
-size_t gp_str_print_internal(
-    GPString* out,
-    size_t arg_count,
-    const GPPrintable* objs,
-    ...)
-{
-    va_list _args;
-    va_start(_args, objs);
-    pf_va_list args;
-    va_copy(args.list, _args);
-
-    // Avoid many small allocations by estimating a sufficient buffer size. This
-    // estimation is currently completely arbitrary.
-    if (gp_str_allocator(*out) != NULL)
-        gp_str_reserve(out, arg_count * 10);
-
-    gp_str_header(*out)->length = 0;
-    for (size_t i = 0; i < arg_count; i++)
-    {
-        if (gp_str_allocator(*out) != NULL)
-            gp_str_reserve(out, gp_str_length(*out) + gp_str_print_object_size(objs[i], args));
-        gp_str_header(*out)->length += gp_bytes_print_objects(
-            (size_t)-1,
-            *out + gp_str_length(*out),
-            &args,
-            &i,
-            objs[i]);
-    }
-    va_end(_args);
-    va_end(args.list);
-
-    return gp_str_header(*out)->length;
-}
-
-size_t gp_str_n_print_internal(
-    GPString* out,
-    size_t n,
-    size_t arg_count,
-    const GPPrintable* objs,
-    ...)
-{
-    va_list _args;
-    va_start(_args, objs);
-    pf_va_list args;
-    va_copy(args.list, _args);
-
-    gp_str_reserve(out, n);
-    gp_str_header(*out)->length = 0;
-    for (size_t i = 0; i < arg_count; i++)
-    {
-        gp_str_header(*out)->length += gp_bytes_print_objects(
-            n >= gp_str_length(*out) ? n - gp_str_length(*out) : 0,
-            *out + gp_str_length(*out),
-            &args,
-            &i,
-            objs[i]);
-    }
-    va_end(_args);
-    va_end(args.list);
-
-    const size_t out_length = gp_str_length(*out);
-    if (out_length > n)
-        gp_str_header(*out)->length = n;
-    return out_length;
-}
-
-size_t gp_str_println_internal(
-    GPString* out,
-    size_t arg_count,
-    const GPPrintable* objs,
-    ...)
-{
-    va_list _args;
-    va_start(_args, objs);
-    pf_va_list args;
-    va_copy(args.list, _args);
-
-    // Avoid many small allocations by estimating a sufficient buffer size. This
-    // estimation is currently completely arbitrary.
-    if (gp_str_allocator(*out) != NULL)
-        gp_str_reserve(out, arg_count * 10);
-
-    gp_str_header(*out)->length = 0;
-    for (size_t i = 0; i < arg_count; i++)
-    {
-        if (gp_str_allocator(*out) != NULL)
-            gp_str_reserve(out,
-                gp_str_length(*out) + strlen(" ") + gp_str_print_object_size(objs[i], args));
-
-        gp_str_header(*out)->length += gp_bytes_print_objects(
-            (size_t)-1,
-            *out + gp_str_length(*out),
-            &args,
-            &i,
-            objs[i]);
-
-        (*out)[gp_str_header(*out)->length++].c = ' ';
-    }
-    va_end(_args);
-    va_end(args.list);
-
-    (*out)[gp_str_length(*out) - 1].c = '\n';
-    return gp_str_header(*out)->length;
-}
-
-size_t gp_str_n_println_internal(
-    GPString* out,
-    size_t n,
-    size_t arg_count,
-    const GPPrintable* objs,
-    ...)
-{
-    va_list _args;
-    va_start(_args, objs);
-    pf_va_list args;
-    va_copy(args.list, _args);
-
-    gp_str_reserve(out, n);
-    gp_str_header(*out)->length = 0;
-    for (size_t i = 0; i < arg_count; i++)
-    {
-        gp_str_header(*out)->length += gp_bytes_print_objects(
-            n >= gp_str_length(*out) ? n - gp_str_length(*out) : 0,
-            *out + gp_str_length(*out),
-            &args,
-            &i,
-            objs[i]);
-
-        if (n > gp_str_length(*out))
-            (*out)[gp_str_header(*out)->length++].c = ' ';
-    }
-    va_end(_args);
-    va_end(args.list);
-
-    if (n > (gp_str_length(*out) - !!gp_str_length(*out))) // overwrite last space
-        (*out)[gp_str_length(*out) - 1].c = '\n';
-
-    const size_t out_length = gp_str_length(*out);
-    if (out_length > n)
-        gp_str_header(*out)->length = n;
-    return out_length;
-}
-
-void gp_str_trim(
-    GPString* str,
-    const char*restrict optional_char_set,
-    int flags)
-{
-    if (gp_str_length(*str) == 0)
-        return;
-
-    const bool ascii = flags & 0x01;
-    if (ascii) {
-        gp_str_header(*str)->length = gp_bytes_trim(
-            *str, gp_str_length(*str), NULL, optional_char_set, flags);
-        return;
-    }
-    // else utf8
-
-    size_t      length   = gp_str_length(*str);
-    const bool  left     = flags & 0x04;
-    const bool  right    = flags & 0x02;
-    const char* char_set = optional_char_set != NULL ?
-        optional_char_set :
-        GP_WHITESPACE;
-
-    if (left)
-    {
-        size_t prefix_length = 0;
-        while (true)
-        {
-            char codepoint[8] = "";
-            size_t size = gp_str_codepoint_length(*str, prefix_length);
-            memcpy(codepoint, *str + prefix_length, size);
-            if (strstr(char_set, codepoint) == NULL)
-                break;
-
-            prefix_length += size;
-            if (prefix_length >= gp_str_length(*str)) {
-                gp_str_header(*str)->length = 0;
-                return;
-            }
-        }
-        length -= prefix_length;
-
-        memmove(*str, *str + prefix_length, length);
-    }
-    if (right) while (length > 0)
-    {
-        char codepoint[8] = "";
-        size_t i = length - 1;
-        size_t size;
-        while ((size = gp_str_codepoint_length(*str, i)) == 0 && --i != 0);
-        memcpy(codepoint, *str + i, size);
-        if (strstr(char_set, codepoint) == NULL)
-            break;
-
-        length -= size;
-    }
-    gp_str_header(*str)->length = length;
-}
-
-static void gp_str_to_something(
-    GPString* str,
-    wint_t(*const towsomething)(wint_t))
-{
-    size_t length = gp_str_length(*str);
-
-    wchar_t  stack_buf[1 << 10];
-    size_t   buf_cap = sizeof stack_buf / sizeof*stack_buf;
-    wchar_t* buf = stack_buf;
-    if (length + sizeof"" > buf_cap) {
-        buf_cap = length + sizeof"";
-        buf = gp_mem_alloc(gp_heap, buf_cap * sizeof*buf);
-    }
-    const char* src = gp_cstr(*str);
-    size_t buf_length = mbsrtowcs(buf, &src, buf_cap, &(mbstate_t){0});
-
-    for (size_t i = 0; i < buf_length; i++)
-        buf[i] = towsomething(buf[i]);
-
-    const wchar_t* pbuf = (const wchar_t*)buf;
-    gp_str_reserve(str, wcsrtombs(NULL, &pbuf, 0, &(mbstate_t){0}));
-
-    gp_str_header(*str)->length = wcsrtombs((char*)*str,
-        &pbuf, sizeof(buf[0]) * buf_length, &(mbstate_t){0});
-
-    if (buf != stack_buf)
-        gp_mem_dealloc(gp_heap, buf);
-}
-
-void gp_str_to_upper(
-    GPString* str)
-{
-    gp_str_to_something(str, towupper);
-}
-
-void gp_str_to_lower(
-    GPString* str)
-{
-    gp_str_to_something(str, towlower);
-}
-
-static size_t gp_str_find_invalid(
-    const void* _haystack,
-    const size_t start,
-    const size_t length)
-{
-    const char* haystack = _haystack;
-    for (size_t i = start; i < length;)
-    {
-        size_t cp_length = gp_str_codepoint_length((GPString)haystack, i);
-        if (cp_length == 0 || i + cp_length > length)
-            return i;
-
-        uint32_t codepoint = 0;
-        for (size_t j = 0; j < cp_length; j++)
-            codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
-        if ( ! gp_valid_codepoint(codepoint))
-            return i;
-
-        i += cp_length;
-    }
-    return GP_NOT_FOUND;
-}
-
-static size_t gp_str_find_valid(
-    const void* _haystack,
-    const size_t start,
-    const size_t length)
-{
-    const char* haystack = _haystack;
-    for (size_t i = start; i < length; i++)
-    {
-        size_t cp_length = gp_str_codepoint_length((GPString)haystack, i);
-        if (cp_length == 1)
-            return i;
-        if (cp_length == 0)
-            continue;
-
-        if (cp_length + i < length) {
-            uint32_t codepoint = 0;
-            for (size_t j = 0; j < cp_length; j++)
-                codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
-            if (gp_valid_codepoint(codepoint))
-                return i;
-        } // else maybe there's ascii in last bytes so continue
-    }
-    return length;
-}
-
-void gp_str_to_valid(
-    GPString* str,
-    const char* replacement)
-{
-          size_t length = gp_str_length(*str);
-    const size_t replacement_length = strlen(replacement);
-
-    size_t start = 0;
-    while ((start = gp_str_find_invalid(*str, start, length)) != GP_NOT_FOUND)
-    {
-        const size_t end = gp_str_find_valid(*str, start, length);
-        gp_str_reserve(str,
-            gp_str_length(*str) + replacement_length - (end - start));
-
-        length = gp_bytes_replace_range(
-            *str,
-            length,
-            start,
-            end,
-            replacement,
-            replacement_length);
-
-        start += replacement_length;
-    }
-    gp_str_header(*str)->length = length;
-}
-
-int gp_str_case_compare(
-    const GPString _s1,
-    const GPString _s2)
-{
-    const char* s1 = (const char*)_s1;
-    const char* s2 = (const char*)_s2;
-
-    wchar_t stack_buf1[1 << 10];
-    wchar_t stack_buf2[sizeof stack_buf1 / sizeof*stack_buf1];
-    size_t  buf1_cap = sizeof stack_buf1 / sizeof*stack_buf1;
-    size_t  buf2_cap = buf1_cap;
-    wchar_t*buf1     = stack_buf1;
-    wchar_t*buf2     = stack_buf2;
-
-    GPArena arena;
-    const GPAllocator* scope = NULL;
-    const size_t max_length = gp_max(gp_str_length(_s1), gp_str_length(_s2));
-    if (max_length + 1 >= buf1_cap)
-    {
-        arena = gp_arena_new(2 * max_length * sizeof*buf1 +/*internals*/64);
-        scope = (const GPAllocator*)&arena;
-    }
-    if (gp_str_length(_s1) + 1 >= buf1_cap) {
-        buf1_cap = gp_str_length(_s1) + 1;
-        buf1 = gp_mem_alloc(scope, buf1_cap * sizeof(wchar_t));
-    }
-    if (gp_str_length(_s2) + 1 >= buf2_cap) {
-        buf2_cap = gp_str_length(_s2) + 1;
-        buf2 = gp_mem_alloc(scope, buf2_cap * sizeof(wchar_t));
-    }
-    mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0});
-    mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0});
-
-    int result = wcscoll(buf1, buf2);
-    gp_arena_delete((GPArena*)scope);
-    return result;
-}
-
-int gp_str_file(
-    GPString*   str,
-    const char* file_path,
-    const char* operation)
-{
-    switch (operation[0])
-    {
-        case 'r':
-        {
-            #if _WIN32
-            struct __stat64 s;
-            if (_stat64(file_path, &s) != 0)
-            #elif _GNU_SOURCE
-            struct stat64 s;
-            if (stat64(file_path, &s) != 0)
-            #else
-            struct stat s;
-            if (stat(file_path, &s) != 0)
-            #endif
-                return -1;
-
-            if ((uint64_t)s.st_size > SIZE_MAX)
-                return 1;
-
-            FILE* f = fopen(file_path, "r");
-            if (f == NULL)
-                return -1;
-
-            gp_str_reserve(str, s.st_size);
-            if (fread(*str, sizeof**str, s.st_size, f) != (size_t)s.st_size) {
-                fclose(f);
-                return -1;
-            }
-            gp_str_header(*str)->length = s.st_size;
-
-            fclose(f);
-        } break;
-
-        default:
-        {
-            const char mode[2] = { operation[0], '\0' };
-            FILE* f = fopen(file_path, mode);
-            if (f == NULL)
-                return -1;
-            if (fwrite(*str, sizeof**str, gp_str_length(*str), f) != gp_str_length(*str))
-                return -1;
-            fclose(f);
-        }
-    }
-    return 0;
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* memory.c */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#ifdef GP_TESTS
-#endif
-
-#ifdef __GNUC__
-#define GP_UNLIKELY(COND) __builtin_expect(!!(COND), 0)
-#else
-#define GP_UNLIKELY(COND) (COND)
-#endif
-
-extern inline void* gp_mem_alloc       (const GPAllocator*,size_t);
-extern inline void* gp_mem_alloc_zeroes(const GPAllocator*,size_t);
-extern inline void  gp_mem_dealloc     (const GPAllocator*,void*);
-
-static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size)
-{
-    (void)unused;
-    void* mem = malloc(block_size);
-    if (mem == NULL) {
-        GP_BREAKPOINT;
-        perror("malloc() failed");
-        abort();
-    }
-    return mem;
-}
-
-static void gp_heap_dealloc(const GPAllocator* unused, void* block)
-{
-    (void)unused;
-    free(block);
-}
-
-static const GPAllocator gp_mallocator = {
-    .alloc   = gp_heap_alloc,
-    .dealloc = gp_heap_dealloc
-};
-#ifdef NDEBUG
-const GPAllocator*const gp_heap = &gp_mallocator;
-#else
-const GPAllocator*      gp_heap = &gp_mallocator;
-#endif
-
-// ----------------------------------------------------------------------------
-
-// Instances of these live in the beginning of the arenas memory block so the
-// first object is in &node + 1;
-typedef struct gp_arena_node
-{
-    void* position;
-    struct gp_arena_node* tail;
-    size_t capacity;
-    void* _padding; // to round size to aligment boundary and for future use
-} GPArenaNode;
-
-static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
-{
-    GPArena* arena = (GPArena*)allocator;
-    const size_t size = gp_round_to_aligned(_size, arena->alignment);
-    GPArenaNode* head = arena->head;
-
-    void* block = head->position;
-    if ((uint8_t*)block + size > (uint8_t*)(head + 1) + arena->head->capacity)
-    { // out of memory, create new arena
-        const size_t new_cap = gp_round_to_aligned(
-            arena->growth_coefficient * arena->head->capacity, arena->alignment);
-        GPArenaNode* new_node = gp_mem_alloc(gp_heap,
-            sizeof(GPArenaNode) + gp_max(new_cap, size));
-        new_node->tail     = head;
-        new_node->capacity = new_cap;
-
-        block = new_node->position = new_node + 1;
-        new_node->position = (uint8_t*)(new_node->position) + size;
-        arena->head = new_node;
-    }
-    else
-    {
-        head->position = (uint8_t*)block + size;
-    }
-    return block;
-}
-
-static void* gp_arena_shared_alloc(const GPAllocator* allocator, const size_t size)
-{
-    gp_mutex_lock((GPMutex*)((GPArena*)allocator + 1));
-    void* block = gp_arena_alloc(allocator, size);
-    gp_mutex_unlock((GPMutex*)((GPArena*)allocator + 1));
-    return block;
-}
-
-GPArena gp_arena_new(const size_t capacity)
-{
-    const size_t cap  = capacity != 0 ?
-        gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT)
-      : 256;
-    GPArenaNode* node = gp_mem_alloc(gp_heap, sizeof(GPArenaNode) + cap);
-    node->position = node + 1;
-    node->tail     = NULL;
-    node->capacity = cap;
-    return (GPArena) {
-        .allocator          = { gp_arena_alloc, gp_arena_dealloc },
-        .growth_coefficient = 2.,
-        .max_size           = 1 << 15,
-        .alignment          = GP_ALLOC_ALIGNMENT,
-        .head               = node,
-    };
-}
-
-GPArena* gp_arena_new_shared(const size_t capacity)
-{
-    GPArena arena_data = gp_arena_new(capacity + sizeof arena_data + sizeof(GPMutex));
-    GPArena*arena = gp_mem_alloc(gp_heap, sizeof*arena + sizeof(GPMutex));
-    arena_data.allocator.alloc = gp_arena_shared_alloc;
-    *arena = arena_data;
-    GPMutex* mutex = (GPMutex*)(arena + 1);
-    gp_mutex_init(mutex);
-    return arena;
-}
-
-static bool gp_in_this_node(GPArenaNode* node, void* _pos)
-{
-    uint8_t* pos = _pos;
-    uint8_t* block_start = (uint8_t*)(node + 1);
-    return block_start <= pos && pos <= block_start + node->capacity;
-}
-
-static void gp_arena_node_delete(GPArena* arena)
-{
-    GPArenaNode* old_head = arena->head;
-    arena->head = arena->head->tail;
-    gp_mem_dealloc(gp_heap, old_head);
-}
-
-void gp_arena_rewind(GPArena* arena, void* new_pos)
-{
-    while ( ! gp_in_this_node(arena->head, new_pos))
-        gp_arena_node_delete(arena);
-    arena->head->position = new_pos;
-}
-
-// With -03 GCC inlined bunch of functions and ignored the last if statement in
-// gp_arena_delete() giving a false positive for -Wfree-nonheap-object and
-// refusing to compile with -Werror so this pointless wrapper is needed.
-#if __GNUC__ && ! __clang__
-__attribute__((noinline))
-#endif
-static void gp_arena_shared_heap_dealloc(GPArena* arena)
-{
-    gp_mem_dealloc(gp_heap, arena);
-}
-
-void gp_arena_delete(GPArena* arena)
-{
-    if (arena == NULL)
-        return;
-    while (arena->head != NULL) {
-        GPArenaNode* old_head = arena->head;
-        arena->head = arena->head->tail;
-        gp_mem_dealloc(gp_heap, old_head);
-    }
-    if (arena->allocator.alloc == gp_arena_shared_alloc)
-        gp_arena_shared_heap_dealloc(arena);
-}
-
-// ----------------------------------------------------------------------------
-// Scratch arena
-
-static GPThreadKey  gp_scratch_arena_key;
-static GPThreadOnce gp_scratch_arena_key_once = GP_THREAD_ONCE_INIT;
-#ifndef GP_NO_THREAD_LOCALS // Avoid unnecessary heap allocation
-static GP_MAYBE_THREAD_LOCAL GPArena gp_scratch_allocator = {0};
-#endif
-
-static void gp_delete_scratch_arena(void* arena)
-{
-    gp_arena_delete(arena);
-    #ifdef GP_NO_THREAD_LOCALS
-    gp_mem_dealloc(gp_heap, arena);
-    #endif
-}
-
-// Make Valgrind shut up.
-static void gp_delete_main_thread_scratch_arena(void)
-{
-    GPArena* arena = gp_thread_local_get(gp_scratch_arena_key);
-    if (arena != NULL)
-        gp_delete_scratch_arena(arena);
-}
-
-static void gp_make_scratch_arena_key(void)
-{
-    atexit(gp_delete_main_thread_scratch_arena);
-    gp_thread_key_create(&gp_scratch_arena_key, gp_delete_scratch_arena);
-}
-
-static GPArena* gp_new_scratch_arena(void)
-{
-    #ifdef GP_NO_THREAD_LOCALS
-    GPArena _arena = gp_arena_new(GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE);
-    GPArena* arena = gp_mem_alloc(gp_heap, sizeof*arena);
-    *arena = _arena;
-    #else
-    gp_scratch_allocator = gp_arena_new(GP_SCOPE_DEFAULT_INIT_SIZE);
-    GPArena* arena       = &gp_scratch_allocator;
-    #endif
-    arena->max_size           = GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE;
-    arena->growth_coefficient = GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT;
-    gp_thread_local_set(gp_scratch_arena_key, arena);
-    return arena;
-}
-
-GPArena* gp_scratch_arena(void)
-{
-    gp_thread_once(&gp_scratch_arena_key_once, gp_make_scratch_arena_key);
-
-    GPArena* arena = gp_thread_local_get(gp_scratch_arena_key);
-    if (GP_UNLIKELY(arena == NULL))
-        arena = gp_new_scratch_arena();
-    return arena;
-}
-
-// ----------------------------------------------------------------------------
-
-void* gp_mem_realloc(
-    const GPAllocator* allocator,
-    void* old_block,
-    size_t old_size,
-    size_t new_size)
-{
-    GPArena* arena = (GPArena*)allocator;
-    if (allocator->dealloc == gp_arena_dealloc &&
-        (char*)old_block + gp_round_to_aligned(old_size, arena->alignment)
-          == (char*)arena->head->position)
-    { // extend block instead of reallocating and copying
-        arena->head->position = old_block;
-        void* new_block = gp_arena_alloc(allocator, new_size);
-        if (new_block != old_block) // arena ran out of space and reallocated
-            memcpy(new_block, old_block, old_size);
-        return new_block;
-    }
-    void* new_block = gp_mem_alloc(allocator, new_size);
-    if (old_block != NULL)
-        memcpy(new_block, old_block, old_size);
-    gp_mem_dealloc(allocator, old_block);
-    return new_block;
-}
-
-// ----------------------------------------------------------------------------
-// Scope allocator
-
-typedef struct gp_defer
-{
-    void (*f)(void* arg);
-    void* arg;
-} GPDefer;
-
-typedef struct gp_defer_stack
-{
-    GPDefer* stack;
-    uint32_t length;
-    uint32_t capacity;
-} GPDeferStack;
-
-typedef struct gp_scope
-{
-    GPArena          arena;
-    struct gp_scope* parent;
-    GPDeferStack*    defer_stack;
-} GPScope;
-
-static GPThreadKey  gp_scope_factory_key;
-static GPThreadOnce gp_scope_factory_key_once = GP_THREAD_ONCE_INIT;
-
-static void gp_end_scopes(GPScope* scope, GPScope*const last_to_be_ended)
-{
-    if (scope->defer_stack != NULL) {
-        for (size_t i = scope->defer_stack->length - 1; i != (size_t)-1; i--) {
-            scope->defer_stack->stack[i].f(scope->defer_stack->stack[i].arg);
-        }
-    }
-    GPScope* previous = scope->parent;
-    gp_arena_delete((GPArena*)scope);
-    if (previous != NULL && scope != last_to_be_ended)
-        gp_end_scopes(previous, last_to_be_ended);
-}
-
-// scope_factory lives in it's own arena so returns &scope_factory if there is
-// no scopes.
-static GPScope* gp_last_scope_of(GPArena* scope_factory)
-{
-    return (GPScope*) ((uint8_t*)(scope_factory->head->position) -
-       gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT));
-}
-
-GPAllocator* gp_last_scope(GPAllocator* fallback)
-{
-    GPArena* factory = gp_thread_local_get(gp_scope_factory_key);
-    GPScope* scope = NULL;
-    if (factory == NULL || (scope = gp_last_scope_of(factory)) == (GPScope*)factory)
-        return fallback;
-    return (GPAllocator*)scope;
-}
-
-static void gp_delete_scope_factory(void*_factory)
-{
-    GPArena* factory = _factory;
-    GPScope* remaining = gp_last_scope_of(factory);
-    if (remaining != (GPScope*)factory)
-        gp_end_scopes(remaining, NULL);
-
-    gp_mem_dealloc(gp_heap, factory->head);
-}
-
-// Make Valgrind shut up.
-static void gp_delete_main_thread_scope_factory(void)
-{
-    GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    if (scope_factory != NULL)
-        gp_delete_scope_factory(scope_factory);
-}
-static void gp_make_scope_factory_key(void)
-{
-    atexit(gp_delete_main_thread_scope_factory);
-    gp_thread_key_create(&gp_scope_factory_key, gp_delete_scope_factory);
-}
-
-#if __STDC_VERSION__ >= 201112L  && \
-    !defined(__STDC_NO_ATOMICS__) && \
-    ATOMIC_LLONG_LOCK_FREE == 2 // always lock-free
-// Keeping track of average scope size allows scope allocator to estimate
-// optimal scope arena size when creating scopes.
-static _Atomic uint64_t gp_total_scope_sizes = 0;
-static _Atomic size_t   gp_total_scope_count = 0;
-#define GP_ATOMIC_OP(OP) OP
-#else
-#define GP_ATOMIC_OP(OP)
-#endif
-
-static size_t gp_scope_average_memory_usage(void)
-{
-    return GP_ATOMIC_OP(gp_total_scope_sizes/gp_total_scope_count) - 0;
-}
-
-static void* gp_scope_alloc(const GPAllocator* scope, size_t _size)
-{
-    const size_t size = gp_round_to_aligned(_size, ((GPScope*)scope)->arena.alignment);
-    GP_ATOMIC_OP(gp_total_scope_sizes += size);
-    return gp_arena_alloc(scope, size);
-}
-
-GPArena* gp_new_scope_factory(void)
-{
-    const size_t nested_scopes = 64; // before reallocation
-    GPArena scope_factory_arena = gp_arena_new(
-        (nested_scopes + 1/*self*/) * gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT));
-
-    // Extend lifetime
-    GPArena* scope_factory = gp_arena_alloc(
-        (GPAllocator*)&scope_factory_arena,
-        sizeof(GPScope)); // gets rounded in gp_arena_alloc()
-    memset(scope_factory, 0, sizeof*scope_factory);
-    memcpy(scope_factory, &scope_factory_arena, sizeof*scope_factory);
-
-    gp_thread_local_set(gp_scope_factory_key, scope_factory);
-    return scope_factory;
-}
-
-GPAllocator* gp_begin(const size_t _size)
-{
-    gp_thread_once(&gp_scope_factory_key_once, gp_make_scope_factory_key);
-
-    // scope_factory should only allocate gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT)
-    // sized objects for consistent pointer arithmetic.
-    GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    if (GP_UNLIKELY(scope_factory == NULL)) // initialize scope factory
-        scope_factory = gp_new_scope_factory();
-
-    GP_ATOMIC_OP(gp_total_scope_count++);
-    const size_t size = _size == 0 ?
-        gp_max(2 * gp_scope_average_memory_usage(), (size_t)GP_SCOPE_DEFAULT_INIT_SIZE)
-      : _size;
-
-    GPScope* previous = gp_last_scope_of(scope_factory);
-    if (previous == (GPScope*)scope_factory)
-        previous = NULL;
-
-    GPScope* scope = gp_arena_alloc((GPAllocator*)scope_factory, sizeof*scope);
-    *(GPArena*)scope = gp_arena_new(size);
-    scope->arena.allocator.alloc    = gp_scope_alloc;
-    scope->arena.max_size           = GP_SCOPE_DEFAULT_MAX_SIZE;
-    scope->arena.growth_coefficient = GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT;
-    scope->parent = previous;
-    scope->defer_stack = NULL;
-
-    return (GPAllocator*)scope;
-}
-
-void gp_end(GPAllocator*_scope)
-{
-    if (_scope == NULL)
-        return;
-    GPScope* scope = (GPScope*)_scope;
-    GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    gp_end_scopes(gp_last_scope_of(scope_factory), scope);
-    gp_arena_rewind(scope_factory, scope);
-}
-
-void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
-{
-    GPScope* scope = (GPScope*)_scope;
-    if (scope->defer_stack == NULL)
-    {
-        const size_t init_cap = 4;
-        scope->defer_stack = gp_arena_alloc((GPAllocator*)scope,
-            sizeof*(scope->defer_stack) + init_cap * sizeof(GPDefer));
-
-        scope->defer_stack->length   = 0;
-        scope->defer_stack->capacity = init_cap;
-        scope->defer_stack->stack    = (GPDefer*)(scope->defer_stack + 1);
-    }
-    else if (scope->defer_stack->length == scope->defer_stack->capacity)
-    {
-        GPDefer* old_stack  = scope->defer_stack->stack;
-        scope->defer_stack->stack = gp_arena_alloc((GPAllocator*)scope,
-            scope->defer_stack->capacity * 2 * sizeof(GPDefer));
-        memcpy(scope->defer_stack->stack, old_stack,
-            scope->defer_stack->length * sizeof(GPDefer));
-        scope->defer_stack->capacity *= 2;
-    }
-    scope->defer_stack->stack[scope->defer_stack->length].f   = f;
-    scope->defer_stack->stack[scope->defer_stack->length].arg = arg;
-    scope->defer_stack->length++;
-}
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* conversions.c */
@@ -14804,1263 +16055,6 @@ pf_d2exp_buffered_n(
         out.data[out.length] = '\0';
     return out.length;
 }
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* hashmap.c */
-
-#include <string.h>
-
-const union gp_endianness_detector GP_INTEGER = {.u16 = 1 };
-
-extern inline uint64_t* gp_u128_lo(const GPUint128*t);
-extern inline uint64_t* gp_u128_hi(const GPUint128*t);
-#if !(__GNUC__ && __SIZEOF_INT128__) // unused static function
-static void gp_mult64to128(
-    uint64_t u, uint64_t v, uint64_t* h, uint64_t* l)
-{
-    uint64_t u1 = (u & 0xffffffff);
-    uint64_t v1 = (v & 0xffffffff);
-    uint64_t t = (u1 * v1);
-    uint64_t w3 = (t & 0xffffffff);
-    uint64_t k = (t >> 32);
-
-    u >>= 32;
-    t = (u * v1) + k;
-    k = (t & 0xffffffff);
-    uint64_t w1 = (t >> 32);
-
-    v >>= 32;
-    t = (u1 * v) + k;
-    k = (t >> 32);
-
-    *h = (u * v) + w1 + k;
-    *l = (t << 32) + w3;
-}
-#endif
-static void gp_mult128(const GPUint128 N, const GPUint128 M, GPUint128*const Ans)
-{
-    #if __GNUC__ && __SIZEOF_INT128__
-    Ans->u128 = N.u128 * M.u128;
-    #else
-    gp_mult64to128(*gp_u128_lo(&N), *gp_u128_lo(&M), gp_u128_hi(Ans), gp_u128_lo(Ans));
-    *gp_u128_hi(Ans) += *gp_u128_hi(&N) * *gp_u128_lo(&M) + *gp_u128_lo(&N) * *gp_u128_hi(&M);
-    #endif
-}
-
-uint32_t gp_bytes_hash32(const void* str, const size_t str_size)
-{
-    const uint32_t FNV_prime        = 0x01000193;
-    const uint32_t FNV_offset_basis = 0x811c9dc5;
-    const uint8_t* ustr = str;
-
-    uint32_t hash = FNV_offset_basis;
-    for (size_t i = 0; i < str_size; i++)
-    {
-        hash ^= ustr[i];
-        hash *= FNV_prime;
-    }
-    return hash;
-}
-
-uint64_t gp_bytes_hash64(const void* str, const size_t str_size)
-{
-    const uint64_t FNV_prime        = 0x00000100000001B3;
-    const uint64_t FNV_offset_basis = 0xcbf29ce484222325;
-    const uint8_t* ustr = str;
-
-    uint64_t hash = FNV_offset_basis;
-    for (size_t i = 0; i < str_size; i++)
-    {
-        hash ^= ustr[i];
-        hash *= FNV_prime;
-    }
-    return hash;
-}
-
-GPUint128 gp_bytes_hash128(const void* str, const size_t str_size)
-{
-    //GPUint128 FNV_prime;
-    //GPUint128 FNV_offset_basis;
-    //*gp_u128_hi(&FNV_prime)        = 0x0000000001000000;
-    //*gp_u128_lo(&FNV_prime)        = 0x000000000000013B;
-    //*gp_u128_hi(&FNV_offset_basis) = 0x6c62272e07bb0142;
-    //*gp_u128_lo(&FNV_offset_basis) = 0x62b821756295c58d;
-    GPUint128 FNV_prime        = gp_u128(0x0000000001000000, 0x000000000000013B);
-    GPUint128 FNV_offset_basis = gp_u128(0x6c62272e07bb0142, 0x62b821756295c58d);
-    const uint8_t* ustr = str;
-
-    GPUint128 hash = FNV_offset_basis;
-    for (size_t i = 0; i < str_size; i++)
-    {
-        *gp_u128_lo(&hash) ^= ustr[i];
-        gp_mult128(hash, FNV_prime, &hash);
-    }
-    return hash;
-}
-
-// ----------------------------------------------------------------------------
-
-struct gp_map
-{
-    const size_t length; // number of slots
-    const size_t element_size; // if 0, elements is in GPSlot
-    const GPAllocator*const allocator;
-    void (*const destructor)(void* element); // may be NULL
-};
-
-struct gp_hash_map
-{
-    struct gp_map map;
-};
-
-#define GP_EMPTY  ((size_t) 0)
-#define GP_IN_USE ((size_t)-1)
-typedef struct gp_slot
-{
-    GPUint128 key;
-    union {
-        uintptr_t slot;
-        void*     slots;
-    };
-    const void* element;
-} GPSlot;
-
-// GPMap in memory:
-// |GPMap|Slot 0|Slot 1|...|Slot n|Element 0|Element 1|...|Element n|
-//
-// Subsequent slots in memory in case of collissions:
-// |New slot 0|...|New slot n/2|New element 1|...|New element n/2|
-// ^
-// Slot i info points here where i is the index of the colliding slot.
-//
-// If GPMap.element_not_pointer, element is in Slot array, not element array.
-
-static void gp_no_op_destructor(void*_) { (void)_; }
-
-GPMap* gp_map_new(const GPAllocator* allocator, const GPMapInitializer*_init)
-{
-    #define GP_DEFAULT_MAP_CAP (1 << 8) // somewhat arbitrary atm
-    static const GPMapInitializer defaults = { .capacity = GP_DEFAULT_MAP_CAP };
-    const GPMapInitializer* init = _init == NULL ? &defaults : _init;
-
-    const size_t length = init->capacity == 0 ?
-        GP_DEFAULT_MAP_CAP
-      : gp_next_power_of_2(init->capacity) >> 1;
-
-    const GPMap init_map = {
-        .length       = length,
-        .element_size = init->element_size,
-        .allocator    = allocator,
-        .destructor   = init->destructor == NULL ?
-            gp_no_op_destructor
-          : init->destructor
-    };
-    GPMap* block = gp_mem_alloc_zeroes(allocator,
-        sizeof init_map + length * sizeof(GPSlot) + length * init->element_size);
-    return memcpy(block, &init_map, sizeof init_map);
-}
-
-static inline size_t gp_next_length(const size_t length)
-{
-    return length/2 < 4 ? 4 : length/2;
-}
-static inline GPUint128 gp_shift_key(const GPUint128 key, const size_t length)
-{
-    #if __GNUC__ && __SIZEOF_INT128__
-    if      (sizeof length == sizeof(unsigned))
-        return (GPUint128){.u128 =
-            key.u128 >> (sizeof(int)  * CHAR_BIT -__builtin_clz  (length) - 1)};
-    else if (sizeof length == sizeof(long))
-        return (GPUint128){.u128 =
-            key.u128 >> (sizeof(long) * CHAR_BIT -__builtin_clzl (length) - 1)};
-    return
-        (GPUint128){.u128 =
-        key.u128 >> (sizeof(long long)* CHAR_BIT -__builtin_clzll(length) - 1)};
-    #else
-
-    // Find bit width of length which is assumed to be a power of 2.
-    // https://graphics.stanford.edu/~seander/bithacks.html#IntegerLog
-    static const uint64_t b[] = {
-        0xAAAAAAAAAAAAAAAA, 0xCCCCCCCCCCCCCCCC, 0xF0F0F0F0F0F0F0F0,
-        0xFF00FF00FF00FF00, 0xFFFF0000FFFF0000, 0xFFFFFFFF00000000
-    };
-    uint64_t
-    bitw  =  ((uint64_t)length & b[0]) != 0;
-    bitw |= (((uint64_t)length & b[5]) != 0) << 5;
-    bitw |= (((uint64_t)length & b[4]) != 0) << 4;
-    bitw |= (((uint64_t)length & b[3]) != 0) << 3;
-    bitw |= (((uint64_t)length & b[2]) != 0) << 2;
-    bitw |= (((uint64_t)length & b[1]) != 0) << 1;
-
-    // 128-bit bit shift right
-    GPUint128 new_key = {0};
-    *gp_u128_hi(&new_key) = *gp_u128_hi(&key) >> bitw;
-    *gp_u128_lo(&new_key) =(*gp_u128_lo(&key) >> bitw) | (*gp_u128_hi(&key)<<(64-bitw));
-
-    return new_key;
-    #endif
-}
-
-// ----------------------------------------------------------------------------
-
-void gp_map_delete_elems(
-    GPMap*const  map,
-    GPSlot*const slots,
-    const size_t length)
-{
-    for (size_t i = 0; i < length; i++)
-    {
-        if (slots[i].slot == GP_IN_USE)
-        {
-            if (slots[i].element == NULL)
-                continue;
-
-            map->destructor((void*)slots[i].element);
-        }
-        else if (slots[i].slot != GP_EMPTY)
-        {
-            if (slots[i].element != NULL)
-                map->destructor((void*)slots[i].element);
-            gp_map_delete_elems(map, slots[i].slots, gp_next_length(length));
-        }
-    }
-    if (slots != (GPSlot*)(map + 1))
-        gp_mem_dealloc(map->allocator, slots);
-    else
-        gp_mem_dealloc(map->allocator, map);
-}
-
-void gp_map_delete(GPMap* map)
-{
-    gp_map_delete_elems(map, (GPSlot*)(map + 1), map->length);
-}
-
-static void* gp_map_put_elem(
-    const GPAllocator*const allocator,
-    GPSlot*const            slots,
-    const size_t            length,
-    const GPUint128         key,
-    const void*const        elem,
-    const size_t            elem_size)
-{
-    uint8_t* values = (uint8_t*)(slots + length);
-    const size_t i  = *gp_u128_lo(&key) & (length - 1);
-
-    if (slots[i].slot == GP_EMPTY)
-    {
-        if (elem_size != 0) {
-            if (elem != NULL)
-                memcpy(values + i * elem_size, elem, elem_size);
-            slots[i].element = values + i * elem_size;
-        } else {
-            slots[i].element = elem;
-        }
-        slots[i].slot = GP_IN_USE;
-        slots[i].key  = key;
-        return (void*)slots[i].element;
-    }
-    const size_t next_length = gp_next_length(length);
-    if (slots[i].slot == GP_IN_USE)
-    {
-        GPSlot* new_slots = gp_mem_alloc_zeroes(allocator,
-            next_length * sizeof*new_slots + next_length * elem_size);
-        slots[i].slots = new_slots;
-    }
-    return gp_map_put_elem(
-        allocator,
-        slots[i].slots,
-        next_length,
-        gp_shift_key(key, length),
-        elem,
-        elem_size);
-}
-
-void* gp_map_put(
-    GPMap* map,
-    GPUint128 key,
-    const void* value)
-{
-    return gp_map_put_elem(
-        map->allocator,
-        (GPSlot*)(map + 1),
-        map->length,
-        key,
-        value,
-        map->element_size);
-}
-
-static void* gp_map_get_elem(
-    const GPSlot*const slots,
-    const size_t length,
-    const GPUint128 key,
-    const size_t elem_size)
-{
-    const size_t i  = *gp_u128_lo(&key) & (length - 1);
-
-    if (slots[i].slot == GP_EMPTY)
-        return NULL;
-    else if (slots[i].slot == GP_IN_USE || memcmp(&slots[i].key, &key, sizeof key) == 0)
-        return (void*)slots[i].element;
-
-    return gp_map_get_elem(
-        slots[i].slots, gp_next_length(length), gp_shift_key(key, length), elem_size);
-}
-
-void* gp_map_get(GPMap* map, GPUint128 key)
-{
-    return gp_map_get_elem(
-        (GPSlot*)(map + 1),
-        map->length,
-        key,
-        map->element_size);
-}
-
-static bool gp_map_remove_elem(
-    GPSlot*const slots,
-    const size_t length,
-    const GPUint128 key,
-    const size_t elem_size,
-    void (*const destructor)(void*))
-{
-    const size_t i  = *gp_u128_lo(&key) & (length - 1);
-    if (slots[i].slot == GP_IN_USE) {
-        slots[i].slot = GP_EMPTY;
-        destructor((void*)slots[i].element);
-        slots[i].element = NULL;
-        return true;
-    }
-    else if (slots[i].slot == GP_EMPTY) {
-        return false;
-    }
-    else if (memcmp(&slots[i].key, &key, sizeof key) == 0) {
-        slots[i].key = gp_bytes_hash128(&key, sizeof key);
-        destructor((void*)slots[i].element);
-        slots[i].element = NULL;
-        return true;
-    }
-    return gp_map_remove_elem(
-        slots, gp_next_length(length), gp_shift_key(key, length), elem_size, destructor);
-}
-
-bool gp_map_remove(GPMap* map, GPUint128 key)
-{
-    return gp_map_remove_elem(
-        (GPSlot*)(map + 1),
-        map->length,
-        key,
-        map->element_size,
-        map->destructor);
-}
-
-GPHashMap* gp_hash_map_new(const GPAllocator* alc, const GPMapInitializer* init)
-{
-    return (GPHashMap*)gp_map_new(alc, init);
-}
-
-void gp_hash_map_delete(GPHashMap* map) { gp_map_delete((GPMap*)map); }
-
-void* gp_hash_map_put(
-    GPHashMap*  map,
-    const void* key,
-    size_t      key_size,
-    const void* value)
-{
-    return gp_map_put((GPMap*)map, gp_bytes_hash128(key, key_size), value);
-}
-
-void* gp_hash_map_get(
-    GPHashMap*  map,
-    const void* key,
-    size_t      key_size)
-{
-    return gp_map_get((GPMap*)map, gp_bytes_hash128(key, key_size));
-}
-
-bool gp_hash_map_remove(
-    GPHashMap*  map,
-    const void* key,
-    size_t      key_size)
-{
-    return gp_map_remove((GPMap*)map, gp_bytes_hash128(key, key_size));
-}
-
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* format_scanning.c */
-
-#include <string.h>
-
-PFFormatSpecifier
-pf_scan_format_string(
-    const char* fmt_string,
-    pf_va_list* va_args)
-{
-    PFFormatSpecifier fmt = {0};
-    fmt.string = fmt_string;
-
-    fmt.string = strchr(fmt.string, '%');
-    if (fmt.string == NULL)
-    {
-        return fmt;
-    }
-    if (fmt.string[1] == '%')
-    {
-        fmt.string_length = 2;
-        fmt.conversion_format = '%';
-    }
-
-    // Iterator
-    const char* c = fmt.string + strlen("%");
-
-    // Find all flags if any
-    for (const char* flag; (flag = strchr("-+ #0", *c)); c++)
-    {
-        switch (*flag)
-        {
-            case '-': fmt.flag.dash  = 1; break;
-            case '+': fmt.flag.plus  = 1; break;
-            case ' ': fmt.flag.space = 1; break;
-            case '#': fmt.flag.hash  = 1; break;
-            case '0': fmt.flag.zero  = 1; break;
-        }
-    }
-
-    // Find field width
-    {
-        if (*c == '*')
-        {
-            fmt.field.asterisk = true;
-
-            int width = 0;
-            if (va_args != NULL && (width = va_arg(va_args->list, int)) >= 0)
-            {
-                fmt.field.asterisk = false; // prevent recalling va_arg()
-                fmt.field.width = width;
-            }
-            else if (width < 0)
-            {
-                fmt.field.asterisk = false;
-            }
-            c++;
-        }
-        else if ('1' <= *c && *c <= '9') // can't be 0. Leading 0 is a flag.
-        {
-            const char* num = c;
-            unsigned digits = 0;
-            do {
-                digits++;
-                c++;
-            } while ('0' <= *c && *c <= '9');
-
-            unsigned digit = 1;
-            while (digits)
-            {
-                fmt.field.width += (num[digits - 1] - '0') * digit;
-                digit *= 10;
-                digits--;
-            }
-        }
-    }
-
-    // Find precision
-    if (*c == '.')
-    {
-        c++; // ignore '.'
-
-        if (*c == '*')
-        {
-            fmt.precision.option = PF_ASTERISK;
-
-            int width = 0;
-            if (va_args != NULL && (width = va_arg(va_args->list, int)) >= 0)
-            {
-                fmt.precision.option = PF_SOME;
-                fmt.precision.width = width;
-            }
-            else if (width < 0)
-            {
-                fmt.precision.option = PF_NONE;
-            }
-
-            c++;
-        }
-        else
-        {
-            fmt.precision.option = PF_SOME;
-            const char* num = c;
-            unsigned digits = 0;
-
-            while ('0' <= *c && *c <= '9')
-            {
-                digits++;
-                c++;
-            }
-
-            unsigned digit = 1;
-            while (digits)
-            {
-                fmt.precision.width += (num[digits - 1] - '0') * digit;
-                digit *= 10;
-                digits--;
-            }
-        }
-    }
-
-    // Find length modifier
-    const char* modifier = strchr("hljztLBWDQ", *c);
-    if (modifier != NULL)
-    {
-        fmt.length_modifier = *modifier;
-        c++;
-        if (*modifier == 'h' && *c == 'h') {
-            fmt.length_modifier += 'h';
-            c++;
-        }
-        if (*modifier == 'l' && *c == 'l') {
-            fmt.length_modifier += 'l';
-            c++;
-        }
-    }
-
-    fmt.conversion_format = *c;
-    c++; // get to the end of string
-    fmt.string_length = c - fmt.string;
-
-    return fmt;
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* utils.c */
-
-
-extern inline uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary);
-extern inline bool gp_fapproxf(float x, float y, float max_relative_diff);
-extern inline bool gp_fapprox(double x, double y, double max_relative_diff);
-extern inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff);
-
-extern inline int                gp_imin(int x, int y);
-extern inline long               gp_lmin(long x, long y);
-extern inline long long          gp_llmin(long long x, long long y);
-extern inline unsigned           gp_umin(unsigned x, unsigned y);
-extern inline unsigned long      gp_lumin(unsigned long x, unsigned long y);
-extern inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y);
-
-extern inline int                gp_imax(int x, int y);
-extern inline long               gp_lmax(long x, long y);
-extern inline long long          gp_llmax(long long x, long long y);
-extern inline unsigned           gp_umax(unsigned x, unsigned y);
-extern inline unsigned long      gp_lumax(unsigned long x, unsigned long y);
-extern inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y);
-
-size_t gp_next_power_of_2(size_t x)
-{
-    return sizeof x == sizeof(uint32_t) ?
-        gp_next_power_of_2_32(x) : gp_next_power_of_2_64(x);
-}
-
-uint32_t gp_next_power_of_2_32(uint32_t x)
-{
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    return x + 1;
-}
-
-uint64_t gp_next_power_of_2_64(uint64_t x)
-{
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    x |= x >> 32;
-    return x + 1;
-}
-
-bool gp_check_bounds(size_t* start, size_t* end, size_t limit)
-{
-    bool clipped = false;
-    end = end != NULL ? end : &(size_t){ limit };
-    if (*end > limit) {
-        *end = limit;
-        clipped = true;
-    }
-    if (start != NULL && *start >= *end) {
-        *start  = *end - (limit != 0);
-        clipped = true;
-    }
-    return ! clipped;
-}
-
-
-// Random stuff
-
-//static pcg32_random_t pcg32_global = PCG32_INITIALIZER;
-
-GPRandomState gp_new_random_state(uint64_t seed)
-{
-    GPRandomState state;
-    pcg32_srandom_r((pcg32_random_t*)&state, seed, 0xf35d3918378e53c4ULL);
-    return state;
-}
-
-uint32_t gp_random(GPRandomState* state)
-{
-    return pcg32_random_r((pcg32_random_t*)state);
-}
-
-double gp_frandom(GPRandomState* state)
-{
-    return ldexp(pcg32_random_r((pcg32_random_t*)state), -32);
-}
-
-int32_t gp_random_range(GPRandomState* state, int32_t min, int32_t max)
-{
-    if (max - min > 0)
-        return  (int32_t)pcg32_boundedrand_r((pcg32_random_t*)state,(uint32_t)( max - min + 1)) + min;
-    else
-        return -(int32_t)pcg32_boundedrand_r((pcg32_random_t*)state,(uint32_t)(-max + min - 1)) + min;
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* common.c */
-
-#include <stdint.h>
-#include <wchar.h>
-
-extern inline void   gp_arena_dealloc(const GPAllocator*, void*);
-extern inline size_t gp_max_digits_in  (const GPType T);
-extern inline size_t gp_count_fmt_specs(const char* fmt);
-
-// https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
-bool gp_valid_codepoint(
-    const uint32_t c)
-{
-    if (c <= 0x7Fu)
-        return true;
-
-    if (0xC280u <= c && c <= 0xDFBFu)
-       return ((c & 0xE0C0u) == 0xC080u);
-
-    if (0xEDA080u <= c && c <= 0xEDBFBFu)
-       return 0; // Reject UTF-16 surrogates
-
-    if (0xE0A080u <= c && c <= 0xEFBFBFu)
-       return ((c & 0xF0C0C0u) == 0xE08080u);
-
-    if (0xF0908080u <= c && c <= 0xF48FBFBFu)
-       return ((c & 0xF8C0C0C0u) == 0xF0808080u);
-
-    return false;
-}
-
-bool gp_bytes_is_valid_utf8(
-    const void*_str,
-    const size_t length,
-    size_t* invalid_index)
-{
-    const char* str = (const char*)_str;
-    for (size_t i = 0; i < length;)
-    {
-        size_t cp_length = gp_str_codepoint_length((GPString)str, i);
-        if (cp_length == 0 || i + cp_length > length) {
-            if (invalid_index != NULL)
-                *invalid_index = i;
-            return false;
-        }
-        uint32_t codepoint = 0;
-        for (size_t j = 0; j < cp_length; j++)
-            codepoint = codepoint << 8 | (uint8_t)str[i + j];
-        if ( ! gp_valid_codepoint(codepoint)) {
-            if (invalid_index != NULL)
-                *invalid_index = i;
-            return false;
-        }
-        i += cp_length;
-    }
-    return true;
-}
-
-size_t gp_bytes_codepoint_count(
-    const void* _str,
-    const size_t n)
-{
-    size_t count = 0;
-    const char* str = _str;
-    static const size_t valid_leading_nibble[] = {
-        1,1,1,1, 1,1,1,1, 0,0,0,0, 1,1,1,1
-    };
-    const size_t align_offset = (uintptr_t)str     % 8;
-    const size_t remaining    = (n - align_offset) % 8;
-    size_t i = 0;
-
-    for (size_t len = gp_min(align_offset, n); i < len; i++)
-        count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
-
-    for (; i < n - remaining; i += 8)
-    {
-        // Read 8 bytes to be processed in parallel
-        uint64_t x;
-        memcpy(&x, str + i, sizeof x);
-
-        // Extract bytes that start with 0b10
-        const uint64_t a =   x & 0x8080808080808080llu;
-        const uint64_t b = (~x & 0x4040404040404040llu) << 1;
-
-        // Each byte in c is either 0 or 0b10000000
-        uint64_t c = a & b;
-
-        uint32_t bit_count;
-        #ifdef __clang__ // only Clang seems to benefit from popcount()
-        bit_count = __builtin_popcountll(c);
-        #else
-        //https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
-        uint32_t v0 = c & 0xffffffffllu;
-        uint32_t v1 = c >> 32;
-
-        v0 = v0 - (v0 >> 1);
-        v0 = (v0 & 0x33333333) + ((v0 >> 2) & 0x33333333);
-        bit_count = (((v0 + (v0 >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
-
-        v1 = v1 - (v1 >> 1);
-        v1 = (v1 & 0x33333333) + ((v1 >> 2) & 0x33333333);
-        bit_count += (((v1 + (v1 >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
-        #endif
-
-        count += 8 - bit_count;
-    }
-    for (; i < n; i++)
-        count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
-
-    return count;
-}
-
-size_t gp_convert_va_arg(
-    const size_t limit,
-    void*restrict const out,
-    pf_va_list*restrict const args,
-    const GPType type)
-{
-    size_t length = 0;
-    switch (type)
-    {
-        case GP_CHAR:
-        case GP_SIGNED_CHAR:
-        case GP_UNSIGNED_CHAR:
-            length++;
-            if (limit > 0)
-                *(uint8_t*)out = (char)va_arg(args->list, int);
-            break;
-
-        case GP_UNSIGNED_SHORT:
-        case GP_UNSIGNED:
-            length += pf_utoa(
-                limit,
-                out,
-                va_arg(args->list, unsigned));
-            break;
-
-        case GP_UNSIGNED_LONG:
-            length += pf_utoa(
-                limit,
-                out,
-                va_arg(args->list, unsigned long));
-            break;
-
-        case GP_UNSIGNED_LONG_LONG:
-            length += pf_utoa(
-                limit,
-                out,
-                va_arg(args->list, unsigned long long));
-            break;
-
-        case GP_BOOL:
-            if (va_arg(args->list, int)) {
-                length += strlen("true");
-                memcpy(out, "true", gp_min(4llu, limit));
-            } else {
-                length += strlen("false");
-                memcpy(out, "false", gp_min(5llu, limit));
-            } break;
-
-        case GP_SHORT:
-        case GP_INT:
-            length += pf_itoa(
-                limit,
-                out,
-                va_arg(args->list, int));
-            break;
-
-        case GP_LONG:
-            length += pf_itoa(
-                limit,
-                out,
-                va_arg(args->list, long int));
-            break;
-
-        case GP_LONG_LONG:
-            length += pf_itoa(
-                limit,
-                out,
-                va_arg(args->list, long long int));
-            break;
-
-        case GP_FLOAT:
-        case GP_DOUBLE:
-            length += pf_gtoa(
-                limit,
-                out,
-                va_arg(args->list, double));
-            break;
-
-        char* p;
-        size_t p_len;
-        case GP_CHAR_PTR:
-            p = va_arg(args->list, char*);
-            p_len = strlen(p);
-            memcpy(out, p, gp_min(p_len, limit));
-            length += p_len;
-            break;
-
-        GPString s;
-        case GP_STRING:
-            s = va_arg(args->list, GPString);
-            memcpy(out, s, gp_min(gp_arr_length(s), limit));
-            length += gp_arr_length(s);
-            break;
-
-        case GP_PTR:
-            p = va_arg(args->list, void*);
-            if (p != NULL) {
-                memcpy(out, "0x", gp_min(2llu, limit));
-                length += strlen("0x") + pf_xtoa(
-                    limit > 2 ? limit - 2 : 0, (char*)out + strlen("0x"), (uintptr_t)p);
-            } else {
-                length += strlen("(nil)");
-                memcpy(out, "(nil)", gp_min(strlen("(nil)"), limit));
-            } break;
-    }
-    return length;
-}
-
-size_t gp_bytes_print_objects(
-    const size_t limit,
-    void*restrict out,
-    pf_va_list* args,
-    size_t*const i,
-    GPPrintable obj)
-{
-    size_t length = 0;
-    if (obj.identifier[0] == '\"')
-    {
-        const char* fmt = va_arg(args->list, char*);
-        *i += gp_count_fmt_specs(fmt);
-
-        length += pf_vsnprintf_consuming(
-            out,
-            limit,
-            fmt,
-            args);
-    } else {
-        length += gp_convert_va_arg(limit, out, args, obj.type);
-    }
-    return length;
-}
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* assert.c */
-
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <stdint.h>
-
-#ifdef _WIN32
-#include <windows.h> // GetModuleFileNameA()
-#endif
-
-static GP_MAYBE_THREAD_LOCAL const char* gp_current_test  = NULL;
-static GP_MAYBE_THREAD_LOCAL const char* gp_current_suite = NULL;
-static GP_MAYBE_THREAD_LOCAL bool gp_test_failed  = false;
-static GP_MAYBE_THREAD_LOCAL bool gp_suite_failed = false;
-static GP_MAYBE_ATOMIC uint32_t gp_test_count    = 0;
-static GP_MAYBE_ATOMIC uint32_t gp_suite_count   = 0;
-static GP_MAYBE_ATOMIC uint32_t gp_tests_failed  = 0;
-static GP_MAYBE_ATOMIC uint32_t gp_suites_failed = 0;
-static GP_MAYBE_ATOMIC uint32_t gp_initialized_testing = false;
-#define GP_FAILED_STR GP_RED          "[FAILED]" GP_RESET_TERMINAL
-#define GP_PASSED_STR GP_BRIGHT_GREEN "[PASSED]" GP_RESET_TERMINAL
-static const char* prog_name = "";
-
-// ----------------------------------------------------------------------------
-// Implementations for gp_suite(), gp_test(), and relevant
-
-void gp_end_testing(void)
-{
-    if (gp_test_count + gp_suite_count == 0)
-        return;
-
-    gp_test(NULL);
-    gp_suite(NULL);
-
-    printf("Finished testing%s%s\n", *prog_name ? " in " : ".", prog_name);
-    printf("A total of %u tests ran in %u suites\n", gp_test_count, gp_suite_count);
-
-    if (gp_tests_failed || gp_suites_failed)
-        fprintf(stderr,
-            GP_RED "%u tests failed and %u suites failed!" GP_RESET_TERMINAL "\n",
-            gp_tests_failed, gp_suites_failed);
-    else
-        printf(GP_BRIGHT_GREEN "Passed all tests!" GP_RESET_TERMINAL "\n");
-
-    puts("---------------------------------------------------------------");
-
-    if (gp_tests_failed || gp_suites_failed)
-        exit(EXIT_FAILURE);
-
-    // Prevent redundant reporting at exit. Also user may want to restart tests.
-    gp_test_count    = 0;
-    gp_suite_count   = 0;
-    gp_tests_failed  = 0;
-    gp_suites_failed = 0;
-    gp_initialized_testing = false;
-}
-
-static void gp_init_testing(void)
-{
-    if ( ! gp_initialized_testing)
-    {
-        gp_initialized_testing = true;
-
-        #if (__GNUC__ && __linux__) || BSD
-        extern const char* __progname;
-        prog_name = __progname;
-        #elif _WIN32
-        static char prog_name_buf[MAX_PATH] = "";
-        size_t length = GetModuleFileNameA(NULL, prog_name_buf, MAX_PATH);
-
-        bool valid_ascii = 0 < length && length < MAX_PATH;
-        for (size_t i = 0; i < length && valid_ascii; i++)
-            valid_ascii = ~prog_name_buf[i] & 0x80;
-        if (valid_ascii) {
-            const char* trimmed = strrchr(prog_name_buf, '\\');
-            prog_name = trimmed ? trimmed + strlen("\\") : prog_name_buf;
-        }
-        #endif
-
-        puts("---------------------------------------------------------------");
-        printf("Starting tests%s%s\n\n", *prog_name ? " in " : "", prog_name);
-        atexit(gp_end_testing);
-    }
-}
-
-void gp_test(const char* name)
-{
-    gp_init_testing();
-
-    // End current test
-    if (gp_current_test != NULL)
-    {
-        const char* indent = gp_current_suite == NULL ? "" : "\t";
-        if (gp_test_failed) {
-            gp_tests_failed++;
-            fprintf(stderr,
-            "%s" GP_FAILED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_current_test);
-        } else {
-            printf(
-            "%s" GP_PASSED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_current_test);
-        }
-
-        gp_current_test = NULL;
-    }
-
-    // Start new test
-    if (name != NULL)
-    {
-        // No starting message cluttering output
-
-        gp_current_test = name;
-        gp_test_failed = false;
-        gp_test_count++;
-    }
-}
-
-void gp_suite(const char* name)
-{
-    gp_init_testing();
-    gp_test(NULL); // End current test
-
-    // End current suite
-    if (gp_current_suite != NULL)
-    {
-        if (gp_suite_failed) {
-            gp_suites_failed++;
-            fprintf(stderr, GP_FAILED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_current_suite);
-        } else {
-            printf(GP_PASSED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_current_suite);
-        }
-        gp_current_suite = NULL;
-    }
-
-    // Start new suite
-    if (name != NULL)
-    {
-        printf("Starting suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n", name);
-
-        gp_current_suite = name;
-        gp_suite_failed = false;
-        gp_suite_count++;
-    }
-}
-
-// ----------------------------------------------------------------------------
-// Implementations for gp_assert() and gp_expect()
-
-void gp_fail_internal(
-    const char* file,
-    int line,
-    const char* func,
-    size_t arg_count,
-    const GPPrintable* objs,
-    ...)
-{
-    va_list _args;
-    va_start(_args, objs);
-    pf_va_list args;
-    va_copy(args.list, _args);
-
-    if (gp_current_test != NULL)
-    {
-        gp_test_failed = true;
-        func = gp_current_test;
-    }
-    if (gp_current_suite != NULL)
-    {
-        gp_suite_failed = true;
-        if (gp_current_test == NULL)
-            func = gp_current_suite;
-    }
-
-    const char* condition = objs[0].identifier;
-    if (gp_sizeof(objs[0].type) == sizeof(uint64_t))
-        (void)va_arg(args.list, uint64_t);
-    else
-        (void)va_arg(args.list, uint32_t);
-
-    const char* indent = gp_current_test != NULL ? "\t" : "";
-    fprintf(stderr,
-        "%s%s " GP_WHITE_BG GP_BLACK "line %i" GP_RESET_TERMINAL
-        " in " GP_CYAN "%s" GP_RESET_TERMINAL "\n"
-        "%sCondition " GP_RED "%s " GP_FAILED_STR "\n",
-        indent, file, line, func, indent, condition);
-
-    char* buf = NULL;
-    size_t buf_capacity = 0;
-    for (size_t i = 1; i < arg_count; i++)
-    {
-        fputs(indent, stderr);
-        if (objs[i].identifier[0] == '\"')
-        {
-            const char* fmt = va_arg(args.list, char*);
-            size_t fmt_spec_count = 0;
-            size_t asterisk_count = 0;
-            char* fmt_spec = NULL;
-            const char* l_braces = "([{<";
-            const char* r_braces = ")]}>";
-            const char* brace = strchr(l_braces, fmt[0]);
-
-            for (const char* c = fmt; (c = strchr(c, '%')) != NULL; c++)
-            {
-                if (c[1] == '%') {
-                    c++;
-                } else {
-                    fmt_spec_count++;
-                    fmt_spec = strpbrk(c, "csSdioxXufFeEgGp");
-                    for (const char* _c = c; _c < fmt_spec; _c++) if (*_c == '*')
-                        asterisk_count++;
-
-                    if (fmt_spec == NULL) {
-                        fprintf(stderr, "Invalid format specifier \"%s\".", fmt);
-                        continue;
-                    }
-                }
-            }
-            size_t printed = 0;
-            if (fmt_spec_count == 0) // user comment
-            {
-                fprintf(stderr, "%s\n", fmt);
-                continue;
-            }
-            else if (fmt_spec_count == 1 && asterisk_count == 0)
-            {
-                fprintf(stderr,
-                    GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ",
-                    objs[i + 1/*0 is fmt so next one*/].identifier);
-
-                // Color and opening quote if string or char
-                if (*fmt_spec == 'c') // character
-                    fprintf(stderr, GP_YELLOW);
-                else if (*fmt_spec == 's' || *fmt_spec == 'S') // string
-                    fprintf(stderr, GP_BRIGHT_RED);
-                else if (strchr("dibBouxX", *fmt_spec)) // integer
-                    fprintf(stderr, GP_BRIGHT_BLUE);
-                else if (strchr("fFeEgG", *fmt_spec)) // floating point
-                    fprintf(stderr, GP_BRIGHT_MAGENTA);
-                else if (*fmt_spec == 'p') // pointer
-                    fprintf(stderr, GP_BLUE);
-            }
-            else
-            {
-                if (brace != NULL) {
-                    fputc(*brace, stderr);
-                    printed++;
-                    if (fmt[1] == ' ') {
-                        fputc(' ', stderr);
-                        printed++;
-                    }
-                }
-                const char* _fmt = fmt; // must detect and skip asterisks
-                for (size_t j = 0; j < fmt_spec_count + asterisk_count - 1;)
-                {
-                    while (true) {
-                        _fmt = strchr(_fmt, '%');
-                        if (_fmt[1] != '%')
-                            break;
-                    }
-                    const char* spec = strpbrk(_fmt, "csdioxXufFeEgGp");
-                    for (const char* _c = _fmt; _c < spec; _c++) if (*_c == '*')
-                        j++;
-                    if (j >= fmt_spec_count + asterisk_count - 1)
-                        break;
-                    printed += fprintf(stderr,"%s, ",objs[i + 1 + j].identifier);
-                    j++;
-                    _fmt++;
-                }
-                printed += fprintf(stderr,
-                    "%s", objs[i + fmt_spec_count + asterisk_count].identifier);
-
-                if (brace != NULL) {
-                    if (fmt[1] == ' ') {
-                        printed++;
-                        fputc(' ', stderr);
-                    }
-                    size_t brace_i = brace - l_braces;
-                    fputc(r_braces[brace_i], stderr);
-                    printed++;
-                }
-                fprintf(stderr, GP_RESET_TERMINAL " = " GP_BRIGHT_CYAN);
-                printed += strlen(" = ");
-            }
-
-            size_t required_capacity = pf_vsnprintf(NULL, 0, fmt, args.list) + 1;
-            if (required_capacity >= buf_capacity) {
-                buf = realloc(
-                    buf, buf_capacity = gp_next_power_of_2(required_capacity));
-            }
-            if (printed + required_capacity > 120)
-                fprintf(stderr, "\n\t");
-
-            pf_vsnprintf_consuming(buf, buf_capacity, fmt, &args);
-            fprintf(stderr, "%s", buf);
-
-            fprintf(stderr, GP_RESET_TERMINAL "\n");
-
-            i += fmt_spec_count + asterisk_count;
-            continue;
-        } // end if string literal
-
-        fprintf(stderr,
-            GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ", objs[i].identifier);
-
-        switch (objs[i].type)
-        {
-            case GP_CHAR:
-            case GP_SIGNED_CHAR:
-            case GP_UNSIGNED_CHAR:
-                fprintf(stderr,
-                    GP_YELLOW "\'%c\'", (char)va_arg(args.list, int));
-                break;
-
-            case GP_UNSIGNED_SHORT:
-            case GP_UNSIGNED:
-                fprintf(stderr, GP_BRIGHT_BLUE "%u", va_arg(args.list, unsigned));
-                break;
-
-            case GP_UNSIGNED_LONG:
-                fprintf(stderr,
-                    GP_BRIGHT_BLUE "%lu", va_arg(args.list, unsigned long));
-                break;
-
-            case GP_UNSIGNED_LONG_LONG:
-                fprintf(stderr,
-                    GP_BRIGHT_BLUE "%llu", va_arg(args.list, unsigned long long));
-                break;
-
-            case GP_BOOL:
-                fprintf(stderr, va_arg(args.list, int) ? "true" : "false");
-                break;
-
-            case GP_SHORT:
-            case GP_INT:
-                fprintf(stderr, GP_BRIGHT_BLUE "%i", va_arg(args.list, int));
-                break;
-
-            case GP_LONG:
-                fprintf(stderr, GP_BRIGHT_BLUE "%li", va_arg(args.list, long));
-                break;
-
-            case GP_LONG_LONG:
-                fprintf(stderr, GP_BRIGHT_BLUE "%lli", va_arg(args.list, long long));
-                break;
-
-            double f;
-            case GP_FLOAT:
-            case GP_DOUBLE:
-                f = va_arg(args.list, double);
-                fprintf(stderr, GP_BRIGHT_MAGENTA "%g", f);
-                if (f - (int64_t)f == f/* whole number */&&
-                    (int64_t)f < 100000) { // not printed using %e style
-                    fprintf(stderr, ".0");
-                } break;
-
-            const char* char_ptr;
-            case GP_CHAR_PTR:
-                char_ptr = va_arg(args.list, char*);
-                if (char_ptr != NULL)
-                    fprintf(stderr, GP_BRIGHT_RED "\"%s\"", char_ptr);
-                else
-                    fprintf(stderr, GP_BRIGHT_RED "(null)");
-                break;
-
-            GPString str;
-            case GP_STRING:
-                str = va_arg(args.list, GPString);
-                if (str != NULL)
-                    fprintf(stderr, GP_BRIGHT_RED "\"%.*s\"",
-                        (int)gp_str_length(str), (char*)str);
-                else
-                    fprintf(stderr, GP_BRIGHT_RED "(null)");
-                break;
-
-            case GP_PTR:
-                fprintf(stderr, GP_BLUE "%p", va_arg(args.list, void*));
-                break;
-        }
-        fprintf(stderr, GP_RESET_TERMINAL "\n");
-    } // end for args
-    fputs("\n", stderr);
-
-    free(buf);
-    va_end(_args);
-    va_end(args.list);
-}
-
 
 
 #endif /* GPC_IMPLEMENTATION */

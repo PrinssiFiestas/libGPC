@@ -46,6 +46,10 @@ RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(TEST_SRCS)
 
 .PRECIOUS: $(TESTS) $(RELEASE_TESTS)
 
+# MSVC can be used to run tests if you can get cl.exe to run in MSYS2 shell.
+# Here's how to do it:
+# https://anadoxin.org/blog/bringing-visual-studio-compiler-into-msys2-environment.html/
+
 CL_OBJS   = $(OBJS:.o=.obj)
 CL_CFLAGS = -std:c17 -experimental:c11atomics -Iinclude -utf-8
 $(CL_OBJS): $(wildcard src/*.h)
