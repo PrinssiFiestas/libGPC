@@ -34,7 +34,7 @@ static void deferred_dealloc(void* p)
     gp_mem_dealloc(gp_heap, p);
 }
 
-static void* test0(void*_)
+static GPThreadResult test0(void*_)
 {
     (void)_;
     void* ps[8] = {0}; // Dummy objects
@@ -122,7 +122,7 @@ static void* test0(void*_)
 
 static void* test1_ps[4] = {0};
 
-static void* test1(void*_)
+static GPThreadResult test1(void*_)
 {
     (void)_;
     GPAllocator* scope0 = gp_begin(0);
@@ -137,7 +137,7 @@ static void* test1(void*_)
     return (GPThreadResult)0;
 } // All scopes will be cleaned when threads terminate
 
-static void* test2(void*_)
+static GPThreadResult test2(void*_)
 {
     (void)_;
     gp_suite("Arena allocator");

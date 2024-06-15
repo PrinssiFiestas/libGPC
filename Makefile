@@ -7,11 +7,15 @@ CFLAGS  = -Wall -Wextra -Werror
 CFLAGS += -Wno-missing-field-initializers -Wno-comment -Wno-missing-braces
 CFLAGS += -Iinclude
 CFLAGS += -D_GNU_SOURCE # memmem(), stat64()
-ifeq ($(CC), gcc)
 CFLAGS += -lm -lpthread
-endif
+
 DEBUG_CFLAGS   = -ggdb3 -gdwarf
-RELEASE_CFLAGS = -O3 -flto -DNDEBUG
+RELEASE_CFLAGS = -O3 -DNDEBUG
+ifeq ($(CC), clang) # in some systems Clang ignores -lm and crashes with -flto
+	CFLAGS += -Wno-error=unused-command-line-argument
+else
+	RELEASE_CFLAGS += -flto
+endif
 
 NPROC        = $(shell echo `nproc`)
 THREAD_COUNT = $(if $(NPROC),$(NPROC),4)
@@ -19,9 +23,6 @@ MAKEFLAGS   += -j$(THREAD_COUNT)
 
 ifeq ($(OS), Windows_NT)
 	EXE_EXT = .exe
-	ifeq ($(CC), clang) # get rid of -flto problems on some platforms
-		RELEASE_CFLAGS = -O3 -DNDEBUG
-	endif
 else
 	EXE_EXT =
 	DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
@@ -46,7 +47,6 @@ RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(TEST_SRCS)
 .PRECIOUS: $(TESTS) $(RELEASE_TESTS)
 
 CL_OBJS   = $(OBJS:.o=.obj)
-CL_TESTS  = $(RELEASE_TESTS:.exe=cl.exe)
 CL_CFLAGS = -std:c17 -experimental:c11atomics -Iinclude -utf-8
 $(CL_OBJS): $(wildcard src/*.h)
 $(CL_OBJS): $(wildcard include/gpc/*.h)
@@ -59,6 +59,7 @@ $(CL_TESTS): build/test_%cl.exe : tests/test_%.c $(CL_OBJS)
 	cl.exe $< $(CL_CFLAGS) $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.obj,$<)),$(CL_OBJS)) -Fe"$@"
 	./$@
 
+cl_tests: CL_TESTS = $(RELEASE_TESTS:.exe=cl.exe)
 cl_tests: $(CL_OBJS) $(CL_TESTS)
 
 all: release debug build/gprun$(EXE_EXT) single_header
