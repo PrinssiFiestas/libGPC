@@ -47,7 +47,7 @@ GPArray(void) gp_arr_new(
 (struct GP_C99_UNIQUE_STRUCT(__LINE__) \
 { GPArrayHeader header; T data[size_t_capacity]; }) { \
 { \
-    .length     = sizeof((T[]){__VA_ARGS__})/sizeof(T), \
+    .length     = sizeof((T[]){(T){0},__VA_ARGS__}) / sizeof(T) - 1, \
     .capacity   = size_t_capacity, \
     .allocator  = optional_allocator_ptr, \
     .allocation = NULL \
@@ -166,6 +166,11 @@ GPArray(void) gp_arr_filter(
 #pragma warning(disable : 4116)
 // sizeof returns 0 when creating an empty array using gp_arr_on_stack()
 #pragma warning(disable : 4034)
+#endif
+
+#if __GNUC__ && !defined(__clang__)
+// Allow {0} for any type
+#pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
 
 #ifdef __cplusplus

@@ -129,7 +129,9 @@ static inline GPArray(void) gp_arr99(const GPAllocator* alc,
 }
 #define GP_ARR_NEW(ALC, TYPE, ...) (TYPE*)gp_arr99( \
     (GPAllocator*)(ALC), \
-    sizeof(TYPE), (TYPE[]){__VA_ARGS__}, sizeof((TYPE[]){__VA_ARGS__}) / sizeof(TYPE))
+    sizeof(TYPE), \
+    (TYPE[]){(TYPE){0},__VA_ARGS__} + 1, \
+    sizeof((TYPE[]){(TYPE){0},__VA_ARGS__}) / sizeof(TYPE) - 1)
 
 #if __GNUC__
 #define GP_ARR_READ_ONLY(T, ...) ({ \

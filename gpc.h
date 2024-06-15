@@ -577,6 +577,7 @@ int main(void)
 #define GP_STRFY(A) #A
 #define GP_STRFY_1ST_ARG(A, ...) #A
 #define GP_1ST_ARG(A, ...) A
+#define GP_ALL_BUT_1ST_ARG(A, ...) __VA_ARGS__
 #define GP_COMMA(...) ,
 #define GP_DUMP(...)
 #define GP_EVAL(...) __VA_ARGS__
@@ -1121,7 +1122,7 @@ GPArray(void) gp_arr_new(
 (struct GP_C99_UNIQUE_STRUCT(__LINE__) \
 { GPArrayHeader header; T data[size_t_capacity]; }) { \
 { \
-    .length     = sizeof((T[]){__VA_ARGS__})/sizeof(T), \
+    .length     = sizeof((T[]){(T){0},__VA_ARGS__}) / sizeof(T) - 1, \
     .capacity   = size_t_capacity, \
     .allocator  = optional_allocator_ptr, \
     .allocation = NULL \
@@ -1238,6 +1239,13 @@ GPArray(void) gp_arr_filter(
 #ifdef _MSC_VER
 // unnamed struct in parenthesis in gp_arr_on_stack()
 #pragma warning(disable : 4116)
+// sizeof returns 0 when creating an empty array using gp_arr_on_stack()
+#pragma warning(disable : 4034)
+#endif
+
+#if __GNUC__ && !defined(__clang__)
+// Allow {0} for any type
+#pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
 
 #ifdef __cplusplus
@@ -1298,7 +1306,7 @@ extern "C" {
 
 // Aligment of all pointers returned by any valid allocators
 #ifndef GP_MEMORY_INCLUDED
-#if __STDC_VERSION__ >= 201112L
+#if __STDC_VERSION__ >= 201112L && !defined(_MSC_VER)
 #define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
 #else
 #define GP_ALLOC_ALIGNMENT (sizeof(long double))
@@ -2193,10 +2201,10 @@ extern const union gp_endianness_detector GP_INTEGER; // = {.u16 = 1 }
 
 typedef union gp_uint128
 {
-    #if __STDC_VERSION__ >= 201112L
-    alignas(16)
-    #endif
     struct {
+        #if __STDC_VERSION__ >= 201112L
+        alignas(16)
+        #endif
         uint64_t lo;
         uint64_t hi;
     } little_endian;
@@ -2421,7 +2429,9 @@ static inline GPArray(void) gp_arr99(const GPAllocator* alc,
 }
 #define GP_ARR_NEW(ALC, TYPE, ...) (TYPE*)gp_arr99( \
     (GPAllocator*)(ALC), \
-    sizeof(TYPE), (TYPE[]){__VA_ARGS__}, sizeof((TYPE[]){__VA_ARGS__}) / sizeof(TYPE))
+    sizeof(TYPE), \
+    (TYPE[]){(TYPE){0},__VA_ARGS__} + 1, \
+    sizeof((TYPE[]){(TYPE){0},__VA_ARGS__}) / sizeof(TYPE) - 1)
 
 #if __GNUC__
 #define GP_ARR_READ_ONLY(T, ...) ({ \
@@ -3096,23 +3106,23 @@ size_t gp_file_println_internal(
 // ----------------------------------------------------------------------------
 // Background color
 
-#define GP_BLACK_BG            "^[40m"
-#define GP_RED_BG              "^[41m"
-#define GP_GREEN_BG            "^[42m"
-#define GP_YELLOW_BG           "^[43m"
-#define GP_BLUE_BG             "^[44m"
-#define GP_MAGENTA_BG          "^[45m"
-#define GP_CYAN_BG             "^[46m"
-#define GP_WHITE_BG            "^[47m"
+#define GP_BLACK_BG            "\033[40m"
+#define GP_RED_BG              "\033[41m"
+#define GP_GREEN_BG            "\033[42m"
+#define GP_YELLOW_BG           "\033[43m"
+#define GP_BLUE_BG             "\033[44m"
+#define GP_MAGENTA_BG          "\033[45m"
+#define GP_CYAN_BG             "\033[46m"
+#define GP_WHITE_BG            "\033[47m"
 
-#define GP_BRIGHT_BLACK_BG     "^[100m"
-#define GP_BRIGHT_RED_BG       "^[101m"
-#define GP_BRIGHT_GREEN_BG     "^[102m"
-#define GP_BRIGHT_YELLOW_BG    "^[103m"
-#define GP_BRIGHT_BLUE_BG      "^[104m"
-#define GP_BRIGHT_MAGENTA_BG   "^[105m"
-#define GP_BRIGHT_CYAN_BG      "^[106m"
-#define GP_BRIGHT_WHITE_BG     "^[107m"
+#define GP_BRIGHT_BLACK_BG     "\033[100m"
+#define GP_BRIGHT_RED_BG       "\033[101m"
+#define GP_BRIGHT_GREEN_BG     "\033[102m"
+#define GP_BRIGHT_YELLOW_BG    "\033[103m"
+#define GP_BRIGHT_BLUE_BG      "\033[104m"
+#define GP_BRIGHT_MAGENTA_BG   "\033[105m"
+#define GP_BRIGHT_CYAN_BG      "\033[106m"
+#define GP_BRIGHT_WHITE_BG     "\033[107m"
 
 #define GP_RGB_BG(R, G, B)     "\033[38;2;" #R ";" #G ";" #B "m"
 

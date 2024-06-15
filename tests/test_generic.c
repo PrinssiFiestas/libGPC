@@ -39,7 +39,6 @@
 
 int main(void)
 {
-#ifndef _MSC_VER
     GPArena arena = gp_arena_new(0);
     gp_suite("Bytes and strings");
     {
@@ -497,7 +496,6 @@ int main(void)
         remove(test_path);
     }
     gp_arena_delete(&arena);
-#endif
 }
 
 void increment(int* out, const int* in) { *out = *in + 1; }
