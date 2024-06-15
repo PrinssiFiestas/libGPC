@@ -164,6 +164,8 @@ GPArray(void) gp_arr_filter(
 #ifdef _MSC_VER
 // unnamed struct in parenthesis in gp_arr_on_stack()
 #pragma warning(disable : 4116)
+// sizeof returns 0 when creating an empty array using gp_arr_on_stack()
+#pragma warning(disable : 4034)
 #endif
 
 #ifdef __cplusplus

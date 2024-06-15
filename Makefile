@@ -47,13 +47,13 @@ RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(TEST_SRCS)
 
 CL_OBJS   = $(OBJS:.o=.obj)
 CL_TESTS  = $(RELEASE_TESTS:.exe=cl.exe)
-CL_CFLAGS = -std:c17 -experimental:c11atomics -Iinclude
+CL_CFLAGS = -std:c17 -experimental:c11atomics -Iinclude -utf-8
 $(CL_OBJS): build/%.obj : src/%.c
 	@mkdir -p build
 	cl.exe $< -c $(CL_CFLAGS) -Fo"$@"
 
 $(CL_TESTS): build/test_%cl.exe : tests/test_%.c $(CL_OBJS)
-	cl.exe $< $(CL_CFLAGS) $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.obj,$<)),$(CL_OBJS)) -Fo"$@"
+	cl.exe $< $(CL_CFLAGS) $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.obj,$<)),$(CL_OBJS)) -Fe"$@"
 	./$@
 
 cl_tests: $(CL_OBJS) $(CL_TESTS)
