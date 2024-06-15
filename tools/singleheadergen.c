@@ -330,7 +330,7 @@ static size_t find_header_from_include_paths(
     size_t i = 0;
     for (;; i++)
     {
-        if (i >= gp_arr_length(headers)) { // TODO fix this error hadnling
+        if (i >= gp_arr_length(headers)) {
             gp_file_print(stderr, GP_YELLOW "[WARNING]" GP_RESET_TERMINAL,
                 " Could not inline\n" GP_BRIGHT_CYAN "#include ");
             if (file->include_dir == NULL)
