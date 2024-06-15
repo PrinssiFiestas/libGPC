@@ -15,8 +15,8 @@
 #endif
 
 #define arr_assert_eq(ARR, CARR, CARR_LENGTH) do { \
-    typeof(ARR  )  _gp_arr1 = (ARR);  \
-    typeof(*CARR)* _gp_arr2 = (CARR); \
+    GP_TYPEOF(ARR  )  _gp_arr1 = (ARR);  \
+    GP_TYPEOF(*CARR)* _gp_arr2 = (CARR); \
     const size_t _gp_arr2_length = CARR_LENGTH; \
     gp_expect(gp_arr_length(_gp_arr1) == _gp_arr2_length, \
         gp_arr_length(_gp_arr1), _gp_arr2_length); \
@@ -39,6 +39,7 @@
 
 int main(void)
 {
+#ifndef _MSC_VER
     GPArena arena = gp_arena_new(0);
     gp_suite("Bytes and strings");
     {
@@ -496,6 +497,7 @@ int main(void)
         remove(test_path);
     }
     gp_arena_delete(&arena);
+#endif
 }
 
 void increment(int* out, const int* in) { *out = *in + 1; }

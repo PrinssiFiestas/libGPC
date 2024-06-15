@@ -48,6 +48,9 @@ RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(TEST_SRCS)
 CL_OBJS   = $(OBJS:.o=.obj)
 CL_TESTS  = $(RELEASE_TESTS:.exe=cl.exe)
 CL_CFLAGS = -std:c17 -experimental:c11atomics -Iinclude -utf-8
+$(CL_OBJS): $(wildcard src/*.h)
+$(CL_OBJS): $(wildcard include/gpc/*.h)
+$(CL_OBJS): $(wildcard include/printf/*.h)
 $(CL_OBJS): build/%.obj : src/%.c
 	@mkdir -p build
 	cl.exe $< -c $(CL_CFLAGS) -Fo"$@"

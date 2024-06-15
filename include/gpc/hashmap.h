@@ -61,10 +61,10 @@ extern const union gp_endianness_detector GP_INTEGER; // = {.u16 = 1 }
 
 typedef union gp_uint128
 {
-    #if __STDC_VERSION__ >= 201112L
-    alignas(16)
-    #endif
     struct {
+        #if __STDC_VERSION__ >= 201112L
+        alignas(16)
+        #endif
         uint64_t lo;
         uint64_t hi;
     } little_endian;
