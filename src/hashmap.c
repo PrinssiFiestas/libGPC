@@ -75,12 +75,8 @@ uint64_t gp_bytes_hash64(const void* str, const size_t str_size)
 
 GPUint128 gp_bytes_hash128(const void* str, const size_t str_size)
 {
-    GPUint128 FNV_prime            = {0};
-    GPUint128 FNV_offset_basis     = {0};
-    *gp_u128_hi(&FNV_prime)        = 0x0000000001000000;
-    *gp_u128_lo(&FNV_prime)        = 0x000000000000013B;
-    *gp_u128_hi(&FNV_offset_basis) = 0x6c62272e07bb0142;
-    *gp_u128_lo(&FNV_offset_basis) = 0x62b821756295c58d;
+    GPUint128 FNV_prime        = gp_u128(0x0000000001000000, 0x000000000000013B);
+    GPUint128 FNV_offset_basis = gp_u128(0x6c62272e07bb0142, 0x62b821756295c58d);
     const uint8_t* ustr = str;
 
     GPUint128 hash = FNV_offset_basis;

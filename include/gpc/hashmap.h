@@ -79,6 +79,19 @@ typedef union gp_uint128
     #endif
 } GPUint128;
 
+inline GPUint128 gp_u128(const uint64_t hi_bits, const uint64_t lo_bits)
+{
+    GPUint128 u128;
+    if (GP_INTEGER.endianness.is_big) {
+        u128.big_endian.hi = hi_bits;
+        u128.big_endian.lo = lo_bits;
+    } else {
+        u128.little_endian.hi = hi_bits;
+        u128.little_endian.lo = lo_bits;
+    }
+    return u128;
+}
+
 GP_NONNULL_ARGS_AND_RETURN
 inline uint64_t* gp_u128_lo(const GPUint128* u)
 {
