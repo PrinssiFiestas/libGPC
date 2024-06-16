@@ -55,7 +55,7 @@ depending on your platform.
 
 ### What is being installed
 
-A static library `libgpc`, debug library `libgpcd`, a GDB pretty printer for `GPString`, and a command line utility `gprun`.
+Shared library `libgpc.so`, shared debug library `libgpcd.so`, a GDB pretty printer for `GPString`, and a command line utility `gprun`.
 
 ### gprun
 
