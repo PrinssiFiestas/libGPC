@@ -77,10 +77,10 @@ extern "C" {
 #define gp_push(...)                GP_PUSH(__VA_ARGS__)
 #define gp_pop(...)                 GP_POP(__VA_ARGS__)
 #define gp_erase(...)               GP_ERASE(__VA_ARGS__)
-#define gp_map(...)                 GP_MAP(__VA_ARGS__)
+#define gp_map(...)                 GP_MAP99(__VA_ARGS__)
 #define gp_fold(...)                GP_FOLD(__VA_ARGS__)
 #define gp_foldr(...)               GP_FOLDR(__VA_ARGS__)
-#define gp_filter(...)              GP_FILTER(__VA_ARGS__)
+#define gp_filter(...)              GP_FILTER99(__VA_ARGS__)
 
 // Dictionarys
 #define gp_get(...)                 GP_GET(__VA_ARGS__)
@@ -95,7 +95,7 @@ extern "C" {
 #define gp_realloc(...)             GP_REALLOC(__VA_ARGS__)
 
 // File
-#define gp_file(...)                GP_FILE(__VA_ARGS__)
+#define gp_file(...)                GP_FILE99(__VA_ARGS__)
 #define gp_read_line(...)           gp_file_read_line(...)
 #define gp_read_until(...)          gp_file_read_until(...)
 #define gp_read_strip(...)          gp_file_read_strip(...)
@@ -146,10 +146,10 @@ extern "C" {
 #define gp_push(...)                GP_PUSH(__VA_ARGS__)
 #define gp_pop(...)                 GP_POP(__VA_ARGS__)
 #define gp_erase(...)               GP_ERASE(__VA_ARGS__)
-#define gp_map(...)                 GP_MAP(__VA_ARGS__)
+#define gp_map(...)                 GP_MAP99(__VA_ARGS__)
 #define gp_fold(...)                GP_FOLD(__VA_ARGS__)
 #define gp_foldr(...)               GP_FOLDR(__VA_ARGS__)
-#define gp_filter(...)              GP_FILTER(__VA_ARGS__)
+#define gp_filter(...)              GP_FILTER99(__VA_ARGS__)
 
 // Dictionarys
 #define gp_get(...)                 GP_GET(__VA_ARGS__)
@@ -164,7 +164,7 @@ extern "C" {
 #define gp_realloc(...)             GP_REALLOC(__VA_ARGS__)
 
 // File
-#define gp_file(...)                GP_FILE(__VA_ARGS__)
+#define gp_file(...)                GP_FILE99(__VA_ARGS__)
 #define gp_read_line(...)           gp_file_read_line(...)
 #define gp_read_until(...)          gp_file_read_until(...)
 #define gp_read_strip(...)          gp_file_read_strip(...)
@@ -523,7 +523,7 @@ GPArray(void) gp_map99(size_t a_size, const void* a,
     SRC, #SRC, GP_SIZEOF_TYPEOF(SRC), GP_SIZEOF_TYPEOF(*(SRC)), (void(*)(void*,const void*))(F))
 #define GP_MAP4(A, SRC, SRC_LENGTH, F) gp_map99(GP_SIZEOF_TYPEOF(*(A)), A, \
     SRC, NULL, SRC_LENGTH, GP_SIZEOF_TYPEOF(*(SRC)), (void(*)(void*,const void*))(F))
-#define GP_MAP(A, ...) \
+#define GP_MAP99(A, ...) \
     GP_OVERLOAD3(__VA_ARGS__, GP_MAP4, GP_MAP3, GP_MAP2)(A,__VA_ARGS__)
 
 #ifdef GP_TYPEOF // better type safety and allow using integer accumulator
@@ -545,7 +545,7 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
     SRC, #SRC, GP_SIZEOF_TYPEOF(SRC), GP_SIZEOF_TYPEOF(*(SRC)), (bool(*)(const void*))(F))
 #define GP_FILTER4(A, SRC, SRC_LENGTH, F) gp_filter99(GP_SIZEOF_TYPEOF(*(A)), A, \
     SRC, NULL, SRC_LENGTH, GP_SIZEOF_TYPEOF(*(SRC)), (bool(*)(const void*))(F))
-#define GP_FILTER(A, ...) \
+#define GP_FILTER99(A, ...) \
     GP_OVERLOAD3(__VA_ARGS__, GP_FILTER4, GP_FILTER3, GP_FILTER2)(A,__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
@@ -640,7 +640,7 @@ inline GPString gp_file99(size_t a_size, void* a, const char* path, const char* 
 #define GP_FILE3(A, ...) gp_file99(GP_SIZEOF_TYPEOF(*(A)), A, __VA_ARGS__)
 
 #define GP_FILE2(PATH, ...) gp_file_open(PATH, __VA_ARGS__)
-#define GP_FILE(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_FILE3, GP_FILE2)(A,__VA_ARGS__)
+#define GP_FILE99(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_FILE3, GP_FILE2)(A,__VA_ARGS__)
 
 #ifdef __cplusplus
 } // extern "C"
