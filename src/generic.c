@@ -108,7 +108,7 @@ GPString gp_to_lower99(const GPAllocator* alc, const GPString str)
     return out;
 }
 
-static inline GPString gp_to_valid99(
+GPString gp_to_valid99(
     const GPAllocator* alc, const GPString str, const char*const replacement)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, gp_str_length(str), "");

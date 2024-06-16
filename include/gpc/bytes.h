@@ -208,6 +208,7 @@ typedef struct gp_printable
 } GPPrintable;
 
 #if __STDC_VERSION__ >= 201112L || defined(__COMPCERT__)
+#define GP_GENERIC_AVAILABLE 1
 #define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
 #else
 #define GP_PRINTABLE(X) { #X, -1 }

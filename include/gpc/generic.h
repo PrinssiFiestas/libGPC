@@ -291,7 +291,7 @@ GPString gp_to_lower99(const GPAllocator* alc, const GPString str);
 #define GP_TO_LOWER2(ALC, STR) gp_to_lower99((GPAllocator*)(ALC), STR)
 #define GP_TO_LOWER(...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_LOWER2, GP_TO_LOWER1)(__VA_ARGS__)
 
-inline GPString gp_to_valid99(
+GPString gp_to_valid99(
     const GPAllocator* alc, const GPString str, const char*const replacement);
 #define GP_TO_VALID2(A, REPL)        gp_str_to_valid(A, REPL)
 #define GP_TO_VALID3(ALC, STR, REPL) gp_to_valid99((GPAllocator*)(ALC), STR, REPL)
