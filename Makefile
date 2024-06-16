@@ -52,6 +52,7 @@ RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(TEST_SRCS)
 
 CL_OBJS   = $(OBJS:.o=.obj)
 CL_CFLAGS = -std:c17 -experimental:c11atomics -Iinclude -utf-8
+CL_TESTS  = $(TESTS:d.exe=cl.exe)
 $(CL_OBJS): $(wildcard src/*.h)
 $(CL_OBJS): $(wildcard include/gpc/*.h)
 $(CL_OBJS): $(wildcard include/printf/*.h)
@@ -60,11 +61,15 @@ $(CL_OBJS): build/%.obj : src/%.c
 	cl.exe $< -c $(CL_CFLAGS) -Fo"$@"
 
 $(CL_TESTS): build/test_%cl.exe : tests/test_%.c $(CL_OBJS)
-	cl.exe $< $(CL_CFLAGS) $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.obj,$<)),$(CL_OBJS)) -Fe"$@"
-	./$@
+	cl.exe $< $(CL_CFLAGS) $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.obj,$<)),$(CL_OBJS)) -Fe"$@" -Fo"build/"
 
-cl_tests: CL_TESTS = $(RELEASE_TESTS:.exe=cl.exe)
-cl_tests: $(CL_OBJS) $(CL_TESTS)
+run_cl_tests: $(CL_TESTS)
+	for test in $(CL_TESTS) ; do \
+		./$$test || exit 1 ; \
+		echo ; \
+	done
+
+cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
 
 all: release debug build/gprun$(EXE_EXT) single_header
 
