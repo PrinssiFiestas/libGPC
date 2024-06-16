@@ -120,7 +120,7 @@ extern "C" {
 // ----------------------------------------------------------------------------
 // Constructors
 
-static inline GPArray(void) gp_arr99(const GPAllocator* alc,
+inline GPArray(void) gp_arr99(const GPAllocator* alc,
     const size_t elem_size, const void*const init, const size_t init_length)
 {
     GPArray(void) out = gp_arr_new(alc, elem_size, init_length > 4 ? init_length : 4);
@@ -181,7 +181,7 @@ static inline GPArray(void) gp_arr99(const GPAllocator* alc,
 // Bytes and strings
 
 typedef struct gp_str_in { const uint8_t* data; const size_t length; } GPStrIn;
-static inline GPStrIn gp_str_in99(const void* data, const size_t length)
+inline GPStrIn gp_str_in99(const void* data, const size_t length)
 {
     return (GPStrIn) {
         .data   = data,
@@ -192,7 +192,7 @@ static inline GPStrIn gp_str_in99(const void* data, const size_t length)
     (void*)(A), #A[0] == '"' ? GP_SIZEOF_TYPEOF(A) - sizeof "" : SIZE_MAX)
 #define GP_STR_IN(...) GP_OVERLOAD2(__VA_ARGS__, gp_str_in99, GP_STR_IN1)(__VA_ARGS__)
 
-static inline bool gp_equal99(const GPString a, GPStrIn b) {
+inline bool gp_equal99(const GPString a, GPStrIn b) {
     return gp_bytes_equal(a, gp_str_length(a), b.data, b.length);
 }
 #define GP_EQUAL2(A, B)               gp_equal99(A, GP_STR_IN(B))
@@ -201,7 +201,7 @@ static inline bool gp_equal99(const GPString a, GPStrIn b) {
 #define GP_EQUAL(A, ...) \
     GP_OVERLOAD3(__VA_ARGS__, GP_EQUAL4, GP_EQUAL3, GP_EQUAL2)(A, __VA_ARGS__)
 
-static inline size_t gp_count99(GPStrIn haystack, GPStrIn needle) {
+inline size_t gp_count99(GPStrIn haystack, GPStrIn needle) {
     return gp_bytes_count(haystack.data, haystack.length, needle.data, needle.length);
 }
 #define GP_COUNT2(A, B)       gp_count99(GP_STR_IN(A), GP_STR_IN(B))
@@ -222,7 +222,7 @@ static inline size_t gp_count99(GPStrIn haystack, GPStrIn needle) {
 // ----------------------------------------------------------------------------
 // String
 
-GPString gp_repeat99(
+inline GPString gp_repeat99(
     const size_t a_size, const void* a, const size_t count, GPStrIn in)
 {
     if (a_size < sizeof(GPAllocator)) {
@@ -235,27 +235,10 @@ GPString gp_repeat99(
 }
 #define GP_REPEAT(A, COUNT, ...) gp_repeat99(GP_SIZEOF_TYPEOF(*(A)), A, COUNT, GP_STR_IN(__VA_ARGS__))
 
-static inline GPString gp_replace99(
+GPString gp_replace99(
     const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d,
-    const size_t start)
-{
-    if (a_size < sizeof(GPAllocator)) {
-        gp_str_replace((GPString*)a, b.data, b.length, c.data, c.length, start);
-        return *(GPString*)a;
-    }
-    GPString out = gp_str_new(a, b.length + c.length + d.length, "");
-    const size_t pos = gp_bytes_find_first(b.data, b.length, c.data, c.length, start);
-    if (pos == GP_NOT_FOUND) {
-        memcpy(out, b.data, b.length);
-        ((GPStringHeader*)out - 1)->length = b.length;
-    } else {
-        memcpy(out, b.data, pos);
-        memcpy(out + pos, d.data, d.length);
-        memcpy(out + pos + d.length, b.data + pos + c.length, b.length - c.length);
-        ((GPStringHeader*)out - 1)->length = b.length + d.length - c.length;
-    }
-    return out;
-}
+    const size_t start);
+
 #define GP_REPLACE3(HAY, NDL, REPL) gp_replace99( \
     GP_SIZEOF_TYPEOF(*(HAY)), HAY, GP_STR_IN(NDL), GP_STR_IN(REPL), GP_STR_IN(NULL, 0), 0)
 #define GP_REPLACE4(A, B, C, D) gp_replace99( \
@@ -269,19 +252,9 @@ static inline GPString gp_replace99(
 #define GP_REPLACE(A, B, ...) GP_OVERLOAD3(__VA_ARGS__, \
     GP_REPLACE5, GP_REPLACE4, GP_REPLACE3)(A, B, __VA_ARGS__)
 
-static inline GPString gp_replace_all99(
-    const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d)
-{
-    if (a_size < sizeof(GPAllocator)) {
-        gp_str_replace_all((GPString*)a, b.data, b.length, c.data, c.length);
-        return *(GPString*)a;
-    }
-    // TODO don't copy and replace all, just copy what's needed
-    GPString out = gp_str_new(a, b.length, "");
-    gp_str_copy(&out, b.data, b.length);
-    gp_str_replace_all(&out, c.data, c.length, d.data, d.length);
-    return out;
-}
+GPString gp_replace_all99(
+    const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d);
+
 #define GP_REPLACE_ALL3(HAY, NDL, REPL) gp_replace_all99( \
     GP_SIZEOF_TYPEOF(*(HAY)), HAY, GP_STR_IN(NDL), GP_STR_IN(REPL), GP_STR_IN(NULL, 0))
 #define GP_REPLACE_ALL4(ALC, HAY, NDL, REPL) gp_replace_all99( \
@@ -289,19 +262,8 @@ static inline GPString gp_replace_all99(
 #define GP_REPLACE_ALL(A, B, ...) GP_OVERLOAD2(__VA_ARGS__, \
     GP_REPLACE_ALL4, GP_REPLACE_ALL3)(A, B, __VA_ARGS__)
 
-static inline GPString gp_trim99(
-    const size_t a_size, const void* a, GPStrIn b, const char* char_set, int flags)
-{
-    if (a_size < sizeof(GPAllocator)) {
-        gp_str_trim((GPString*)a, char_set, flags);
-        return *(GPString*)a;
-    }
-    GPString out = gp_str_new(a, b.length, "");
-    // TODO don't copy and trim, just copy what's needed!
-    gp_str_copy(&out, b.data, b.length);
-    gp_str_trim(&out, char_set, flags);
-    return out;
-}
+GPString gp_trim99(
+    const size_t a_size, const void* a, GPStrIn b, const char* char_set, int flags);
 #define GP_TRIM1(STR) gp_trim99( \
     GP_SIZEOF_TYPEOF(*(STR)), STR, GP_STR_IN(NULL, 0), NULL, 'l' | 'r')
 #define GP_TRIM2(A, B) gp_trim99( \
@@ -319,44 +281,23 @@ static inline GPString gp_trim99(
 #define GP_TRIM(...) \
     GP_OVERLOAD4(__VA_ARGS__, GP_TRIM4, GP_TRIM3, GP_TRIM2, GP_TRIM1)(__VA_ARGS__)
 
-static inline GPString gp_to_upper99(const GPAllocator* alc, const GPString str)
-{ // TODO don't copy and process. Read char, process, and write to out
-    GPString out = gp_str_new(alc, gp_str_length(str), "");
-    memcpy(out, str, gp_str_length(str));
-    ((GPStringHeader*)out - 1)->length = gp_str_length(str);
-    gp_str_to_upper(&out);
-    return out;
-}
+GPString gp_to_upper99(const GPAllocator* alc, const GPString str);
 #define GP_TO_UPPER1(A)        gp_str_to_upper(A)
 #define GP_TO_UPPER2(ALC, STR) gp_to_upper99((GPAllocator*)(ALC), STR)
 #define GP_TO_UPPER(...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_UPPER2, GP_TO_UPPER1)(__VA_ARGS__)
 
-static inline GPString gp_to_lower99(const GPAllocator* alc, const GPString str)
-{ // TODO don't copy and process. Read char, process, and write to out
-    GPString out = gp_str_new(alc, gp_str_length(str), "");
-    memcpy(out, str, gp_str_length(str));
-    ((GPStringHeader*)out - 1)->length = gp_str_length(str);
-    gp_str_to_lower(&out);
-    return out;
-}
+GPString gp_to_lower99(const GPAllocator* alc, const GPString str);
 #define GP_TO_LOWER1(A)        gp_str_to_lower(A)
 #define GP_TO_LOWER2(ALC, STR) gp_to_lower99((GPAllocator*)(ALC), STR)
 #define GP_TO_LOWER(...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_LOWER2, GP_TO_LOWER1)(__VA_ARGS__)
 
-static inline GPString gp_to_valid99(
-    const GPAllocator* alc, const GPString str, const char*const replacement)
-{ // TODO don't copy and process. Read char, process, and write to out
-    GPString out = gp_str_new(alc, gp_str_length(str), "");
-    memcpy(out, str, gp_str_length(str));
-    ((GPStringHeader*)out - 1)->length = gp_str_length(str);
-    gp_str_to_valid(&out, replacement);
-    return out;
-}
+inline GPString gp_to_valid99(
+    const GPAllocator* alc, const GPString str, const char*const replacement);
 #define GP_TO_VALID2(A, REPL)        gp_str_to_valid(A, REPL)
 #define GP_TO_VALID3(ALC, STR, REPL) gp_to_valid99((GPAllocator*)(ALC), STR, REPL)
 #define GP_TO_VALID(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_VALID3, GP_TO_VALID2)(A,__VA_ARGS__)
 
-static inline size_t gp_find_first99(const GPString haystack, GPStrIn needle)
+inline size_t gp_find_first99(const GPString haystack, GPStrIn needle)
 {
     return gp_str_find_first(haystack, needle.data, needle.length, 0);
 }
@@ -365,7 +306,7 @@ static inline size_t gp_find_first99(const GPString haystack, GPStrIn needle)
 #define GP_FIND_FIRST(A, ...) \
     GP_OVERLOAD3(__VA_ARGS__, gp_str_find_first, GP_FIND_FIRST3, GP_FIND_FIRST2)(A, __VA_ARGS__)
 
-static inline size_t gp_find_last99(const GPString haystack, GPStrIn needle)
+inline size_t gp_find_last99(const GPString haystack, GPStrIn needle)
 {
     return gp_str_find_last(haystack, needle.data, needle.length);
 }
@@ -381,7 +322,7 @@ static inline size_t gp_find_last99(const GPString haystack, GPStrIn needle)
 #define GP_FIND_FIRST_NOT_OF(A, ...) \
     GP_OVERLOAD2(__VA_ARGS__, gp_str_find_first_not_of, GP_FIND_FIRST_NOT_OF2)(A, __VA_ARGS__)
 
-static inline bool gp_equal_case99(const GPString a, GPStrIn b)
+inline bool gp_equal_case99(const GPString a, GPStrIn b)
 {
     return gp_str_equal_case(a, b.data, b.length);
 }
@@ -467,8 +408,7 @@ void* gp_insert99(
 // Arrays
 
 #ifdef GP_TYPEOF
-static inline void* gp_push99(
-    const size_t elem_size, void*_parr)
+inline void* gp_push99(const size_t elem_size, void*_parr)
 {
     uint8_t** parr = _parr;
     *parr = gp_arr_reserve(elem_size, *parr, gp_arr_length(*parr) + 1);
@@ -529,7 +469,7 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
 // Dictionarys
 
 #ifdef GP_TYPEOF
-void* gp_put99(GPHashMap* dict, GPStrIn key)
+inline void* gp_put99(GPHashMap* dict, GPStrIn key)
 {
     return gp_hash_map_put(dict, key.data, key.length, NULL);
 }
@@ -550,7 +490,7 @@ void* gp_put99(GPHashMap* dict, GPStrIn key)
 #define GP_PUT(A, B, ...) GP_OVERLOAD2(__VA_ARGS__, GP_PUT4, GP_PUT3)(A, B,__VA_ARGS__)
 
 GP_NONNULL_ARGS(1)
-static inline void* gp_get99(void* map, GPStrIn key)
+inline void* gp_get99(void* map, GPStrIn key)
 {
     return gp_hash_map_get(map, key.data, key.length);
 }
@@ -561,7 +501,7 @@ static inline void* gp_get99(void* map, GPStrIn key)
 #define GP_GET(DICT, ...) gp_get99(DICT, GP_STR_IN(__VA_ARGS__))
 #endif
 
-static inline bool gp_remove99(GPHashMap* dict, GPStrIn key)
+inline bool gp_remove99(GPHashMap* dict, GPStrIn key)
 {
     return gp_hash_map_remove(dict, key.data, key.length);
 }
@@ -591,7 +531,7 @@ static inline bool gp_remove99(GPHashMap* dict, GPStrIn key)
 // ----------------------------------------------------------------------------
 // File
 
-static inline GPString gp_file99(size_t a_size, void* a, const char* path, const char* mode)
+inline GPString gp_file99(size_t a_size, void* a, const char* path, const char* mode)
 {
     switch (a_size)
     {

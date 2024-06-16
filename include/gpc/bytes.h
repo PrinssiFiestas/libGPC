@@ -207,7 +207,7 @@ typedef struct gp_printable
     // Actual data is in gp_str_print_internal() variadic args.
 } GPPrintable;
 
-#if __STDC_VERSION__ >= 201112L
+#if __STDC_VERSION__ >= 201112L || defined(__COMPCERT__)
 #define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
 #else
 #define GP_PRINTABLE(X) { #X, -1 }

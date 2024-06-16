@@ -6,6 +6,27 @@
 #include <gpc/utils.h>
 #include "common.h"
 
+extern inline GPArray(void) gp_arr99(const GPAllocator* alc,
+    const size_t elem_size, const void*const init, const size_t init_length);
+
+extern inline GPStrIn gp_str_in99(const void* data, const size_t length);
+extern inline bool gp_equal99(const GPString a, GPStrIn b);
+extern inline size_t gp_count99(GPStrIn haystack, GPStrIn needle);
+extern inline GPString gp_repeat99(size_t a_size, const void* a, size_t count, GPStrIn in);
+extern inline GPString gp_to_valid99(
+    const GPAllocator* alc, const GPString str, const char*const replacement);
+extern inline size_t gp_find_first99(const GPString haystack, GPStrIn needle);
+extern inline size_t gp_find_last99(const GPString haystack, GPStrIn needle);
+extern inline bool gp_equal_case99(const GPString a, GPStrIn b);
+
+extern inline void* gp_push99(const size_t elem_size, void*_parr);
+
+extern inline void* gp_put99(GPHashMap* dict, GPStrIn key);
+extern inline void* gp_get99(void* map, GPStrIn key);
+extern inline bool gp_remove99(GPHashMap* dict, GPStrIn key);
+
+extern inline GPString gp_file99(size_t a_size, void* a, const char* path, const char* mode);
+
 // ----------------------------------------------------------------------------
 // String
 
@@ -19,6 +40,83 @@ bool gp_is_valid99(GPStrIn s, size_t*i)
     return gp_bytes_is_valid_utf8(s.data, s.length, i);
 }
 
+GPString gp_replace99(
+    const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d,
+    const size_t start)
+{
+    if (a_size < sizeof(GPAllocator)) {
+        gp_str_replace((GPString*)a, b.data, b.length, c.data, c.length, start);
+        return *(GPString*)a;
+    }
+    GPString out = gp_str_new(a, b.length + c.length + d.length, "");
+    const size_t pos = gp_bytes_find_first(b.data, b.length, c.data, c.length, start);
+    if (pos == GP_NOT_FOUND) {
+        memcpy(out, b.data, b.length);
+        ((GPStringHeader*)out - 1)->length = b.length;
+    } else {
+        memcpy(out, b.data, pos);
+        memcpy(out + pos, d.data, d.length);
+        memcpy(out + pos + d.length, b.data + pos + c.length, b.length - c.length);
+        ((GPStringHeader*)out - 1)->length = b.length + d.length - c.length;
+    }
+    return out;
+}
+
+GPString gp_replace_all99(
+    const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d)
+{
+    if (a_size < sizeof(GPAllocator)) {
+        gp_str_replace_all((GPString*)a, b.data, b.length, c.data, c.length);
+        return *(GPString*)a;
+    }
+    // TODO don't copy and replace all, just copy what's needed
+    GPString out = gp_str_new(a, b.length, "");
+    gp_str_copy(&out, b.data, b.length);
+    gp_str_replace_all(&out, c.data, c.length, d.data, d.length);
+    return out;
+}
+
+GPString gp_trim99(
+    const size_t a_size, const void* a, GPStrIn b, const char* char_set, int flags)
+{
+    if (a_size < sizeof(GPAllocator)) {
+        gp_str_trim((GPString*)a, char_set, flags);
+        return *(GPString*)a;
+    }
+    GPString out = gp_str_new(a, b.length, "");
+    // TODO don't copy and trim, just copy what's needed!
+    gp_str_copy(&out, b.data, b.length);
+    gp_str_trim(&out, char_set, flags);
+    return out;
+}
+
+GPString gp_to_upper99(const GPAllocator* alc, const GPString str)
+{ // TODO don't copy and process. Read char, process, and write to out
+    GPString out = gp_str_new(alc, gp_str_length(str), "");
+    memcpy(out, str, gp_str_length(str));
+    ((GPStringHeader*)out - 1)->length = gp_str_length(str);
+    gp_str_to_upper(&out);
+    return out;
+}
+
+GPString gp_to_lower99(const GPAllocator* alc, const GPString str)
+{ // TODO don't copy and process. Read char, process, and write to out
+    GPString out = gp_str_new(alc, gp_str_length(str), "");
+    memcpy(out, str, gp_str_length(str));
+    ((GPStringHeader*)out - 1)->length = gp_str_length(str);
+    gp_str_to_lower(&out);
+    return out;
+}
+
+static inline GPString gp_to_valid99(
+    const GPAllocator* alc, const GPString str, const char*const replacement)
+{ // TODO don't copy and process. Read char, process, and write to out
+    GPString out = gp_str_new(alc, gp_str_length(str), "");
+    memcpy(out, str, gp_str_length(str));
+    ((GPStringHeader*)out - 1)->length = gp_str_length(str);
+    gp_str_to_valid(&out, replacement);
+    return out;
+}
 // ----------------------------------------------------------------------------
 // Srtings and arrays
 
