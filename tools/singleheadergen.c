@@ -30,7 +30,7 @@
 #endif
 
 static FILE*                   out            = NULL;
-static const char*             out_name       = "gpc.h";
+static const char*             out_name       = "build/gpc.h";
 static GPString                implementation = NULL;
 static GPArena                 garena;
 static const GPAllocator*const gmem           = (GPAllocator*)&garena;

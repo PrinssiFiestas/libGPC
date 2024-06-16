@@ -86,7 +86,7 @@ build/gprun$(EXE_EXT): tools/gprun.c
 install: all /etc/gdb/gpstring.py
 install:
 	cp -r include/gpc   /usr/local/include/
-	cp gpc.h            /usr/local/include/gpc/
+	cp build/gpc.h      /usr/local/include/gpc/
 	cp build/gprun      /usr/local/bin/
 	cp build/libgpc.so  /usr/local/lib/
 	cp build/libgpcd.so /usr/local/lib/
