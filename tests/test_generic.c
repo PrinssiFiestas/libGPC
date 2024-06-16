@@ -409,12 +409,17 @@ int main(void)
             // The return value and accumulator y MUST be a pointer or a pointer
             // sized integer and in must be a const pointer.
             intptr_t sum(intptr_t accumulator, const int* in);
-            gp_expect(gp_fold(gp_arr(scope, int, 1, 2, 3, 4, 5), 0, sum) == 15);
+            gp_expect(gp_fold(gp_arr_ro(int, 1, 2, 3, 4, 5), 0, sum) == 15);
 
             GPArray(const char*) cstrs = gp_arr(scope, const char*, "one", "two", "three");
             char* append(char* result, const char**_element);
             char* result = gp_foldr(cstrs, NULL, append);
             gp_expect(gp_equal(result, strlen(result), "three two one ", strlen("three two one ")));
+
+            #if TYPE_CHECK // incompatible pointers
+            gp_fold(cstrs, 0, sum);
+            gp_fold(gp_arr_ro(int, 1, 2), NULL, append);
+            #endif
         }
 
         gp_test("Filter");
@@ -438,6 +443,11 @@ int main(void)
             int carr[] = { 5, 6, 7, 8, 9 };
             GPArray(int) arr4 = gp_filter(scope, carr, sizeof carr / sizeof*carr, less_than_7);
             arr_assert_eq(arr4, gp_arr_ro(int, 5, 6), 2);
+
+            #if TYPE_CHECK
+            GPArray(const char*const) cstrs = gp_arr_ro(const char*, "blah", "blah");
+            gp_filter(&cstrs, even); // passing const char** to const int*
+            #endif
         }
         gp_end(scope);
     }

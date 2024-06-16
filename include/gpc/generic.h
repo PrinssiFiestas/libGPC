@@ -219,7 +219,7 @@ inline GPArray(void) gp_arr99(const GPAllocator* alc,
     sizeof((TYPE[]){(TYPE){0},__VA_ARGS__}) / sizeof(TYPE) - 1)
 
 #if __GNUC__
-#define GP_ARR_READ_ONLY(T, ...) ({ \
+#define GP_ARR_READ_ONLY(T, ...) (T const *)({ \
     static const struct GP_C99_UNIQUE_STRUCT(__LINE__) { \
         GPArrayHeader header; T data[GP_COUNT_ARGS(__VA_ARGS__)]; \
     }_gp_arr_ro = {.header = { \
@@ -230,7 +230,7 @@ inline GPArray(void) gp_arr99(const GPAllocator* alc,
 })
 #else
 #define GP_ARR_READ_ONLY(T, ...) \
-    (const T*)(gp_arr_on_stack(NULL, GP_COUNT_ARGS(__VA_ARGS__), T, __VA_ARGS__))
+    (T const *)(gp_arr_on_stack(NULL, GP_COUNT_ARGS(__VA_ARGS__), T, __VA_ARGS__))
 #endif
 
 #define GP_STR_NEW1(ALC)            gp_str_new((GPAllocator*)(ALC), 16, "")
@@ -528,19 +528,19 @@ GPArray(void) gp_map99(size_t a_size, const void* a,
 
 #ifdef GP_TYPEOF // better type safety and allow using integer accumulator
 #define GP_FOLD(ARR, ACC, F) \
-    (GP_TYPEOF(ACC))(uintptr_t)gp_arr_fold (sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
+    (GP_TYPEOF(ACC))(uintptr_t)gp_arr_fold (sizeof*((F)(ACC,ARR),(ARR)),ARR,(void*)(ACC),(void*)(F))
 #define GP_FOLDR(ARR, ACC, F) \
-    (GP_TYPEOF(ACC))(uintptr_t)gp_arr_foldr(sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
+    (GP_TYPEOF(ACC))(uintptr_t)gp_arr_foldr(sizeof*((F)(ACC,ARR),(ARR)),ARR,(void*)(ACC),(void*)(F))
 #else
-#define GP_FOLD(ARR, ACC, F)  gp_arr_fold (sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
-#define GP_FOLDR(ARR, ACC, F) gp_arr_foldr(sizeof*(ARR),ARR,(void*)(ACC),(void*)(F))
+#define GP_FOLD(ARR, ACC, F)  gp_arr_fold (sizeof*((F)(ACC,ARR),(ARR)),ARR,(void*)(ACC),(void*)(F))
+#define GP_FOLDR(ARR, ACC, F) gp_arr_foldr(sizeof*((F)(ACC,ARR),(ARR)),ARR,(void*)(ACC),(void*)(F))
 #endif
 
 GPArray(void) gp_filter99(size_t a_size, const void* a,
     const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,
     bool(*f)(const void* element));
-#define GP_FILTER2(ARR, F) ((void*){0} =\
-    gp_arr_filter(sizeof**(ARR), *(ARR), NULL, 0, (bool(*)(const void*))(F)))
+#define GP_FILTER2(ARR, F) ((void*){0} = \
+    gp_arr_filter(sizeof**((F)(*(ARR)), (ARR)), *(ARR), NULL, 0, (bool(*)(const void*))(F)))
 #define GP_FILTER3(A, SRC, F) gp_filter99(GP_SIZEOF_TYPEOF(*(A)), A, \
     SRC, #SRC, GP_SIZEOF_TYPEOF(SRC), GP_SIZEOF_TYPEOF(*(SRC)), (bool(*)(const void*))(F))
 #define GP_FILTER4(A, SRC, SRC_LENGTH, F) gp_filter99(GP_SIZEOF_TYPEOF(*(A)), A, \
