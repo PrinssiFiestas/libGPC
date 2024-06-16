@@ -85,36 +85,39 @@ build/gprun$(EXE_EXT): tools/gprun.c
 
 install: all /etc/gdb/gpstring.py
 install:
-	cp -r include/gpc  /usr/local/include/
-	cp gpc.h           /usr/local/include/gpc/
-	cp build/libgpc.a  /usr/local/lib/
-	cp build/libgpcd.a /usr/local/lib/
-	cp build/gprun     /usr/local/bin/
+	cp -r include/gpc   /usr/local/include/
+	cp gpc.h            /usr/local/include/gpc/
+	cp build/gprun      /usr/local/bin/
+	cp build/libgpc.so  /usr/local/lib/
+	cp build/libgpcd.so /usr/local/lib/
+	chmod 0755          /usr/local/lib/libgpc.so
+	chmod 0755          /usr/local/lib/libgpcd.so
+	ldconfig
 
-build/singleheadergen$(EXE_EXT): tools/singleheadergen.c build/libgpc.a
-	$(CC) $^ $(CFLAGS) $(RELEASE_CFLAGS) -o $@
+build/singleheadergen$(EXE_EXT): tools/singleheadergen.c build/libgpc.so
+	$(CC) $^ $(CFLAGS) $(DEBUG_CFLAGS) -o $@
 
 release: CFLAGS += $(RELEASE_CFLAGS)
-release: build/libgpc.a
+release: build/libgpc.so
 debug: CFLAGS += $(DEBUG_CFLAGS)
-debug: build/libgpcd.a
+debug: build/libgpcd.so
 
 analyze: CFLAGS += -fanalyzer
 analyze: build_tests
 
-build/libgpc.a: $(OBJS)
-	ar -rcs $@ $^
+build/libgpc.so: $(OBJS)
+	$(CC) -shared -o $@ $^
 
-build/libgpcd.a: $(DEBUG_OBJS)
-	ar -rcs $@ $^
+build/libgpcd.so: $(DEBUG_OBJS)
+	$(CC) -shared -o $@ $^
 
 $(OBJS): build/%.o : src/%.c
 	mkdir -p build
-	$(CC) -MMD -MP -c $(CFLAGS) $< -o $@
+	$(CC) -MMD -MP -c -fpic $(CFLAGS) $< -o $@
 
 $(DEBUG_OBJS): build/%d.o : src/%.c
 	mkdir -p build
-	$(CC) -MMD -MP -c $(CFLAGS) $< -o $@
+	$(CC) -MMD -MP -c -fpic $(CFLAGS) $< -o $@
 
 -include $(OBJS:.o=.d)
 -include $(DEBUG_OBJS:.o=.d)

@@ -8,6 +8,7 @@
 
 const union gp_endianness_detector GP_INTEGER = {.u16 = 1 };
 
+extern inline GPUint128 gp_u128(const uint64_t hi_bits, const uint64_t lo_bits);
 extern inline uint64_t* gp_u128_lo(const GPUint128*t);
 extern inline uint64_t* gp_u128_hi(const GPUint128*t);
 #if !(__GNUC__ && __SIZEOF_INT128__) // unused static function
