@@ -481,6 +481,35 @@ int main(void)
         #endif
     }
 
+    gp_suite("Allocators");
+    {
+        gp_test("Basics");
+        {
+            void* pheap   = gp_alloc(gp_heap, 1);
+            void* parena  = gp_alloc(&arena, 1);
+            void* pzeroes = gp_alloc_zeroes(&arena, 1);
+            pzeroes = gp_realloc(&arena, pzeroes, 1, 2);
+            gp_dealloc(gp_heap, pheap);
+            gp_dealloc(&arena,  parena);
+            gp_dealloc(&arena,  pzeroes);
+        }
+
+        gp_test("Types");
+        {
+            int* pint     = gp_alloc_type(&arena, int);
+            int* parr     = gp_alloc_type(&arena, int[4]);
+            int* pcnt     = gp_alloc_type(&arena, int, 4);
+            int* pname    = gp_alloc_type(&arena, pname);
+            int* pnamearr = gp_alloc_type(&arena, pnamearr, 4);
+
+            gp_dealloc(&arena, pint    );
+            gp_dealloc(&arena, parr    );
+            gp_dealloc(&arena, pcnt    );
+            gp_dealloc(&arena, pname   );
+            gp_dealloc(&arena, pnamearr);
+        }
+    }
+
     gp_suite("File");
     {
         const char* test_path = "gptestfile.txt";
