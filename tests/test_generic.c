@@ -39,7 +39,10 @@
 
 int main(void)
 {
-    GPArena arena = gp_arena_new(0);
+    // Tiny arena to put address sanitizer to work
+    GPArena arena = gp_arena_new(1);
+    arena.growth_coefficient = 0.0;
+
     gp_suite("Bytes and strings");
     {
         gp_test("Count");
