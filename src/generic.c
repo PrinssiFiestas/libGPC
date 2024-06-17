@@ -40,14 +40,8 @@ bool gp_is_valid99(GPStrIn s, size_t*i)
     return gp_bytes_is_valid_utf8(s.data, s.length, i);
 }
 
-GPString gp_replace99(
-    const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d,
-    const size_t start)
+GPString gp_replace_new(const GPAllocator* a, GPStrIn b, GPStrIn c, GPStrIn d, const size_t start)
 {
-    if (a_size < sizeof(GPAllocator)) {
-        gp_str_replace((GPString*)a, b.data, b.length, c.data, c.length, start);
-        return *(GPString*)a;
-    }
     GPString out = gp_str_new(a, b.length + c.length + d.length, "");
     const size_t pos = gp_bytes_find_first(b.data, b.length, c.data, c.length, start);
     if (pos == GP_NOT_FOUND) {
@@ -62,6 +56,26 @@ GPString gp_replace99(
     return out;
 }
 
+GPString gp_replace99(
+    const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d,
+    const size_t start)
+{
+    if (a_size < sizeof(GPAllocator)) {
+        gp_str_replace((GPString*)a, b.data, b.length, c.data, c.length, start);
+        return *(GPString*)a;
+    }
+    return gp_replace_new(a, b, c, d, start);
+}
+
+GPString gp_replace_all_new(const void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl)
+{
+    // TODO don't copy and replace all, just copy what's needed
+    GPString out = gp_str_new(alc, 3 * hay.length / 2, "");
+    gp_str_copy(&out, hay.data, hay.length);
+    gp_str_replace_all(&out, ndl.data, ndl.length, repl.data, repl.length);
+    return out;
+}
+
 GPString gp_replace_all99(
     const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d)
 {
@@ -69,11 +83,7 @@ GPString gp_replace_all99(
         gp_str_replace_all((GPString*)a, b.data, b.length, c.data, c.length);
         return *(GPString*)a;
     }
-    // TODO don't copy and replace all, just copy what's needed
-    GPString out = gp_str_new(a, b.length, "");
-    gp_str_copy(&out, b.data, b.length);
-    gp_str_replace_all(&out, c.data, c.length, d.data, d.length);
-    return out;
+    return gp_replace_all_new(a, b, c, d);
 }
 
 GPString gp_trim99(
@@ -132,17 +142,12 @@ void gp_reserve99(const size_t elem_size, void* px, const size_t capacity)
 }
 
 static size_t gp_length99(const void* x, const char* ident, const size_t length)
-//static size_t gp_length99(const void* x, const char* ident, const size_t length, const size_t size)
 {
-    //return ident == NULL ?
-    //    length            : ident[0] == '"' ?
-    //    length - sizeof"" : strchr(ident, '{') ?
-    //    length / size     : gp_arr_length(x);
     return
         ident == NULL ? length : ident[0] == '"' ? length - sizeof"" : gp_arr_length(x);
 }
 
-void* gp_copy99(const size_t y_size, void* y,
+void* gp_copy99(const size_t y_size, const void* y,
     const void* x, const char* x_ident, size_t x_length, const size_t x_size)
 {
     x_length = gp_length99(x, x_ident, x_length);
@@ -153,7 +158,7 @@ void* gp_copy99(const size_t y_size, void* y,
     }
 
     if (x_size == 1)
-        gp_str_copy(y, x, x_length);
+        gp_str_copy((GPString*)y, x, x_length);
     else
         *(void**)y = gp_arr_copy(x_size, *(void**)y, x, x_length);
     return *(void**)y;
@@ -169,11 +174,12 @@ void* gp_slice99(
         ((GPArrayHeader*)out - 1)->length = end - start;
         return memcpy(out, (uint8_t*)x + start * x_size, (end - start) * x_size);
     }
-    return gp_arr_slice(x_size, *(void**)y, x, start, end);
+    GPArray(void*) parr = (GPArray(void*))y;
+    return *parr = gp_arr_slice(x_size, *parr, x, start, end);
 }
 
 void* gp_append99(
-    const size_t a_size, void* a,
+    const size_t a_size, const void* a,
     const void* b, const char* b_ident, size_t b_length, const size_t b_size,
     const void* c, const char* c_ident, size_t c_length)
 {
@@ -181,10 +187,11 @@ void* gp_append99(
     if (a_size < sizeof(GPAllocator))
     {
         if (b_size == 1) {
-            gp_str_append(a, b, b_length);
+            gp_str_append((GPString*)a, b, b_length);
             return *(GPString*)a;
         } else {
-            return gp_arr_append(b_size, *(void**)a, b, b_length);
+            GPArray(void)* parr = (GPArray(void)*)a;
+            return *parr = gp_arr_append(b_size, *parr, b, b_length);
         }
     }
     c_length = gp_length99(c, c_ident, c_length);
@@ -196,7 +203,7 @@ void* gp_append99(
 }
 
 void* gp_insert99(
-    const size_t a_size, void* a, const size_t pos,
+    const size_t a_size, const void* a, const size_t pos,
     const void* b, const char* b_ident, size_t b_length, const size_t b_size,
     const void* c, const char* c_ident, size_t c_length)
 {
@@ -204,10 +211,11 @@ void* gp_insert99(
     if (a_size < sizeof(GPAllocator))
     {
         if (b_size == 1) {
-            gp_str_insert(a, pos, b, b_length);
+            gp_str_insert((GPString*)a, pos, b, b_length);
             return *(GPString*)a;
         } else {
-            return gp_arr_insert(b_size, *(void**)a, pos, b, b_length);
+            GPArray(void)* parr = (GPArray(void)*)a;
+            return *parr = gp_arr_insert(b_size, *parr, pos, b, b_length);
         }
     }
     c_length = gp_length99(c, c_ident, c_length);
@@ -232,7 +240,7 @@ GPArray(void) gp_map99(const size_t a_size, const void* a,
         return gp_arr_map(src_elem_size, *(GPArray(void)*)a, src, src_length, f);
 
     GPArray(void) out = gp_arr_new(a, src_elem_size, src_length);
-    return gp_arr_map(src_elem_size, out, src, src_length, f);
+    return out = gp_arr_map(src_elem_size, out, src, src_length, f);
 }
 
 GPArray(void) gp_filter99(size_t a_size, const void* a,
@@ -244,5 +252,5 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
         return gp_arr_filter(src_elem_size, *(GPArray(void)*)a, src, src_length, f);
 
     GPArray(void) out = gp_arr_new(a, src_elem_size, src_length);
-    return gp_arr_filter(src_elem_size, out, src, src_length, f);
+    return out = gp_arr_filter(src_elem_size, out, src, src_length, f);
 }

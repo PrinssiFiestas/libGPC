@@ -352,7 +352,7 @@ int main(void)
             gp_expect(gp_equal(str4, str2));
 
             GPArray(int) arr1 = gp_arr(&arena, int);
-            gp_insert(&arr1, 0, gp_arr_ro(int, 1)); // MUST be array literal even if 1 element
+            gp_insert(&arr1, 0, gp_arr_ro(int, 1));
             arr_assert_eq(arr1, gp_arr_ro(int, 1), 1);
             gp_insert(&arr1, 0, gp_arr_ro(int, 2));
             arr_assert_eq(arr1, gp_arr_ro(int, 2, 1 ), 2);

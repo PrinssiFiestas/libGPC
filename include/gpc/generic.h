@@ -48,8 +48,8 @@ extern "C" {
 
 // Strings
 #define gp_repeat(...)              GP_REPEAT11(__VA_ARGS__)
-#define gp_replace(...)             GP_REPLACE99(__VA_ARGS__)
-#define gp_replace_all(...)         GP_REPLACE_ALL99(__VA_ARGS__)
+#define gp_replace(...)             GP_REPLACE11(__VA_ARGS__)
+#define gp_replace_all(...)         GP_REPLACE_ALL11(__VA_ARGS__)
 #define gp_trim(...)                GP_TRIM99(__VA_ARGS__)
 #define gp_to_upper(...)            GP_TO_UPPER(__VA_ARGS__)
 #define gp_to_lower(...)            GP_TO_LOWER(__VA_ARGS__)
@@ -225,6 +225,17 @@ static inline GPStrIn gp_str_in11(const GPType T, const void*const data, const s
 #define GP_STR_IN11_2(S, L) gp_str_in11(GP_PTR,      S, L)
 #define GP_STR_IN11(...) GP_OVERLOAD2(__VA_ARGS__, GP_STR_IN11_2, GP_STR_IN11_1)(__VA_ARGS__)
 
+static inline size_t gp_length_in11(const GPType T_unused, const size_t length, const size_t unused)
+{
+    (void)T_unused; (void)unused;
+    return length;
+}
+ #define GP_STR_OR_LEN1(A) _Generic(A, \
+     GPString: gp_str_in11, char*: gp_str_in11, const char*: gp_str_in11, default: gp_length_in11) \
+     (_Generic(A, GPString: GP_STRING, char*: GP_CHAR_PTR, const char*: GP_CHAR_PTR, default: -1), A, 0)
+
+#define GP_STR_OR_LEN(...) GP_OVERLOAD2(__VA_ARGS__, GP_STR_IN11_2, GP_STR_OR_LEN1)(__VA_ARGS__)
+
 static inline GPString gp_str_repeat_new(const void* alc, const size_t count, GPStrIn in)
 {
     GPString out = gp_str_new(alc, count * in.length, "");
@@ -239,6 +250,44 @@ static inline void gp_str_repeat_str(GPString* dest, const size_t count, GPStrIn
 #define GP_REPEAT_SELECTION(T) const T*: gp_str_repeat_new, T*: gp_str_repeat_new
 #define GP_REPEAT11(A, COUNT, ...) _Generic(A, GPString*: gp_str_repeat_str, \
     GP_PROCESS_ALL_ARGS(GP_REPEAT_SELECTION, GP_COMMA, GP_ALC_TYPES))(A, COUNT, GP_STR_IN(__VA_ARGS__))
+
+static inline void gp_replace11(GPString* hay, GPStrIn ndl, GPStrIn repl, const size_t start)
+{
+    gp_str_replace(hay, ndl.data, ndl.length, repl.data, repl.length, start);
+}
+GPString gp_replace_new(const GPAllocator* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl, size_t start);
+static inline GPString gp_replace_new4(const void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl)
+{
+    return gp_replace_new(alc, hay, ndl, repl, 0);
+}
+#define GP_REPLACE11_3(HAY, NDL, REPL) gp_replace11(HAY, GP_STR_IN11(NDL), GP_STR_IN11(REPL), 0)
+#define GP_REPLACE_SELECTION(T) const T*: gp_replace_new4, T*: gp_replace_new4
+#define GP_REPLACE11_4(A, B, C, D) _Generic(A, GPString*: gp_replace11, \
+    GP_PROCESS_ALL_ARGS(GP_REPLACE_SELECTION, GP_COMMA, GP_ALC_TYPES)) \
+    (A, GP_STR_IN11(B), GP_STR_IN(C), GP_STR_OR_LEN(D))
+#define GP_REPLACE11_5(ALC, HAY, NDL, REPL, START) gp_replace_new( \
+    GP_ALC(ALC), GP_STR_IN11(HAY), GP_STR_IN11(NDL), GP_STR_IN11(REPL), START)
+#define GP_REPLACE11(A,B,...) GP_OVERLOAD3(__VA_ARGS__, \
+    GP_REPLACE11_5, GP_REPLACE11_4, GP_REPLACE11_3)(A,B,__VA_ARGS__)
+
+// GPString gp_replace_all99(
+//     const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d);
+// #define GP_REPLACE_ALL99_3(HAY, NDL, REPL) gp_replace_all99( \
+//     GP_SIZEOF_TYPEOF(*(HAY)), HAY, GP_STR_IN99(NDL), GP_STR_IN99(REPL), GP_STR_IN99(NULL, 0))
+// #define GP_REPLACE_ALL99_4(ALC, HAY, NDL, REPL) gp_replace_all99( \
+//     GP_SIZEOF_TYPEOF(*(ALC)), ALC, GP_STR_IN99(HAY), GP_STR_IN99(NDL), GP_STR_IN99(REPL))
+// #define GP_REPLACE_ALL99(A, B, ...) GP_OVERLOAD2(__VA_ARGS__, \
+//     GP_REPLACE_ALL99_4, GP_REPLACE_ALL99_3)(A, B, __VA_ARGS__)
+static inline size_t gp_replace_all11(GPString* hay, GPStrIn ndl, GPStrIn repl)
+{
+    return gp_str_replace_all(hay, ndl.data, ndl.length, repl.data, repl.length);
+}
+GPString gp_reaplce_all_new(const void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl);
+#define GP_REPLACE_ALL11_3(HAY, NDL, REPL) gp_replace_all11(HAY, GP_STR_IN11(NDL), GP_STR_IN11(REPL))
+#define GP_REPLACE_ALL11_4(ALC, HAY, NDL, REPL) gp_replace_all_new( \
+    GP_ALC(ALC), GP_STR_IN11(HAY), GP_STR_IN11(NDL), GP_STR_IN11(REPL))
+#define GP_REPLACE_ALL11(A,B,...) GP_OVERLOAD2(__VA_ARGS__, \
+    GP_REPLACE_ALL11_4, GP_REPLACE_ALL11_3)(A,B,__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Strings and arrays
@@ -495,7 +544,7 @@ bool gp_is_valid99(GPStrIn s, size_t*i);
 void gp_reserve99(size_t elem_size, void* px, const size_t capacity);
 #define GP_RESERVE99(A, CAPACITY) gp_reserve99(sizeof**(A), A, CAPACITY)
 
-void* gp_copy99(size_t y_size, void* y,
+void* gp_copy99(size_t y_size, const void* y,
     const void* x, const char* x_ident, size_t x_length, const size_t x_size);
 #define GP_COPY99_2(A, B) \
     gp_copy99(GP_SIZEOF_TYPEOF(*(A)), A, B, #B, GP_SIZEOF_TYPEOF(B), GP_SIZEOF_TYPEOF(*(B)))
@@ -514,7 +563,7 @@ void* gp_slice99(
     GP_OVERLOAD2(__VA_ARGS__, GP_SLICE_WITH_INPUT99, GP_SLICE_WOUT_INPUT99)(A, START, __VA_ARGS__)
 
 void* gp_append99(
-    const size_t a_size, void* a,
+    const size_t a_size, const void* a,
     const void* b, const char* b_ident, size_t b_length, const size_t b_size,
     const void* c, const char* c_ident, size_t c_length);
 #define GP_APPEND99_2(A, B) \
@@ -533,7 +582,7 @@ void* gp_append99(
     GP_APPEND99_5, GP_APPEND99_4, GP_APPEND99_3, GP_APPEND99_2)(A, __VA_ARGS__)
 
 void* gp_insert99(
-    const size_t a_size, void* a, const size_t pos,
+    const size_t a_size, const void* a, const size_t pos,
     const void* b, const char* b_ident, size_t b_length, const size_t b_size,
     const void* c, const char* c_ident, size_t c_length);
 #define GP_INSERT99_3(A, POS, B) \
