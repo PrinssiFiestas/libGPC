@@ -286,6 +286,13 @@ int main(void)
             arr_assert_eq(arr3, carr, 5);
             GPArray(int) arr4 = gp_copy(&arena, arr3, gp_length(arr3));
             arr_assert_eq(arr4, carr, 5);
+
+            #if TYPE_CHECK
+            gp_copy(&str1, arr1); // not okay, wrong type
+            gp_copy(str1, "still not okay, taking str1 by value!");
+            gp_copy(&arr1, str1); // not okay, wrong type
+            gp_copy(arr1, arr2); // not okay, arr1 by value!
+            #endif
         }
 
         gp_test("Slice");

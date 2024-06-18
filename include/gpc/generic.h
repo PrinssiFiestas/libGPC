@@ -68,7 +68,7 @@ extern "C" {
 #define gp_allocation(...)          gp_arr_allocation(__VA_ARGS__)
 #define gp_allocator(...)           gp_arr_allocator(__VA_ARGS__)
 #define gp_reserve(...)             GP_RESERVE11(__VA_ARGS__)
-#define gp_copy(...)                GP_COPY99(__VA_ARGS__)
+#define gp_copy(...)                GP_COPY11(__VA_ARGS__)
 #define gp_slice(...)               GP_SLICE99(__VA_ARGS__)
 #define gp_append(...)              GP_APPEND99(__VA_ARGS__)
 #define gp_insert(...)              GP_INSERT99(__VA_ARGS__)
@@ -316,6 +316,53 @@ static inline void gp_str_reserve11(const size_t unused, GPString* str, const si
 }
 #define GP_RESERVE11(A, SIZE) _Generic(A, \
     GPString: gp_str_reserve11, default: gp_arr_reserve)(sizeof**(A), A, SIZE)
+
+typedef GPStrIn GPArrIn;
+#define GP_ARR_T(A) _Generic(A, \
+    GPString: GP_STRING, char*: GP_CHAR_PTR, const char*: GP_CHAR_PTR, default: GP_PTR)
+static inline GPStrIn gp_arr_in11(const GPType T, const void*const data, const size_t length)
+{
+    if (length != SIZE_MAX)
+        return (GPArrIn){ data, length };
+    else if (T == GP_CHAR_PTR)
+        return (GPArrIn){ data, strlen(data) };
+    return (GPArrIn){ data, gp_arr_length(data) };
+}
+#define GP_ARR_IN11_1(A)    gp_arr_in11(GP_ARR_T(A), A, SIZE_MAX)
+#define GP_ARR_IN11_2(A, L) gp_arr_in11(GP_PTR,      A, L)
+#define GP_ARR_IN11(...) GP_OVERLOAD2(__VA_ARGS__, GP_ARR_IN11_2, GP_ARR_IN11_1)(__VA_ARGS__)
+
+typedef struct { int dummy; } GPDummyType;
+#define GP_TYPE_CHECK_SELECTION(T) T*: &(GPDummyType){0}, const T*: &(GPDummyType){0}
+#define GP_TYPE_CHECK(PA, B) *_Generic(PA, \
+    GP_PROCESS_ALL_ARGS(GP_TYPE_CHECK_SELECTION, GP_COMMA, GP_ALC_TYPES), \
+    default: *(PA)) = *_Generic(PA, \
+        GP_PROCESS_ALL_ARGS(GP_TYPE_CHECK_SELECTION, GP_COMMA, GP_ALC_TYPES), \
+        GPString*: _Generic(B, char*: (GPString)(B), const char*: (GPString)(B), default: B), \
+        default: B)
+
+static inline void gp_str_copy11(const size_t unused, GPString* dest, GPStrIn src)
+{
+    (void)unused;
+    gp_str_copy(dest, src.data, src.length);
+}
+static inline void* gp_arr_copy11(const size_t elem_size, void* _dest, GPArrIn src)
+{
+    GPArray(void)* dest = _dest;
+    return *dest = gp_arr_copy(elem_size, *dest, src.data, src.length);
+}
+static inline void* gp_arr_copy_new11(const size_t elem_size, const void* alc, GPArrIn src)
+{
+    void* out = gp_arr_new(alc, elem_size, src.length + sizeof"");
+    ((GPArrayHeader*)out - 1)->length = src.length;
+    return memcpy(out, src.data, src.length * elem_size);
+}
+#define GP_COPY_SELECTION(T) T*: gp_arr_copy_new11, const T*: gp_arr_copy_new11
+#define GP_COPY11(A,...) _Generic((GP_TYPE_CHECK(A, GP_1ST_ARG(__VA_ARGS__)), A), \
+    GPString*: gp_str_copy11, \
+    GP_PROCESS_ALL_ARGS(GP_COPY_SELECTION, GP_COMMA, GP_ALC_TYPES), \
+    default: gp_arr_copy11) \
+    (GP_SIZEOF_TYPEOF(*(GP_1ST_ARG(__VA_ARGS__))), A, GP_ARR_IN11(__VA_ARGS__))
 
 // ----------------------------------------------------------------------------
 //
