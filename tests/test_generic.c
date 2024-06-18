@@ -170,7 +170,7 @@ int main(void)
             gp_expect(gp_equal(str2, "sd"));
             GPString str3 = gp_trim(&arena, str2, "s", 'l');
             gp_expect(gp_equal(str3, "d"));
-            gp_trim(&str3, str); // for completeness
+            gp_trim(&str3, gp_cstr(str)); // for completeness
             gp_expect(gp_equal(str3, ""), str3, (size_t)-1, gp_length(str3));
         }
 

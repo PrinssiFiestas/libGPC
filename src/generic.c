@@ -86,6 +86,15 @@ GPString gp_replace_all99(
     return gp_replace_all_new(a, b, c, d);
 }
 
+GPString gp_str_trim_new(const void* alc, GPStrIn str, const char* char_set, const int flags)
+{
+    GPString out = gp_str_new(alc, str.length, "");
+    // TODO don't copy and trim, just copy what's needed!
+    gp_str_copy(&out, str.data, str.length);
+    gp_str_trim(&out, char_set, flags);
+    return out;
+}
+
 GPString gp_trim99(
     const size_t a_size, const void* a, GPStrIn b, const char* char_set, int flags)
 {
@@ -93,11 +102,7 @@ GPString gp_trim99(
         gp_str_trim((GPString*)a, char_set, flags);
         return *(GPString*)a;
     }
-    GPString out = gp_str_new(a, b.length, "");
-    // TODO don't copy and trim, just copy what's needed!
-    gp_str_copy(&out, b.data, b.length);
-    gp_str_trim(&out, char_set, flags);
-    return out;
+    return gp_str_trim_new(a, b, char_set, flags);
 }
 
 GPString gp_to_upper99(const GPAllocator* alc, const GPString str)

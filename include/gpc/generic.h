@@ -50,7 +50,7 @@ extern "C" {
 #define gp_repeat(...)              GP_REPEAT11(__VA_ARGS__)
 #define gp_replace(...)             GP_REPLACE11(__VA_ARGS__)
 #define gp_replace_all(...)         GP_REPLACE_ALL11(__VA_ARGS__)
-#define gp_trim(...)                GP_TRIM99(__VA_ARGS__)
+#define gp_trim(...)                GP_TRIM11(__VA_ARGS__)
 #define gp_to_upper(...)            GP_TO_UPPER(__VA_ARGS__)
 #define gp_to_lower(...)            GP_TO_LOWER(__VA_ARGS__)
 #define gp_to_valid(...)            GP_TO_VALID(__VA_ARGS__)
@@ -270,14 +270,6 @@ static inline GPString gp_replace_new4(const void* alc, GPStrIn hay, GPStrIn ndl
 #define GP_REPLACE11(A,B,...) GP_OVERLOAD3(__VA_ARGS__, \
     GP_REPLACE11_5, GP_REPLACE11_4, GP_REPLACE11_3)(A,B,__VA_ARGS__)
 
-// GPString gp_replace_all99(
-//     const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d);
-// #define GP_REPLACE_ALL99_3(HAY, NDL, REPL) gp_replace_all99( \
-//     GP_SIZEOF_TYPEOF(*(HAY)), HAY, GP_STR_IN99(NDL), GP_STR_IN99(REPL), GP_STR_IN99(NULL, 0))
-// #define GP_REPLACE_ALL99_4(ALC, HAY, NDL, REPL) gp_replace_all99( \
-//     GP_SIZEOF_TYPEOF(*(ALC)), ALC, GP_STR_IN99(HAY), GP_STR_IN99(NDL), GP_STR_IN99(REPL))
-// #define GP_REPLACE_ALL99(A, B, ...) GP_OVERLOAD2(__VA_ARGS__, \
-//     GP_REPLACE_ALL99_4, GP_REPLACE_ALL99_3)(A, B, __VA_ARGS__)
 static inline size_t gp_replace_all11(GPString* hay, GPStrIn ndl, GPStrIn repl)
 {
     return gp_str_replace_all(hay, ndl.data, ndl.length, repl.data, repl.length);
@@ -288,6 +280,31 @@ GPString gp_reaplce_all_new(const void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn r
     GP_ALC(ALC), GP_STR_IN11(HAY), GP_STR_IN11(NDL), GP_STR_IN11(REPL))
 #define GP_REPLACE_ALL11(A,B,...) GP_OVERLOAD2(__VA_ARGS__, \
     GP_REPLACE_ALL11_4, GP_REPLACE_ALL11_3)(A,B,__VA_ARGS__)
+
+GPString gp_str_trim_new(const void* alc, GPStrIn str, const char* char_set, int flags);
+static inline void gp_str_trim2(GPString* str, const char*const char_set)
+{
+    gp_str_trim(str, char_set, 'l' | 'r');
+}
+static inline GPString gp_str_trim_new2(const void*const alc, GPStrIn str)
+{
+    return gp_str_trim_new(alc, str, NULL, 'l' | 'r');
+}
+static inline GPString gp_str_trim_new3(const void*const alc, GPStrIn str, const char*const char_set)
+{
+    return gp_str_trim_new(alc, str, char_set, 'l' | 'r');
+}
+#define GP_TRIM2_SELECTION(T) T*: gp_str_trim_new2, const T*: gp_str_trim_new2
+#define GP_TRIM3_SELECTION(T) T*: gp_str_trim_new3, const T*: gp_str_trim_new3
+#define GP_TRIM1(STR) gp_str_trim(STR, NULL, 'l' | 'r')
+#define GP_TRIM11_2(A, B) _Generic(A, GPString*: gp_str_trim2, \
+    GP_PROCESS_ALL_ARGS(GP_TRIM2_SELECTION, GP_COMMA, GP_ALC_TYPES)) \
+    (A, _Generic(A, GPString*: B, default: GP_STR_IN(B)))
+#define GP_TRIM11_3(A, B, C) _Generic(A, GPString*: gp_str_trim, \
+    GP_PROCESS_ALL_ARGS(GP_TRIM3_SELECTION, GP_COMMA, GP_ALC_TYPES)) \
+    (A, _Generic(A, GPString*: B, default: GP_STR_IN(B)), C)
+#define GP_TRIM4(ALC, STR, CHARS, FLAGS) gp_str_trim_new(GP_ALC(ALC), GP_STR_IN(STR), CHARS, FLAGS)
+#define GP_TRIM11(...) GP_OVERLOAD4(__VA_ARGS__, GP_TRIM4, GP_TRIM11_3, GP_TRIM11_2, GP_TRIM1)(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Strings and arrays
@@ -460,8 +477,7 @@ GPString gp_replace_all99(
 
 GPString gp_trim99(
     const size_t a_size, const void* a, GPStrIn b, const char* char_set, int flags);
-#define GP_TRIM99_1(STR) gp_trim99( \
-    GP_SIZEOF_TYPEOF(*(STR)), STR, GP_STR_IN99(NULL, 0), NULL, 'l' | 'r')
+#define GP_TRIM99_1(STR) gp_str_trim(STR, NULL, 'l' | 'r')
 #define GP_TRIM99_2(A, B) gp_trim99( \
     GP_SIZEOF_TYPEOF(*(A)), A, \
     GP_SIZEOF_TYPEOF(*(A)) < sizeof(GPAllocator) ? GP_STR_IN99(NULL, 0) : GP_STR_IN99(B), \
