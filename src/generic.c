@@ -174,11 +174,9 @@ void* gp_slice99(
     const size_t x_size, const void* x,
     const size_t start, const size_t end)
 {
-    if (y_size >= sizeof(GPAllocator)) {
-        void* out = gp_arr_new(y, x_size, end - start + sizeof"");
-        ((GPArrayHeader*)out - 1)->length = end - start;
-        return memcpy(out, (uint8_t*)x + start * x_size, (end - start) * x_size);
-    }
+    if (y_size >= sizeof(GPAllocator))
+        return gp_arr_slice_new(x_size, y, x, start, end);
+
     GPArray(void*) parr = (GPArray(void*))y;
     return *parr = gp_arr_slice(x_size, *parr, x, start, end);
 }

@@ -312,6 +312,13 @@ int main(void)
             arr_assert_eq(arr1, gp_arr_ro(int, 3, 4, 5, 6), 4);
             GPArray(int) arr2 = gp_slice(&arena, arr1, 1, 3);
             arr_assert_eq(arr2, gp_arr_ro(int, 4, 5), 2);
+
+            #if TYPE_CHECK
+            gp_slice(&str1, arr1, 1, 2); // not okay, wrong type
+            gp_slice(str1, "still not okay, taking str1 by value!", 1, 2);
+            gp_slice(&arr1, str1, 1, 2); // not okay, wrong type
+            gp_slice(arr1, arr2, 1, 2); // not okay, arr1 by value!
+            #endif
         }
 
         gp_test("Append");
@@ -343,6 +350,8 @@ int main(void)
             arr_assert_eq(arr3, gp_arr_ro(int, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6), 11);
             GPArray(int) arr4 = gp_append(&arena, arr1, gp_arr_ro(int, 6), 1);
             arr_assert_eq(arr4, arr2, gp_length(arr2));
+            GPArray(int) arr5 = gp_append(&arena, arr1, gp_length(arr1), arr2, gp_length(arr2));
+            arr_assert_eq(arr5, gp_arr_ro(int, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6), 11);
         }
 
         gp_test("Insert");
