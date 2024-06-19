@@ -5,10 +5,12 @@
 #include <gpc/io.h>
 #include <gpc/string.h>
 #include <printf/printf.h>
+#include <printf/conversions.h>
+#include <printf/format_scanning.h>
 #include "common.h"
 
 FILE* gp_file_open(const char* path, const char* mode)
-{ // All this processing is here just to make this consistent with gp_str_file()
+{
     size_t len = 0;
     char mode_buf[4] = { mode[len++] };
     if ( ! strchr(mode, 'x'))
@@ -133,20 +135,24 @@ static size_t gp_print_va_arg(
         case GP_UNSIGNED_CHAR:
             length = 1;
             fputc(va_arg(args->list, int), out);
-            break;
+        break;
 
+        char buf[24];
         case GP_UNSIGNED_SHORT:
         case GP_UNSIGNED:
-            length = fprintf(out, "%u", va_arg(args->list, unsigned));
-            break;
+            length = pf_utoa(sizeof buf, buf, va_arg(args->list, unsigned));
+            fwrite(buf, 1, length, out);
+        break;
 
         case GP_UNSIGNED_LONG:
-            length = fprintf(out, "%lu", va_arg(args->list, unsigned long));
-            break;
+            length = pf_utoa(sizeof buf, buf, va_arg(args->list, unsigned long));
+            fwrite(buf, 1, length, out);
+        break;
 
         case GP_UNSIGNED_LONG_LONG:
-            length = fprintf(out, "%llu", va_arg(args->list, unsigned long long));
-            break;
+            length = pf_utoa(sizeof buf, buf, va_arg(args->list, unsigned long long));
+            fwrite(buf, 1, length, out);
+        break;
 
         case GP_BOOL:
             if (va_arg(args->list, int)) {
@@ -155,40 +161,56 @@ static size_t gp_print_va_arg(
             } else {
                 length = strlen("false");
                 fputs("false", out);
-            } break;
+            }
+        break;
 
         case GP_SHORT:
         case GP_INT:
-            length = fprintf(out, "%i", va_arg(args->list, int));
-            break;
+            length = pf_itoa(sizeof buf, buf, va_arg(args->list, int));
+            fwrite(buf, 1, length, out);
+        break;
 
         case GP_LONG:
-            length = fprintf(out, "%li", va_arg(args->list, long));
-            break;
+            length = pf_itoa(sizeof buf, buf, va_arg(args->list, long));
+            fwrite(buf, 1, length, out);
+        break;
 
         case GP_LONG_LONG:
-            length = fprintf(out, "%lli", va_arg(args->list, long long));
-            break;
+            length = pf_itoa(sizeof buf, buf, va_arg(args->list, long long));
+            fwrite(buf, 1, length, out);
+        break;
 
         case GP_FLOAT:
-        case GP_DOUBLE:
-            length = fprintf(out, "%g", va_arg(args->list, double));
-            break;
+        case GP_DOUBLE: {
+            PFFormatSpecifier fmt = {0};
+            fmt.conversion_format = 'g';
+            length = pf_strfromd(buf, sizeof buf, fmt, va_arg(args->list, double));
+            fwrite(buf, 1, length, out);
+        } break;
 
-        case GP_CHAR_PTR:
-            length = fprintf(out, "%s", va_arg(args->list, char*));
-            break;
+        case GP_CHAR_PTR: {
+            const char* cstr = va_arg(args->list, char*);
+            length = strlen(cstr);
+            fwrite(buf, 1, length, out);
+        } break;
 
-        GPString s;
-        case GP_STRING:
-            s = va_arg(args->list, GPString);
+        case GP_STRING: {
+            GPString s = va_arg(args->list, GPString);
             length = gp_arr_length(s);
             fwrite(s, 1, length, out);
-            break;
+        } break;
 
-        case GP_PTR:
-            length = fprintf(out, "%p", va_arg(args->list, void*));
-            break;
+        case GP_PTR: {
+            const uintptr_t p = va_arg(args->list, uintptr_t);
+            if (p != 0) {
+                strcpy(buf, "0x");
+                length = strlen("0x") + pf_xtoa(sizeof buf - strlen("0x"), buf, p);
+                fwrite(buf, 1, length, out);
+            } else {
+                length = strlen("(nil)");
+                fwrite("(nil)", 1, length, out);
+            }
+        } break;
     }
     return length;
 }

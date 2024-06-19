@@ -22,12 +22,7 @@
 
 #define POW10_ADDITIONAL_BITS 120
 
-// Max decimal digits in uintmax_t
-#if CHAR_BIT == 8
-#define MAX_DIGITS (sizeof(uintmax_t) * 3)
-#else
-#define MAX_DIGITS ((CHAR_BIT * sizeof(uintmax_t) * 3) / 8)
-#endif
+#define MAX_DIGITS 24
 
 static void str_reverse_copy(
     char* restrict out,

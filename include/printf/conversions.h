@@ -26,6 +26,10 @@ size_t pf_Etoa(size_t n, char* buf, double x);
 size_t pf_gtoa(size_t n, char* buf, double x);
 size_t pf_Gtoa(size_t n, char* buf, double x);
 
+// fmt determines conversion format. Fields that control the conversion:
+// .conversion_format = any of 'f', 'F', 'e', 'E', 'g', or 'G'. REQUIRED
+// .precision = { .option = PF_NONE or PF_SOME, .precision = precision } OPTIONAL
+// .flag = { .plus = boolean, .space = boolean, .hash = boolean } OPTIONAL
 size_t pf_strfromd(char* buf, size_t n, PFFormatSpecifier fmt, double f);
 
 #ifdef __cplusplus
