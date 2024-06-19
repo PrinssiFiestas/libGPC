@@ -191,7 +191,7 @@ static size_t gp_print_va_arg(
         case GP_CHAR_PTR: {
             const char* cstr = va_arg(args->list, char*);
             length = strlen(cstr);
-            fwrite(buf, 1, length, out);
+            fwrite(cstr, 1, length, out);
         } break;
 
         case GP_STRING: {
@@ -223,7 +223,7 @@ static void gp_va_list_dummy_consumer(
     {
         const PFFormatSpecifier fmt = pf_scan_format_string(format, args);
         if (fmt.string == NULL)
-            break;
+            return;
 
         // Jump over format specifier for next iteration
         format = fmt.string + fmt.string_length;

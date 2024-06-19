@@ -24,13 +24,14 @@
 #include <errno.h>
 #include <string.h>
 #include <dirent.h>
+#include <locale.h>
 
 #if _WIN32
 #define stat _stat
 #endif
 
 static FILE*                   out            = NULL;
-static const char*             out_name       = "build/gpc.h";
+static const char*             out_path       = "build/gpc.h";
 static GPString                implementation = NULL;
 static GPArena                 garena;
 static const GPAllocator*const gmem           = (GPAllocator*)&garena;
@@ -54,7 +55,7 @@ static GPArray(File) sources;
 do { \
     if ( ! gp_expect(__VA_ARGS__)) { \
         fclose(out); \
-        remove(out_name); \
+        remove(out_path); \
         GP_BREAKPOINT; \
         exit(EXIT_FAILURE); \
     } \
@@ -65,15 +66,20 @@ static void init_globals(void)
     garena = gp_arena_new(1 << 30);
     garena.growth_coefficient = .25;
 
-    gp_assert(out = fopen(out_name, "wb"), strerror(errno));
+    gp_assert(out = fopen(out_path, "wb"), strerror(errno));
 
     include_paths = gp_arr_new(gmem, sizeof*include_paths, 16);
     headers       = gp_arr_new(gmem, sizeof*headers, 64);
-    sources       = gp_arr_new(gmem, sizeof*headers, 64);
+    sources       = gp_arr_new(gmem, sizeof*sources, 64);
     line          = gp_str_new(gmem, 1024, "");
 
     implementation = gp_str_new(gmem, 32, "");
     { // e.g. gpc.h -> GPC_IMPLEMENTATION
+        const char* out_name;
+        if ((out_name = strrchr(out_path, '/')) != NULL)
+            out_name += strlen("/");
+        else
+            out_name = out_path;
         gp_str_copy(&implementation, out_name, strlen(out_name));
         gp_str_slice(&implementation, NULL, 0, gp_str_find_first(implementation, ".", strlen("."), 0));
         gp_str_to_upper(&implementation);
@@ -96,7 +102,7 @@ static void init_globals(void)
     GPString full_path = gp_str_on_stack(gmem, 256, "include/");
     for (size_t i = 0; i < gp_arr_length(include_paths); i++)
     {
-        gp_str_slice(&full_path, NULL, 0, strlen("include/"));
+        gp_str_slice(&full_path, NULL, 0, strlen("include/")); // clean last iteration
         gp_str_append(&full_path, include_paths[i], strlen(include_paths[i]));
 
         Assert(dir = opendir(gp_cstr(full_path)), strerror(errno));
@@ -423,6 +429,7 @@ static void write_files(GPArray(File) files)
 
 int main(void)
 {
+    setlocale(LC_ALL, "C.UTF-8");
     init_globals();
     write_license();
     fputs("/*\n"
