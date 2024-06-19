@@ -231,11 +231,11 @@ static void gp_va_list_dummy_consumer(
         switch (fmt.conversion_format)
         {
             case 'c':
-            case 'd':
                 va_arg(args->list, int);
             break;
 
             case 'i':
+            case 'd':
                 switch (fmt.length_modifier)
                 {
                     case 2 * 'h':
