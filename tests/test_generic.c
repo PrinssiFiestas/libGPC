@@ -421,6 +421,13 @@ int main(void)
             int carr[] = { 9, 9, 9, 9, 9 };
             GPArray(int) arr4 = gp_map(scope, carr, sizeof carr / sizeof*carr, increment);
             arr_assert_eq(arr4, gp_arr_ro(int, 10, 10, 10, 10, 10), 5);
+
+            #if TYPE_CHECK
+            GPArray(char*) chars = gp_arr(scope, char*, "asdf", "fdsa");
+            gp_map(&chars, arr1, increment); // wrong type
+            gp_map(arr1, arr2, increment);   // wrong, arr1 passed by value
+            gp_map(&chars, increment);       // incompatible function pointer
+            #endif
         }
 
         gp_test("Fold");
@@ -465,7 +472,9 @@ int main(void)
 
             #if TYPE_CHECK
             GPArray(const char*const) cstrs = gp_arr_ro(const char*, "blah", "blah");
-            gp_filter(&cstrs, even); // passing const char** to const int*
+            gp_filter(&cstrs, even); // wrong, passing const char** to const int*
+            gp_filter(arr1, even);   // wrong, passing by value
+            gp_filter(&cstrs, arr1, even); // wrong destination type
             #endif
         }
         gp_end(scope);

@@ -30,8 +30,6 @@ extern "C" {
 #define GPDictionary(T) T*
 
 #ifdef GP_GENERIC_AVAILABLE
-// TODO rest of C11 implementations. Only the macros with 99 postfix needs to be
-// changed.
 
 // Constructors
 #define gp_arr(...)                 GP_ARR_NEW(__VA_ARGS__)
@@ -77,10 +75,10 @@ extern "C" {
 #define gp_push(...)                GP_PUSH(__VA_ARGS__)
 #define gp_pop(...)                 GP_POP(__VA_ARGS__)
 #define gp_erase(...)               GP_ERASE(__VA_ARGS__)
-#define gp_map(...)                 GP_MAP99(__VA_ARGS__)
+#define gp_map(...)                 GP_MAP11(__VA_ARGS__)
 #define gp_fold(...)                GP_FOLD(__VA_ARGS__)
 #define gp_foldr(...)               GP_FOLDR(__VA_ARGS__)
-#define gp_filter(...)              GP_FILTER99(__VA_ARGS__)
+#define gp_filter(...)              GP_FILTER11(__VA_ARGS__)
 
 // Dictionarys
 #define gp_get(...)                 GP_GET(__VA_ARGS__)
@@ -95,7 +93,7 @@ extern "C" {
 #define gp_realloc(...)             GP_REALLOC(__VA_ARGS__)
 
 // File
-#define gp_file(...)                GP_FILE99(__VA_ARGS__)
+#define gp_file(...)                GP_FILE11(__VA_ARGS__)
 #define gp_read_line(...)           gp_file_read_line(...)
 #define gp_read_until(...)          gp_file_read_until(...)
 #define gp_read_strip(...)          gp_file_read_strip(...)
@@ -211,6 +209,7 @@ typedef struct { GPAllocator alc; } GPDummyAlc; // for comma issues in GP_ALC_TY
 // Bytes and strings
 
 #define GP_STR_T(S) _Generic(S, GPString: GP_STRING, char*: GP_CHAR_PTR, const char*: GP_CHAR_PTR)
+GP_NONNULL_ARGS()
 static inline GPStrIn gp_str_in11(const GPType T, const void*const data, const size_t length)
 {
     switch (T)
@@ -236,6 +235,7 @@ static inline size_t gp_length_in11(const GPType T_unused, const size_t length, 
 
 #define GP_STR_OR_LEN(...) GP_OVERLOAD2(__VA_ARGS__, GP_STR_IN11_2, GP_STR_OR_LEN1)(__VA_ARGS__)
 
+GP_NONNULL_ARGS_AND_RETURN
 static inline GPString gp_str_repeat_new(const void* alc, const size_t count, GPStrIn in)
 {
     GPString out = gp_str_new(alc, count * in.length, "");
@@ -243,6 +243,7 @@ static inline GPString gp_str_repeat_new(const void* alc, const size_t count, GP
     ((GPStringHeader*)out - 1)->length = count * in.length;
     return out;
 }
+GP_NONNULL_ARGS()
 static inline void gp_str_repeat_str(GPString* dest, const size_t count, GPStrIn in)
 {
     gp_str_repeat(dest, count, in.data, in.length);
@@ -251,10 +252,12 @@ static inline void gp_str_repeat_str(GPString* dest, const size_t count, GPStrIn
 #define GP_REPEAT11(A, COUNT, ...) _Generic(A, GPString*: gp_str_repeat_str, \
     GP_PROCESS_ALL_ARGS(GP_REPEAT_SELECTION, GP_COMMA, GP_ALC_TYPES))(A, COUNT, GP_STR_IN(__VA_ARGS__))
 
+GP_NONNULL_ARGS()
 static inline void gp_replace11(GPString* hay, GPStrIn ndl, GPStrIn repl, const size_t start)
 {
     gp_str_replace(hay, ndl.data, ndl.length, repl.data, repl.length, start);
 }
+GP_NONNULL_ARGS_AND_RETURN
 GPString gp_replace_new(const GPAllocator* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl, size_t start);
 static inline GPString gp_replace_new4(const void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl)
 {
@@ -270,10 +273,12 @@ static inline GPString gp_replace_new4(const void* alc, GPStrIn hay, GPStrIn ndl
 #define GP_REPLACE11(A,B,...) GP_OVERLOAD3(__VA_ARGS__, \
     GP_REPLACE11_5, GP_REPLACE11_4, GP_REPLACE11_3)(A,B,__VA_ARGS__)
 
+GP_NONNULL_ARGS()
 static inline size_t gp_replace_all11(GPString* hay, GPStrIn ndl, GPStrIn repl)
 {
     return gp_str_replace_all(hay, ndl.data, ndl.length, repl.data, repl.length);
 }
+GP_NONNULL_ARGS_AND_RETURN
 GPString gp_reaplce_all_new(const void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl);
 #define GP_REPLACE_ALL11_3(HAY, NDL, REPL) gp_replace_all11(HAY, GP_STR_IN11(NDL), GP_STR_IN11(REPL))
 #define GP_REPLACE_ALL11_4(ALC, HAY, NDL, REPL) gp_replace_all_new( \
@@ -281,15 +286,19 @@ GPString gp_reaplce_all_new(const void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn r
 #define GP_REPLACE_ALL11(A,B,...) GP_OVERLOAD2(__VA_ARGS__, \
     GP_REPLACE_ALL11_4, GP_REPLACE_ALL11_3)(A,B,__VA_ARGS__)
 
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
 GPString gp_str_trim_new(const void* alc, GPStrIn str, const char* char_set, int flags);
+GP_NONNULL_ARGS()
 static inline void gp_str_trim2(GPString* str, const char*const char_set)
 {
     gp_str_trim(str, char_set, 'l' | 'r');
 }
+GP_NONNULL_ARGS_AND_RETURN
 static inline GPString gp_str_trim_new2(const void*const alc, GPStrIn str)
 {
     return gp_str_trim_new(alc, str, NULL, 'l' | 'r');
 }
+GP_NONNULL_ARGS_AND_RETURN
 static inline GPString gp_str_trim_new3(const void*const alc, GPStrIn str, const char*const char_set)
 {
     return gp_str_trim_new(alc, str, char_set, 'l' | 'r');
@@ -309,6 +318,7 @@ static inline GPString gp_str_trim_new3(const void*const alc, GPStrIn str, const
 // ----------------------------------------------------------------------------
 // Strings and arrays
 
+GP_NONNULL_ARGS()
 static inline void gp_str_reserve11(const size_t unused, GPString* str, const size_t size)
 {
     (void)unused;
@@ -320,6 +330,7 @@ static inline void gp_str_reserve11(const size_t unused, GPString* str, const si
 typedef GPStrIn GPArrIn;
 #define GP_ARR_T(A) _Generic(A, \
     GPString: GP_STRING, char*: GP_CHAR_PTR, const char*: GP_CHAR_PTR, default: GP_PTR)
+GP_NONNULL_ARGS()
 static inline GPStrIn gp_arr_in11(const GPType T, const void*const data, const size_t length)
 {
     if (length != SIZE_MAX)
@@ -341,16 +352,19 @@ typedef struct { int dummy; } GPDummyType;
         GPString*: _Generic(B, char*: (GPString)(B), const char*: (GPString)(B), default: B), \
         default: B)
 
+GP_NONNULL_ARGS()
 static inline void gp_str_copy11(const size_t unused, GPString* dest, GPStrIn src)
 {
     (void)unused;
     gp_str_copy(dest, src.data, src.length);
 }
-static inline void* gp_arr_copy11(const size_t elem_size, void* _dest, GPArrIn src)
+GP_NONNULL_ARGS()
+static inline void gp_arr_copy11(const size_t elem_size, void* _dest, GPArrIn src)
 {
     GPArray(void)* dest = _dest;
-    return *dest = gp_arr_copy(elem_size, *dest, src.data, src.length);
+    *dest = gp_arr_copy(elem_size, *dest, src.data, src.length);
 }
+GP_NONNULL_ARGS_AND_RETURN
 static inline void* gp_arr_copy_new11(const size_t elem_size, const void* alc, GPArrIn src)
 {
     void* out = gp_arr_new(alc, elem_size, src.length + sizeof"");
@@ -364,18 +378,21 @@ static inline void* gp_arr_copy_new11(const size_t elem_size, const void* alc, G
     default: gp_arr_copy11) \
     (GP_SIZEOF_TYPEOF(*(GP_1ST_ARG(__VA_ARGS__))), A, GP_ARR_IN11(__VA_ARGS__))
 
+GP_NONNULL_ARGS()
 static inline void gp_str_slice11(
     const size_t unused, GPString* pdest, const void* src, const size_t start, const size_t end)
 {
     (void)unused;
     gp_str_slice(pdest, src, start, end);
 }
+GP_NONNULL_ARGS()
 static inline void gp_arr_slice11(
     const size_t elem_size, void*_pdest, const void* src, const size_t start, const size_t end)
 {
     GPArray(void)* pdest = _pdest;
     *pdest = gp_arr_slice(elem_size, *pdest, src, start, end);
 }
+GP_NONNULL_ARGS_AND_RETURN
 static inline void* gp_arr_slice_new(
     const size_t elem_size, const void* alc, const void* src, const size_t start, const size_t end)
 {
@@ -392,6 +409,7 @@ static inline void* gp_arr_slice_new(
 #define GP_SLICE11(A, B,...) \
     GP_OVERLOAD2(__VA_ARGS__, GP_SLICE_INPUT11, GP_SLICE_WOUT_INPUT99)(A, B,__VA_ARGS__)
 
+GP_NONNULL_ARGS_AND_RETURN
 static inline void* gp_src_in11(const GPType T_unused, const void*const data, const size_t unused)
 {
     (void)T_unused; (void)unused;
@@ -412,26 +430,31 @@ static inline size_t gp_len_in11(const GPType T_unused, const size_t length, con
     GP_PROCESS_ALL_ARGS(GP_LEN_IN_SELECTION, GP_COMMA, GP_ALC_TYPES), \
     default: gp_len_in11)(GP_ARR_T(SRC_OR_LEN), SRC_OR_LEN, SIZE_MAX)
 
+GP_NONNULL_ARGS()
 static inline void gp_str_append11(const size_t unused, GPString* pstr, GPStrIn src)
 {
     (void)unused;
     gp_str_append(pstr, src.data, src.length);
 }
+GP_NONNULL_ARGS()
 static inline void gp_arr_append11(const size_t elem_size, void*_pdest, GPArrIn src)
 {
     GPArray(void)* pdest = _pdest;
     *pdest = gp_arr_append(elem_size, *pdest, src.data, src.length);
 }
+GP_NONNULL_ARGS()
 static inline void gp_str_append11_4(const size_t unused, GPString* dest, void* src, const size_t src_len)
 {
     (void)unused;
     gp_str_append(dest, src, src_len);
 }
+GP_NONNULL_ARGS()
 static inline void gp_arr_append11_4(const size_t elem_size, void*_pdest, void* src, const size_t src_len)
 {
     GPArray(void)* pdest = _pdest;
     *pdest = gp_arr_append(elem_size, *pdest, src, src_len);
 }
+GP_NONNULL_ARGS_AND_RETURN
 static inline void* gp_arr_append_new11(
     const size_t elem_size, const void* alc, GPArrIn src1, GPArrIn src2)
 {
@@ -441,6 +464,7 @@ static inline void* gp_arr_append_new11(
     ((GPArrayHeader*)out - 1)->length = src1.length + src2.length;
     return out;
 }
+GP_NONNULL_ARGS_AND_RETURN
 static inline void* gp_arr_append_new11_5(const size_t elem_size,
     const void* alc, GPArrIn src1, const void*const src2, const size_t src2_len)
 {
@@ -462,28 +486,33 @@ static inline void* gp_arr_append_new11_5(const size_t elem_size,
 #define GP_APPEND11(A,...) GP_OVERLOAD4(__VA_ARGS__, \
     GP_APPEND11_5, GP_APPEND11_4, GP_APPEND11_3, GP_APPEND11_2)(A,__VA_ARGS__)
 
+GP_NONNULL_ARGS()
 static inline void gp_str_insert11(const size_t unused, GPString* pstr, const size_t pos, GPStrIn src)
 {
     (void)unused;
     gp_str_insert(pstr, pos, src.data, src.length);
 }
+GP_NONNULL_ARGS()
 static inline void gp_arr_insert11(const size_t elem_size, void*_pdest, const size_t pos, GPArrIn src)
 {
     GPArray(void)* pdest = _pdest;
     *pdest = gp_arr_insert(elem_size, *pdest, pos, src.data, src.length);
 }
+GP_NONNULL_ARGS()
 static inline void gp_str_insert11_4(
     const size_t unused, GPString* dest, const size_t pos, void* src, const size_t src_len)
 {
     (void)unused;
     gp_str_insert(dest, pos, src, src_len);
 }
+GP_NONNULL_ARGS()
 static inline void gp_arr_insert11_4(
     const size_t elem_size, void*_pdest, const size_t pos, void* src, const size_t src_len)
 {
     GPArray(void)* pdest = _pdest;
     *pdest = gp_arr_insert(elem_size, *pdest, pos, src, src_len);
 }
+GP_NONNULL_ARGS_AND_RETURN
 static inline void* gp_arr_insert_new11(
     const size_t elem_size, const void* alc, const size_t pos, GPArrIn src1, GPArrIn src2)
 {
@@ -496,6 +525,7 @@ static inline void* gp_arr_insert_new11(
     ((GPArrayHeader*)out - 1)->length = src1.length + src2.length;
     return out;
 }
+GP_NONNULL_ARGS_AND_RETURN
 static inline void* gp_arr_insert_new11_5(const size_t elem_size,
     const void* alc, const size_t pos, GPArrIn src1, const void*const src2, const size_t src2_len)
 {
@@ -516,6 +546,101 @@ static inline void* gp_arr_insert_new11_5(const size_t elem_size,
         GP_ARR_IN11(SRC1, SRC1_LEN), GP_ARR_IN11(SRC2, SRC2_LEN))
 #define GP_INSERT11(A,POS,...) GP_OVERLOAD4(__VA_ARGS__, \
     GP_INSERT11_6, GP_INSERT11_5, GP_INSERT11_4, GP_INSERT11_3)(A,POS,__VA_ARGS__)
+
+// ----------------------------------------------------------------------------
+// Arrays
+
+#define GP_ARR_TYPE_CHECK(PA, B) *_Generic(PA, \
+    GP_PROCESS_ALL_ARGS(GP_TYPE_CHECK_SELECTION, GP_COMMA, GP_ALC_TYPES), \
+    default: *(PA)) = *_Generic(PA, \
+        GP_PROCESS_ALL_ARGS(GP_TYPE_CHECK_SELECTION, GP_COMMA, GP_ALC_TYPES), \
+        default: B)
+
+GP_NONNULL_ARGS()
+static inline GPArrIn gp_arr_in11_1(const GPArray(void) arr)
+{
+    return (GPArrIn){ arr, gp_arr_length(arr) };
+}
+
+GP_NONNULL_ARGS()
+static inline void gp_arr_map11(
+    const size_t elem_size, void*_parr, GPArrIn src, void(*const f)(void*,const void*))
+{
+    GPArray(void)* parr = _parr;
+    parr = gp_arr_map(elem_size, *parr, src.data, src.length, f);
+}
+GP_NONNULL_ARGS_AND_RETURN
+static inline GPArray(void) gp_arr_map_new11(
+    const size_t elem_size, const GPAllocator*const alc, GPArrIn src, void(*const f)(void*, const void*))
+{
+    GPArray(void) out = gp_arr_new(alc, elem_size, src.length);
+    return out = gp_arr_map(elem_size, out, src.data, src.length, f);
+}
+
+#define GP_MAP_SELECTION(T) T*: gp_arr_map_new11, const T*: gp_arr_map_new11
+#define GP_MAP11_3(A, SRC, F) _Generic((GP_ARR_TYPE_CHECK(A,SRC), A), \
+    GP_PROCESS_ALL_ARGS(GP_MAP_SELECTION, GP_COMMA, GP_ALC_TYPES), default: gp_arr_map11) \
+    (GP_SIZEOF_TYPEOF(((F)((void*)(SRC),SRC), *(SRC))), A, gp_arr_in11_1(SRC), (void(*)(void*,const void*))(F))
+#define GP_MAP11_4(A, SRC, SRC_LEN, F) _Generic((GP_ARR_TYPE_CHECK(A,SRC), A), \
+    GP_PROCESS_ALL_ARGS(GP_MAP_SELECTION, GP_COMMA, GP_ALC_TYPES), default: gp_arr_map11) \
+    (GP_SIZEOF_TYPEOF(((F)((void*)(SRC),SRC), *(SRC))), A, (GPArrIn){(uint8_t*)(SRC),SRC_LEN}, (void(*)(void*,const void*))(F))
+#define GP_MAP11(A, ...) \
+    GP_OVERLOAD3(__VA_ARGS__, GP_MAP11_4, GP_MAP11_3, GP_MAP99_2)(A,__VA_ARGS__)
+
+GP_NONNULL_ARGS()
+static inline void gp_arr_filter11(
+    const size_t elem_size, void*_parr, GPArrIn src, bool(*const f)(const void*))
+{
+    GPArray(void)* parr = _parr;
+    parr = gp_arr_filter(elem_size, *parr, src.data, src.length, f);
+}
+GP_NONNULL_ARGS_AND_RETURN
+static inline GPArray(void) gp_arr_filter_new11(
+    const size_t elem_size, const GPAllocator*const alc, GPArrIn src, bool(*const f)(const void*))
+{
+    GPArray(void) out = gp_arr_new(alc, elem_size, src.length);
+    return out = gp_arr_filter(elem_size, out, src.data, src.length, f);
+}
+#define GP_FILTER_SELECTION(T) T*: gp_arr_filter_new11, const T*: gp_arr_filter_new11
+#define GP_FILTER11_3(A, SRC, F) _Generic((GP_ARR_TYPE_CHECK(A,SRC), A), \
+    GP_PROCESS_ALL_ARGS(GP_FILTER_SELECTION, GP_COMMA, GP_ALC_TYPES), default: gp_arr_filter11) \
+    (GP_SIZEOF_TYPEOF(((bool){0} = (F)(SRC), *(SRC))), A, gp_arr_in11_1(SRC), (bool(*)(const void*))(F))
+#define GP_FILTER11_4(A, SRC, SRC_LEN, F) _Generic((GP_ARR_TYPE_CHECK(A,SRC), A), \
+    GP_PROCESS_ALL_ARGS(GP_FILTER_SELECTION, GP_COMMA, GP_ALC_TYPES), default: gp_arr_filter11) \
+    (GP_SIZEOF_TYPEOF(((bool){0} = (F)(SRC), *(SRC))), A, (GPArrIn){(uint8_t*)(SRC),SRC_LEN}, (bool(*)(const void*))(F))
+#define GP_FILTER11(A, ...) \
+    GP_OVERLOAD3(__VA_ARGS__, GP_FILTER11_4, GP_FILTER11_3, GP_FILTER99_2)(A,__VA_ARGS__)
+#define GP_FILTER11(A, ...) \
+    GP_OVERLOAD3(__VA_ARGS__, GP_FILTER11_4, GP_FILTER11_3, GP_FILTER99_2)(A,__VA_ARGS__)
+
+GP_NONNULL_ARGS()
+static inline GPString gp_file_from_str11(GPString src, const char*const path, const char*const mode)
+{
+    if (gp_str_file(&src, path, mode) == 0)
+        return src;
+    return NULL;
+}
+GP_NONNULL_ARGS()
+static inline GPString gp_file_to_str11(GPString* dest, const char*const path, const char*const mode)
+{
+    if (gp_str_file(dest, path, mode) == 0)
+        return *dest;
+    return NULL;
+}
+GP_NONNULL_ARGS()
+static inline GPString gp_file_to_new_str11(const void* alc, const char*const path, const char*const mode)
+{
+    GPString str = gp_str_new(alc, 128, "");
+    if (gp_str_file(&str, path, mode) == 0)
+        return str;
+    return NULL;
+}
+#define GP_FILE_SELECTION(T) T*: gp_file_to_new_str11, const T*: gp_file_to_new_str11
+#define GP_FILE11_3(A, ...) _Generic(A, \
+    GPString: gp_file_from_str11, GPString*: gp_file_to_str11, \
+    GP_PROCESS_ALL_ARGS(GP_FILE_SELECTION, GP_COMMA, GP_ALC_TYPES)) \
+    (A,__VA_ARGS__)
+#define GP_FILE11(A,...) GP_OVERLOAD2(__VA_ARGS__, GP_FILE11_3, GP_FILE99_2)(A,__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 //

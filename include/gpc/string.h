@@ -189,7 +189,7 @@ void gp_str_to_valid(
 // Returns  1 if file size > SIZE_MAX in 32-bit systems.
 GP_NONNULL_ARGS() GP_NODISCARD
 int gp_str_file(
-    GPString*,
+    GPString*   src_or_dest,
     const char* file_path,
     const char* operation);
 
