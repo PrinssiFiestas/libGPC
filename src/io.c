@@ -11,7 +11,7 @@ FILE* gp_file_open(const char* path, const char* mode)
 { // All this processing is here just to make this consistent with gp_str_file()
     size_t len = 0;
     char mode_buf[4] = { mode[len++] };
-    if (strchr(mode, 'b'))
+    if ( ! strchr(mode, 'x'))
         mode_buf[len++] = 'b';
     if (strchr(mode, '+'))
         mode_buf[len++] = '+';

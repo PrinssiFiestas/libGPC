@@ -737,9 +737,9 @@ int gp_str_case_compare(
 int gp_str_file(
     GPString*   str,
     const char* file_path,
-    const char* operation)
+    const char* mode)
 {
-    switch (operation[0])
+    switch (mode[0])
     {
         case 'r':
         {
@@ -774,8 +774,14 @@ int gp_str_file(
 
         default:
         {
-            const char mode[2] = { operation[0], '\0' };
-            FILE* f = fopen(file_path, mode);
+            size_t len = 0;
+            char mode_buf[4] = { mode[len++] };
+            if ( ! strchr(mode, 'x'))
+                mode_buf[len++] = 'b';
+            if (strchr(mode, '+'))
+                mode_buf[len++] = '+';
+
+            FILE* f = fopen(file_path, mode_buf);
             if (f == NULL)
                 return -1;
             if (fwrite(*str, sizeof**str, gp_str_length(*str), f) != gp_str_length(*str))

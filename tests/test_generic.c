@@ -545,16 +545,18 @@ int main(void)
         GPString str2 = gp_str(&arena);
         GPString str3 = gp_str(&arena);
 
+        // Default mode is binary mode. Add "text" or 'x' if you want Windows to
+        // do unnecessary text processing.
         gp_file(str1,  test_path, "write");
         gp_file(&str2, test_path, "read");
 
         // + not necessary here, but demonstrates that it can be passed. Same
-        // would be true for "binary" or just 'b'.
+        // would be true for "text" or just 't'.
         FILE* f = gp_file(test_path, "read+");
         gp_file_read_line(&str3, f);
         gp_file_close(f);
 
-        GPString str4 = gp_file(&arena, test_path, "read binary");
+        GPString str4 = gp_file(&arena, test_path, "read");
 
         gp_expect(gp_equal(str1, str2));
         gp_expect(gp_equal(str1, str3));

@@ -23,10 +23,6 @@ extern "C" {
 //
 // ----------------------------------------------------------------------------
 
-// Note: macros may take variadic arguments even when not necessary for better
-// error messages. Also in some occasions, but not always, allows using
-// compound literals as macros arguments.
-
 #define GPDictionary(T) T*
 
 #ifdef GP_GENERIC_AVAILABLE
