@@ -215,6 +215,90 @@ static size_t gp_print_va_arg(
     return length;
 }
 
+static void gp_va_list_dummy_consumer(
+    const char* format,
+    pf_va_list* args)
+{
+    while (1)
+    {
+        const PFFormatSpecifier fmt = pf_scan_format_string(format, args);
+        if (fmt.string == NULL)
+            break;
+
+        // Jump over format specifier for next iteration
+        format = fmt.string + fmt.string_length;
+
+        switch (fmt.conversion_format)
+        {
+            case 'c':
+            case 'd':
+                va_arg(args->list, int);
+            break;
+
+            case 'i':
+                switch (fmt.length_modifier)
+                {
+                    case 2 * 'h':
+                    case 'h':
+                    case 0:
+                        va_arg(args->list, int);
+                    break;
+
+                    case 'l':
+                        va_arg(args->list, long);
+                    break;
+
+                    case 2 * 'l':
+                        va_arg(args->list, long long);
+                    break;
+
+                    case 'j':
+                        va_arg(args->list, ptrdiff_t);
+                    break;
+                }
+            break;
+
+            case 'o':
+            case 'x':
+            case 'X':
+            case 'u':
+                switch (fmt.length_modifier)
+                {
+                    case 2 * 'h':
+                    case 'h':
+                    case 0:
+                        va_arg(args->list, unsigned);
+                    break;
+
+                    case 'l':
+                        va_arg(args->list, unsigned long);
+                    break;
+
+                    case 2 * 'l':
+                        va_arg(args->list, unsigned long long);
+                    break;
+
+                    case 'z':
+                        va_arg(args->list, size_t);
+                    break;
+                }
+            break;
+
+            case 's':
+            case 'S':
+            case 'p':
+                va_arg(args->list, void*);;
+            break;
+
+            case 'f': case 'F':
+            case 'e': case 'E':
+            case 'g': case 'G':
+                va_arg(args->list, double);
+            break;
+        }
+    }
+}
+
 static size_t gp_print_objects(
     FILE* out,
     pf_va_list* args,
@@ -227,11 +311,9 @@ static size_t gp_print_objects(
         const char* fmt = va_arg(args->list, char*);
         *i += gp_count_fmt_specs(fmt);
 
-        length += pf_vfprintf (out,     fmt, args->list);
+        length += pf_vfprintf(out, fmt, args->list);
 
-        // Dummy consumption. TODO this is useless work, write a dedicated dummy
-        // consumer.
-        pf_vsnprintf_consuming(NULL, 0, fmt, args);
+        gp_va_list_dummy_consumer(fmt, args);
     } else {
         length += gp_print_va_arg(out, args, obj.type);
     }
