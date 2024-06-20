@@ -65,6 +65,7 @@ size_t pf_utoa(const size_t n, char* out, unsigned long long x)
 size_t pf_itoa(size_t n, char* out, const long long ix)
 {
     char buf[MAX_DIGITS];
+    unsigned long long x = ix;
 
     if (ix < 0)
     {
@@ -74,9 +75,9 @@ size_t pf_itoa(size_t n, char* out, const long long ix)
             n--;
         }
         out++;
+        x *= -1;
     }
 
-    unsigned long long x = imaxabs(ix);
     size_t i = 0;
     do // write all digits from low to high
     {
@@ -446,7 +447,7 @@ pf_append_nine_digits(struct pf_string* out, uint32_t digits)
 }
 
 static inline void
-append_utoa(struct pf_string* out, uint32_t digits)
+pf_append_utoa(struct pf_string* out, uint32_t digits)
 {
     if (pf_capacity_left(*out) >= 9) // write directly
     {
@@ -455,7 +456,7 @@ append_utoa(struct pf_string* out, uint32_t digits)
     }
     else // write only as much as fits
     {
-        char buf[10];
+        char buf[12];
         unsigned buf_len = pf_utoa(sizeof(buf), buf, digits);
         pf_concat(out, buf, buf_len);
     }
@@ -776,7 +777,7 @@ pf_d2fixed_buffered_n(
 
     // Start writing digits for integer part
 
-    append_utoa(&out, all_digits[0]);
+    pf_append_utoa(&out, all_digits[0]);
 
     for (size_t i = 1; i < integer_part_end; i++)
     {
