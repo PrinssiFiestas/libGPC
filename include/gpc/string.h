@@ -86,55 +86,55 @@ void gp_str_reserve(
 
 GP_NONNULL_ARGS()
 void gp_str_copy(
-    GPString*           dest,
-    const void*restrict src,
-    size_t              src_size);
+    GPString*              dest,
+    const void*GP_RESTRICT src,
+    size_t                 src_size);
 
 GP_NONNULL_ARGS()
 void gp_str_repeat(
-    GPString*           dest,
-    size_t              count,
-    const void*restrict src,
-    size_t              src_length);
+    GPString*              dest,
+    size_t                 count,
+    const void*GP_RESTRICT src,
+    size_t                 src_length);
 
 GP_NONNULL_ARGS(1)
 void gp_str_slice(
-    GPString*           dest,
-    const void*restrict optional_src, // mutates dest if NULL
-    size_t              start,
-    size_t              end);
+    GPString*              dest,
+    const void*GP_RESTRICT optional_src, // mutates dest if NULL
+    size_t                 start,
+    size_t                 end);
 
 GP_NONNULL_ARGS()
 void gp_str_append(
-    GPString*           dest,
-    const void*restrict src,
-    size_t              src_size);
+    GPString*              dest,
+    const void*GP_RESTRICT src,
+    size_t                 src_size);
 
 GP_NONNULL_ARGS()
 void gp_str_insert(
-    GPString*           dest,
-    size_t              pos,
-    const void*restrict src,
-    size_t              src_size);
+    GPString*              dest,
+    size_t                 pos,
+    const void*GP_RESTRICT src,
+    size_t                 src_size);
 
 // Returns index to the first occurrence of needle in haystack.
 GP_NONNULL_ARGS()
 size_t gp_str_replace(
-    GPString*           haystack,
-    const void*restrict needle,
-    size_t              needle_length,
-    const void*restrict replacement,
-    size_t              replacement_length,
-    size_t              start);
+    GPString*              haystack,
+    const void*GP_RESTRICT needle,
+    size_t                 needle_length,
+    const void*GP_RESTRICT replacement,
+    size_t                 replacement_length,
+    size_t                 start);
 
 // Returns number of replacements made.
 GP_NONNULL_ARGS()
 size_t gp_str_replace_all(
-    GPString*           haystack,
-    const void*restrict needle,
-    size_t              needle_length,
-    const void*restrict replacement,
-    size_t              replacement_length);
+    GPString*              haystack,
+    const void*GP_RESTRICT needle,
+    size_t                 needle_length,
+    const void*GP_RESTRICT replacement,
+    size_t                 replacement_length);
 
 #define/* size_t */gp_str_print(str_ptr_out, ...) \
     GP_STR_PRINT(str_ptr_out, __VA_ARGS__)

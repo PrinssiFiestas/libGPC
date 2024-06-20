@@ -27,62 +27,62 @@ extern "C" {
 
 GP_NONNULL_ARGS(1)
 size_t gp_bytes_slice(
-    void*restrict       dest,
-    const void*restrict optional_src, // mutates dest if NULL
-    size_t              start,
-    size_t              end);
+    void*GP_RESTRICT       dest,
+    const void*GP_RESTRICT optional_src, // mutates dest if NULL
+    size_t                 start,
+    size_t                 end);
 
 GP_NONNULL_ARGS()
 size_t gp_bytes_repeat(
-    void*restrict       dest,
-    size_t              count,
-    const void*restrict src,
-    size_t              src_size);
+    void*GP_RESTRICT       dest,
+    size_t                 count,
+    const void*GP_RESTRICT src,
+    size_t                 src_size);
 
 GP_NONNULL_ARGS()
 size_t gp_bytes_append(
-    void*restrict       dest,
-    size_t              dest_size,
-    const void*restrict src,
-    size_t              src_size);
+    void*GP_RESTRICT       dest,
+    size_t                 dest_size,
+    const void*GP_RESTRICT src,
+    size_t                 src_size);
 
 GP_NONNULL_ARGS()
 size_t gp_bytes_insert(
-    void*restrict       dest,
-    size_t              dest_size,
-    size_t              pos,
-    const void*restrict src,
-    size_t              src_size);
+    void*GP_RESTRICT       dest,
+    size_t                 dest_size,
+    size_t                 pos,
+    const void*GP_RESTRICT src,
+    size_t                 src_size);
 
 GP_NONNULL_ARGS()
 size_t gp_bytes_replace_range(
-    void*restrict       dest,
-    size_t              dest_size,
-    size_t              start,
-    size_t              end,
-    const void*restrict replacement,
-    size_t              replacement_length);
+    void*GP_RESTRICT       dest,
+    size_t                 dest_size,
+    size_t                 start,
+    size_t                 end,
+    const void*GP_RESTRICT replacement,
+    size_t                 replacement_length);
 
 // Returns index to the first occurrence of needle in haystack.
 GP_NONNULL_ARGS(1, 3, 5)
 size_t gp_bytes_replace(
-    void*restrict       haystack,
-    size_t              haystack_size,
-    const void*restrict needle,
-    size_t              needle_size,
-    const void*restrict replacement,
-    size_t              replacement_size,
-    size_t*             optional_in_start_out_first_occurrence_position);
+    void*GP_RESTRICT       haystack,
+    size_t                 haystack_size,
+    const void*GP_RESTRICT needle,
+    size_t                 needle_size,
+    const void*GP_RESTRICT replacement,
+    size_t                 replacement_size,
+    size_t*                optional_in_start_out_first_occurrence_position);
 
 GP_NONNULL_ARGS(1, 3, 5)
 size_t gp_bytes_replace_all(
-    void*restrict       haystack,
-    size_t              haystack_size,
-    const void*restrict needle,
-    size_t              needle_size,
-    const void*restrict replacement,
-    size_t              replacement_size,
-    size_t*             optional_replacement_count);
+    void*GP_RESTRICT       haystack,
+    size_t                 haystack_size,
+    const void*GP_RESTRICT needle,
+    size_t                 needle_size,
+    const void*GP_RESTRICT replacement,
+    size_t                 replacement_size,
+    size_t*                optional_replacement_count);
 
 #define/* size_t */gp_bytes_print(bytes_out, ...) \
     GP_BYTES_PRINT(bytes_out, (size_t)-1, __VA_ARGS__)
@@ -102,11 +102,11 @@ size_t gp_bytes_replace_all(
 // char_set is NULL.
 GP_NONNULL_ARGS(1)
 size_t gp_bytes_trim(
-    void*restrict       bytes,
-    size_t              bytes_size,
-    void**restrict      optional_out_ptr, // memmove() if NULL
-    const char*restrict optional_char_set,
-    int                 flags);
+    void*GP_RESTRICT       bytes,
+    size_t                 bytes_size,
+    void**GP_RESTRICT      optional_out_ptr, // memmove() if NULL
+    const char*GP_RESTRICT optional_char_set,
+    int                    flags);
 
 GP_NONNULL_ARGS()
 size_t gp_bytes_to_upper(
@@ -120,9 +120,9 @@ size_t gp_bytes_to_lower(
 
 GP_NONNULL_ARGS()
 size_t gp_bytes_to_valid(
-    void*restrict       bytes,
-    size_t              bytes_size,
-    const char*restrict replacement);
+    void*GP_RESTRICT       bytes,
+    size_t                 bytes_size,
+    const char*GP_RESTRICT replacement);
 
 // ----------------------------------------------------------------------------
 // Bytes examination
@@ -215,14 +215,14 @@ typedef struct gp_printable
 #endif
 
 size_t gp_bytes_print_internal(
-    void*restrict out,
+    void*GP_RESTRICT out,
     size_t n,
     size_t arg_count,
     const GPPrintable* objs,
     ...);
 
 size_t gp_bytes_println_internal(
-    void*restrict out,
+    void*GP_RESTRICT out,
     size_t n,
     size_t arg_count,
     const GPPrintable* objs,

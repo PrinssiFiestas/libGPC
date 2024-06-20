@@ -12,6 +12,7 @@
 
 #include <gpc/attributes.h>
 #include <stddef.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -52,7 +53,6 @@ inline void* gp_mem_alloc_zeroes(
     const GPAllocator* allocator,
     size_t size)
 {
-    void* memset(void*, int, size_t);
     return memset(gp_mem_alloc(allocator, size), 0, size);
 }
 

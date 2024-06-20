@@ -46,6 +46,17 @@
 #endif
 
 // ----------------------------------------------------------------------------
+// Restrict
+
+#if __GNUG__ || _MSC_VER
+#define GP_RESTRICT __restrict
+#elif __cplusplus
+#define GP_RESTRICT
+#else
+#define GP_RESTRICT restrict
+#endif
+
+// ----------------------------------------------------------------------------
 // Static array index
 
 // Static array index in parameter declarations is a C99 feature, however, many
@@ -75,7 +86,7 @@
 #endif
 
 // ----------------------------------------------------------------------------
-// Disable sanitizer
+// Disable sanitizers
 
 #ifdef __GNUC__
 #define GP_NO_SANITIZE __attribute__((no_sanitize("address", "leak", "undefined")))

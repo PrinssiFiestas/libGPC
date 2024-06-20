@@ -17,74 +17,54 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include "../gpc/attributes.h"
 #include "format_scanning.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifdef __GNUC__
-__attribute__((nonnull()))
-#endif
+GP_NONNULL_ARGS()
 int pf_vprintf(
-    const char*restrict fmt, va_list args);
+    const char*GP_RESTRICT fmt, va_list args);
 
-#ifdef __GNUC__
-__attribute__((nonnull()))
-#endif
+GP_NONNULL_ARGS()
 int pf_vfprintf(
-    FILE*restrict stream, const char*restrict fmt, va_list args);
+    FILE*GP_RESTRICT stream, const char*GP_RESTRICT fmt, va_list args);
 
-#ifdef __GNUC__
-__attribute__((nonnull()))
-#endif
+GP_NONNULL_ARGS()
 int pf_vsprintf(
-    char*restrict buf, const char*restrict fmt, va_list args);
+    char*GP_RESTRICT buf, const char*GP_RESTRICT fmt, va_list args);
 
-#ifdef __GNUC__
-__attribute__((nonnull(3)))
-#endif
+GP_NONNULL_ARGS(3)
 int pf_vsnprintf(
-    char*restrict buf, size_t n, const char*restrict fmt, va_list args);
+    char*GP_RESTRICT buf, size_t n, const char*GP_RESTRICT fmt, va_list args);
 
-#ifdef __GNUC__
-__attribute__((format (printf, 1, 2)))
-#endif
+GP_PRINTF(1, 2)
 int pf_printf(
-    const char*restrict fmt, ...);
+    const char*GP_RESTRICT fmt, ...);
 
-#ifdef __GNUC__
-__attribute__((nonnull()))
-__attribute__((format (printf, 2, 3)))
-#endif
+GP_NONNULL_ARGS() GP_PRINTF(2, 3)
 int pf_fprintf(
-    FILE*restrict stream, const char*restrict fmt, ...);
+    FILE*GP_RESTRICT stream, const char*GP_RESTRICT fmt, ...);
 
-#ifdef __GNUC__
-__attribute__((nonnull()))
-__attribute__((format (printf, 2, 3)))
-#endif
-int pf_sprintf(char*restrict buf, const char*restrict fmt, ...);
+GP_NONNULL_ARGS() GP_PRINTF(2, 3)
+int pf_sprintf(char*GP_RESTRICT buf, const char*GP_RESTRICT fmt, ...);
 
-#ifdef __GNUC__
-__attribute__((nonnull(3)))
-__attribute__((format (printf, 3, 4)))
-#endif
+GP_NONNULL_ARGS(3) GP_PRINTF(3, 4)
 int pf_snprintf(
-    char*restrict buf, size_t n, const char*restrict fmt, ...);
+    char*GP_RESTRICT buf, size_t n, const char*GP_RESTRICT fmt, ...);
 
 // Functions taking va_list may or may not consume an argument from the list due
 // to va_list being implementation defined. This limits their applications so
 // pf_vsnprintf() is guranteed to NOT consume an arg from arg list and
 // pf_vsnprintf_consuming() is guranteed to consume an arg from arg list.
 
-#ifdef __GNUC__
-__attribute__((nonnull(3, 4)))
-#endif
+GP_NONNULL_ARGS(3, 4)
 int pf_vsnprintf_consuming(
-    char*restrict out_buf,
+    char*GP_RESTRICT out_buf,
     const size_t max_size,
-    const char*restrict format,
+    const char*GP_RESTRICT format,
     struct pf_va_list* args);
 
 #ifdef __cplusplus

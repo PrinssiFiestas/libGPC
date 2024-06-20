@@ -77,24 +77,24 @@ GPArray(void) gp_arr_reserve(
 
 GP_ARR_ATTRS()
 GPArray(void) gp_arr_copy(
-    size_t              element_size,
-    GPArray(void)       dest,
-    const void*restrict src,
-    size_t              src_length);
+    size_t                 element_size,
+    GPArray(void)          dest,
+    const void*GP_RESTRICT src,
+    size_t                 src_length);
 
 GP_ARR_ATTRS(2)
 GPArray(void) gp_arr_slice(
-    size_t              element_size,
-    GPArray(void)       arr,
-    const void*restrict optional_src, // mutates arr if NULL
-    size_t              start_index,
-    size_t              end_index);
+    size_t                 element_size,
+    GPArray(void)          arr,
+    const void*GP_RESTRICT optional_src, // mutates arr if NULL
+    size_t                 start_index,
+    size_t                 end_index);
 
 GP_ARR_ATTRS()
 GPArray(void) gp_arr_push(
-    size_t              element_size,
-    GPArray(void)       arr,
-    const void*restrict element);
+    size_t                 element_size,
+    GPArray(void)          arr,
+    const void*GP_RESTRICT element);
 
 GP_NONNULL_ARGS_AND_RETURN
 void* gp_arr_pop(
@@ -103,18 +103,18 @@ void* gp_arr_pop(
 
 GP_ARR_ATTRS()
 GPArray(void) gp_arr_append(
-    size_t              element_size,
-    GPArray(void)       arr,
-    const void*restrict src,
-    size_t              element_count);
+    size_t                 element_size,
+    GPArray(void)          arr,
+    const void*GP_RESTRICT src,
+    size_t                 element_count);
 
 GP_ARR_ATTRS()
 GPArray(void) gp_arr_insert(
-    size_t              element_size,
-    GPArray(void)       arr,
-    size_t              pos,
-    const void*restrict src,
-    size_t              element_count);
+    size_t                 element_size,
+    GPArray(void)          arr,
+    size_t                 pos,
+    const void*GP_RESTRICT src,
+    size_t                 element_count);
 
 GP_ARR_ATTRS()
 GPArray(void) gp_arr_erase(
@@ -127,7 +127,7 @@ GP_NONNULL_RETURN GP_NONNULL_ARGS(2, 5)
 GPArray(void) gp_arr_map(
     size_t              element_size,
     GPArray(void)       arr,
-    const void*restrict optional_src, // mutates arr if NULL
+    const void*GP_RESTRICT optional_src, // mutates arr if NULL
     size_t              src_length,
     void (*f)(void* out, const void* in));
 
@@ -147,10 +147,10 @@ void* gp_arr_foldr(
 
 GP_ARR_ATTRS(2, 5)
 GPArray(void) gp_arr_filter(
-    size_t              element_size,
-    GPArray(void)       arr,
-    const void*restrict optional_src, // mutates arr if NULL
-    size_t              src_length,
+    size_t                 element_size,
+    GPArray(void)          arr,
+    const void*GP_RESTRICT optional_src, // mutates arr if NULL
+    size_t                 src_length,
     bool (*f)(const void* element));
 
 // ----------------------------------------------------------------------------
