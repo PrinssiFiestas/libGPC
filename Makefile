@@ -99,8 +99,8 @@ install:
 	chmod 0755          /usr/local/lib/libgpcd.so
 	ldconfig
 
-build/singleheadergen$(EXE_EXT): tools/singleheadergen.c build/libgpc.so
-	$(CC) $^ $(CFLAGS) $(DEBUG_CFLAGS) -o $@
+build/singleheadergen$(EXE_EXT): tools/singleheadergen.c | build/libgpc.so
+	$(CC) $? build/libgpc.so $(CFLAGS) $(RELEASE_CFLAGS) -o $@
 
 release: CFLAGS += $(RELEASE_CFLAGS)
 release: build/libgpc.so
