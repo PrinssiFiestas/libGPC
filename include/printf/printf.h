@@ -3,8 +3,8 @@
 // https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
 
 // This library is modified to suit the needs of libGPC. Most notably
-// pf_snprintf() does not null-terminate if n is exceeded and custom formats are
-// added.
+// pf_snprintf() does not null-terminate if n is exceeded and custom formats and
+// portable attributes and restrict are added.
 //
 // Use %S for GPString
 //
@@ -17,7 +17,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include "../gpc/attributes.h"
+#include <gpc/attributes.h>
 #include "format_scanning.h"
 
 #ifdef __cplusplus

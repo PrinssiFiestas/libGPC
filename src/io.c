@@ -240,8 +240,15 @@ static void gp_va_list_dummy_consumer(
                 {
                     case 2 * 'h':
                     case 'h':
+                    case 'B':
+                    case 'W':
+                    case 'D':
                     case 0:
                         va_arg(args->list, int);
+                    break;
+
+                    case 'Q':
+                        va_arg(args->list, uint64_t);
                     break;
 
                     case 'l':
@@ -266,8 +273,15 @@ static void gp_va_list_dummy_consumer(
                 {
                     case 2 * 'h':
                     case 'h':
+                    case 'B':
+                    case 'W':
+                    case 'D':
                     case 0:
                         va_arg(args->list, unsigned);
+                    break;
+
+                    case 'Q':
+                        va_arg(args->list, uint64_t);
                     break;
 
                     case 'l':

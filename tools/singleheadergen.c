@@ -24,7 +24,6 @@
 #include <errno.h>
 #include <string.h>
 #include <dirent.h>
-#include <locale.h>
 
 #if _WIN32
 #define stat _stat
@@ -429,7 +428,6 @@ static void write_files(GPArray(File) files)
 
 int main(void)
 {
-    setlocale(LC_ALL, "C.UTF-8");
     init_globals();
     write_license();
     fputs("/*\n"
