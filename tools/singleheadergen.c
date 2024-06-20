@@ -8,7 +8,9 @@
 // come before any header.
 //
 // Header files have to be written next. Every time an #include directive
-// references a local header file, it has to be inlined recursively.
+// references a local header file, it has to be inlined recursively. Private
+// headers (headers in src/) has to be in X_IMPLEMENTATION block to hide
+// implementation specific possibly C-only headers from user.
 //
 // After all header files have been written, write the rest from all of the
 // source files in an #ifdef X_IMPLEMENTATION block. #include directives
@@ -405,17 +407,28 @@ static void write_file(GPArray(File) files, const size_t index)
     gp_file_println(out,
         "/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */\n"
         "/*", file->name, "*/\n");
+    if ( ! file->include_dir) // private header
+        gp_file_println(out, "#ifdef", implementation);
 
     bool is_in_multiline_comment = false;
     while (gp_file_read_line(&line, file->fp))
     {
         const size_t i = find_header_index(line, file, &is_in_multiline_comment);
-        if (i == GP_NOT_FOUND)
+        if (i == GP_NOT_FOUND) {
             gp_file_print(out, line);
-        else
+        } else {
+            if ( ! file->include_dir && headers[i].include_dir)
+                gp_file_println(out, "\n#endif /*", implementation, "*/\n");
+
             write_file(headers, i);
+
+            if ( ! file->include_dir && headers[i].include_dir)
+                gp_file_println(out, "#ifdef", implementation, "\n");
+        }
     }
     gp_file_println(out, "");
+    if ( ! file->include_dir)
+        gp_file_println(out, "#endif /*", implementation, "*/\n");
     fclose(file->fp);
     file->fp = NULL;
 }

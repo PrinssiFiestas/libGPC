@@ -102,6 +102,8 @@ size_t gp_file_println_internal(
     const GPPrintable* objs,
     ...);
 
+#if !__cplusplus
+
 #define GP_FILE_PRINT(OUT, ...) \
     gp_file_print_internal( \
         OUT, \
@@ -118,8 +120,19 @@ size_t gp_file_println_internal(
             { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
         __VA_ARGS__)
 
-#ifdef __cplusplus
+#else // __cplusplus
 } // extern "C"
-#endif
+
+#define GP_FILE_PRINT(OUT, ...) fputs( \
+    (std::ostringstream() << \
+        GP_PROCESS_ALL_ARGS(GP_EVAL, GP_STREAM_INSERT, __VA_ARGS__) \
+    ).str().c_str(), OUT)
+
+#define GP_FILE_PRINTLN(OUT, ...) fputs( \
+    (std::ostringstream() << \
+        GP_PROCESS_ALL_ARGS(GP_EVAL, GP_STREAM_INSERT_SPACE, __VA_ARGS__) << "\n" \
+    ).str().c_str(), OUT)
+
+#endif // __cplusplus
 
 #endif // GP_IO_INCLUDED

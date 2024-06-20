@@ -17,6 +17,8 @@ else
 	RELEASE_CFLAGS += -flto
 endif
 
+all: release debug build/gprun$(EXE_EXT) single_header
+
 NPROC        = $(shell echo `nproc`)
 THREAD_COUNT = $(if $(NPROC),$(NPROC),4)
 MAKEFLAGS   += -j$(THREAD_COUNT)
@@ -70,8 +72,6 @@ run_cl_tests: $(CL_TESTS)
 	done
 
 cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
-
-all: release debug build/gprun$(EXE_EXT) single_header
 
 single_header: build/singleheadergen$(EXE_EXT)
 	./$<

@@ -25,6 +25,12 @@
 extern "C" {
 #endif
 
+struct gp_random_state
+{
+    uint64_t state;
+    uint64_t inc;
+};
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
@@ -66,8 +72,10 @@ inline uintptr_t gp_round_to_aligned(const uintptr_t x,const uintptr_t boundary)
     return x + (boundary - 1) - ((x - 1) & (boundary - 1));
 }
 
+#if !__cplusplus
 #define gp_min(x, y) gp_generic_min(x, y)
 #define gp_max(x, y) gp_generic_max(x, y)
+#endif
 
 inline bool gp_fapproxf(float x, float y, float max_relative_diff) {
     return fabsf(x - y) <= max_relative_diff * fmaxf(x, y);
@@ -79,7 +87,7 @@ inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff){
     return fabsl(x - y) <= max_rel_diff * fmaxl(x, y);
 }
 
-#define GP_BREAKPOINT            GP_BREAKPOINT_INTERNAL
+#define GP_BREAKPOINT GP_BREAKPOINT_INTERNAL
 
 // ----------------------------------------------------------------------------
 // Random functions
@@ -99,12 +107,6 @@ int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_AR
 //
 // ----------------------------------------------------------------------------
 
-struct gp_random_state
-{
-    uint64_t private_state;
-    uint64_t private_inc;
-};
-
 inline int                gp_imin(int x, int y)                                 { return x < y ? x : y; }
 inline long               gp_lmin(long x, long y)                               { return x < y ? x : y; }
 inline long long          gp_llmin(long long x, long long y)                    { return x < y ? x : y; }
@@ -120,7 +122,7 @@ inline unsigned long      gp_lumax(unsigned long x, unsigned long y)            
 inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y) { return x > y ? x : y; }
 
 // gp_min() and gp_max() implementations
-#if defined(__GNUC__)
+#if __GNUC__
 #define gp_generic_min(X, Y) ({ \
     typeof(X) _gp_min_X = (X); typeof(Y) _gp_min_Y = (Y); \
     _gp_min_X < _gp_min_Y ? _gp_min_X : _gp_min_Y; \
@@ -171,6 +173,17 @@ _Generic(X, \
 
 #ifdef __cplusplus
 } // extern "C"
+
+template <typename T>
+static inline T gp_max(T a, T b)
+{
+    return a > b ? a : b;
+}
+template <typename T>
+static inline T gp_min(T a, T b)
+{
+    return a < b ? a : b;
+}
 #endif
 
 #endif // GP_UTILS_INCLUDED

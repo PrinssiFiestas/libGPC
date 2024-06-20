@@ -13,17 +13,17 @@
 #include <gpc/string.h>
 #include <gpc/hashmap.h>
 
+#define GPDictionary(T) T*
+
 #ifdef __cplusplus
-extern "C" {
-#endif
+// TODO C++ overloads
+#else
 
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
-
-#define GPDictionary(T) T*
 
 #ifdef GP_GENERIC_AVAILABLE
 
@@ -1091,8 +1091,6 @@ inline GPString gp_file99(size_t a_size, void* a, const char* path, const char* 
 #define GP_FILE99_2(PATH, ...) gp_file_open(PATH, __VA_ARGS__)
 #define GP_FILE99(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_FILE99_3, GP_FILE99_2)(A,__VA_ARGS__)
 
-#ifdef __cplusplus
-} // extern "C"
-#endif
+#endif // __cplusplus
 
 #endif // GP_GENERIC_INCLUDED

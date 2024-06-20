@@ -19,15 +19,16 @@
 #include <stdint.h>
 #include <wctype.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
+
+#ifdef __cplusplus
+static inline std::ostream& operator<<(std::ostream& out, GPString str);
+extern "C" {
+#endif
 
 //
 typedef struct gp_string_header
@@ -305,6 +306,8 @@ size_t gp_str_n_println_internal(
     const GPPrintable* objs,
     ...);
 
+#ifndef __cplusplus
+
 #define GP_STR_PRINT(OUT, ...) \
     gp_str_print_internal( \
         OUT, \
@@ -339,8 +342,36 @@ size_t gp_str_n_println_internal(
             { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
         __VA_ARGS__)
 
-#ifdef __cplusplus
+#else // __cplusplus
 } // extern "C"
+
+static inline std::ostream& operator<<(std::ostream& out, GPString str)
+{
+    out.write((const char*)str, gp_str_length(str));
+    return out;
+}
+
+static inline size_t gp_str_copy_cppstr(GPString* out, const size_t n, std::string s)
+{
+    const size_t length = n < s.length() ? n : s.length();
+    gp_str_reserve(out, length);
+    memcpy(*out, s.data(), length);
+    ((GPStringHeader*)*out - 1)->length = length;
+    return s.length();
+}
+
+#define GP_STR_PRINT(OUT, ...) GP_STR_N_PRINT(OUT, SIZE_MAX, __VA_ARGS__)
+#define GP_STR_N_PRINT(OUT, N, ...) gp_str_copy_cppstr(OUT, N, \
+    (std::ostringstream() << \
+        GP_PROCESS_ALL_ARGS(GP_EVAL, GP_STREAM_INSERT, __VA_ARGS__) \
+    ).str())
+
+#define GP_STR_PRINTLN(OUT, ...) GP_STR_N_PRINTLN(OUT, SIZE_MAX, __VA_ARGS__)
+#define GP_STR_N_PRINTLN(OUT, N, ...) gp_str_copy_cppstr(OUT, N, \
+    (std::ostringstream() << \
+        GP_PROCESS_ALL_ARGS(GP_EVAL, GP_STREAM_INSERT_SPACE, __VA_ARGS__) << "\n" \
+    ).str())
+
 #endif
 
 #endif // GP_STRING_INCLUDED

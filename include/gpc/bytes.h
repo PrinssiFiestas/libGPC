@@ -16,6 +16,8 @@
 #include <stddef.h>
 
 #ifdef __cplusplus
+#include <printf/printf.h>
+#include <sstream>
 extern "C" {
 #endif
 
@@ -228,6 +230,8 @@ size_t gp_bytes_println_internal(
     const GPPrintable* objs,
     ...);
 
+#ifndef __cplusplus
+
 #define GP_BYTES_PRINT(OUT, N, ...) \
     gp_bytes_print_internal( \
         OUT, \
@@ -246,8 +250,21 @@ size_t gp_bytes_println_internal(
             { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
         __VA_ARGS__)
 
-#ifdef __cplusplus
+#else // __cplusplus
 } // extern "C"
-#endif
+#define GP_STREAM_INSERT(...) <<
+#define GP_STREAM_INSERT_SPACE(...) << " " <<
+
+#define GP_BYTES_PRINT(OUT, N, ...) pf_snprintf(OUT, N, "%s", \
+    (std::ostringstream() << \
+        GP_PROCESS_ALL_ARGS(GP_EVAL, GP_STREAM_INSERT, __VA_ARGS__) \
+    ).str().c_str())
+
+#define GP_BYTES_PRINTLN(OUT, N, ...) pf_snprintf(OUT, N, "%s", \
+    (std::ostringstream() << \
+        GP_PROCESS_ALL_ARGS(GP_EVAL, GP_STREAM_INSERT_SPACE, __VA_ARGS__) << "\n" \
+    ).str().c_str())
+
+#endif // __cplusplus
 
 #endif // GP_BYTES_INCLUDED

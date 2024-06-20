@@ -64,6 +64,7 @@
 #if !defined(_MSC_VER) && \
     !defined(__TINYC__) && \
     !defined(__MSP430__) && \
+    !defined(__cplusplus) && \
     !defined(__COMPCERT__)
 // Use to specify an array argument with at least some number of valid elements,
 // e.g. "void foo(int arr[GPC_STATIC 10];". This can be used for optimizations

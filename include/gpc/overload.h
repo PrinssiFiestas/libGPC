@@ -148,7 +148,8 @@ inline size_t gp_sizeof(const GPType T) {
     return 0;
 }
 
-#ifndef _MSC_VER
+#if __cplusplus // defined with overloads
+#elif !_MSC_VER
 #define GP_TYPE(VAR)                              \
 _Generic(VAR,                                     \
     bool:                  GP_BOOL,               \
@@ -156,7 +157,7 @@ _Generic(VAR,                                     \
     int:                   GP_INT,                \
     long:                  GP_LONG,               \
     long long:             GP_LONG_LONG,          \
-    unsigned short:        GP_UNSIGNED_LONG,      \
+    unsigned short:        GP_UNSIGNED_SHORT,     \
     unsigned int:          GP_UNSIGNED,           \
     unsigned long:         GP_UNSIGNED_LONG,      \
     unsigned long long:    GP_UNSIGNED_LONG_LONG, \
@@ -168,7 +169,6 @@ _Generic(VAR,                                     \
     char*:                 GP_CHAR_PTR,           \
     const char*:           GP_CHAR_PTR,           \
     struct gp_char*:       GP_STRING,             \
-    const struct gp_char*: GP_STRING,             \
     default:               GP_PTR)
 #else // MSVC char <=> signed char, although standard says that they are different
 #define GP_TYPE(VAR)                              \
@@ -189,7 +189,6 @@ _Generic(VAR,                                     \
     char*:                 GP_CHAR_PTR,           \
     const char*:           GP_CHAR_PTR,           \
     struct gp_char*:       GP_STRING,             \
-    const struct gp_char*: GP_STRING,             \
     default:               GP_PTR)
 #endif
 
@@ -551,6 +550,26 @@ _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, RESOLVED, ...) 
 
 #ifdef __cplusplus
 } // extern "C"
+
+GPType GP_TYPE(bool               x) { (void)x; return GP_BOOL;               }
+GPType GP_TYPE(short              x) { (void)x; return GP_SHORT;              }
+GPType GP_TYPE(int                x) { (void)x; return GP_INT;                }
+GPType GP_TYPE(long               x) { (void)x; return GP_LONG;               }
+GPType GP_TYPE(long long          x) { (void)x; return GP_LONG_LONG;          }
+GPType GP_TYPE(unsigned short     x) { (void)x; return GP_UNSIGNED_SHORT;     }
+GPType GP_TYPE(unsigned           x) { (void)x; return GP_UNSIGNED;           }
+GPType GP_TYPE(unsigned long      x) { (void)x; return GP_UNSIGNED_LONG;      }
+GPType GP_TYPE(unsigned long long x) { (void)x; return GP_UNSIGNED_LONG_LONG; }
+GPType GP_TYPE(float              x) { (void)x; return GP_FLOAT;              }
+GPType GP_TYPE(double             x) { (void)x; return GP_DOUBLE;             }
+GPType GP_TYPE(char               x) { (void)x; return GP_CHAR;               }
+GPType GP_TYPE(unsigned char      x) { (void)x; return GP_UNSIGNED_CHAR;      }
+GPType GP_TYPE(signed char        x) { (void)x; return GP_SIGNED_CHAR;        }
+GPType GP_TYPE(char*              x) { (void)x; return GP_CHAR_PTR;           }
+GPType GP_TYPE(const char*        x) { (void)x; return GP_CHAR_PTR;           }
+GPType GP_TYPE(struct gp_char*    x) { (void)x; return GP_STRING;             }
+GPType GP_TYPE(const void*        x) { (void)x; return GP_PTR;                }
+
 #endif
 
 #endif // GP_OVERLOAD_INCLUDED

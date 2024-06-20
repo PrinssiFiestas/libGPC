@@ -19,6 +19,9 @@
 
 #ifdef __cplusplus
 extern "C" {
+#define GP_DUMMY_BOOL_ASSIGN
+#else // suppress some warnings
+#define GP_DUMMY_BOOL_ASSIGN (bool){0} =
 #endif
 
 #ifndef GP_USER_ASSERT_EXIT
@@ -34,13 +37,13 @@ extern "C" {
 // Returns true if condition is true. If condition is false prints fail message,
 // marks current test and suite (if running tests) as failed, and exits program.
 #define gp_assert(/* bool condition, variables*/...) \
-    ((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
+    (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
         (GP_FAIL(__VA_ARGS__), GP_USER_ASSERT_EXIT(1), false))
 
 // Returns true if condition is true. If condition is false prints fail message,
 // marks current test and suite (if running tests) as failed, and returns false.
 #define gp_expect(/* bool condition, variables*/...) \
-    ((bool){0} = (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
+    (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
         (GP_FAIL(__VA_ARGS__), false))
 
 // Starts test. Subsequent calls starts a new test ending the last one. If name
@@ -85,6 +88,32 @@ void gp_fail_internal(
 
 #ifdef __cplusplus
 } // extern "C"
-#endif
+
+static inline void gp_fail_internal_cpp(
+    const char*const condition,
+    const char*const file,
+    const int line,
+    const char*const func,
+    std::string vars)
+{
+    vars.insert(0, "\"" GP_CURSOR_BACK(1));
+    const char*const cstr = vars.c_str();
+    const GPPrintable ps[2] = {{condition, GP_INT}, {cstr, GP_CHAR_PTR}};
+    gp_fail_internal(file, line, func, 2, ps, 0, cstr);
+}
+
+#define GP_STREAM_VAR_INFO(VAR) #VAR " = " << (VAR)
+#define GP_STREAM_INSERT_VAR(...) << "\n" <<
+#undef GP_FAIL
+#define GP_FAIL(...) \
+    gp_fail_internal_cpp( \
+        "", \
+        __FILE__, \
+        __LINE__, \
+        __func__, \
+        (std::ostringstream() << \
+            GP_PROCESS_ALL_ARGS(GP_STREAM_VAR_INFO, GP_STREAM_INSERT_VAR, __VA_ARGS__) \
+        ).str())
+#endif // __cplusplus
 
 #endif // GP_ASSERT_INCLUDED
