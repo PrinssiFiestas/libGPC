@@ -48,18 +48,13 @@ GPString gp_str_new(
     size_t      capacity,
     const char* init);
 
+// Not available in C++
 #define/* GPString */gp_str_on_stack( \
     optional_allocator_ptr, \
     size_t_capacity, \
-    const_char_ptr_init) (GPString) \
-(struct GP_C99_UNIQUE_STRUCT(__LINE__) \
-{ GPStringHeader header; char data[ (size_t_capacity) + sizeof"" ]; }) { \
-{ \
-    .length     = sizeof(const_char_ptr_init) - 1, \
-    .capacity   = size_t_capacity, \
-    .allocator  = optional_allocator_ptr, \
-    .allocation = NULL \
-}, { const_char_ptr_init } }.data
+    /*optional_cstr_literal_init*/...) (GPString) \
+    \
+    GP_STR_ON_STACK(optional_allocator_ptr, size_t_capacity,__VA_ARGS__)
 
 // If not zeroing memory for performance is desirable and/or macro magic is
 // undesirable, arrays can be created on stack manually. Capacity should be
@@ -308,6 +303,19 @@ size_t gp_str_n_println_internal(
 
 #ifndef __cplusplus
 
+#define/* GPString */GP_STR_ON_STACK( \
+    optional_allocator_ptr, \
+    size_t_capacity, \
+    ...) (GPString) \
+(struct GP_C99_UNIQUE_STRUCT(__LINE__) \
+{ GPStringHeader header; char data[ (size_t_capacity) + sizeof"" ]; }) { \
+{ \
+    .length     = sizeof(""__VA_ARGS__) - 1, \
+    .capacity   = size_t_capacity, \
+    .allocator  = optional_allocator_ptr, \
+    .allocation = NULL \
+}, {__VA_ARGS__} }.data
+
 #define GP_STR_PRINT(OUT, ...) \
     gp_str_print_internal( \
         OUT, \
@@ -372,6 +380,6 @@ static inline size_t gp_str_copy_cppstr(GPString* out, const size_t n, std::stri
         GP_PROCESS_ALL_ARGS(GP_EVAL, GP_STREAM_INSERT_SPACE, __VA_ARGS__) << "\n" \
     ).str())
 
-#endif
+#endif // __cplusplus
 
 #endif // GP_STRING_INCLUDED

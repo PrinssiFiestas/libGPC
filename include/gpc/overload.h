@@ -79,7 +79,11 @@ int main(void)
 */
 
 // If __VA_OPT__() is needed with GP_PROCESS_ALL_ARGS(),
-// GP_PROCESS_ALL_BUT_1ST() can be used instead. GP_PROCESS_ALL_BUT_1ST() processes every argument that is passed to it except the first one. __VA_OPT__() can be simulated by using the first argument as a required argument making all variadic arguments optional without needing __VA_OPT__(). Example below:
+// GP_PROCESS_ALL_BUT_1ST() can be used instead. GP_PROCESS_ALL_BUT_1ST()
+// processes every argument that is passed to it except the first one.
+// __VA_OPT__() can be simulated by using the first argument as a required
+// argument making all variadic arguments optional without needing __VA_OPT__().
+// Example below:
 /*
     int sq(int x) { return x * x; }
     #define PLUS(...) +

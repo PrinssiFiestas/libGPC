@@ -40,7 +40,7 @@ int main(void)
 
             gp_str_delete(str); // safe but pointless
 
-            str = gp_str_on_stack(gp_heap, 1, "");
+            str = gp_str_on_stack(gp_heap, 1);
             const char* cstr = "Allocator provided, extending is safe!";
             gp_str_copy(&str, cstr, strlen(cstr));
             gp_expect(gp_arr_allocation(str),
@@ -51,7 +51,7 @@ int main(void)
         gp_test("Reserve");
         {
             size_t old_capacity;
-            GPString str = gp_str_on_stack(gp_heap, 1, "");
+            GPString str = gp_str_on_stack(gp_heap, 1);
             old_capacity = gp_arr_capacity(str);
 
             gp_str_reserve(&str, 12);
@@ -195,7 +195,7 @@ int main(void)
         gp_test("Substr");
         {
             const char* src = "Some_string_to slice";
-            GPString dest = gp_str_on_stack(NULL, 64, "");
+            GPString dest = gp_str_on_stack(NULL, 64);
             gp_str_slice(&dest, src, 5, 11); // not including 11!
             gp_expect(gp_str_equal(dest, "string", strlen("string")), dest);
         }
@@ -265,7 +265,7 @@ int main(void)
     {
         gp_test("Numbers");
         {
-            GPString str = gp_str_on_stack(gp_heap, 1, "");
+            GPString str = gp_str_on_stack(gp_heap, 1);
             gp_str_print(&str, 1, " divided by ", 3, " is ", 1./3.);
             char buf[128];
             sprintf(buf, "%i divided by %i is %g", 1, 3, 1./3.);
@@ -275,7 +275,7 @@ int main(void)
 
         gp_test("Strings");
         {
-            GPString str = gp_str_on_stack(NULL, 16, "");
+            GPString str = gp_str_on_stack(NULL, 16);
             char str1[128];
             strcpy(str1, "strings");
             gp_str_print(&str, "Copying ", str1, (char)'.');
@@ -284,7 +284,7 @@ int main(void)
 
         gp_test("Formatting");
         {
-            GPString str = gp_str_on_stack(NULL, 128, "");
+            GPString str = gp_str_on_stack(NULL, 128);
             gp_str_print(&str,
                 "%%No zeroes in this %g", 1.0, " float. %% %%");
             char buf[128];
@@ -300,7 +300,7 @@ int main(void)
             sprintf(buf, "%s for GPString", gp_cstr(str2));
             gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
 
-            GPString str3 = gp_str_on_stack(NULL, 128, "");
+            GPString str3 = gp_str_on_stack(NULL, 128);
             gp_str_copy(&str,  "a", 1);
             gp_str_copy(&str2, "ä", strlen("ä"));
             gp_str_print(&str3, "|%4S|%4S|%4s|", str, str2, "ö");
@@ -318,7 +318,7 @@ int main(void)
         gp_test("Fixed width length modifiers for format strings");
         { // Can be used for any integer formats. Here we stick with %u for
           // simplicity.
-            GPString str = gp_str_on_stack(NULL, 128, "");
+            GPString str = gp_str_on_stack(NULL, 128);
             char buf[128];
 
             gp_str_print(&str, "Byte %Bu", (uint8_t)-1);
@@ -341,7 +341,7 @@ int main(void)
 
         gp_test("%% only");
         {
-            GPString str = gp_str_on_stack(NULL, 128, "");
+            GPString str = gp_str_on_stack(NULL, 128);
             gp_str_print(&str, "%%blah%%");
             char buf[128];
             sprintf(buf, "%%blah%%");
@@ -350,7 +350,7 @@ int main(void)
 
         gp_test("Pointers");
         {
-            GPString str = gp_str_on_stack(NULL, 128, "");
+            GPString str = gp_str_on_stack(NULL, 128);
             char buf[128];
             uintptr_t _buf = (uintptr_t)buf; // shut up -Wrestrict
             gp_str_print(&str, (void*)buf);
@@ -364,14 +364,14 @@ int main(void)
 
         gp_test("Print n");
         {
-            GPString str = gp_str_on_stack(NULL, 128, "");
+            GPString str = gp_str_on_stack(NULL, 128);
             gp_str_n_print(&str, 7, "blah", 12345);
             gp_expect(gp_str_equal(str, "blah123", strlen("blah123")), str);
         }
 
         gp_test("Println");
         {
-            GPString str = gp_str_on_stack(NULL, 128, "");
+            GPString str = gp_str_on_stack(NULL, 128);
             gp_str_println(&str, "Spaces", 3, "inserted.");
             const char* cstr = "Spaces 3 inserted.\n";
             gp_expect(gp_str_equal(str, cstr, strlen(cstr)));
@@ -588,7 +588,7 @@ int main(void)
 
         gp_test("Non existent");
         {
-            GPString str = gp_str_on_stack(gp_heap, 1, "");
+            GPString str = gp_str_on_stack(gp_heap, 1);
             // Only first char in mode is checked so "r" is fine too
             gp_expect(gp_str_file(&str, "NON_EXISTENT.txt", "r") != 0);
             gp_str_delete(str);

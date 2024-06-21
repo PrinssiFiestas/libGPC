@@ -16,8 +16,8 @@
 #define GPDictionary(T) T*
 
 #ifdef __cplusplus
-// TODO C++ overloads
-#else
+
+#include <array>
 
 // ----------------------------------------------------------------------------
 //
@@ -25,7 +25,94 @@
 //
 // ----------------------------------------------------------------------------
 
-#ifdef GP_GENERIC_AVAILABLE
+// TODO rest of C++ overloads and docs
+
+const GPAllocator* gp_alc_cpp(const GPAllocator* alc) { return (const GPAllocator*)alc; }
+const GPAllocator* gp_alc_cpp(const GPArena* alc)     { return (const GPAllocator*)alc; }
+
+#define gp_arr(...)                 GP_ARR_NEW_CPP(__VA_ARGS__)
+#define gp_arr_ro(T,...)            //GP_ARR_READ_ONLY(T,__VA_ARGS__)
+#define gp_str(...)                 //GP_STR_NEW(__VA_ARGS__)
+#define gp_hmap(...)                //GP_HMAP_NEW(__VA_ARGS__)
+#define gp_dict(...)                //GP_DICT_NEW(__VA_ARGS__)
+
+// Bytes and strings
+#define gp_equal(...)               //GP_EQUAL(__VA_ARGS__)
+#define gp_count(...)               //GP_COUNT(__VA_ARGS__)
+#define gp_codepoint_length(...)    //GP_CODEPOINT_LENGTH(__VA_ARGS__)
+#define gp_codepoint_classify(...)  //GP_CODEPOINT_CLASSIFY(__VA_ARGS__)
+
+// Strings
+#define gp_repeat(...)              //GP_REPEAT11(__VA_ARGS__)
+#define gp_replace(...)             //GP_REPLACE11(__VA_ARGS__)
+#define gp_replace_all(...)         //GP_REPLACE_ALL11(__VA_ARGS__)
+#define gp_trim(...)                //GP_TRIM11(__VA_ARGS__)
+#define gp_to_upper(...)            //GP_TO_UPPER(__VA_ARGS__)
+#define gp_to_lower(...)            //GP_TO_LOWER(__VA_ARGS__)
+#define gp_to_valid(...)            //GP_TO_VALID(__VA_ARGS__)
+#define gp_find_first(...)          //GP_FIND_FIRST(__VA_ARGS__)
+#define gp_find_last(...)           //GP_FIND_LAST(__VA_ARGS__)
+#define gp_find_first_of(...)       //GP_FIND_FIRST_OF(__VA_ARGS__)
+#define gp_find_first_not_of(...)   //GP_FIND_FIRST_NOT_OF(__VA_ARGS__)
+#define gp_equal_case(...)          //GP_EQUAL_CASE(__VA_ARGS__)
+#define gp_codepoint_count(...)     //GP_CODEPOINT_COUNT(__VA_ARGS__)
+#define gp_is_valid(...)            //GP_IS_VALID(__VA_ARGS__)
+
+// Strings and arrays
+#define gp_length(...)              //gp_arr_length(__VA_ARGS__)
+#define gp_capacity(...)            //gp_arr_capacity(__VA_ARGS__)
+#define gp_allocation(...)          //gp_arr_allocation(__VA_ARGS__)
+#define gp_allocator(...)           //gp_arr_allocator(__VA_ARGS__)
+#define gp_reserve(...)             //GP_RESERVE11(__VA_ARGS__)
+#define gp_copy(...)                //GP_COPY11(__VA_ARGS__)
+#define gp_slice(...)               //GP_SLICE11(__VA_ARGS__)
+#define gp_append(...)              //GP_APPEND11(__VA_ARGS__)
+#define gp_insert(...)              //GP_INSERT11(__VA_ARGS__)
+
+// Arrays
+#define gp_push(...)                //GP_PUSH(__VA_ARGS__)
+#define gp_pop(...)                 //GP_POP(__VA_ARGS__)
+#define gp_erase(...)               //GP_ERASE(__VA_ARGS__)
+#define gp_map(...)                 //GP_MAP11(__VA_ARGS__)
+#define gp_fold(...)                //GP_FOLD(__VA_ARGS__)
+#define gp_foldr(...)               //GP_FOLDR(__VA_ARGS__)
+#define gp_filter(...)              //GP_FILTER11(__VA_ARGS__)
+
+// Dictionarys
+#define gp_get(...)                 //GP_GET(__VA_ARGS__)
+#define gp_put(...)                 //GP_PUT(__VA_ARGS__)
+#define gp_remove(...)              //GP_REMOVE(__VA_ARGS__)
+
+// Memory
+#define gp_alloc(...)               //GP_ALLOC(__VA_ARGS__)
+#define gp_alloc_type(...)          //GP_ALLOC_TYPE(__VA_ARGS__)
+#define gp_alloc_zeroes(...)        //GP_ALLOC_ZEROES(__VA_ARGS__)
+#define gp_dealloc(...)             //GP_DEALLOC(__VA_ARGS__)
+#define gp_realloc(...)             //GP_REALLOC(__VA_ARGS__)
+
+
+// ----------------------------------------------------------------------------
+//
+//          END OF API REFERENCE
+//
+//          Code below is for internal usage and may change without notice.
+//
+// ----------------------------------------------------------------------------
+
+
+template <typename T_alc, typename T, size_t N>
+static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& init)
+{
+    GPArray(void) out = gp_arr_new(gp_alc_cpp(alc), sizeof(T), N > 4 ? N : 4);
+    ((GPArrayHeader*)out - 1)->length = N;
+    return (T*)memcpy(out, init.data(), sizeof(T) * N);
+}
+#define GP_ARR_NEW_CPP(ALC,...) gp_arr_new_cpp(ALC, \
+    std::array<GP_1ST_ARG(__VA_ARGS__), GP_COUNT_ARGS(__VA_ARGS__) - 1>{GP_ALL_BUT_1ST_ARG(__VA_ARGS__)})
+
+#else // __cplusplus, C below -------------------------------------------------
+
+#ifdef GP_GENERIC_AVAILABLE // C11 or CompCert --------------------------------
 
 // Constructors
 #define gp_arr(...)                 GP_ARR_NEW(__VA_ARGS__)
@@ -163,17 +250,7 @@
 #define gp_read_until(...)          gp_file_read_until(...)
 #define gp_read_strip(...)          gp_file_read_strip(...)
 
-#endif
-
-
-// ----------------------------------------------------------------------------
-//
-//          END OF API REFERENCE
-//
-//          Code below is for internal usage and may change without notice.
-//
-// ----------------------------------------------------------------------------
-
+#endif // C macros
 
 typedef struct gp_str_in { const uint8_t* data; const size_t length; } GPStrIn;
 #if GP_GENERIC_AVAILABLE

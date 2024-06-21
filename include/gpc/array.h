@@ -40,18 +40,14 @@ GPArray(void) gp_arr_new(
     size_t element_size,
     size_t element_count);
 
+// Not available in C++.
 #define/* GPArray(T) */gp_arr_on_stack( \
     optional_allocator_ptr, \
     size_t_capacity, \
-    T, ...) \
-(struct GP_C99_UNIQUE_STRUCT(__LINE__) \
-{ GPArrayHeader header; T data[size_t_capacity]; }) { \
-{ \
-    .length     = sizeof((T[]){(T){0},__VA_ARGS__}) / sizeof(T) - 1, \
-    .capacity   = size_t_capacity, \
-    .allocator  = optional_allocator_ptr, \
-    .allocation = NULL \
-}, {__VA_ARGS__} }.data
+    T, \
+    /*init_values*/...) \
+    \
+    GP_ARR_ON_STACK(optional_allocator_ptr, size_t_capacity, T,__VA_ARGS__)
 
 // If not zeroing memory for performance is desirable and/or macro magic is
 // undesirable, arrays can be created on stack manually. Example with int:
@@ -173,7 +169,22 @@ GPArray(void) gp_arr_filter(
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
 
-#ifdef __cplusplus
+#ifndef __cplusplus
+
+#define/* GPArray(T) */GP_ARR_ON_STACK( \
+    optional_allocator_ptr, \
+    size_t_capacity, \
+    T, ...) \
+(struct GP_C99_UNIQUE_STRUCT(__LINE__) \
+{ GPArrayHeader header; T data[size_t_capacity]; }) { \
+{ \
+    .length     = sizeof((T[]){(T){0},__VA_ARGS__}) / sizeof(T) - 1, \
+    .capacity   = size_t_capacity, \
+    .allocator  = optional_allocator_ptr, \
+    .allocation = NULL \
+}, {__VA_ARGS__} }.data
+
+#else // __cplusplus
 } // extern "C"
 #endif
 
