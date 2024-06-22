@@ -737,9 +737,9 @@ static inline GPString gp_file_to_new_str11(const void* alc, const char*const pa
 
 #ifdef __GNUC__
 // Suppress suspicious usage of sizeof warning.
-#define GP_SIZEOF_TYPEOF(X) sizeof(typeof(X))
+#define GP_SIZEOF_TYPEOF(...) sizeof(typeof(__VA_ARGS__))
 #else
-#define GP_SIZEOF_TYPEOF(X) sizeof(X)
+#define GP_SIZEOF_TYPEOF(...) sizeof(__VA_ARGS__)
 #endif
 
 #define GP_ALC99(A) ((const GPAllocator*)(A))
@@ -798,10 +798,10 @@ inline GPArray(void) gp_arr99(const GPAllocator* alc,
         .element_size = sizeof(TYPE), .capacity = 0, .destructor = NULL})
 #define GP_DICT3(ALC, TYPE, DCTOR) (TYPE*) \
     gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
-        .element_size = sizeof(TYPE), .capacity = 0, .destructor = (void(*)(void*))(DCTOR)})
+        .element_size = GP_SIZEOF_TYPEOF((DCTOR)((TYPE*)0), (TYPE){0}), .capacity = 0, .destructor = (void(*)(void*))(DCTOR)})
 #define GP_DICT4(ALC, TYPE, DCTOR, CAP) (TYPE*) \
     gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
-        .element_size = sizeof(TYPE), .capacity = CAP, .destructor = (void(*)(void*))(DCTOR)})
+        .element_size = GP_SIZEOF_TYPEOF((DCTOR)((TYPE*)0), (TYPE){0}), .capacity = CAP, .destructor = (void(*)(void*))(DCTOR)})
 #define GP_DICT_NEW(A,...) GP_OVERLOAD3(__VA_ARGS__, GP_DICT4, GP_DICT3, GP_DICT2)(A, __VA_ARGS__)
 
 // ----------------------------------------------------------------------------

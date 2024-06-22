@@ -513,18 +513,28 @@ int main(void)
 
         gp_test("Constructors");
         {
-            // This is incredibly wasteful and the arguments make no sense! We
-            // just test if compiles though.
+            void int_destructor(int*_);
+
+            // This is incredibly wasteful! We just test if compiles though.
             GPHashMap* hmap = gp_hmap(&arena);
             hmap = gp_hmap(&arena, sizeof(int));
-            hmap = gp_hmap(&arena, sizeof(int), free);
-            hmap = gp_hmap(&arena, sizeof(int), free, 128);
+            hmap = gp_hmap(&arena, sizeof(int), int_destructor);
+            hmap = gp_hmap(&arena, sizeof(int), int_destructor, 128);
             (void)hmap;
 
+            // Same here, don't write code like this!
             GPDictionary(int) dict = gp_dict(&arena, int);
-            dict = gp_dict(&arena, int, free);
-            dict = gp_dict(&arena, int, free, 128);
+            dict = gp_dict(&arena, int, int_destructor);
+            dict = gp_dict(&arena, int, int_destructor, 128);
             (void)dict;
+
+            #if TYPE_CHECK
+            // Incompatible destructor argument type.
+            GPDictionary(GPString) strs = gp_dict(&arena, GPString, int_destructor);
+            // Still wrong, destructors take pointers to objects.
+            strs = gp_dict(&arena, GPString, gp_str_delete);
+            strs = gp_dict(&arena, GPString, gp_str_ptr_delete); // ok
+            #endif
         }
     }
 
@@ -585,6 +595,8 @@ int main(void)
     }
     gp_arena_delete(&arena);
 }
+
+void int_destructor(int*_) { (void)_; }
 
 void increment(int* out, const int* in) { *out = *in + 1; }
 intptr_t sum(intptr_t y, const int* x)  { return y + *x; }

@@ -7,6 +7,8 @@
 #include "common.h"
 #include <string.h>
 
+extern inline void gp_arr_delete(GPArray(void));
+
 size_t gp_arr_length(const void* arr)
 {
     return ((GPArrayHeader*)arr - 1)->length;
@@ -37,8 +39,6 @@ GPArray(void) gp_arr_new(
     *me = (GPArrayHeader) { 0, size / element_size, allocator, me };
     return me + 1;
 }
-
-extern inline void gp_arr_delete(GPArray(void));
 
 GPArray(void) gp_arr_reserve(
     const size_t element_size,
