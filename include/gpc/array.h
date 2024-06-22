@@ -57,13 +57,24 @@ GPArray(void) gp_arr_new(
     GPArray(int) my_array = my_array_mem.data;
 */
 
-// Passing arrays on stack is safe too.
-void gp_arr_delete(GPArray(void) optional);
-
 size_t             gp_arr_length    (const GPArray(void)) GP_NONNULL_ARGS();
 size_t             gp_arr_capacity  (const GPArray(void)) GP_NONNULL_ARGS();
 void*              gp_arr_allocation(const GPArray(void)) GP_NONNULL_ARGS();
 const GPAllocator* gp_arr_allocator (const GPArray(void)) GP_NONNULL_ARGS();
+
+// Passing arrays on stack is safe too.
+inline void gp_arr_delete(GPArray(void) optional)
+{
+    if (optional != NULL && gp_arr_allocation(optional) != NULL)
+        gp_mem_dealloc(gp_arr_allocator(optional), gp_arr_allocation(optional));
+}
+
+// This should be used as destructor for GPDictionary(GPString) if needed.
+inline void gp_arr_ptr_delete(void* optional)
+{
+    if (optional != NULL)
+        gp_arr_delete(*(GPArray(void)*)optional);
+}
 
 GP_ARR_ATTRS()
 GPArray(void) gp_arr_reserve(

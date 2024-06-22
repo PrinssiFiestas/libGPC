@@ -22,7 +22,7 @@
 
 #define POW10_ADDITIONAL_BITS 120
 
-#define MAX_DIGITS 24
+#define PF_MAX_DIGITS 24
 
 static void str_reverse_copy(
     char* restrict out,
@@ -50,7 +50,7 @@ size_t pf_utoa(const size_t n, char* out, unsigned long long x)
         return olength;
     }
 
-    char buf[MAX_DIGITS];
+    char buf[PF_MAX_DIGITS];
     size_t i = 0;
     do // write all digits from low to high
     {
@@ -64,7 +64,7 @@ size_t pf_utoa(const size_t n, char* out, unsigned long long x)
 
 size_t pf_itoa(size_t n, char* out, const long long ix)
 {
-    char buf[MAX_DIGITS];
+    char buf[PF_MAX_DIGITS];
     unsigned long long x = ix;
 
     if (ix < 0)
@@ -91,7 +91,7 @@ size_t pf_itoa(size_t n, char* out, const long long ix)
 
 size_t pf_otoa(const size_t n, char* out, unsigned long long x)
 {
-    char buf[MAX_DIGITS];
+    char buf[PF_MAX_DIGITS];
     size_t i = 0;
     do // write all digits from low to high
     {
@@ -105,7 +105,7 @@ size_t pf_otoa(const size_t n, char* out, unsigned long long x)
 
 size_t pf_xtoa(const size_t n, char* out, unsigned long long x)
 {
-    char buf[MAX_DIGITS];
+    char buf[PF_MAX_DIGITS];
     size_t i = 0;
     do // write all digits from low to high
     {
@@ -120,7 +120,7 @@ size_t pf_xtoa(const size_t n, char* out, unsigned long long x)
 
 size_t pf_Xtoa(const size_t n, char* out, unsigned long long x)
 {
-    char buf[MAX_DIGITS];
+    char buf[PF_MAX_DIGITS];
     size_t i = 0;
     do // write all digits from low to high
     {

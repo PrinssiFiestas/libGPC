@@ -65,15 +65,26 @@ GPString gp_str_new(
     GPString my_string = my_str_mem.data;
 */
 
-// Passing strings on stack is safe too.
-void gp_str_delete(GPString optional);
-
-const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
-
 size_t             gp_str_length    (GPString) GP_NONNULL_ARGS();
 size_t             gp_str_capacity  (GPString) GP_NONNULL_ARGS();
 const GPAllocator* gp_str_allocator (GPString) GP_NONNULL_ARGS();
 void*              gp_str_allocation(GPString) GP_NONNULL_ARGS();
+
+// Passing strings on stack is safe too.
+inline void gp_str_delete(GPString optional)
+{
+    if (optional != NULL && gp_str_allocation(optional) != NULL)
+        gp_mem_dealloc(gp_str_allocator(optional), gp_str_allocation(optional));
+}
+
+// This should be used as destructor for GPDictionary(GPString) if needed.
+inline void gp_str_ptr_delete(GPString* optional)
+{
+    if (optional != NULL)
+        gp_str_delete(*optional);
+}
+
+const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
 GP_NONNULL_ARGS()
 void gp_str_reserve(

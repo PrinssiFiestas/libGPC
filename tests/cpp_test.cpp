@@ -11,13 +11,12 @@
 int main()
 {
     GPArena arena = gp_arena_new(0);
-    const GPAllocator* _arena = (const GPAllocator*)&arena;
 
     char cpp[36] = "";
     gp_bytes_print(cpp, "C++");
     gp_print("Hello ", cpp, "!\n");
 
-    GPString str = gp_str_new(_arena, 16, "");
+    GPString str = gp_str(&arena);
     gp_str_println(&str, "I am the prince of", cpp);
     gp_println(str, "Obay me!");
 

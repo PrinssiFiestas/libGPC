@@ -482,31 +482,50 @@ int main(void)
 
     gp_suite("Dictionarys");
     {
-        GPDictionary(int) dict = gp_dict(&arena, int);
-        GPString key1    = gp_str(&arena, "key1");
-        const char* key2 = "key2";
-        gp_put(&dict, key1,               1);
-        gp_put(&dict, key2, strlen(key2), 2);
-        gp_put(&dict, "key3",             3);
-        #ifndef GP_TYPEOF
-        gp_expect(*(int*)gp_get(dict, key1)               == 1);
-        gp_expect(*(int*)gp_get(dict, key2, strlen(key2)) == 2);
-        gp_expect(*(int*)gp_get(dict, "key3")             == 3);
-        #else // no cast required
-        gp_expect(*gp_get(dict, key1)               == 1);
-        gp_expect(*gp_get(dict, key2, strlen(key2)) == 2);
-        gp_expect(*gp_get(dict, "key3")             == 3);
-        #endif
-        gp_expect(gp_remove(&dict, key1));
-        gp_expect(gp_remove(&dict, key2, strlen(key2)));
-        gp_expect(gp_remove(&dict, "key3"));
-        gp_expect(gp_get(dict, key1)               == NULL);
-        gp_expect(gp_get(dict, key2, strlen(key2)) == NULL);
-        gp_expect(gp_get(dict, "key3")             == NULL);
+        gp_test("Functionality");
+        {
+            GPDictionary(int) dict = gp_dict(&arena, int);
+            GPString key1    = gp_str(&arena, "key1");
+            const char* key2 = "key2";
+            gp_put(&dict, key1,               1);
+            gp_put(&dict, key2, strlen(key2), 2);
+            gp_put(&dict, "key3",             3);
+            #ifndef GP_TYPEOF
+            gp_expect(*(int*)gp_get(dict, key1)               == 1);
+            gp_expect(*(int*)gp_get(dict, key2, strlen(key2)) == 2);
+            gp_expect(*(int*)gp_get(dict, "key3")             == 3);
+            #else // no cast required
+            gp_expect(*gp_get(dict, key1)               == 1);
+            gp_expect(*gp_get(dict, key2, strlen(key2)) == 2);
+            gp_expect(*gp_get(dict, "key3")             == 3);
+            #endif
+            gp_expect(gp_remove(&dict, key1));
+            gp_expect(gp_remove(&dict, key2, strlen(key2)));
+            gp_expect(gp_remove(&dict, "key3"));
+            gp_expect(gp_get(dict, key1)               == NULL);
+            gp_expect(gp_get(dict, key2, strlen(key2)) == NULL);
+            gp_expect(gp_get(dict, "key3")             == NULL);
 
-        #if TYPE_CHECK
-        gp_put(&dict, key1, "blah"); // assign char[] to int
-        #endif
+            #if TYPE_CHECK
+            gp_put(&dict, key1, "blah"); // assign char[] to int
+            #endif
+        }
+
+        gp_test("Constructors");
+        {
+            // This is incredibly wasteful and the arguments make no sense! We
+            // just test if compiles though.
+            GPHashMap* hmap = gp_hmap(&arena);
+            hmap = gp_hmap(&arena, sizeof(int));
+            hmap = gp_hmap(&arena, sizeof(int), free);
+            hmap = gp_hmap(&arena, sizeof(int), free, 128);
+            (void)hmap;
+
+            GPDictionary(int) dict = gp_dict(&arena, int);
+            dict = gp_dict(&arena, int, free);
+            dict = gp_dict(&arena, int, free, 128);
+            (void)dict;
+        }
     }
 
     gp_suite("Allocators");

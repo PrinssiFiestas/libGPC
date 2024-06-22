@@ -30,9 +30,23 @@
 const GPAllocator* gp_alc_cpp(const GPAllocator* alc) { return (const GPAllocator*)alc; }
 const GPAllocator* gp_alc_cpp(const GPArena* alc)     { return (const GPAllocator*)alc; }
 
-#define gp_arr(...)                 GP_ARR_NEW_CPP(__VA_ARGS__)
-#define gp_arr_ro(T,...)            //GP_ARR_READ_ONLY(T,__VA_ARGS__)
-#define gp_str(...)                 //GP_STR_NEW(__VA_ARGS__)
+#define/*GPArray(T)*/gp_arr(allocator, T,/*init_elements*/...) \
+    GP_ARR_NEW_CPP(__VA_ARGS__)
+
+// Read-only array. Static if GNUC, on stack otherwise. Not available in C++.
+#define/*const GPArray(T)*/gp_arr_ro(T,/*elements*/...)
+
+template <typename T>
+static inline GPString gp_str(T allocator, const char* init = "")
+{
+    return gp_str_new(gp_alc_cpp(allocator), 16, init);
+}
+template <typename T>
+static inline GPString gp_str(T allocator, const size_t capacity, const char* init)
+{
+    return gp_str_new(gp_alc_cpp(allocator), capacity, init);
+}
+
 #define gp_hmap(...)                //GP_HMAP_NEW(__VA_ARGS__)
 #define gp_dict(...)                //GP_DICT_NEW(__VA_ARGS__)
 
@@ -777,7 +791,7 @@ inline GPArray(void) gp_arr99(const GPAllocator* alc,
 #define GP_HMAP4(ALC, ELEM_SIZE, DCTOR, CAP) \
     gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
         .element_size = ELEM_SIZE, .capacity = CAP, .destructor = (void(*)(void*))(DCTOR)})
-#define GP_HMAP_NEW(...) GP_OVERLOAD4(__VA_ARGS__, GP_HMAP4, GP_HMAP3, GP_HMAP2, GP_GMAP1)(__VA_ARGS__)
+#define GP_HMAP_NEW(...) GP_OVERLOAD4(__VA_ARGS__, GP_HMAP4, GP_HMAP3, GP_HMAP2, GP_HMAP1)(__VA_ARGS__)
 
 #define GP_DICT2(ALC, TYPE) (TYPE*) \
     gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \

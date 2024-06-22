@@ -38,11 +38,7 @@ GPArray(void) gp_arr_new(
     return me + 1;
 }
 
-void gp_arr_delete(GPArray(void) arr)
-{
-    if (arr != NULL && gp_arr_allocator(arr) != NULL)
-        gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
-}
+extern inline void gp_arr_delete(GPArray(void));
 
 GPArray(void) gp_arr_reserve(
     const size_t element_size,

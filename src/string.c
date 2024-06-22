@@ -18,6 +18,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+extern inline void gp_str_delete(GPString);
+extern inline void gp_str_ptr_delete(GPString*);
+
 GPString gp_str_new(
     const GPAllocator*const allocator,
     size_t capacity,
@@ -32,12 +35,6 @@ GPString gp_str_new(
         .allocator  = allocator,
         .allocation = me };
     return memcpy(me + 1, init, init_length);
-}
-
-void gp_str_delete(GPString me)
-{
-    if (me != NULL && gp_str_allocation(me) != NULL)
-        gp_mem_dealloc(gp_str_allocator(me), gp_str_allocation(me));
 }
 
 static GPStringHeader* gp_str_header(const GPString str)
