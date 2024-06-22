@@ -13,7 +13,7 @@ extern inline GPStrIn gp_str_in99(const void* data, const size_t length);
 extern inline bool gp_equal99(const GPString a, GPStrIn b);
 extern inline size_t gp_count99(GPStrIn haystack, GPStrIn needle);
 extern inline GPString gp_repeat99(size_t a_size, const void* a, size_t count, GPStrIn in);
-extern inline GPString gp_to_valid99(
+extern inline GPString gp_to_valid_new(
     const GPAllocator* alc, const GPString str, const char*const replacement);
 extern inline size_t gp_find_first99(const GPString haystack, GPStrIn needle);
 extern inline size_t gp_find_last99(const GPString haystack, GPStrIn needle);
@@ -105,7 +105,7 @@ GPString gp_trim99(
     return gp_str_trim_new(a, b, char_set, flags);
 }
 
-GPString gp_to_upper99(const GPAllocator* alc, const GPString str)
+GPString gp_to_upper_new(const GPAllocator* alc, const GPString str)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, gp_str_length(str), "");
     memcpy(out, str, gp_str_length(str));
@@ -114,7 +114,7 @@ GPString gp_to_upper99(const GPAllocator* alc, const GPString str)
     return out;
 }
 
-GPString gp_to_lower99(const GPAllocator* alc, const GPString str)
+GPString gp_to_lower_new(const GPAllocator* alc, const GPString str)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, gp_str_length(str), "");
     memcpy(out, str, gp_str_length(str));
@@ -123,7 +123,7 @@ GPString gp_to_lower99(const GPAllocator* alc, const GPString str)
     return out;
 }
 
-GPString gp_to_valid99(
+GPString gp_to_valid_new(
     const GPAllocator* alc, const GPString str, const char*const replacement)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, gp_str_length(str), "");

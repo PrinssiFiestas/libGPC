@@ -131,9 +131,11 @@ int main(void)
             gp_replace(&haystack, needle, "XX");
             gp_replace(&haystack, "XX", gp_str(&arena, "YYYY"));
             gp_replace(&haystack, "YY", "yyy", 7);
-            GPString str2   = gp_replace(&arena, haystack, "blah", "shloiben", 1);
-            GPString result = gp_replace(&arena, str2, "blah", "😂");
-            gp_expect(gp_equal(result, "😂 YYyyy shloiben"));
+            GPString str2    = gp_replace(&arena, haystack, "blah", "shloiben", 1);
+            GPString result  = gp_replace(&arena, str2, "blah", "😂");
+            GPString result2 = gp_replace(&arena, "BLAHH", needle, "blah");
+            gp_expect(gp_equal(result,  "😂 YYyyy shloiben"));
+            gp_expect(gp_equal(result2, "blah"));
         }
 
         gp_test("Replace all");
@@ -170,8 +172,8 @@ int main(void)
             gp_expect(gp_equal(str2, "sd"));
             GPString str3 = gp_trim(&arena, str2, "s", 'l');
             gp_expect(gp_equal(str3, "d"));
-            gp_trim(&str3, gp_cstr(str)); // for completeness
-            gp_expect(gp_equal(str3, ""), str3, (size_t)-1, gp_length(str3));
+            GPString str4 = gp_trim(&arena, "asdf", gp_cstr(str)); // for completeness
+            gp_expect(gp_equal(str4, ""));
         }
 
         gp_test("To upper, lower, and valid");
