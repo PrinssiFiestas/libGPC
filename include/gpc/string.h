@@ -26,7 +26,6 @@
 // ----------------------------------------------------------------------------
 
 #ifdef __cplusplus
-static inline std::ostream& operator<<(std::ostream& out, GPString str);
 extern "C" {
 #endif
 

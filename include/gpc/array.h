@@ -132,10 +132,10 @@ GPArray(void) gp_arr_erase(
 
 GP_NONNULL_RETURN GP_NONNULL_ARGS(2, 5)
 GPArray(void) gp_arr_map(
-    size_t              element_size,
-    GPArray(void)       arr,
+    size_t                 element_size,
+    GPArray(void)          arr,
     const void*GP_RESTRICT optional_src, // mutates arr if NULL
-    size_t              src_length,
+    size_t                 src_length,
     void (*f)(void* out, const void* in));
 
 GP_NONNULL_ARGS(2, 4)

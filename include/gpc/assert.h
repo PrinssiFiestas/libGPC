@@ -18,6 +18,7 @@
 #include <stdbool.h>
 
 #ifdef __cplusplus
+#include <gpc/terminal.h>
 extern "C" {
 #define GP_DUMMY_BOOL_ASSIGN
 #else // suppress some warnings

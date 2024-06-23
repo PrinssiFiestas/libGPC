@@ -2,7 +2,17 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#ifndef __cplusplus
 #include "../src/generic.c"
+#else
+// Build the library first using `make` then build and run this file with
+// `
+// g++ -Wall -Wextra -Iinclude -ggdb3 tests/test_generic.c -fsanitize=address -fsanitize=undefined -lm -lpthread -lasan build/libgpcd.so && ./a.out
+// `
+#include <gpc/generic.h>
+#define gp_arr_ro(...) gp_arr(&arena, __VA_ARGS__)
+#endif
+
 #include <gpc/io.h>
 #include <gpc/assert.h>
 #include <errno.h>
@@ -54,7 +64,6 @@ int main(void)
             gp_expect(gp_count(haystack, needle, gp_length(needle)) == 2);
             gp_expect(gp_count(haystack, gp_length(haystack), needle, gp_length(needle)) == 2);
         }
-
         gp_test("Codepoint length");
         { // aka how many bytes does a UTF-8 codepoint take. Only 1 byte read.
             const char* cstr = "x😂";
@@ -121,6 +130,7 @@ int main(void)
             gp_expect(gp_equal(copy2, str2));
             gp_expect(gp_equal(copy3, str3));
         }
+
         gp_test("Replace");
         {
             // This one does not take lengths. Only GPString and literals are
@@ -155,6 +165,7 @@ int main(void)
             GPString result = gp_replace_all(&arena, haystack, "blah", "😂");
             gp_expect(gp_equal(result, "😂 yyyyyy yyyyyy 😂"), result);
         }
+
         gp_test("Trim");
         {
             GPString str = gp_str(&arena, "\t XYX  asdfg\r  YYX  \n");
@@ -232,6 +243,7 @@ int main(void)
                 gp_expect(gp_equal_case(a, "😂aAaAäÄä😂"));
             }
         }
+
         gp_test("Codepoint count");
         {
             GPString str = gp_str(&arena, "😂aÄ😂");
@@ -323,6 +335,7 @@ int main(void)
             #endif
         }
 
+        #ifndef __cplusplus
         gp_test("Append");
         {
             GPString str1 = gp_str(&arena);
@@ -386,8 +399,10 @@ int main(void)
             GPArray(int) arr4 = gp_insert(&arena, 0, arr1, gp_arr_ro(int, 6), 1);
             arr_assert_eq(arr4, arr2, gp_length(arr2));
         }
+        #endif // __cplusplus
     }
 
+#ifndef __cplusplus
     gp_suite("Array");
     { // Definitions for helper functions are below main()
         GPAllocator* scope = gp_begin(0);
@@ -595,6 +610,7 @@ int main(void)
 
         remove(test_path);
     }
+#endif // __cplusplus skip
     gp_arena_delete(&arena);
 }
 
@@ -606,7 +622,7 @@ char* append(char* result, const char**_element)
 {
     const char* element = *_element;
     const size_t length = result && strlen(result);
-    result = gp_mem_realloc(
+    result = (char*)gp_mem_realloc(
         gp_last_scope(NULL), result, length, length + strlen(element) + sizeof" ");
     if (length == 0)
         ((char*)result)[0] = '\0';
@@ -617,3 +633,4 @@ bool more_than_3(const int* element)        { return   *element  > 3 ; }
 bool less_than_7(const int* element)        { return   *element  < 7 ; }
 bool not_4(const int* element)              { return   *element != 4 ; }
 bool not_divisible_by_3(const int* element) { return   *element  % 3 ; }
+
