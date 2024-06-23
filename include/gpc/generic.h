@@ -554,10 +554,15 @@ static inline void gp_slice(GPString* dest, const size_t start, const size_t end
 template <typename T>
 static inline void gp_slice(GPArray(T)* dest, const size_t start, const size_t end)
 {
-    *dest = gp_str_slice(sizeof(*dest)[0], *dest, NULL, start, end);
+    *dest = (GPArray(T))gp_arr_slice(sizeof(*dest)[0], *dest, NULL, start, end);
 }
 static inline void gp_slice(
-    GPString* dest, const void*const src, const size_t start, const size_t end)
+    GPString* dest, const char*const src, const size_t start, const size_t end)
+{
+    gp_str_slice(dest, src, start, end);
+}
+static inline void gp_slice(
+    GPString* dest, const GPString src, const size_t start, const size_t end)
 {
     gp_str_slice(dest, src, start, end);
 }
@@ -565,7 +570,7 @@ template <typename T>
 static inline void gp_slice(
     GPArray(T)* dest, const T*const src, const size_t start, const size_t end)
 {
-    *dest = gp_arr_slice(sizeof(*dest)[0], *dest, src, start, end);
+    *dest =(GPArray(T))gp_arr_slice(sizeof(*dest)[0], *dest, src, start, end);
 }
 template <typename T_ALLOCATOR>
 static inline GPString gp_slice(
@@ -587,10 +592,10 @@ static inline GPString gp_slice(
 }
 template <typename T_ALLOCATOR, typename T>
 static inline GPArray(T) gp_slice(
-    T_ALLOCATOR* allocator, GPArray(T) src, const size_t start, const size_t end)
+    T_ALLOCATOR* allocator, const T* src, const size_t start, const size_t end)
 {
     const size_t length = end - start;
-    GPArray(T) out = (GPArray(T))gp_arr_new(gp_alc_cpp(allocator), sizeof out[0], length);
+    GPArray(T) out = (GPArray(T))gp_arr_new((const GPAllocator*)allocator, sizeof out[0], length);
     ((GPArrayHeader*)out - 1)->length = length;
     return (GPArray(T))memcpy(out, src + start, length * sizeof out[0]);
 }
