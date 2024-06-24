@@ -98,12 +98,28 @@ static inline GPString gp_str(
     return gp_str_new(gp_alc_cpp(allocator), capacity, init);
 }
 
+template <typename T_ALLOCATOR>
+static inline GPHashMap* gp_hmap(
+    T_ALLOCATOR* allocator,
+    const size_t element_size = 0)
+{
+    if (element_size == 0)
+        return gp_hash_map_new(gp_alc_cpp(allocator), NULL);
+
+    GPMapInitializer init = {
+        .element_size = element_size,
+        .capacity     = 0,
+        .destructor   = NULL
+    };
+    return gp_hash_map_new(gp_alc_cpp(allocator), &init);
+}
+
 template <typename T_ALLOCATOR, typename T_ARG>
 static inline GPHashMap* gp_hmap(
     T_ALLOCATOR* allocator,
-    const size_t element_size       = 0,
-    void(*const  destructor)(T_ARG*) = NULL,
-    const size_t capacity           = 0)
+    const size_t element_size,
+    void(*const  destructor)(T_ARG*),
+    const size_t capacity            = 0)
 {
     if (element_size == 0)
         return gp_hash_map_new(gp_alc_cpp(allocator), NULL);
@@ -116,7 +132,7 @@ static inline GPHashMap* gp_hmap(
     return gp_hash_map_new(gp_alc_cpp(allocator), &init);
 }
 
-#define gp_dict(allocator, type,/*destructor = NULL, capacity = 0*/...) \
+#define gp_dict(/*allocator, type, destructor = NULL, capacity = 0*/...) \
     GP_DICT_CPP(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
@@ -1048,13 +1064,13 @@ static inline GPArray(T) gp_filter(
 template <typename T, typename T_STRING>
 static inline T* gp_get(GPDictionary(T) dict, T_STRING key)
 {
-    return (T*)gp_hash_map_get(dict, key, gp_str_length_cpp(key));
+    return (T*)gp_hash_map_get((GPHashMap*)dict, key, gp_str_length_cpp(key));
 }
 template <typename T>
 static inline T* gp_get(
     GPDictionary(T) dict, const void*const key, const size_t key_length)
 {
-    return (T*)gp_hash_map_get(dict, key, key_length);
+    return (T*)gp_hash_map_get((GPHashMap*)dict, key, key_length);
 }
 
 // ---------------------------
@@ -1063,9 +1079,9 @@ static inline T* gp_get(
 template <typename T, typename T_STRING>
 static inline void gp_put(GPDictionary(T)* dict, T_STRING key, T element)
 {
-    gp_hash_map_put((GPHashMap*)*dict, key, gp_str_length(key), &element);
+    gp_hash_map_put((GPHashMap*)*dict, key, gp_str_length_cpp(key), &element);
 }
-template <typename T, typename T_STRING>
+template <typename T>
 static inline void gp_put(
     GPDictionary(T)* dict, const void*const key, const size_t key_length, T element)
 {
@@ -1078,13 +1094,13 @@ static inline void gp_put(
 template <typename T, typename T_STRING>
 static inline bool gp_remove(GPDictionary(T)* dict, T_STRING key)
 {
-    return gp_hash_map_remove(dict, key, gp_str_length_cpp(key));
+    return gp_hash_map_remove((GPHashMap*)*dict, key, gp_str_length_cpp(key));
 }
-template <typename T, typename T_STRING>
+template <typename T>
 static inline bool gp_remove(
     GPDictionary(T)* dict, const void* const key, const size_t key_length)
 {
-    return gp_hash_map_remove(dict, key, key_length);
+    return gp_hash_map_remove((GPHashMap*)*dict, key, key_length);
 }
 
 // ----------------------------------------------------------------------------
@@ -1188,9 +1204,10 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
     std::array<GP_1ST_ARG(__VA_ARGS__), GP_COUNT_ARGS(__VA_ARGS__) - 1>{GP_ALL_BUT_1ST_ARG(__VA_ARGS__)})
 
 #define GP_DICT_CPP_2(ALC, TYPE) (TYPE*)gp_hmap(ALC, sizeof(TYPE))
-#define GP_DICT_CPP_34(ALC, TYPE, ...) (TYPE*)gp_hmap(ALC, sizeof(TYPE), __VA_ARGS__)
+#define GP_DICT_CPP_3(ALC, TYPE, DCTOR) (TYPE*)gp_hmap(ALC, sizeof(TYPE), DCTOR)
+#define GP_DICT_CPP_4(ALC, TYPE, DCTOR, CAP) (TYPE*)gp_hmap(ALC, sizeof(TYPE), DCTOR, CAP)
 #define GP_DICT_CPP(ALC,...) GP_OVERLOAD3(__VA_ARGS__, \
-    GP_DICT_CPP34, GP_DICT_CPP34, GP_DICT_CPP_2)(ALC,__VA_ARGS__)
+    GP_DICT_CPP_4, GP_DICT_CPP_3, GP_DICT_CPP_2)(ALC,__VA_ARGS__)
 
 #define GP_ALLOC_TYPE_WITH_COUNT(ALLOCATOR, TYPE, COUNT) \
     gp_alloc(ALLOCATOR, (COUNT) * sizeof(TYPE))

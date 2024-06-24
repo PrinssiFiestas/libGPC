@@ -453,7 +453,11 @@ int main(void)
 
             GPArray(const char*) cstrs = gp_arr(scope, const char*, "one", "two", "three");
             char* append(char* result, const char**_element);
-            char* result = gp_foldr(cstrs, (char*)NULL, append);
+            #ifndef __cplusplus
+            char* result = gp_foldr(cstrs, NULL, append);
+            #else // cast required
+            char* result = gp_foldr(cstrs, (char*)nullptr, append);
+            #endif
             gp_expect(gp_equal(result, strlen(result), "three two one ", strlen("three two one ")));
 
             #if TYPE_CHECK // incompatible pointers
@@ -494,7 +498,6 @@ int main(void)
         gp_end(scope);
     }
 
-#ifndef __cplusplus
     gp_suite("Dictionarys");
     {
         gp_test("Functionality");
@@ -553,6 +556,7 @@ int main(void)
         }
     }
 
+#ifndef __cplusplus
     gp_suite("Allocators");
     {
         gp_test("Basics");
