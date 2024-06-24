@@ -556,7 +556,6 @@ int main(void)
         }
     }
 
-#ifndef __cplusplus
     gp_suite("Allocators");
     {
         gp_test("Basics");
@@ -572,11 +571,19 @@ int main(void)
 
         gp_test("Types");
         {
+            #ifndef __cplusplus
             int* pint     = gp_alloc_type(&arena, int);
             int* parr     = gp_alloc_type(&arena, int[4]);
             int* pcnt     = gp_alloc_type(&arena, int, 4);
             int* pname    = gp_alloc_type(&arena, pname);
             int* pnamearr = gp_alloc_type(&arena, pnamearr, 4);
+            #else // casts required
+            int* pint     = (int*)gp_alloc_type(&arena, int);
+            int* parr     = (int*)gp_alloc_type(&arena, int[4]);
+            int* pcnt     = (int*)gp_alloc_type(&arena, int, 4);
+            int* pname    = (int*)gp_alloc_type(&arena, pname);
+            int* pnamearr = (int*)gp_alloc_type(&arena, pnamearr, 4);
+            #endif
 
             gp_dealloc(&arena, pint    );
             gp_dealloc(&arena, parr    );
@@ -612,7 +619,7 @@ int main(void)
 
         remove(test_path);
     }
-#endif // __cplusplus skip
+
     gp_arena_delete(&arena);
 }
 

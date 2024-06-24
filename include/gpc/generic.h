@@ -12,6 +12,7 @@
 #include <gpc/array.h>
 #include <gpc/string.h>
 #include <gpc/hashmap.h>
+#include <gpc/io.h>
 
 #define GPDictionary(T) T*
 
@@ -1124,23 +1125,23 @@ static inline void* gp_alloc_zeroes(T_ALLOCATOR* allocator, const size_t size)
 // ---------------------------
 // gp_alloc_type()
 
-#define gp_alloc_type(ALLOCATOR, TYPE,/*COUNT = 1*/...) \
+#define gp_alloc_type(/*allocator, type, count = 1*/...) \
     GP_ALLOC_TYPE_CPP(__VA_ARGS__)
 
 // ---------------------------
 // gp_dealloc() and gp_realloc()
 
 template <typename T_ALLOCATOR>
-static inline void gp_dealloc(T_ALLOCATOR* allocator, const void* block)
+static inline void gp_dealloc(T_ALLOCATOR* allocator, void* block)
 {
     gp_mem_dealloc(gp_alc_cpp(allocator), block);
 }
 
 template <typename T, typename T_ALLOCATOR>
 static inline T* gp_realloc(
-    T_ALLOCATOR allocator, T* old_block, const size_t old_size, const size_t new_size)
+    T_ALLOCATOR* allocator, T* old_block, const size_t old_size, const size_t new_size)
 {
-    return (T*)gp_realloc(allocator, old_block, old_size, new_size);
+    return (T*)gp_mem_realloc(gp_alc_cpp(allocator), old_block, old_size, new_size);
 }
 
 // ----------------------------------------------------------------------------
@@ -1148,6 +1149,11 @@ static inline T* gp_realloc(
 
 // ---------------------------
 // gp_file()
+
+static inline FILE* gp_file(const char*const path, const char*const mode)
+{
+    return gp_file_open(path, mode);
+}
 
 // Use this for writing to file
 static inline GPString gp_file(
