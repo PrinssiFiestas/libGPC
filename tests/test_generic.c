@@ -400,7 +400,6 @@ int main(void)
         }
     }
 
-#ifndef __cplusplus
     gp_suite("Array");
     { // Definitions for helper functions are below main()
         GPAllocator* scope = gp_begin(0);
@@ -454,7 +453,7 @@ int main(void)
 
             GPArray(const char*) cstrs = gp_arr(scope, const char*, "one", "two", "three");
             char* append(char* result, const char**_element);
-            char* result = gp_foldr(cstrs, NULL, append);
+            char* result = gp_foldr(cstrs, (char*)NULL, append);
             gp_expect(gp_equal(result, strlen(result), "three two one ", strlen("three two one ")));
 
             #if TYPE_CHECK // incompatible pointers
@@ -495,6 +494,7 @@ int main(void)
         gp_end(scope);
     }
 
+#ifndef __cplusplus
     gp_suite("Dictionarys");
     {
         gp_test("Functionality");

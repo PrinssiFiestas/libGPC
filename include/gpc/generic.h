@@ -904,7 +904,7 @@ static inline GPArray(T) gp_insert(
 template <typename T>
 static inline void gp_push(GPArray(T)* parr, T element)
 {
-    *parr = gp_arr_reserve(*parr, gp_arr_length(*parr) + 1);
+    *parr = (GPArray(T))gp_arr_reserve(sizeof(*parr)[0], *parr, gp_arr_length(*parr) + 1);
     (*parr)[((GPArrayHeader*)*parr - 1)->length++] = element;
 }
 
@@ -918,10 +918,10 @@ static inline T gp_pop(GPArray(T)* parr)
 // gp_erase()
 
 template <typename T>
-static inline T gp_erase(
+static inline void gp_erase(
     GPArray(T)* parr, const size_t index, const size_t count = 1)
 {
-    *parr = gp_arr_erase(sizeof(*parr)[0], *parr, index, count);
+    *parr = (GPArray(T))gp_arr_erase(sizeof(*parr)[0], *parr, index, count);
 }
 
 // ---------------------------
@@ -930,56 +930,76 @@ static inline T gp_erase(
 template <typename T>
 static inline void gp_map(GPArray(T)* parr, void(*const f)(T* out, const T* in))
 {
-    *parr = gp_arr_map(sizeof(*parr)[0], *parr, NULL, 0, (void(*)(void*, const void*))f);
+    *parr = (GPArray(T))gp_arr_map(sizeof(*parr)[0], *parr, NULL, 0, (void(*)(void*, const void*))f);
 }
 template <typename T>
 static inline void gp_map(
     GPArray(T)* pout, const GPArray(T) in, void(*const f)(T* out, const T* in))
 {
-    *pout = gp_arr_map(sizeof(*pout)[0], *pout, in, gp_arr_length(in), (void(*)(void*, const void*))f);
+    *pout = (GPArray(T))gp_arr_map(sizeof(*pout)[0], *pout, in, gp_arr_length(in), (void(*)(void*, const void*))f);
 }
-template <typename T, typename T_ALLOCATOR>
-static inline void gp_map(
+template <typename T_ALLOCATOR, typename T>
+static inline GPArray(T) gp_map(
     T_ALLOCATOR* allocator, const GPArray(T) in, void(*const f)(T* out, const T* in))
 {
     GPArray(T) out = (GPArray(T))gp_arr_new(gp_alc_cpp(allocator), sizeof out[0], gp_arr_length(in));
-    out = gp_arr_map(sizeof out[0], out, in, gp_arr_length(in), (void(*)(void*, const void*))f);
+    return out = (GPArray(T))gp_arr_map(sizeof out[0], out, in, gp_arr_length(in), (void(*)(void*, const void*))f);
 }
 template <typename T>
 static inline void gp_map(
     GPArray(T)* pout, const T*const in, const size_t in_length,
     void(*const f)(T* out, const T* in))
 {
-    *pout = gp_arr_map(sizeof(*pout)[0], *pout, in, in_length, (void(*)(void*, const void*))f);
+    *pout = (GPArray(T))gp_arr_map(sizeof(*pout)[0], *pout, in, in_length, (void(*)(void*, const void*))f);
 }
-template <typename T, typename T_ALLOCATOR>
-static inline void gp_map(
+template <typename T_ALLOCATOR, typename T>
+static inline GPArray(T) gp_map(
     T_ALLOCATOR* allocator, const T*const in, const size_t in_length,
     void(*f)(T* out, const T* in))
 {
     GPArray(T) out = (GPArray(T))gp_arr_new(gp_alc_cpp(allocator), sizeof out[0], in_length);
-    out = gp_arr_map(sizeof out[0], out, in, in_length, (void(*)(void*, const void*))f);
+    return out = (GPArray(T))gp_arr_map(sizeof out[0], out, in, in_length, (void(*)(void*, const void*))f);
 }
 
 // ---------------------------
 // gp_fold() and gp_foldr()
 
 template <typename T, typename T_ACCUMULATOR>
-static inline T_ACCUMULATOR gp_fold(const GPArray(T) arr, T_ACCUMULATOR acc,
-    T_ACCUMULATOR(*const f)(T_ACCUMULATOR, const T*))
+static inline T_ACCUMULATOR* gp_fold(const GPArray(T) arr, T_ACCUMULATOR* acc,
+    T_ACCUMULATOR*(*const f)(T_ACCUMULATOR*, T*))
 {
-    static_assert(sizeof(T_ACCUMULATOR) == sizeof(T*),
-        "Accumulator must be a pointer or a pointer sized integer.");
-    return (T_ACCUMULATOR)gp_arr_fold(sizeof(*arr)[0], arr, (void*)acc, (void*)f);
+    return (T_ACCUMULATOR*)gp_arr_fold(sizeof arr[0], arr, acc, (void*(*)(void*,const void*))f);
+}
+template <typename T>
+static inline intptr_t gp_fold(const GPArray(T) arr, intptr_t acc,
+    intptr_t(*const f)(intptr_t, const T*))
+{
+    return (intptr_t)gp_arr_fold(sizeof arr[0], arr, (void*)acc, (void*(*)(void*,const void*))(void*)f);
+}
+template <typename T>
+static inline uintptr_t gp_fold(const GPArray(T) arr, uintptr_t acc,
+    uintptr_t(*const f)(uintptr_t, const T*))
+{
+    return (uintptr_t)gp_arr_fold(sizeof arr[0], arr, (void*)acc, (void*(*)(void*,const void*))(void*)f);
 }
 
 template <typename T, typename T_ACCUMULATOR>
-static inline T_ACCUMULATOR gp_foldr(const GPArray(T) arr, T_ACCUMULATOR acc,
-    T_ACCUMULATOR(*const f)(T_ACCUMULATOR, const T*))
+static inline T_ACCUMULATOR* gp_foldr(const GPArray(T) arr, T_ACCUMULATOR* acc,
+    T_ACCUMULATOR*(*const f)(T_ACCUMULATOR*, T*))
 {
-    static_assert(sizeof(T_ACCUMULATOR) == sizeof(T*),
-        "Accumulator must be a pointer or a pointer sized integer.");
-    return (T_ACCUMULATOR)gp_arr_foldr(sizeof(*arr)[0], arr, (void*)acc, (void*)f);
+    return (T_ACCUMULATOR*)gp_arr_foldr(sizeof arr[0], arr, acc, (void*(*)(void*,const void*))f);
+}
+template <typename T>
+static inline intptr_t gp_foldr(const GPArray(T) arr, intptr_t acc,
+    intptr_t(*const f)(intptr_t, const T*))
+{
+    return (intptr_t)gp_arr_foldr(sizeof arr[0], arr, (void*)acc, (void*(*)(void*,const void*))(void*)f);
+}
+template <typename T>
+static inline uintptr_t gp_foldr(const GPArray(T) arr, uintptr_t acc,
+    uintptr_t(*const f)(uintptr_t, const T*))
+{
+    return (uintptr_t)gp_arr_foldr(sizeof *arr[0], arr, (void*)acc, (void*(*)(void*,const void*))(void*)f);
 }
 
 // ---------------------------
@@ -988,35 +1008,35 @@ static inline T_ACCUMULATOR gp_foldr(const GPArray(T) arr, T_ACCUMULATOR acc,
 template <typename T>
 static inline void gp_filter(GPArray(T)* parr, bool(*const f)(const T* in))
 {
-    *parr = gp_arr_filter(sizeof(*parr)[0], *parr, NULL, 0, (bool(*)(const void*))f);
+    *parr = (GPArray(T))gp_arr_filter(sizeof(*parr)[0], *parr, NULL, 0, (bool(*)(const void*))f);
 }
 template <typename T>
 static inline void gp_filter(
     GPArray(T)* pout, const GPArray(T) in, bool(*const f)(const T* in))
 {
-    *pout = gp_arr_filter(sizeof(*pout)[0], *pout, in, gp_arr_length(in), (bool(*)(const void*))f);
+    *pout = (GPArray(T))gp_arr_filter(sizeof(*pout)[0], *pout, in, gp_arr_length(in), (bool(*)(const void*))f);
 }
 template <typename T, typename T_ALLOCATOR>
-static inline void gp_filter(
+static inline GPArray(T) gp_filter(
     T_ALLOCATOR* allocator, const GPArray(T) in, bool(*const f)(const T* in))
 {
     GPArray(T) out = (GPArray(T))gp_arr_new(gp_alc_cpp(allocator), sizeof out[0], gp_arr_length(in));
-    out = gp_arr_filter(sizeof out[0], out, in, gp_arr_length(in), (bool(*)(const void*))f);
+    return out = (GPArray(T))gp_arr_filter(sizeof out[0], out, in, gp_arr_length(in), (bool(*)(const void*))f);
 }
 template <typename T>
 static inline void gp_filter(
     GPArray(T)* pout, const T*const in, const size_t in_length,
     bool(*const f)(const T* in))
 {
-    *pout = gp_arr_filter(sizeof(*pout)[0], *pout, in, in_length, (bool(*)(const void*))f);
+    *pout = (GPArray(T))gp_arr_filter(sizeof(*pout)[0], *pout, in, in_length, (bool(*)(const void*))f);
 }
 template <typename T, typename T_ALLOCATOR>
-static inline void gp_filter(
+static inline GPArray(T) gp_filter(
     T_ALLOCATOR* allocator, const T*const in, const size_t in_length,
     bool(*f)(const T* in))
 {
     GPArray(T) out = (GPArray(T))gp_arr_new(gp_alc_cpp(allocator), sizeof out[0], in_length);
-    out = gp_arr_filter(sizeof out[0], out, in, in_length, (bool(*)(const void*))f);
+    return out = (GPArray(T))gp_arr_filter(sizeof out[0], out, in, in_length, (bool(*)(const void*))f);
 }
 
 // ----------------------------------------------------------------------------
