@@ -335,7 +335,6 @@ int main(void)
             #endif
         }
 
-        #ifndef __cplusplus
         gp_test("Append");
         {
             GPString str1 = gp_str(&arena);
@@ -399,7 +398,6 @@ int main(void)
             GPArray(int) arr4 = gp_insert(&arena, 0, arr1, gp_arr_ro(int, 6), 1);
             arr_assert_eq(arr4, arr2, gp_length(arr2));
         }
-        #endif // __cplusplus
     }
 
 #ifndef __cplusplus
@@ -507,14 +505,14 @@ int main(void)
             gp_put(&dict, key1,               1);
             gp_put(&dict, key2, strlen(key2), 2);
             gp_put(&dict, "key3",             3);
-            #ifndef GP_TYPEOF
-            gp_expect(*(int*)gp_get(dict, key1)               == 1);
-            gp_expect(*(int*)gp_get(dict, key2, strlen(key2)) == 2);
-            gp_expect(*(int*)gp_get(dict, "key3")             == 3);
-            #else // no cast required
+            #if defined(GP_TYPEOF) || __cplusplus
             gp_expect(*gp_get(dict, key1)               == 1);
             gp_expect(*gp_get(dict, key2, strlen(key2)) == 2);
             gp_expect(*gp_get(dict, "key3")             == 3);
+            #else // cast required for dereferencing the return value
+            gp_expect(*(int*)gp_get(dict, key1)               == 1);
+            gp_expect(*(int*)gp_get(dict, key2, strlen(key2)) == 2);
+            gp_expect(*(int*)gp_get(dict, "key3")             == 3);
             #endif
             gp_expect(gp_remove(&dict, key1));
             gp_expect(gp_remove(&dict, key2, strlen(key2)));

@@ -595,7 +595,7 @@ static inline GPArray(T) gp_slice(
     T_ALLOCATOR* allocator, const T* src, const size_t start, const size_t end)
 {
     const size_t length = end - start;
-    GPArray(T) out = (GPArray(T))gp_arr_new((const GPAllocator*)allocator, sizeof out[0], length);
+    GPArray(T) out = (GPArray(T))gp_arr_new((const GPAllocator*)allocator, sizeof out[0], length + sizeof"");
     ((GPArrayHeader*)out - 1)->length = length;
     return (GPArray(T))memcpy(out, src + start, length * sizeof out[0]);
 }
@@ -616,17 +616,25 @@ static inline void gp_append(
 template <typename T>
 static inline void gp_append(GPArray(T)* dest, const GPArray(T) src)
 {
-    *dest = gp_arr_append(sizeof(*dest)[0], *dest, src, gp_arr_length(src));
+    *dest = (GPArray(T))gp_arr_append(sizeof(*dest)[0], *dest, src, gp_arr_length(src));
+}
+static inline void gp_append(GPString* dest, const GPString src, const size_t src_length)
+{
+    gp_str_append(dest, src, src_length);
+}
+static inline void gp_append(GPString* dest, const char*const src, const size_t src_length)
+{
+    gp_str_append(dest, src, src_length);
 }
 template <typename T>
 static inline void gp_append(
     GPArray(T)* dest, const T*const src, const size_t src_length)
 {
-    *dest = gp_arr_append(sizeof(*dest)[0], *dest, src, src_length);
+    *dest = (GPArray(T))gp_arr_append(sizeof(*dest)[0], *dest, src, src_length);
 }
-template <typename T_ALLOCATOR, typename T_STRING1, typename T_STRING2>
+template <typename T_ALLOCATOR>
 static inline GPString gp_append(
-    T_ALLOCATOR* allocator, T_STRING1 str1, T_STRING2 str2)
+    T_ALLOCATOR* allocator, const GPString str1, const GPString str2)
 {
     const size_t str1_length = gp_str_length_cpp(str1);
     const size_t str2_length = gp_str_length_cpp(str2);
@@ -635,6 +643,54 @@ static inline GPString gp_append(
     ((GPStringHeader*)out - 1)->length = length;
     memcpy(out + str1_length, str2, str2_length);
     return (GPString)memcpy(out, str1, str1_length);
+}
+template <typename T_ALLOCATOR>
+static inline GPString gp_append(
+    T_ALLOCATOR* allocator, const GPString str1, const char*const str2)
+{
+    const size_t str1_length = gp_str_length_cpp(str1);
+    const size_t str2_length = gp_str_length_cpp(str2);
+    const size_t length = str1_length + str2_length;
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    ((GPStringHeader*)out - 1)->length = length;
+    memcpy(out + str1_length, str2, str2_length);
+    return (GPString)memcpy(out, str1, str1_length);
+}
+template <typename T_ALLOCATOR>
+static inline GPString gp_append(
+    T_ALLOCATOR* allocator, const char*const str1, const GPString str2)
+{
+    const size_t str1_length = gp_str_length_cpp(str1);
+    const size_t str2_length = gp_str_length_cpp(str2);
+    const size_t length = str1_length + str2_length;
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    ((GPStringHeader*)out - 1)->length = length;
+    memcpy(out + str1_length, str2, str2_length);
+    return (GPString)memcpy(out, str1, str1_length);
+}
+template <typename T_ALLOCATOR>
+static inline GPString gp_append(
+    T_ALLOCATOR* allocator, const char*const str1, const char*const str2)
+{
+    const size_t str1_length = gp_str_length_cpp(str1);
+    const size_t str2_length = gp_str_length_cpp(str2);
+    const size_t length = str1_length + str2_length;
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    ((GPStringHeader*)out - 1)->length = length;
+    memcpy(out + str1_length, str2, str2_length);
+    return (GPString)memcpy(out, str1, str1_length);
+}
+template <typename T_ALLOCATOR, typename T>
+static inline GPArray(T) gp_append(
+    T_ALLOCATOR* allocator, GPArray(T) arr1, GPArray(T) arr2)
+{
+    const size_t arr1_length = gp_arr_length(arr1);
+    const size_t arr2_length = gp_arr_length(arr2);
+    const size_t length = arr1_length + arr2_length;
+    GPArray(T) out = (GPArray(T))gp_arr_new(gp_alc_cpp(allocator), sizeof arr1[0], length + sizeof"");
+    ((GPArrayHeader*)out - 1)->length = length;
+    memcpy(out + arr1_length, arr2, arr2_length * sizeof arr1[0]);
+    return (GPArray(T))memcpy(out, arr1, arr1_length * sizeof arr1[0]);
 }
 template <typename T_ALLOCATOR, typename T_STRING>
 static inline GPString gp_append(
@@ -680,26 +736,14 @@ static inline GPString gp_append(
 }
 template <typename T_ALLOCATOR, typename T>
 static inline GPArray(T) gp_append(
-    T_ALLOCATOR* allocator, GPArray(T) arr1, GPArray(T) arr2)
-{
-    const size_t arr1_length = gp_arr_length(arr1);
-    const size_t arr2_length = gp_arr_length(arr2);
-    const size_t length = arr1_length + arr2_length;
-    GPArray(T) out = gp_arr_new(gp_alc_cpp(allocator), sizeof arr1[0], length);
-    ((GPArrayHeader*)out - 1)->length = length;
-    memcpy(out + arr1_length, arr2, arr2_length * sizeof arr1[0]);
-    return (GPArray(T))memcpy(out, arr1, arr1_length * sizeof arr1[0]);
-}
-template <typename T_ALLOCATOR, typename T>
-static inline GPArray(T) gp_append(
     T_ALLOCATOR*  allocator,
     GPArray(T)    arr1,
     const T*const arr2,
     const size_t  arr2_length)
 {
-    const size_t arr1_length = gp_arr_length_cpp(arr1);
+    const size_t arr1_length = gp_arr_length(arr1);
     const size_t length = arr1_length + arr2_length;
-    GPArray(T) out = gp_arr_new(gp_alc_cpp(allocator), length, "");
+    GPArray(T) out = (GPArray(T))gp_arr_new(gp_alc_cpp(allocator), sizeof out[0], length + sizeof"");
     ((GPArrayHeader*)out - 1)->length = length;
     memcpy(out + arr1_length, arr2, arr2_length * sizeof arr1[0]);
     return (GPArray(T))memcpy(out, arr1, arr1_length * sizeof arr1[0]);
@@ -713,7 +757,7 @@ static inline GPArray(T) gp_append(
     const size_t  arr2_length)
 {
     const size_t length = arr1_length + arr2_length;
-    GPArray(T) out = gp_arr_new(gp_alc_cpp(allocator), length, "");
+    GPArray(T) out = (GPArray(T))gp_arr_new(gp_alc_cpp(allocator), sizeof out[0], length + sizeof"");
     ((GPArrayHeader*)out - 1)->length = length;
     memcpy(out + arr1_length, arr2, arr2_length * sizeof arr1[0]);
     return (GPArray(T))memcpy(out, arr1, arr1_length * sizeof arr1[0]);
@@ -737,22 +781,58 @@ template <typename T>
 static inline void gp_insert(
     GPArray(T)* dest, const size_t index, const GPArray(T) src)
 {
-    *dest = gp_arr_insert(sizeof(*dest)[0], index, *dest, src, gp_arr_length(src));
+    *dest = (GPArray(T))gp_arr_insert(sizeof(*dest)[0], *dest, index, src, gp_arr_length(src));
 }
 template <typename T>
 static inline void gp_insert(
     GPArray(T)* dest, const size_t index, const T*const src, const size_t src_length)
 {
-    *dest = gp_arr_insert(sizeof(*dest)[0], index, *dest, src, src_length);
+    *dest = (GPArray(T))gp_arr_insert(sizeof(*dest)[0], *dest, index, src, src_length);
 }
-template <typename T_ALLOCATOR, typename T_STRING1, typename T_STRING2>
+template <typename T_ALLOCATOR>
 static inline GPString gp_insert(
-    T_ALLOCATOR* allocator, const size_t index, T_STRING1 str1, T_STRING2 str2)
+    T_ALLOCATOR* allocator, const size_t index, const GPString str1, const GPString str2)
 {
     const size_t str1_length = gp_str_length_cpp(str1);
     const size_t str2_length = gp_str_length_cpp(str2);
     GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length, "");
     return (GPString)gp_insert_cpp(sizeof out[0], out, index, str1, str1_length, str2, str2_length);
+}
+template <typename T_ALLOCATOR>
+static inline GPString gp_insert(
+    T_ALLOCATOR* allocator, const size_t index, const GPString str1, const char*const str2)
+{
+    const size_t str1_length = gp_str_length_cpp(str1);
+    const size_t str2_length = gp_str_length_cpp(str2);
+    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length, "");
+    return (GPString)gp_insert_cpp(sizeof out[0], out, index, str1, str1_length, str2, str2_length);
+}
+template <typename T_ALLOCATOR>
+static inline GPString gp_insert(
+    T_ALLOCATOR* allocator, const size_t index, const char*const str1, const GPString str2)
+{
+    const size_t str1_length = gp_str_length_cpp(str1);
+    const size_t str2_length = gp_str_length_cpp(str2);
+    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length, "");
+    return (GPString)gp_insert_cpp(sizeof out[0], out, index, str1, str1_length, str2, str2_length);
+}
+template <typename T_ALLOCATOR>
+static inline GPString gp_insert(
+    T_ALLOCATOR* allocator, const size_t index, const char*const str1, const char*const str2)
+{
+    const size_t str1_length = gp_str_length_cpp(str1);
+    const size_t str2_length = gp_str_length_cpp(str2);
+    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length, "");
+    return (GPString)gp_insert_cpp(sizeof out[0], out, index, str1, str1_length, str2, str2_length);
+}
+template <typename T_ALLOCATOR, typename T>
+static inline GPArray(T) gp_insert(
+    T_ALLOCATOR* allocator, const size_t index, const GPArray(T) arr1, const GPArray(T) arr2)
+{
+    const size_t arr1_length = gp_arr_length(arr1);
+    const size_t arr2_length = gp_arr_length(arr2);
+    GPArray(T) out = (GPArray(T))gp_arr_new(gp_alc_cpp(allocator), sizeof arr1[0], arr1_length + arr2_length + sizeof"");
+    return (GPArray(T))gp_insert_cpp(sizeof out[0], out, index, arr1, arr1_length, arr2, arr2_length);
 }
 template <typename T_ALLOCATOR, typename T_STRING>
 static inline GPString gp_insert(
@@ -792,23 +872,14 @@ static inline GPString gp_insert(
 }
 template <typename T_ALLOCATOR, typename T>
 static inline GPArray(T) gp_insert(
-    T_ALLOCATOR* allocator, GPArray(T) arr1, GPArray(T) arr2)
-{
-    const size_t arr1_length = gp_arr_length(arr1);
-    const size_t arr2_length = gp_arr_length(arr2);
-    GPArray(T) out = gp_arr_new(gp_alc_cpp(allocator), sizeof arr1[0], arr1_length + arr2_length);
-    return (GPArray(T))gp_insert_cpp(sizeof out[0], out, index, arr1, arr1_length, arr2, arr2_length);
-}
-template <typename T_ALLOCATOR, typename T>
-static inline GPArray(T) gp_insert(
     T_ALLOCATOR*  allocator,
     const size_t  index,
     GPArray(T)    arr1,
     const T*const arr2,
     const size_t  arr2_length)
 {
-    const size_t arr1_length = gp_arr_length_cpp(arr1);
-    GPArray(T) out = gp_arr_new(gp_alc_cpp(allocator), sizeof arr1[0],  arr1_length + arr2_length);
+    const size_t arr1_length = gp_arr_length(arr1);
+    GPArray(T) out = (GPArray(T))gp_arr_new(gp_alc_cpp(allocator), sizeof arr1[0],  arr1_length + arr2_length + sizeof"");
     return (GPArray(T))gp_insert_cpp(sizeof out[0], out, index, arr1, arr1_length, arr2, arr2_length);
 }
 template <typename T_ALLOCATOR, typename T>
@@ -820,7 +891,7 @@ static inline GPArray(T) gp_insert(
     const T*const arr2,
     const size_t  arr2_length)
 {
-    GPArray(T) out = gp_arr_new(gp_alc_cpp(allocator), sizeof arr1[0], arr1_length + arr2_length);
+    GPArray(T) out = (GPArray(T))gp_arr_new(gp_alc_cpp(allocator), sizeof arr1[0], arr1_length + arr2_length + sizeof"");
     return (GPArray(T))gp_insert_cpp(sizeof out[0], out, index, arr1, arr1_length, arr2, arr2_length);
 }
 
@@ -897,6 +968,8 @@ template <typename T, typename T_ACCUMULATOR>
 static inline T_ACCUMULATOR gp_fold(const GPArray(T) arr, T_ACCUMULATOR acc,
     T_ACCUMULATOR(*const f)(T_ACCUMULATOR, const T*))
 {
+    static_assert(sizeof(T_ACCUMULATOR) == sizeof(T*),
+        "Accumulator must be a pointer or a pointer sized integer.");
     return (T_ACCUMULATOR)gp_arr_fold(sizeof(*arr)[0], arr, (void*)acc, (void*)f);
 }
 
@@ -904,6 +977,8 @@ template <typename T, typename T_ACCUMULATOR>
 static inline T_ACCUMULATOR gp_foldr(const GPArray(T) arr, T_ACCUMULATOR acc,
     T_ACCUMULATOR(*const f)(T_ACCUMULATOR, const T*))
 {
+    static_assert(sizeof(T_ACCUMULATOR) == sizeof(T*),
+        "Accumulator must be a pointer or a pointer sized integer.");
     return (T_ACCUMULATOR)gp_arr_foldr(sizeof(*arr)[0], arr, (void*)acc, (void*)f);
 }
 
