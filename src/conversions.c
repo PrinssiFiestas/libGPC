@@ -16,15 +16,15 @@
 #include <math.h>
 #include <limits.h>
 
-#define DOUBLE_MANTISSA_BITS 52
-#define DOUBLE_EXPONENT_BITS 11
-#define DOUBLE_BIAS 1023
+#define PF_DOUBLE_MANTISSA_BITS 52
+#define PF_DOUBLE_EXPONENT_BITS 11
+#define PF_DOUBLE_BIAS 1023
 
-#define POW10_ADDITIONAL_BITS 120
+#define PF_POW10_ADDITIONAL_BITS 120
 
 #define PF_MAX_DIGITS 24
 
-static void str_reverse_copy(
+static void pf_str_reverse_copy(
     char* restrict out,
     char* restrict buf,
     const size_t length,
@@ -58,7 +58,7 @@ size_t pf_utoa(const size_t n, char* out, unsigned long long x)
         x /= 10;
     } while(x);
 
-    str_reverse_copy(out, buf, i, n);
+    pf_str_reverse_copy(out, buf, i, n);
     return i;
 }
 
@@ -85,7 +85,7 @@ size_t pf_itoa(size_t n, char* out, const long long ix)
         x /= 10;
     } while(x);
 
-    str_reverse_copy(out, buf, i, n);
+    pf_str_reverse_copy(out, buf, i, n);
     return i + (ix < 0);
 }
 
@@ -99,7 +99,7 @@ size_t pf_otoa(const size_t n, char* out, unsigned long long x)
         x /= 8;
     } while(x);
 
-    str_reverse_copy(out, buf, i, n);
+    pf_str_reverse_copy(out, buf, i, n);
     return i;
 }
 
@@ -114,7 +114,7 @@ size_t pf_xtoa(const size_t n, char* out, unsigned long long x)
         x /= 16;
     } while(x);
 
-    str_reverse_copy(out, buf, i, n);
+    pf_str_reverse_copy(out, buf, i, n);
     return i;
 }
 
@@ -129,7 +129,7 @@ size_t pf_Xtoa(const size_t n, char* out, unsigned long long x)
         x /= 16;
     } while(x);
 
-    str_reverse_copy(out, buf, i, n);
+    pf_str_reverse_copy(out, buf, i, n);
     return i;
 }
 
@@ -469,7 +469,7 @@ static inline uint32_t pf_indexForExponent(const uint32_t e)
 
 static inline uint32_t pf_pow10BitsForIndex(const uint32_t idx)
 {
-    return 16 * idx + POW10_ADDITIONAL_BITS;
+    return 16 * idx + PF_POW10_ADDITIONAL_BITS;
 }
 
 static inline uint32_t pf_lengthForIndex(const uint32_t idx)
@@ -524,10 +524,10 @@ pf_d2fixed_buffered_n(
 
     // Decode bits into sign, mantissa, and exponent.
     const bool ieeeSign =
-        ((bits >> (DOUBLE_MANTISSA_BITS + DOUBLE_EXPONENT_BITS)) & 1) != 0;
-    const uint64_t ieeeMantissa = bits & ((1ull << DOUBLE_MANTISSA_BITS) - 1);
+        ((bits >> (PF_DOUBLE_MANTISSA_BITS + PF_DOUBLE_EXPONENT_BITS)) & 1) != 0;
+    const uint64_t ieeeMantissa = bits & ((1ull << PF_DOUBLE_MANTISSA_BITS) - 1);
     const uint32_t ieeeExponent = (uint32_t)
-        ((bits >> DOUBLE_MANTISSA_BITS) & ((1u << DOUBLE_EXPONENT_BITS) - 1));
+        ((bits >> PF_DOUBLE_MANTISSA_BITS) & ((1u << PF_DOUBLE_EXPONENT_BITS) - 1));
 
     if (ieeeSign)
         pf_push_char(&out, '-');
@@ -537,7 +537,7 @@ pf_d2fixed_buffered_n(
         pf_push_char(&out, ' ');
 
     // Case distinction; exit early for the easy cases.
-    if (ieeeExponent == ((1u << DOUBLE_EXPONENT_BITS) - 1u))
+    if (ieeeExponent == ((1u << PF_DOUBLE_EXPONENT_BITS) - 1u))
     {
         const bool uppercase =
             fmt.conversion_format == 'F' || fmt.conversion_format == 'G';
@@ -561,13 +561,13 @@ pf_d2fixed_buffered_n(
     uint64_t m2;
     if (ieeeExponent == 0)
     {
-        e2 = 1 - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
+        e2 = 1 - PF_DOUBLE_BIAS - PF_DOUBLE_MANTISSA_BITS;
         m2 = ieeeMantissa;
     }
     else
     {
-        e2 = (int32_t) ieeeExponent - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
-        m2 = (1ull << DOUBLE_MANTISSA_BITS) | ieeeMantissa;
+        e2 = (int32_t) ieeeExponent - PF_DOUBLE_BIAS - PF_DOUBLE_MANTISSA_BITS;
+        m2 = (1ull << PF_DOUBLE_MANTISSA_BITS) | ieeeMantissa;
     }
 
     bool is_zero = true; // for now
@@ -880,10 +880,10 @@ pf_d2exp_buffered_n(
 
     // Decode bits into sign, mantissa, and exponent.
     const bool ieeeSign =
-        ((bits >> (DOUBLE_MANTISSA_BITS + DOUBLE_EXPONENT_BITS)) & 1) != 0;
-    const uint64_t ieeeMantissa = bits & ((1ull << DOUBLE_MANTISSA_BITS) - 1);
+        ((bits >> (PF_DOUBLE_MANTISSA_BITS + PF_DOUBLE_EXPONENT_BITS)) & 1) != 0;
+    const uint64_t ieeeMantissa = bits & ((1ull << PF_DOUBLE_MANTISSA_BITS) - 1);
     const uint32_t ieeeExponent = (uint32_t)
-        ((bits >> DOUBLE_MANTISSA_BITS) & ((1u << DOUBLE_EXPONENT_BITS) - 1));
+        ((bits >> PF_DOUBLE_MANTISSA_BITS) & ((1u << PF_DOUBLE_EXPONENT_BITS) - 1));
 
     if (ieeeSign)
         pf_push_char(&out, '-');
@@ -893,7 +893,7 @@ pf_d2exp_buffered_n(
         pf_push_char(&out, ' ');
 
     // Case distinction; exit early for the easy cases.
-    if (ieeeExponent == ((1u << DOUBLE_EXPONENT_BITS) - 1u))
+    if (ieeeExponent == ((1u << PF_DOUBLE_EXPONENT_BITS) - 1u))
     {
         const bool uppercase =
             fmt.conversion_format == 'E' || fmt.conversion_format == 'G';
@@ -928,11 +928,11 @@ pf_d2exp_buffered_n(
     int32_t e2;
     uint64_t m2;
     if (ieeeExponent == 0) {
-        e2 = 1 - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
+        e2 = 1 - PF_DOUBLE_BIAS - PF_DOUBLE_MANTISSA_BITS;
         m2 = ieeeMantissa;
     } else {
-        e2 = (int32_t)ieeeExponent - DOUBLE_BIAS - DOUBLE_MANTISSA_BITS;
-        m2 = (1ull << DOUBLE_MANTISSA_BITS) | ieeeMantissa;
+        e2 = (int32_t)ieeeExponent - PF_DOUBLE_BIAS - PF_DOUBLE_MANTISSA_BITS;
+        m2 = (1ull << PF_DOUBLE_MANTISSA_BITS) | ieeeMantissa;
     }
 
     const bool printDecimalPoint = precision > 0;

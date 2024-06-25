@@ -32,7 +32,7 @@ inline size_t gp_max_digits_in(const GPType T)
             return strlen("0x") + sizeof(void*) * strlen("ff");
 
         default: // integers https://www.desmos.com/calculator/c1ftloo5ya
-            return (gp_sizeof(T) * 18)/CHAR_BIT + 2;
+            return (gp_sizeof(T) * 18) / CHAR_BIT + 2;
     }
     return 0;
 }

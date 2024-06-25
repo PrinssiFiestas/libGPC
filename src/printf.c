@@ -14,14 +14,14 @@
 #include <math.h>
 #include <limits.h>
 
-struct MiscData
+struct pf_misc_data
 {
     bool has_sign;
     bool has_0x;
     bool is_nan_or_inf;
 };
 
-static uintmax_t get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
+static uintmax_t pf_get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
 {
     if (fmt.conversion_format == 'p')
         return va_arg(args->list, uintptr_t);
@@ -63,7 +63,7 @@ static uintmax_t get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
     }
 }
 
-static void c_string_padding(
+static void pf_c_string_padding(
     struct pf_string* out,
     const PFFormatSpecifier fmt,
     const void* string,
@@ -85,7 +85,7 @@ static void c_string_padding(
 
 }
 
-static unsigned write_s(
+static unsigned pf_write_s(
     struct pf_string* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
@@ -100,11 +100,11 @@ static unsigned write_s(
         while (cstr_len < fmt.precision.width && cstr[cstr_len] != '\0')
             cstr_len++;
 
-    c_string_padding(out, fmt, cstr, cstr_len);
+    pf_c_string_padding(out, fmt, cstr, cstr_len);
     return out->length - original_length;
 }
 
-static void utf8_string_padding(
+static void pf_utf8_string_padding(
     struct pf_string* out,
     const PFFormatSpecifier fmt,
     const void* bytes,
@@ -127,7 +127,7 @@ static void utf8_string_padding(
 
 }
 
-static unsigned write_S(
+static unsigned pf_write_S(
     struct pf_string* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
@@ -154,11 +154,11 @@ static unsigned write_S(
         codepoint_count++;
         i += last_cp_length = gp_str_codepoint_length(str, i);
     }
-    utf8_string_padding(out, fmt, str, length, codepoint_count);
+    pf_utf8_string_padding(out, fmt, str, length, codepoint_count);
     return out->length - original_length;
 }
 
-static void write_leading_zeroes(
+static void pf_write_leading_zeroes(
     struct pf_string* out,
     const unsigned written_by_utoa,
     const PFFormatSpecifier fmt)
@@ -181,9 +181,9 @@ static void write_leading_zeroes(
     }
 }
 
-static unsigned write_i(
+static unsigned pf_write_i(
     struct pf_string* out,
-    struct MiscData* md,
+    struct pf_misc_data* md,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
@@ -246,17 +246,17 @@ static unsigned write_i(
     const unsigned max_written = pf_utoa(
         pf_capacity_left(*out), out->data + out->length, imaxabs(i));
 
-    write_leading_zeroes(out, max_written, fmt);
+    pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
-static unsigned write_o(
+static unsigned pf_write_o(
     struct pf_string* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const uintmax_t u = get_uint(args, fmt);
+    const uintmax_t u = pf_get_uint(args, fmt);
 
     bool zero_written = false;
     if (fmt.flag.hash && u > 0)
@@ -269,21 +269,21 @@ static unsigned write_o(
         pf_capacity_left(*out), out->data + out->length, u);
 
     // zero_written tells pad_zeroes() to add 1 less '0'
-    write_leading_zeroes(out, zero_written + max_written, fmt);
+    pf_write_leading_zeroes(out, zero_written + max_written, fmt);
     // compensate for added zero_written to write_leading_zeroes()
     out->length -= zero_written;
 
     return out->length - original_length;
 }
 
-static unsigned write_x(
+static unsigned pf_write_x(
     struct pf_string* out,
-    struct MiscData* md,
+    struct pf_misc_data* md,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const uintmax_t u = get_uint(args, fmt);
+    const uintmax_t u = pf_get_uint(args, fmt);
 
     if (fmt.flag.hash && u > 0)
     {
@@ -294,18 +294,18 @@ static unsigned write_x(
     const unsigned max_written = pf_xtoa(
         pf_capacity_left(*out), out->data + out->length, u);
 
-    write_leading_zeroes(out, max_written, fmt);
+    pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
-static unsigned write_X(
+static unsigned pf_write_X(
     struct pf_string* out,
-    struct MiscData* md,
+    struct pf_misc_data* md,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const uintmax_t u = get_uint(args, fmt);
+    const uintmax_t u = pf_get_uint(args, fmt);
 
     if (fmt.flag.hash && u > 0)
     {
@@ -316,37 +316,37 @@ static unsigned write_X(
     const unsigned max_written = pf_Xtoa(
         pf_capacity_left(*out), out->data + out->length, u);
 
-    write_leading_zeroes(out, max_written, fmt);
+    pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
-static unsigned write_u(
+static unsigned pf_write_u(
     struct pf_string* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const uintmax_t u = get_uint(args, fmt);
+    const uintmax_t u = pf_get_uint(args, fmt);
     const unsigned max_written = pf_utoa(
         pf_capacity_left(*out), out->data + out->length, u);
-    write_leading_zeroes(out, max_written, fmt);
+    pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
-static unsigned write_p(
+static unsigned pf_write_p(
     struct pf_string* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const uintmax_t u = get_uint(args, fmt);
+    const uintmax_t u = pf_get_uint(args, fmt);
 
     if (u > 0)
     {
         pf_concat(out, "0x", strlen("0x"));
         const unsigned max_written = pf_xtoa(
             pf_capacity_left(*out), out->data + out->length, u);
-        write_leading_zeroes(out, max_written, fmt);
+        pf_write_leading_zeroes(out, max_written, fmt);
     }
     else
     {
@@ -355,9 +355,9 @@ static unsigned write_p(
     return out->length - original_length;
 }
 
-static unsigned write_f(
+static unsigned pf_write_f(
     struct pf_string* out,
-    struct MiscData* md,
+    struct pf_misc_data* md,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
@@ -372,10 +372,10 @@ static unsigned write_f(
     return written_by_conversion;
 }
 
-static unsigned add_padding(
+static unsigned pf_add_padding(
     struct pf_string* out,
     const unsigned written,
-    const struct MiscData md,
+    const struct pf_misc_data md,
     const PFFormatSpecifier fmt)
 {
     size_t start = out->length - written;
@@ -439,7 +439,7 @@ int pf_vsnprintf_consuming(
         format = fmt.string + fmt.string_length;
 
         unsigned written_by_conversion = 0;
-        struct MiscData misc = {};
+        struct pf_misc_data misc = {};
 
         switch (fmt.conversion_format)
         {
@@ -449,50 +449,50 @@ int pf_vsnprintf_consuming(
                 break;
 
             case 's':
-                written_by_conversion += write_s(
+                written_by_conversion += pf_write_s(
                     &out, args, fmt);
                 break;
 
             case 'S':
-                written_by_conversion += write_S(
+                written_by_conversion += pf_write_S(
                     &out, args, fmt);
                 break;
 
             case 'd':
             case 'i':
-                written_by_conversion += write_i(
+                written_by_conversion += pf_write_i(
                     &out, &misc, args, fmt);
                 break;
 
             case 'o':
-                written_by_conversion += write_o(
+                written_by_conversion += pf_write_o(
                     &out, args, fmt);
                 break;
 
             case 'x':
-                written_by_conversion += write_x(
+                written_by_conversion += pf_write_x(
                     &out, &misc, args, fmt);
                 break;
 
             case 'X':
-                written_by_conversion += write_X(
+                written_by_conversion += pf_write_X(
                     &out, &misc, args, fmt);
                 break;
 
             case 'u':
-                written_by_conversion += write_u(
+                written_by_conversion += pf_write_u(
                     &out, args, fmt);
                 break;
 
             case 'p':
-                written_by_conversion += write_p(
+                written_by_conversion += pf_write_p(
                     &out, args, fmt);
                 break;
 
             case 'f': case 'F':
             case 'e': case 'E':
             case 'g': case 'G':
-                written_by_conversion += write_f(
+                written_by_conversion += pf_write_f(
                     &out, &misc, args, fmt);
                 break;
 
@@ -502,7 +502,7 @@ int pf_vsnprintf_consuming(
         }
 
         if (written_by_conversion < fmt.field.width)
-            add_padding(
+            pf_add_padding(
                 &out,
                 written_by_conversion,
                 misc,
