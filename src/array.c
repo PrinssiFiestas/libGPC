@@ -41,10 +41,13 @@ GPArray(void) gp_arr_new(
 }
 
 GPArray(void) gp_arr_reserve(
-    const size_t element_size,
+    const size_t  element_size,
     GPArray(void) arr,
     size_t        capacity)
 {
+    if (gp_arr_allocator(arr) == NULL)
+        return arr;
+
     if (capacity > gp_arr_capacity(arr))
     {
         capacity = gp_next_power_of_2(capacity);

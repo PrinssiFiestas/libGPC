@@ -202,11 +202,13 @@ const char* gp_cstr(GPString str)
 }
 
 void gp_str_reserve(
-    GPString* str,
+    GPString* pstr,
     size_t capacity)
 {
-    *str = gp_arr_reserve(sizeof**str, *str, capacity + sizeof"");
-    gp_str_header(*str)->capacity -= sizeof"";
+    GPString str = gp_arr_reserve(sizeof**pstr, *pstr, capacity + sizeof"");
+    if (str != *pstr) // allocation happened
+        gp_str_header(*pstr)->capacity -= sizeof"";
+    *pstr = str;
 }
 
 void gp_str_copy(
@@ -388,14 +390,12 @@ size_t gp_str_print_internal(
 
     // Avoid many small allocations by estimating a sufficient buffer size. This
     // estimation is currently completely arbitrary.
-    if (gp_str_allocator(*out) != NULL)
-        gp_str_reserve(out, arg_count * 10);
+    gp_str_reserve(out, arg_count * 10);
 
     gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        if (gp_str_allocator(*out) != NULL)
-            gp_str_reserve(out, gp_str_length(*out) + gp_str_print_object_size(objs[i], args));
+        gp_str_reserve(out, gp_str_length(*out) + gp_str_print_object_size(objs[i], args));
         gp_str_header(*out)->length += gp_bytes_print_objects(
             (size_t)-1,
             *out + gp_str_length(*out),
@@ -454,15 +454,13 @@ size_t gp_str_println_internal(
 
     // Avoid many small allocations by estimating a sufficient buffer size. This
     // estimation is currently completely arbitrary.
-    if (gp_str_allocator(*out) != NULL)
-        gp_str_reserve(out, arg_count * 10);
+    gp_str_reserve(out, arg_count * 10);
 
     gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        if (gp_str_allocator(*out) != NULL)
-            gp_str_reserve(out,
-                gp_str_length(*out) + strlen(" ") + gp_str_print_object_size(objs[i], args));
+        gp_str_reserve(out,
+            gp_str_length(*out) + strlen(" ") + gp_str_print_object_size(objs[i], args));
 
         gp_str_header(*out)->length += gp_bytes_print_objects(
             (size_t)-1,
@@ -788,3 +786,28 @@ int gp_str_file(
     }
     return 0;
 }
+
+#if GP_NEW_CASE_STUFF || 1
+static void gp_codepoint_to_lower(GPChar* c)
+{
+    const size_t length = gp_str_codepoint_length(c, 0);
+    if (length == 1)
+    {
+        if ('A' <= c->c && c->c <= 'Z')
+            c->c += 'a' - 'A';
+        return;
+    }
+    else if (length == 4)
+    { // skip esoteric characters
+        return;
+    }
+
+    uint32_t u = 0;
+    memcpy(&u, c, length);
+
+    switch (u)
+    {
+
+    }
+}
+#endif
