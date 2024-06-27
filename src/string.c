@@ -13,13 +13,49 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include <wctype.h>
+#include <locale.h>
 #include <printf/printf.h>
 #include "pfstring.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include "thread.h"
+
+#if _WIN32
+typedef _locale_t GPLocale;
+#define towlower_l(...) _towlower_l(__VA_ARGS__)
+#define towupper_l(...) _towupper_l(__VA_ARGS__)
+#else
+typedef locale_t GPLocale;
+#endif
+
+static GPLocale gp_locale_new(int category, const char*const locale)
+{
+    #if _WIN32
+    return _create_locale(category, locale);
+    #else
+    return newlocale(category, locale, (GPLocale)0);
+    #endif
+}
+#if 0 // unused for now, maybe later
+static void gp_locale_delete(GPLocale locale)
+{
+    #if _WIN32
+    _free_locale(locale);
+    #else
+    freelocale(locale);
+    #endif
+}
+#endif
+static GPLocale gp_default_locale;
+static GPThreadOnce gp_locale_once = GP_THREAD_ONCE_INIT;
 
 extern inline void gp_str_delete(GPString);
 extern inline void gp_str_ptr_delete(GPString*);
+
+static void gp_init_default_locale(void)
+{
+    gp_default_locale = gp_locale_new(LC_COLLATE, "C.UTF-8");
+}
 
 GPString gp_str_new(
     const GPAllocator*const allocator,
@@ -147,8 +183,8 @@ bool gp_str_equal_case(
         }
         else
         {
-            wc1 = towlower(wc1);
-            wc2 = towlower(wc2);
+            wc1 = towlower_l(wc1, gp_default_locale);
+            wc2 = towlower_l(wc2, gp_default_locale);
             if (wc1 != wc2)
                 return false;
 
@@ -207,7 +243,7 @@ void gp_str_reserve(
 {
     GPString str = gp_arr_reserve(sizeof**pstr, *pstr, capacity + sizeof"");
     if (str != *pstr) // allocation happened
-        gp_str_header(*pstr)->capacity -= sizeof"";
+        gp_str_header(str)->capacity -= sizeof"";
     *pstr = str;
 }
 
@@ -575,10 +611,9 @@ void gp_str_trim(
     gp_str_header(*str)->length = length;
 }
 
-static void gp_str_to_something(
-    GPString* str,
-    wint_t(*const towsomething)(wint_t))
+static void gp_str_to_something(GPString* str, bool to_upper)
 {
+    gp_thread_once(&gp_locale_once, gp_init_default_locale);
     size_t length = gp_str_length(*str);
 
     wchar_t  stack_buf[1 << 10];
@@ -591,8 +626,10 @@ static void gp_str_to_something(
     const char* src = gp_cstr(*str);
     size_t buf_length = mbsrtowcs(buf, &src, buf_cap, &(mbstate_t){0});
 
-    for (size_t i = 0; i < buf_length; i++)
-        buf[i] = towsomething(buf[i]);
+    if (to_upper) for (size_t i = 0; i < buf_length; i++)
+        buf[i] = towupper_l(buf[i], gp_default_locale);
+    else for (size_t i = 0; i < buf_length; i++)
+        buf[i] = towlower_l(buf[i], gp_default_locale);
 
     const wchar_t* pbuf = (const wchar_t*)buf;
     gp_str_reserve(str, wcsrtombs(NULL, &pbuf, 0, &(mbstate_t){0}));
@@ -604,16 +641,14 @@ static void gp_str_to_something(
         gp_mem_dealloc(gp_heap, buf);
 }
 
-void gp_str_to_upper(
-    GPString* str)
+void gp_str_to_upper(GPString* str)
 {
-    gp_str_to_something(str, towupper);
+    gp_str_to_something(str, true);
 }
 
-void gp_str_to_lower(
-    GPString* str)
+void gp_str_to_lower(GPString* str)
 {
-    gp_str_to_something(str, towlower);
+    gp_str_to_something(str, false);
 }
 
 static size_t gp_str_find_invalid(
@@ -691,9 +726,10 @@ void gp_str_to_valid(
     gp_str_header(*str)->length = length;
 }
 
-int gp_str_case_compare(
+int gp_str_case_compare( // TODO figure the API out and make this public
     const GPString _s1,
-    const GPString _s2)
+    const void*const _s2,
+    const size_t s2_length)
 {
     const char* s1 = (const char*)_s1;
     const char* s2 = (const char*)_s2;
@@ -707,7 +743,7 @@ int gp_str_case_compare(
 
     GPArena arena;
     const GPAllocator* scope = NULL;
-    const size_t max_length = gp_max(gp_str_length(_s1), gp_str_length(_s2));
+    const size_t max_length = gp_max(gp_str_length(_s1), s2_length);
     if (max_length + 1 >= buf1_cap)
     {
         arena = gp_arena_new(2 * max_length * sizeof*buf1 +/*internals*/64);
@@ -717,14 +753,18 @@ int gp_str_case_compare(
         buf1_cap = gp_str_length(_s1) + 1;
         buf1 = gp_mem_alloc(scope, buf1_cap * sizeof(wchar_t));
     }
-    if (gp_str_length(_s2) + 1 >= buf2_cap) {
-        buf2_cap = gp_str_length(_s2) + 1;
+    if (s2_length + 1 >= buf2_cap) {
+        buf2_cap = s2_length + 1;
         buf2 = gp_mem_alloc(scope, buf2_cap * sizeof(wchar_t));
     }
     mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0});
     mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0});
 
-    int result = wcscoll(buf1, buf2);
+    #if _WIN32
+    int result = _wcsicoll_l(buf1, buf2, gp_default_locale);
+    #else
+    int result = wcscasecmp_l(buf1, buf2, gp_default_locale);
+    #endif
     gp_arena_delete((GPArena*)scope);
     return result;
 }
@@ -787,27 +827,3 @@ int gp_str_file(
     return 0;
 }
 
-#if GP_NEW_CASE_STUFF || 1
-static void gp_codepoint_to_lower(GPChar* c)
-{
-    const size_t length = gp_str_codepoint_length(c, 0);
-    if (length == 1)
-    {
-        if ('A' <= c->c && c->c <= 'Z')
-            c->c += 'a' - 'A';
-        return;
-    }
-    else if (length == 4)
-    { // skip esoteric characters
-        return;
-    }
-
-    uint32_t u = 0;
-    memcpy(&u, c, length);
-
-    switch (u)
-    {
-
-    }
-}
-#endif

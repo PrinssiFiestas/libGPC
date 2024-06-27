@@ -24,8 +24,8 @@ extern "C" {
     GPString gp_replace_new(const GPAllocator*, GPStrIn, GPStrIn, GPStrIn, size_t);
     GPString gp_replace_all_new(const GPAllocator*, GPStrIn, GPStrIn, GPStrIn);
     GPString gp_str_trim_new(const void*, GPStrIn, const char*, int);
-    GPString gp_to_upper_new(const GPAllocator*, GPString);
-    GPString gp_to_lower_new(const GPAllocator*, GPString);
+    GPString gp_to_upper_new(const GPAllocator*, GPString, GPLocale);
+    GPString gp_to_lower_new(const GPAllocator*, GPString, GPLocale);
     GPString gp_to_valid_new(const GPAllocator*, GPString, const char*);
     size_t gp_bytes_codepoint_count(const void*, size_t);
     bool gp_bytes_is_valid_utf8(const void*, size_t, size_t*);
@@ -348,12 +348,13 @@ static inline GPString gp_trim(T_ALLOCATOR* allocator,
 
 static inline void gp_to_upper(GPString* str)
 {
-    gp_str_to_upper(str);
+    gp_str_to_upper(str, locale);
 }
 template <typename T_ALLOCATOR>
-static inline GPString gp_to_upper(T_ALLOCATOR* allocator, GPString str)
+static inline GPString gp_to_upper(
+    T_ALLOCATOR* allocator, GPString str)
 {
-    return gp_to_upper_new(gp_alc_cpp(allocator), str);
+    return gp_to_upper_new(gp_alc_cpp(allocator), str, locale);
 }
 
 // ---------------------------
@@ -2004,13 +2005,13 @@ GPString gp_trim99(
     GP_OVERLOAD4(__VA_ARGS__, GP_TRIM99_4, GP_TRIM99_3, GP_TRIM99_2, GP_TRIM99_1)(__VA_ARGS__)
 
 GPString gp_to_upper_new(const GPAllocator* alc, const GPString str);
-#define GP_TO_UPPER1(A)        gp_str_to_upper(A)
-#define GP_TO_UPPER2(ALC, STR) gp_to_upper_new((GPAllocator*)(ALC), STR)
+#define GP_TO_UPPER1(STR)           gp_str_to_upper(STR)
+#define GP_TO_UPPER2(ALC, STR)      gp_to_upper_new(GP_ALC(ALC), STR)
 #define GP_TO_UPPER(...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_UPPER2, GP_TO_UPPER1)(__VA_ARGS__)
 
 GPString gp_to_lower_new(const GPAllocator* alc, const GPString str);
-#define GP_TO_LOWER1(A)        gp_str_to_lower(A)
-#define GP_TO_LOWER2(ALC, STR) gp_to_lower_new((GPAllocator*)(ALC), STR)
+#define GP_TO_LOWER1(STR)           gp_str_to_lower(STR)
+#define GP_TO_LOWER2(ALC, STR)      gp_to_lower_new(GP_ALC(ALC), STR)
 #define GP_TO_LOWER(...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_LOWER2, GP_TO_LOWER1)(__VA_ARGS__)
 
 GPString gp_to_valid_new(

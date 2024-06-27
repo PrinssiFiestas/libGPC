@@ -13,12 +13,6 @@
 #include <gpc/assert.h>
 #endif
 
-#ifdef __GNUC__
-#define GP_UNLIKELY(COND) __builtin_expect(!!(COND), 0)
-#else
-#define GP_UNLIKELY(COND) (COND)
-#endif
-
 extern inline void* gp_mem_alloc       (const GPAllocator*,size_t);
 extern inline void* gp_mem_alloc_zeroes(const GPAllocator*,size_t);
 extern inline void  gp_mem_dealloc     (const GPAllocator*,void*);

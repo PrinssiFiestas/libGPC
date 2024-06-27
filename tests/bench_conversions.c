@@ -1,3 +1,7 @@
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
 #define GPC_IMPLEMENTATION
 #include "../build/gpc.h"
 #include <x86intrin.h>

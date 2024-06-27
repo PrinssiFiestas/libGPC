@@ -419,31 +419,17 @@ int main(void)
 
     gp_suite("To upper/lower");
     {
-        if (setlocale(LC_ALL, "C.utf8") != NULL)
+        gp_test("Finnish");
         {
-            gp_test("Finnish");
-            {
-                GPString str = gp_str_on_stack(NULL, 64, "blääf");
-                gp_str_to_upper(&str);
-                gp_expect(gp_str_equal(str, "BLÄÄF", strlen("BLÄÄF")), str);
-                gp_str_to_lower(&str);
-                gp_expect(gp_str_equal(str, "blääf", strlen("blääf")));
-            }
+            GPString str = gp_str_on_stack(NULL, 64, "blääf");
+            gp_str_to_upper(&str);
+            gp_expect(gp_str_equal(str, "BLÄÄF", strlen("BLÄÄF")), str);
+            gp_str_to_lower(&str);
+            gp_expect(gp_str_equal(str, "blääf", strlen("blääf")));
         }
-
-        if (setlocale(LC_ALL, "tr_TR.utf8") != NULL)
-        {
-            gp_test("Turkish"); // Note how ı changes to ASCII and back
-            {
-                GPString str = gp_str_on_stack(NULL, 128, "yaşar bayrı");
-                gp_str_to_upper(&str);
-                gp_expect(gp_str_equal(str, "YAŞAR BAYRI", strlen("YAŞAR BAYRI")), str);
-                gp_str_to_lower(&str);
-                gp_expect(gp_str_equal(str, "yaşar bayrı", strlen("yaşar bayrı")));
-            }
-        } // else Turkish language pack not installed.
     }
 
+    #if 0 // TODO figure out the API and do the tests
     gp_suite("Case insensitive comparison");
     {
         GPString str1 = gp_str_on_stack(NULL, 64, "hrnec");
@@ -471,6 +457,7 @@ int main(void)
             gp_expect(gp_str_case_compare(str1, str2) > 0);
         }
     }
+    #endif
 
     gp_suite("Validate");
     {

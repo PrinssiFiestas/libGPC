@@ -29,7 +29,6 @@
 extern "C" {
 #endif
 
-//
 typedef struct gp_string_header
 {
     size_t length;
@@ -166,15 +165,15 @@ void gp_str_trim(
     const char* optional_char_set,
     int         flags);
 
-// Only converts Unicode characters with 1:1 mapping. Result is locale
-// dependent.
+// Only converts Unicode characters with 1:1 mapping.
 GP_NONNULL_ARGS()
-void gp_str_to_upper(GPString*);
+void gp_str_to_upper(
+    GPString*);
 
-// Only converts Unicode characters with 1:1 mapping. Result is locale
-// dependent.
+// Only converts Unicode characters with 1:1 mapping.
 GP_NONNULL_ARGS()
-void gp_str_to_lower(GPString*);
+void gp_str_to_lower(
+    GPString*);
 
 // Unicode standard recommends using this as replacement character for invalid
 // bytes.
@@ -241,7 +240,6 @@ bool gp_str_equal(
     const void* s2,
     size_t      s2_size);
 
-// Locale dependent!
 GP_NONNULL_ARGS()
 bool gp_str_equal_case(
     GPString    s1,

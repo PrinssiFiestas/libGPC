@@ -16,6 +16,12 @@
 #include <pthread.h>
 #endif
 
+#ifdef __GNUC__
+#define GP_UNLIKELY(COND) __builtin_expect(!!(COND), 0)
+#else
+#define GP_UNLIKELY(COND) (COND)
+#endif
+
 // Use this only when thread local storage is desirable but not necessary.
 #ifdef _MSC_VER
 #define GP_MAYBE_THREAD_LOCAL __declspec(thread)
