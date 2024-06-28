@@ -3,6 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include "../include/gpc/assert.h"
+#include "../include/gpc/io.h"
 #include "../src/string.c"
 #include <locale.h>
 #include <errno.h>
@@ -582,5 +583,51 @@ int main(void)
         }
 
         gp_expect(remove("gp_test_str_file.txt") == 0);
+    }
+
+    // ------------------------------------------------------------------------
+    // Internal tests
+
+    if (sizeof(wchar_t) == sizeof(uint32_t) && setlocale(LC_ALL, "C.UTF-8"))
+    {
+        gp_suite("Unicode conversions");
+        {
+            #define BUF_LEN (1024)
+            GPString str = gp_str_on_stack(NULL, BUF_LEN, "");
+            GPRandomState rs = gp_new_random_state((uintptr_t)str);
+            for (size_t j = 0; j < BUF_LEN ; j += sizeof(uint32_t)) {
+                uint32_t u = gp_random(&rs);
+                memcpy(str + j, &u, sizeof u);
+            }
+            ((GPStringHeader*)str - 1)->length = BUF_LEN - 1;
+            gp_str_to_valid(&str, "");
+            gp_str_replace_all(&str, "\0", 1, "", 0);
+
+            GPArena* scratch = gp_scratch_arena();
+            wchar_t* std_buf = gp_mem_alloc((GPAllocator*)scratch, (gp_str_length(str) + sizeof"") * sizeof*std_buf);
+            const char* src = gp_cstr(str);
+            size_t std_buf_length = mbsrtowcs(std_buf, &src, gp_str_length(str) + sizeof"", &(mbstate_t){0});
+
+            GPArray(uint32_t) gp_buf = gp_utf8_to_utf32((GPAllocator*)scratch, str);
+
+            if ( ! gp_expect(gp_bytes_equal(
+                gp_buf,  gp_arr_length(gp_buf) * sizeof gp_buf[0],
+                std_buf, std_buf_length * sizeof std_buf[0]),
+                    gp_arr_length(gp_buf), std_buf_length, gp_str_length(str)))
+            {
+                for (size_t i = 0; i < gp_arr_length(gp_buf); i++)
+                    if (gp_buf[i] != (uint32_t)std_buf[i])
+                        gp_file_println(stderr, i, ",", (uint32_t)std_buf[i], ",", gp_buf[i]);
+            }
+
+            char std_chars[BUF_LEN * sizeof(wchar_t)];
+            const wchar_t* pbuf = (const wchar_t*)std_buf;
+            const size_t std_chars_length = wcsrtombs(std_chars,
+                &pbuf, sizeof std_chars, &(mbstate_t){0});
+
+            gp_utf32_to_utf8(&str, gp_buf);
+
+            gp_expect(gp_str_equal(str, std_chars, std_chars_length));
+        }
     }
 }
