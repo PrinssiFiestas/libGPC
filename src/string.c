@@ -789,29 +789,12 @@ int gp_str_case_compare( // TODO figure the API out and make this public
     const char* s1 = (const char*)_s1;
     const char* s2 = (const char*)_s2;
 
-    wchar_t stack_buf1[1 << 10];
-    wchar_t stack_buf2[sizeof stack_buf1 / sizeof*stack_buf1];
-    size_t  buf1_cap = sizeof stack_buf1 / sizeof*stack_buf1;
-    size_t  buf2_cap = buf1_cap;
-    wchar_t*buf1     = stack_buf1;
-    wchar_t*buf2     = stack_buf2;
+    GPArena* scratch = gp_scratch_arena();
+    const size_t buf1_cap = gp_str_length(_s1) + sizeof"";
+    const size_t buf2_cap = s2_length          + sizeof"";
+    wchar_t* buf1 = gp_mem_alloc((GPAllocator*)scratch, buf1_cap * sizeof*buf1);
+    wchar_t* buf2 = gp_mem_alloc((GPAllocator*)scratch, buf2_cap * sizeof*buf2);
 
-    GPArena arena;
-    const GPAllocator* scope = NULL;
-    const size_t max_length = gp_max(gp_str_length(_s1), s2_length);
-    if (max_length + 1 >= buf1_cap)
-    {
-        arena = gp_arena_new(2 * max_length * sizeof*buf1 +/*internals*/64);
-        scope = (const GPAllocator*)&arena;
-    }
-    if (gp_str_length(_s1) + 1 >= buf1_cap) {
-        buf1_cap = gp_str_length(_s1) + 1;
-        buf1 = gp_mem_alloc(scope, buf1_cap * sizeof(wchar_t));
-    }
-    if (s2_length + 1 >= buf2_cap) {
-        buf2_cap = s2_length + 1;
-        buf2 = gp_mem_alloc(scope, buf2_cap * sizeof(wchar_t));
-    }
     mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0});
     mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0});
 
@@ -822,7 +805,8 @@ int gp_str_case_compare( // TODO figure the API out and make this public
     #else
     int result = wcscasecmp_l(buf1, buf2, gp_default_locale);
     #endif
-    gp_arena_delete((GPArena*)scope);
+
+    gp_arena_rewind(scratch, buf1);
     return result;
 }
 
