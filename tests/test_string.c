@@ -418,15 +418,22 @@ int main(void)
         }
     }
 
-    gp_suite("To upper/lower");
+    gp_suite("To upper/lower/title case");
     {
-        gp_test("Finnish");
+        GPString str = gp_str_on_stack(NULL, 64, "blörö");
+        gp_test("Upper and lower");
         {
-            GPString str = gp_str_on_stack(NULL, 64, "blääf");
             gp_str_to_upper(&str);
-            gp_expect(gp_str_equal(str, "BLÄÄF", strlen("BLÄÄF")), str);
+            gp_expect(gp_str_equal(str, "BLÖRÖ", strlen("BLÖRÖ")), str);
             gp_str_to_lower(&str);
-            gp_expect(gp_str_equal(str, "blääf", strlen("blääf")));
+            gp_expect(gp_str_equal(str, "blörö", strlen("blörö")));
+        }
+
+        gp_test("Title");
+        {
+            gp_str_copy(&str, "aäǉǈǇǱ", strlen("aäǉǈǇǱ"));
+            gp_str_to_title(&str);
+            gp_expect(gp_str_equal(str, "AÄǈǈǈǲ", strlen("AÄǈǈǈǲ")), str);
         }
     }
 

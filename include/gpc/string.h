@@ -175,6 +175,11 @@ GP_NONNULL_ARGS()
 void gp_str_to_lower(
     GPString*);
 
+// Only converts Unicode characters with 1:1 mapping.
+GP_NONNULL_ARGS()
+void gp_str_to_title(
+    GPString*);
+
 // Unicode standard recommends using this as replacement character for invalid
 // bytes.
 #define GP_REPLACEMENT_CHARACTER "\uFFFD" // �

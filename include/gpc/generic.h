@@ -1186,9 +1186,9 @@ static inline GPString gp_file(
 // ---------------------------
 // File operations
 
-#define gp_read_line(...)           gp_file_read_line(...)
-#define gp_read_until(...)          gp_file_read_until(...)
-#define gp_read_strip(...)          gp_file_read_strip(...)
+#define gp_read_line(...)           gp_file_read_line(__VA_ARGS__)
+#define gp_read_until(...)          gp_file_read_until(__VA_ARGS__)
+#define gp_read_strip(...)          gp_file_read_strip(__VA_ARGS__)
 
 
 // ----------------------------------------------------------------------------
@@ -1290,9 +1290,9 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 
 // File
 #define gp_file(...)                GP_FILE11(__VA_ARGS__)
-#define gp_read_line(...)           gp_file_read_line(...)
-#define gp_read_until(...)          gp_file_read_until(...)
-#define gp_read_strip(...)          gp_file_read_strip(...)
+#define gp_read_line(...)           gp_file_read_line(__VA_ARGS__)
+#define gp_read_until(...)          gp_file_read_until(__VA_ARGS__)
+#define gp_read_strip(...)          gp_file_read_strip(__VA_ARGS__)
 
 #else // C99 ------------------------------------------------------------------
 
@@ -1359,9 +1359,9 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 
 // File
 #define gp_file(...)                GP_FILE99(__VA_ARGS__)
-#define gp_read_line(...)           gp_file_read_line(...)
-#define gp_read_until(...)          gp_file_read_until(...)
-#define gp_read_strip(...)          gp_file_read_strip(...)
+#define gp_read_line(...)           gp_file_read_line(__VA_ARGS__)
+#define gp_read_until(...)          gp_file_read_until(__VA_ARGS__)
+#define gp_read_strip(...)          gp_file_read_strip(__VA_ARGS__)
 
 #endif // C macros
 

@@ -685,6 +685,42 @@ void gp_utf32_to_utf8(GPString* u8, const GPArray(uint32_t) u32)
 
 static uint32_t gp_u32_to_upper(uint32_t);
 static uint32_t gp_u32_to_lower(uint32_t);
+static uint32_t gp_u32_to_title(uint32_t c)
+{
+    if (c < 0x100)
+    {
+        if (c == 0x00b5)
+	    return 0x039c;
+
+        if ((c >= 0x00e0 && c <= 0x00fe && c != 0x00f7) ||
+	    (c >= 0x0061 && c <= 0x007a))
+	    return (c - 0x20);
+
+        if (c == 0xff)
+	    return 0x0178;
+
+        return c;
+    }
+    else if (0x01C4 <= c && c <= 0x01CC)
+    {
+        if (c < 0x01C7)
+            return 0x01C5;
+        else if (c < 0x01CA)
+            return 0x01C8;
+        else
+            return 0x01CB;
+    }
+    else if (0x01F1 <= c && c <= 0x01F3)
+    {
+        return 0x01F2;
+    }
+    else if ((0x10D0 <= c && c <= 0x10FA) ||
+             (0x10FD <= c && c <= 0x10FF))
+    {
+        return c;
+    }
+    return gp_u32_to_upper(c);
+}
 
 void gp_str_to_upper(GPString* str)
 {
@@ -702,6 +738,16 @@ void gp_str_to_lower(GPString* str)
     GPArray(uint32_t) u32 = gp_utf8_to_utf32((GPAllocator*)scratch, *str);
     for (size_t i = 0; i < gp_arr_length(u32); i++)
         u32[i] = gp_u32_to_lower(u32[i]);
+    gp_utf32_to_utf8(str, u32);
+    gp_arena_rewind(scratch, gp_arr_allocation(u32));
+}
+
+void gp_str_to_title(GPString* str)
+{
+    GPArena* scratch = gp_scratch_arena();
+    GPArray(uint32_t) u32 = gp_utf8_to_utf32((GPAllocator*)scratch, *str);
+    for (size_t i = 0; i < gp_arr_length(u32); i++)
+        u32[i] = gp_u32_to_title(u32[i]);
     gp_utf32_to_utf8(str, u32);
     gp_arena_rewind(scratch, gp_arr_allocation(u32));
 }

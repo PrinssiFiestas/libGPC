@@ -449,51 +449,42 @@ int pf_vsnprintf_consuming(
                 break;
 
             case 's':
-                written_by_conversion += pf_write_s(
-                    &out, args, fmt);
+                written_by_conversion += pf_write_s(&out, args, fmt);
                 break;
 
             case 'S':
-                written_by_conversion += pf_write_S(
-                    &out, args, fmt);
+                written_by_conversion += pf_write_S(&out, args, fmt);
                 break;
 
             case 'd':
             case 'i':
-                written_by_conversion += pf_write_i(
-                    &out, &misc, args, fmt);
+                written_by_conversion += pf_write_i(&out, &misc, args, fmt);
                 break;
 
             case 'o':
-                written_by_conversion += pf_write_o(
-                    &out, args, fmt);
+                written_by_conversion += pf_write_o(&out, args, fmt);
                 break;
 
             case 'x':
-                written_by_conversion += pf_write_x(
-                    &out, &misc, args, fmt);
+                written_by_conversion += pf_write_x(&out, &misc, args, fmt);
                 break;
 
             case 'X':
-                written_by_conversion += pf_write_X(
-                    &out, &misc, args, fmt);
+                written_by_conversion += pf_write_X(&out, &misc, args, fmt);
                 break;
 
             case 'u':
-                written_by_conversion += pf_write_u(
-                    &out, args, fmt);
+                written_by_conversion += pf_write_u(&out, args, fmt);
                 break;
 
             case 'p':
-                written_by_conversion += pf_write_p(
-                    &out, args, fmt);
+                written_by_conversion += pf_write_p(&out, args, fmt);
                 break;
 
             case 'f': case 'F':
             case 'e': case 'E':
             case 'g': case 'G':
-                written_by_conversion += pf_write_f(
-                    &out, &misc, args, fmt);
+                written_by_conversion += pf_write_f(&out, &misc, args, fmt);
                 break;
 
             case '%':
