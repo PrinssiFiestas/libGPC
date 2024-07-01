@@ -116,11 +116,22 @@ void gp_utf8_to_utf32(
     const size_t       u8_length)
 {
     ((GPArrayHeader*)*u32 - 1)->length = 0;
-    size_t gp_bytes_codepoint_count(const void*, size_t);
-    *u32 = gp_arr_reserve(sizeof(*u32)[0], *u32, gp_bytes_codepoint_count(u8, u8_length));
-    for (size_t i = 0, codepoint_length; i < u8_length; i += codepoint_length)
+    size_t i = 0;
+    size_t codepoint_length;
+    uint32_t encoding;
+    for (; gp_arr_length(*u32) < gp_arr_capacity(*u32); i += codepoint_length)
     {
-        uint32_t encoding;
+        if (i >= u8_length)
+            return;
+        codepoint_length = gp_utf8_encode(&encoding, u8, i);
+        (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
+    }
+    size_t gp_bytes_codepoint_count(const void*, size_t);
+    *u32 = gp_arr_reserve(sizeof(*u32)[0], *u32,
+        gp_arr_length(*u32) + gp_bytes_codepoint_count(u8 + i, u8_length));
+
+    for (; i < u8_length; i += codepoint_length)
+    {
         codepoint_length = gp_utf8_encode(&encoding, u8, i);
         (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
     }
