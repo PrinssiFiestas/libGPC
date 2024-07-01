@@ -6,7 +6,7 @@
 #include <gpc/memory.h>
 #include <gpc/utils.h>
 #include <gpc/array.h>
-#include <gpc/hashmap.h> // integer endianness
+#include <gpc/unicode.h>
 #include "common.h"
 #include <stdio.h>
 #include <string.h>
@@ -19,41 +19,6 @@
 #include "pfstring.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "thread.h"
-
-#if 0 // unused for now, maybe later
-#if _WIN32
-typedef _locale_t GPLocale;
-#define towlower_l(...) _towlower_l(__VA_ARGS__)
-#define towupper_l(...) _towupper_l(__VA_ARGS__)
-#else
-typedef locale_t GPLocale;
-#endif
-
-static GPLocale gp_locale_new(int category, const char*const locale)
-{
-    #if _WIN32
-    return _create_locale(category, locale);
-    #else
-    return newlocale(category, locale, (GPLocale)0);
-    #endif
-}
-static void gp_locale_delete(GPLocale locale)
-{
-    #if _WIN32
-    _free_locale(locale);
-    #else
-    freelocale(locale);
-    #endif
-}
-static GPLocale gp_default_locale;
-static GPThreadOnce gp_locale_once = GP_THREAD_ONCE_INIT;
-
-static void gp_init_default_locale(void)
-{
-    gp_default_locale = gp_locale_new(LC_COLLATE, "C.UTF-8");
-}
-#endif
 
 extern inline void gp_str_delete(GPString);
 extern inline void gp_str_ptr_delete(GPString*);
@@ -107,7 +72,7 @@ size_t gp_str_find_first_of(
     const size_t     start)
 {
     for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
-        cplen = gp_str_codepoint_length(haystack, i);
+        cplen = gp_utf8_codepoint_length(haystack, i);
         if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) != NULL)
             return i;
     }
@@ -120,7 +85,7 @@ size_t gp_str_find_first_not_of(
     const size_t     start)
 {
     for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
-        cplen = gp_str_codepoint_length(haystack, i);
+        cplen = gp_utf8_codepoint_length(haystack, i);
         if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) == NULL)
             return i;
     }
@@ -146,7 +111,6 @@ bool gp_str_equal(
         return memcmp(s1, s2, s2_size) == 0;
 }
 
-size_t gp_utf8_encode(uint32_t* encoding, const void*const u8, const size_t i);
 static uint32_t gp_u32_simple_fold(uint32_t r);
 
 bool gp_str_equal_case(
@@ -203,29 +167,6 @@ bool gp_str_is_valid(
     size_t* invalid_index)
 {
     return gp_bytes_is_valid_utf8(str, gp_str_length(str), invalid_index);
-}
-
-size_t gp_str_codepoint_length(
-    GPString _str, const size_t i)
-{
-    const uint8_t* str = (uint8_t*)_str;
-    static const size_t sizes[] = {
-        1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
-        0,0,0,0,0,0,0,0, 2,2,2,2,3,3,4,0 };
-    return sizes[str[i] >> 3];
-}
-
-bool gp_str_codepoint_classify(
-    GPString str,
-    const size_t i,
-    int (*const classifier)(wint_t c))
-{
-    const size_t codepoint_length = gp_str_codepoint_length(str, i);
-    if (codepoint_length == 0)
-        return false;
-    wchar_t wc;
-    mbrtowc(&wc, (char*)str + i, codepoint_length, &(mbstate_t){0});
-    return classifier(wc);
 }
 
 const char* gp_cstr(GPString str)
@@ -578,7 +519,7 @@ void gp_str_trim(
         while (true)
         {
             char codepoint[8] = "";
-            size_t size = gp_str_codepoint_length(*str, prefix_length);
+            size_t size = gp_utf8_codepoint_length(*str, prefix_length);
             memcpy(codepoint, *str + prefix_length, size);
             if (strstr(char_set, codepoint) == NULL)
                 break;
@@ -598,7 +539,7 @@ void gp_str_trim(
         char codepoint[8] = "";
         size_t i = length - 1;
         size_t size;
-        while ((size = gp_str_codepoint_length(*str, i)) == 0 && --i != 0);
+        while ((size = gp_utf8_codepoint_length(*str, i)) == 0 && --i != 0);
         memcpy(codepoint, *str + i, size);
         if (strstr(char_set, codepoint) == NULL)
             break;
@@ -608,26 +549,7 @@ void gp_str_trim(
     gp_str_header(*str)->length = length;
 }
 
-size_t gp_utf8_encode(uint32_t* encoding, const void*const _u8, const size_t i)
-{
-    const GPString u8 = (GPString)_u8;
-    *encoding = 0;
-    const size_t codepoint_length = gp_str_codepoint_length(u8, i);
-    for (size_t j = 0; j < codepoint_length; j++)
-        *encoding = (*encoding << 8) | u8[i + j].c;
-
-    if (*encoding > 0x7F)
-    {
-        uint32_t mask = (*encoding <= 0x00EFBFBF) ? 0x000F0000 : 0x003F0000 ;
-        *encoding = ((*encoding & 0x07000000) >> 6) |
-            ((*encoding & mask )             >> 4) |
-            ((*encoding & 0x00003F00)        >> 2) |
-            (*encoding & 0x0000003F);
-    }
-    return codepoint_length;
-}
-
-GPArray(uint32_t) gp_utf8_to_utf32(const GPAllocator* allocator, const GPString u8)
+GPArray(uint32_t) gp_utf8_to_utf32_new(const GPAllocator* allocator, const GPString u8)
 {
     GPArray(uint32_t) u32 = gp_arr_new(allocator, sizeof u32[0], gp_str_length(u8));
     for (size_t i = 0, codepoint_length; i < gp_str_length(u8); i += codepoint_length)
@@ -637,50 +559,6 @@ GPArray(uint32_t) gp_utf8_to_utf32(const GPAllocator* allocator, const GPString 
         u32[((GPArrayHeader*)u32 - 1)->length++] = encoding;
     }
     return u32;
-}
-
-void gp_utf32_to_utf8(GPString* u8, const GPArray(uint32_t) u32)
-{
-    size_t required_capacity = 0;
-    for (size_t i = 0; i < gp_arr_length(u32); ++i)
-    {
-        if (u32[i] < 0x0000800) {
-            required_capacity += 2;
-        } else if (u32[i] < 0x0010000) {
-            required_capacity += 3;
-        } else {
-            required_capacity += 4;
-        }
-    }
-    gp_str_reserve(u8, required_capacity);
-
-    ((GPStringHeader*)*u8 - 1)->length = 0;
-    for (size_t i = 0; i < gp_arr_length(u32); ++i)
-    {
-        if (u32[i] > 0x7F)
-        {
-            if (u32[i] < 0x800) {
-                (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x000FC0) >> 6) | 0xC0;
-                (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x00003F) >> 0) | 0x80;
-                ((GPStringHeader*)*u8 - 1)->length += 2;
-            } else if (u32[i] < 0x10000) {
-                (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x03F000) >> 12) | 0xE0;
-                (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x000FC0) >>  6) | 0x80;
-                (*u8)[gp_str_length(*u8) + 2].c = ((u32[i] & 0x00003F) >>  0) | 0x80;
-                ((GPStringHeader*)*u8 - 1)->length += 3;
-            } else {
-                (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x1C0000) >> 18) | 0xF0;
-                (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x03F000) >> 12) | 0x80;
-                (*u8)[gp_str_length(*u8) + 2].c = ((u32[i] & 0x000FC0) >>  6) | 0x80;
-                (*u8)[gp_str_length(*u8) + 3].c = ((u32[i] & 0x00003F) >>  0) | 0x80;
-                ((GPStringHeader*)*u8 - 1)->length += 4;
-            }
-        }
-        else
-        {
-            (*u8)[((GPStringHeader*)*u8 - 1)->length++].c = (uint8_t)u32[i];
-        }
-    }
 }
 
 static uint32_t gp_u32_to_upper(uint32_t);
@@ -701,7 +579,7 @@ static uint32_t gp_u32_to_title(uint32_t c)
 
         return c;
     }
-    else if (0x01C4 <= c && c <= 0x01CC)
+    if (0x01C4 <= c && c <= 0x01CC)
     {
         if (c < 0x01C7)
             return 0x01C5;
@@ -710,12 +588,12 @@ static uint32_t gp_u32_to_title(uint32_t c)
         else
             return 0x01CB;
     }
-    else if (0x01F1 <= c && c <= 0x01F3)
+    if (0x01F1 <= c && c <= 0x01F3)
     {
         return 0x01F2;
     }
-    else if ((0x10D0 <= c && c <= 0x10FA) ||
-             (0x10FD <= c && c <= 0x10FF))
+    if ((0x10D0 <= c && c <= 0x10FA) ||
+        (0x10FD <= c && c <= 0x10FF))
     {
         return c;
     }
@@ -725,30 +603,30 @@ static uint32_t gp_u32_to_title(uint32_t c)
 void gp_str_to_upper(GPString* str)
 {
     GPArena* scratch = gp_scratch_arena();
-    GPArray(uint32_t) u32 = gp_utf8_to_utf32((GPAllocator*)scratch, *str);
+    GPArray(uint32_t) u32 = gp_utf8_to_utf32_new((GPAllocator*)scratch, *str);
     for (size_t i = 0; i < gp_arr_length(u32); i++)
         u32[i] = gp_u32_to_upper(u32[i]);
-    gp_utf32_to_utf8(str, u32);
+    gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
     gp_arena_rewind(scratch, gp_arr_allocation(u32));
 }
 
 void gp_str_to_lower(GPString* str)
 {
     GPArena* scratch = gp_scratch_arena();
-    GPArray(uint32_t) u32 = gp_utf8_to_utf32((GPAllocator*)scratch, *str);
+    GPArray(uint32_t) u32 = gp_utf8_to_utf32_new((GPAllocator*)scratch, *str);
     for (size_t i = 0; i < gp_arr_length(u32); i++)
         u32[i] = gp_u32_to_lower(u32[i]);
-    gp_utf32_to_utf8(str, u32);
+    gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
     gp_arena_rewind(scratch, gp_arr_allocation(u32));
 }
 
 void gp_str_to_title(GPString* str)
 {
     GPArena* scratch = gp_scratch_arena();
-    GPArray(uint32_t) u32 = gp_utf8_to_utf32((GPAllocator*)scratch, *str);
+    GPArray(uint32_t) u32 = gp_utf8_to_utf32_new((GPAllocator*)scratch, *str);
     for (size_t i = 0; i < gp_arr_length(u32); i++)
         u32[i] = gp_u32_to_title(u32[i]);
-    gp_utf32_to_utf8(str, u32);
+    gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
     gp_arena_rewind(scratch, gp_arr_allocation(u32));
 }
 
@@ -760,7 +638,7 @@ static size_t gp_str_find_invalid(
     const char* haystack = _haystack;
     for (size_t i = start; i < length;)
     {
-        size_t cp_length = gp_str_codepoint_length((GPString)haystack, i);
+        size_t cp_length = gp_utf8_codepoint_length((GPString)haystack, i);
         if (cp_length == 0 || i + cp_length > length)
             return i;
 
@@ -783,7 +661,7 @@ static size_t gp_str_find_valid(
     const char* haystack = _haystack;
     for (size_t i = start; i < length; i++)
     {
-        size_t cp_length = gp_str_codepoint_length((GPString)haystack, i);
+        size_t cp_length = gp_utf8_codepoint_length((GPString)haystack, i);
         if (cp_length == 1)
             return i;
         if (cp_length == 0)
@@ -825,35 +703,6 @@ void gp_str_to_valid(
         start += replacement_length;
     }
     gp_str_header(*str)->length = length;
-}
-
-int gp_str_case_compare( // TODO figure the API out and make this public
-    const GPString _s1,
-    const void*const _s2,
-    const size_t s2_length)
-{
-    const char* s1 = (const char*)_s1;
-    const char* s2 = (const char*)_s2;
-
-    GPArena* scratch = gp_scratch_arena();
-    const size_t buf1_cap = gp_str_length(_s1) + sizeof"";
-    const size_t buf2_cap = s2_length          + sizeof"";
-    wchar_t* buf1 = gp_mem_alloc((GPAllocator*)scratch, buf1_cap * sizeof*buf1);
-    wchar_t* buf2 = gp_mem_alloc((GPAllocator*)scratch, buf2_cap * sizeof*buf2);
-
-    mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0});
-    mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0});
-
-    #if 1
-    int result = wcscoll(buf1, buf2);
-    #elif _WIN32
-    int result = _wcsicoll_l(buf1, buf2, gp_default_locale);
-    #else
-    int result = wcscasecmp_l(buf1, buf2, gp_default_locale);
-    #endif
-
-    gp_arena_rewind(scratch, buf1);
-    return result;
 }
 
 int gp_str_file(

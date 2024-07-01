@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include <gpc/string.h>
+#include <gpc/unicode.h>
 #include <gpc/array.h>
 #include <gpc/utils.h>
 #include <printf/printf.h>
@@ -44,7 +45,7 @@ bool gp_bytes_is_valid_utf8(
     const char* str = (const char*)_str;
     for (size_t i = 0; i < length;)
     {
-        size_t cp_length = gp_str_codepoint_length((GPString)str, i);
+        size_t cp_length = gp_utf8_codepoint_length(str, i);
         if (cp_length == 0 || i + cp_length > length) {
             if (invalid_index != NULL)
                 *invalid_index = i;

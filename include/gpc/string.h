@@ -192,8 +192,10 @@ void gp_str_to_valid(
 // Opens file in file_path, performs a file operation, and closes it. If
 // operation[0] == 'r', reads the whole file and stores to str. If
 // operation[0] == 'w', writes full contents of str to the file. If
-// operation[0] == 'a', appends fulll contents of str to the file. Any other
-// character is undefined.
+// operation[0] == 'a', appends fulll contents of str to the file.
+// Files are always opened in binary mode by default. Add "x" or "text" anywhere
+// in operation string to open in text mode. This makes no difference in POSIX,
+// but in Windows adds processing to "\n" which is unnecessary in 2024.
 // Returns  0 on success.
 // Returns -1 if file operations fail. Check errno for the specific error.
 // Returns  1 if file size > SIZE_MAX in 32-bit systems.
@@ -206,7 +208,7 @@ int gp_str_file(
 // ----------------------------------------------------------------------------
 // String examination
 
-#define GP_NOT_FOUND ((size_t)-1)
+// Functions that return indices return GP_NOT_FOUND if not found.
 
 GP_NONNULL_ARGS()
 size_t gp_str_find_first(
@@ -258,20 +260,7 @@ size_t gp_str_codepoint_count(
 GP_NONNULL_ARGS(1)
 bool gp_str_is_valid(
     GPString str,
-    size_t*  optional_invalid_position);
-
-// Only reads the first byte at str + i
-GP_NONNULL_ARGS()
-size_t gp_str_codepoint_length(
-    GPString str,
-    size_t i);
-
-// Locale dependent!
-GP_NONNULL_ARGS()
-bool gp_str_codepoint_classify(
-    GPString str,
-    size_t i,
-    int (*classifier)(wint_t c));
+    size_t*  optional_out_invalid_position);
 
 
 // ----------------------------------------------------------------------------

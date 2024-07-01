@@ -129,6 +129,7 @@ size_t gp_bytes_to_valid(
 // ----------------------------------------------------------------------------
 // Bytes examination
 
+// Return value for functions returning indices.
 #define GP_NOT_FOUND ((size_t)-1)
 
 GP_NONNULL_ARGS()

@@ -8,6 +8,7 @@
 #include "pfstring.h"
 
 #include <gpc/string.h>
+#include <gpc/unicode.h>
 
 #include <stdlib.h>
 #include <inttypes.h>
@@ -152,7 +153,7 @@ static unsigned pf_write_S(
             break;
         }
         codepoint_count++;
-        i += last_cp_length = gp_str_codepoint_length(str, i);
+        i += last_cp_length = gp_utf8_codepoint_length(str, i);
     }
     pf_utf8_string_padding(out, fmt, str, length, codepoint_count);
     return out->length - original_length;

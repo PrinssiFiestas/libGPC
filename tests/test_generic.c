@@ -81,28 +81,6 @@ int main(void)
             gp_expect(gp_codepoint_length(str)       == 1);
             gp_expect(gp_codepoint_length(str  + 1)  == 4);
         }
-
-        gp_test("Codepoint classify");
-        { // 1-4 bytes read. No bytes are read past string if string is valid
-          // UTF-8.
-            if (setlocale(LC_ALL, "C.utf8") != NULL)
-            {
-                const char* cstr = "x ";
-                GPString str = gp_str(&arena, cstr);
-
-                // Using index.
-                gp_expect( ! gp_codepoint_classify(cstr,  0, iswspace));
-                gp_expect(   gp_codepoint_classify(cstr,  1, iswspace));
-                gp_expect( ! gp_codepoint_classify(str,   0, iswspace));
-                gp_expect(   gp_codepoint_classify(str,   1, iswspace));
-
-                // Using pointers. Useful with iterators.
-                gp_expect( ! gp_codepoint_classify(cstr,     iswspace));
-                gp_expect(   gp_codepoint_classify(cstr + 1, iswspace));
-                gp_expect( ! gp_codepoint_classify(str,      iswspace));
-                gp_expect(   gp_codepoint_classify(str  + 1, iswspace));
-            }
-        }
     }
 
     gp_suite("Strings");

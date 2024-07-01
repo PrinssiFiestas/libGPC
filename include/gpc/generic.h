@@ -11,6 +11,7 @@
 
 #include <gpc/array.h>
 #include <gpc/string.h>
+#include <gpc/unicode.h>
 #include <gpc/hashmap.h>
 #include <gpc/io.h>
 
@@ -188,25 +189,11 @@ static inline size_t gp_count(
 
 static inline size_t gp_codepoint_length(const void*const ptr)
 {
-    return gp_str_codepoint_length((GPString)ptr, 0);
+    return gp_utf8_codepoint_length(ptr, 0);
 }
 static inline size_t gp_codepoint_length(const void*const str, const size_t i)
 {
-    return gp_str_codepoint_length((GPString)str, i);
-}
-
-// ---------------------------
-// gp_codepoint_classify()
-
-static inline bool gp_codepoint_classify(
-    const void*const ptr, int(*const classifier)(wint_t))
-{
-    return gp_str_codepoint_classify((GPString)ptr, 0, classifier);
-}
-static inline bool gp_codepoint_classify(
-    const void*const str, size_t i, int(*const classifier)(wint_t))
-{
-    return gp_str_codepoint_classify((GPString)str, i, classifier);
+    return gp_utf8_codepoint_length(str, i);
 }
 
 // ----------------------------------------------------------------------------
@@ -1238,7 +1225,6 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_equal(...)               GP_EQUAL(__VA_ARGS__)
 #define gp_count(...)               GP_COUNT(__VA_ARGS__)
 #define gp_codepoint_length(...)    GP_CODEPOINT_LENGTH(__VA_ARGS__)
-#define gp_codepoint_classify(...)  GP_CODEPOINT_CLASSIFY(__VA_ARGS__)
 
 // Strings
 #define gp_repeat(...)              GP_REPEAT11(__VA_ARGS__)
@@ -1307,7 +1293,6 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_equal(...)               GP_EQUAL(__VA_ARGS__)
 #define gp_count(...)               GP_COUNT(__VA_ARGS__)
 #define gp_codepoint_length(...)    GP_CODEPOINT_LENGTH(__VA_ARGS__)
-#define gp_codepoint_classify(...)  GP_CODEPOINT_CLASSIFY(__VA_ARGS__)
 
 // Strings
 #define gp_repeat(...)              GP_REPEAT99(__VA_ARGS__)
@@ -1935,15 +1920,10 @@ inline size_t gp_count99(GPStrIn haystack, GPStrIn needle) {
 #define GP_COUNT(A, ...) \
     GP_OVERLOAD3(__VA_ARGS__, GP_COUNT4, GP_COUNT3, GP_COUNT2)(A, __VA_ARGS__)
 
-#define GP_CODEPOINT_LENGTH1(PTR)    gp_str_codepoint_length((GPString)(PTR), 0)
-#define GP_CODEPOINT_LENGTH2(STR, I) gp_str_codepoint_length((GPString)(STR), I)
+#define GP_CODEPOINT_LENGTH1(PTR)    gp_utf8_codepoint_length(PTR, 0)
+#define GP_CODEPOINT_LENGTH2(STR, I) gp_utf8_codepoint_length(STR, I)
 #define GP_CODEPOINT_LENGTH(...) \
     GP_OVERLOAD2(__VA_ARGS__, GP_CODEPOINT_LENGTH2, GP_CODEPOINT_LENGTH1)(__VA_ARGS__)
-
-#define GP_CODEPOINT_CLASSIFY2(PTR, F)    gp_str_codepoint_classify((GPString)(PTR), 0, F)
-#define GP_CODEPOINT_CLASSIFY3(PTR, I, F) gp_str_codepoint_classify((GPString)(PTR), I, F)
-#define GP_CODEPOINT_CLASSIFY(P, ...) \
-    GP_OVERLOAD2(__VA_ARGS__, GP_CODEPOINT_CLASSIFY3, GP_CODEPOINT_CLASSIFY2)(P, __VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // String

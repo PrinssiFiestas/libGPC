@@ -130,22 +130,6 @@ int main(void)
 
     gp_suite("UTF-8 examination");
     {
-        gp_test("Character classification");
-        {
-            if (setlocale(LC_ALL, "C.utf8") != NULL)
-            { // Note that GP_WHITESPACE includes characters defined by unicode
-              // while iswspace() includes characters defined by locale which
-              // may differ slightly.
-                const GPString str = gp_str_on_stack(NULL, 16, " \t\n\u2008XÄ");
-                gp_expect(   gp_str_codepoint_classify(str, 0, iswspace));
-                gp_expect(   gp_str_codepoint_classify(str, 1, iswspace));
-                gp_expect(   gp_str_codepoint_classify(str, 2, iswspace));
-                gp_expect(   gp_str_codepoint_classify(str, 3, iswspace));
-                gp_expect( ! gp_str_codepoint_classify(str, 5, iswspace));
-                gp_expect( ! gp_str_codepoint_classify(str, 6, iswspace));
-            }
-        }
-
         gp_test("Find first of");
         {
             const GPString str = gp_str_on_stack(NULL, 16, "blörö");
@@ -166,15 +150,15 @@ int main(void)
         gp_test("Valid index");
         {
             GPString str = gp_str_on_stack(NULL, 8, "\u1153");
-            gp_expect(   gp_str_codepoint_length(str, 0));
+            gp_expect(   gp_utf8_codepoint_length(str, 0));
             gp_str_slice(&str, NULL, 1, gp_arr_length(str));
-            gp_expect( ! gp_str_codepoint_length(str, 0));
+            gp_expect( ! gp_utf8_codepoint_length(str, 0));
         }
 
         gp_test("Codepoint size");
         {
             GPString str = gp_str_on_stack(NULL, 8, "\u1153");
-            gp_expect(gp_str_codepoint_length(str, 0) == strlen("\u1153"));
+            gp_expect(gp_utf8_codepoint_length(str, 0) == strlen("\u1153"));
         }
 
         gp_test("Codepoint count");
@@ -615,7 +599,7 @@ int main(void)
             const char* src = gp_cstr(str);
             size_t std_buf_length = mbsrtowcs(std_buf, &src, gp_str_length(str) + sizeof"", &(mbstate_t){0});
 
-            GPArray(uint32_t) gp_buf = gp_utf8_to_utf32((GPAllocator*)scratch, str);
+            GPArray(uint32_t) gp_buf = gp_utf8_to_utf32_new((GPAllocator*)scratch, str);
 
             if ( ! gp_expect(gp_bytes_equal(
                 gp_buf,  gp_arr_length(gp_buf) * sizeof gp_buf[0],
@@ -632,7 +616,7 @@ int main(void)
             const size_t std_chars_length = wcsrtombs(std_chars,
                 &pbuf, sizeof std_chars, &(mbstate_t){0});
 
-            gp_utf32_to_utf8(&str, gp_buf);
+            gp_utf32_to_utf8(&str, gp_buf, gp_arr_length(gp_buf));
 
             gp_expect(gp_str_equal(str, std_chars, std_chars_length));
         }
