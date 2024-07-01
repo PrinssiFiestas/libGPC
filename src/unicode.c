@@ -142,26 +142,13 @@ void gp_utf32_to_utf8(
     const uint32_t*  u32,
     size_t           u32_length)
 {
-    size_t required_capacity = 0;
-    for (size_t i = 0; i < gp_arr_length(u32); ++i)
-    {
-        if (u32[i] > 0x7F)
-        {
-            if (u32[i] < 0x0000800)
-                required_capacity += 2;
-            else if (u32[i] < 0x0010000)
-                required_capacity += 3;
-            else
-                required_capacity += 4;
-        }
-        else
-            ++required_capacity;
-    }
-    gp_str_reserve(u8, required_capacity);
-
     ((GPStringHeader*)*u8 - 1)->length = 0;
-    for (size_t i = 0; i < u32_length; ++i)
+    size_t i = 0;
+    for (; gp_str_length(*u8) < gp_str_capacity(*u8); ++i)
     { // Manually inlined gp_utf8_decode() is faster for some reason.
+        if (i >= u32_length)
+            return;
+
         if (u32[i] > 0x7F)
         {
             if (u32[i] < 0x800) {
@@ -184,6 +171,50 @@ void gp_utf32_to_utf8(
         else
         { // Also this weird control flow is somewhat faster for some reason.
           // Maybe it's better for the branch predictor?
+            (*u8)[((GPStringHeader*)*u8 - 1)->length++].c = u32[i];
+        }
+    }
+
+    size_t required_capacity = gp_str_length(*u8);
+    for (size_t j = i; j < gp_arr_length(u32); ++j)
+    {
+        if (u32[j] > 0x7F)
+        {
+            if (u32[j] < 0x0000800)
+                required_capacity += 2;
+            else if (u32[j] < 0x0010000)
+                required_capacity += 3;
+            else
+                required_capacity += 4;
+        }
+        else
+            ++required_capacity;
+    }
+    gp_str_reserve(u8, required_capacity);
+
+    for (; i < u32_length; ++i)
+    {
+        if (u32[i] > 0x7F)
+        {
+            if (u32[i] < 0x800) {
+                (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x000FC0) >> 6) | 0xC0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x00003F) >> 0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 2;
+            } else if (u32[i] < 0x10000) {
+                (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x03F000) >> 12) | 0xE0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x000FC0) >>  6) | 0x80;
+                (*u8)[gp_str_length(*u8) + 2].c = ((u32[i] & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 3;
+            } else {
+                (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x1C0000) >> 18) | 0xF0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x03F000) >> 12) | 0x80;
+                (*u8)[gp_str_length(*u8) + 2].c = ((u32[i] & 0x000FC0) >>  6) | 0x80;
+                (*u8)[gp_str_length(*u8) + 3].c = ((u32[i] & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 4;
+            }
+        }
+        else
+        {
             (*u8)[((GPStringHeader*)*u8 - 1)->length++].c = u32[i];
         }
     }
