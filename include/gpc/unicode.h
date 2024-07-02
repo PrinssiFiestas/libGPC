@@ -79,7 +79,7 @@ void gp_utf8_to_utf16(
 GP_NONNULL_ARGS()
 void gp_utf16_to_utf8(
     GPString*        out_utf8,
-    const uint32_t*  utf16,
+    const uint16_t*  utf16,
     size_t           utf16_length);
 
 GP_NONNULL_ARGS()

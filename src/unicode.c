@@ -3,6 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include <gpc/unicode.h>
+#include "thread.h"
 #include <wchar.h>
 #include <wctype.h>
 
@@ -109,7 +110,6 @@ size_t gp_utf8_decode(
     }
 }
 
-GP_NONNULL_ARGS()
 void gp_utf8_to_utf32(
     GPArray(uint32_t)* u32,
     const void*const   u8,
@@ -180,9 +180,9 @@ void gp_utf32_to_utf8(
     {
         if (u32[j] > 0x7F)
         {
-            if (u32[j] < 0x0000800)
+            if (u32[j] < 0x800)
                 required_capacity += 2;
-            else if (u32[j] < 0x0010000)
+            else if (u32[j] < 0x10000)
                 required_capacity += 3;
             else
                 required_capacity += 4;
@@ -220,17 +220,141 @@ void gp_utf32_to_utf8(
     }
 }
 
-GP_NONNULL_ARGS()
 void gp_utf8_to_utf16(
-    GPArray(uint16_t)* out_utf16,
-    const void*        utf8,
-    size_t             utf8_length);
+    GPArray(uint16_t)* u16,
+    const void*        u8,
+    size_t             u8_length)
+{
+    ((GPArrayHeader*)*u16 - 1)->length = 0;
+    size_t i = 0;
+    size_t codepoint_length;
+    uint32_t encoding;
+    for (; gp_arr_length(*u16) < gp_arr_capacity(*u16); i += codepoint_length)
+    {
+        if (i >= u8_length)
+            return;
+        codepoint_length = gp_utf8_encode(&encoding, u8, i);
+        if (encoding <= UINT16_MAX) {
+            (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = encoding;
+        } else { // surrogate pair
+            if (GP_UNLIKELY(gp_arr_length(*u16) + 2 > gp_arr_capacity(*u16)))
+                break;
+            encoding &= ~0x10000;
+            (*u16)[gp_arr_length(*u16) + 0] = (encoding >> 10)   | 0xD800;
+            (*u16)[gp_arr_length(*u16) + 1] = (encoding & 0x3FF) | 0xDC00;
+            ((GPArrayHeader*)*u16 - 1)->length += 2;
+        }
+    }
+    size_t capacity_needed = gp_arr_length(*u16);
+    for (size_t j = i; j < u8_length; j += codepoint_length) {
+        codepoint_length = gp_utf8_encode(&encoding, u8, j);
+        capacity_needed += encoding <= UINT16_MAX ? 1 : 2;
+    }
+    *u16 = gp_arr_reserve(sizeof(*u16)[0], *u16, capacity_needed);
 
-GP_NONNULL_ARGS()
+    for (; i < u8_length; i += codepoint_length)
+    {
+        codepoint_length = gp_utf8_encode(&encoding, u8, i);
+        if (encoding <= UINT16_MAX) {
+            (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = encoding;
+        } else {
+            encoding &= ~0x10000;
+            (*u16)[gp_arr_length(*u16) + 0] = (encoding >> 10)   | 0xD800;
+            (*u16)[gp_arr_length(*u16) + 1] = (encoding & 0x3FF) | 0xDC00;
+            ((GPArrayHeader*)*u16 - 1)->length += 2;
+        }
+    }
+}
+
 void gp_utf16_to_utf8(
-    GPString*        out_utf8,
-    const uint32_t*  utf16,
-    size_t           utf16_length);
+    GPString*        u8,
+    const uint16_t*  u16,
+    size_t           u16_length)
+{
+    ((GPStringHeader*)*u8 - 1)->length = 0;
+    size_t i = 0;
+    for (; gp_str_length(*u8) < gp_str_capacity(*u8); ++i)
+    {
+        if (i >= u16_length)
+            return;
+
+        if (u16[i] > 0x7F)
+        {
+            if (u16[i] < 0x800) {
+                (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x000FC0) >> 6) | 0xC0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u16[i] & 0x00003F) >> 0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 2;
+            } else if (u16[i] <= 0xD7FF || 0xE000 <= u16[i]) {
+                (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x03F000) >> 12) | 0xE0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u16[i] & 0x000FC0) >>  6) | 0x80;
+                (*u8)[gp_str_length(*u8) + 2].c = ((u16[i] & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 3;
+            } else { // surrogate pair
+                const uint32_t encoding = 0x10000
+                    | ((uint32_t)(u16[i + 0] &~ 0xD800) << 10)
+                    | ((uint32_t)(u16[i + 1] &~ 0xDC00));
+                (*u8)[gp_str_length(*u8) + 0].c = ((encoding & 0x1C0000) >> 18) | 0xF0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((encoding & 0x03F000) >> 12) | 0x80;
+                (*u8)[gp_str_length(*u8) + 2].c = ((encoding & 0x000FC0) >>  6) | 0x80;
+                (*u8)[gp_str_length(*u8) + 3].c = ((encoding & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 4;
+                ++i;
+            }
+        }
+        else
+        {
+            (*u8)[((GPStringHeader*)*u8 - 1)->length++].c = u16[i];
+        }
+    }
+
+    size_t required_capacity = gp_str_length(*u8);
+    for (size_t j = i; j < gp_arr_length(u16); ++j)
+    {
+        if (u16[j] > 0x7F)
+        {
+            if (u16[j] < 0x800)
+                required_capacity += 2;
+            else if (u16[j] <= 0xD7FF || 0xE000 <= u16[j])
+                required_capacity += 3;
+            else
+                required_capacity += 4;
+        }
+        else
+            ++required_capacity;
+    }
+    gp_str_reserve(u8, required_capacity);
+
+    for (; i < u16_length; ++i)
+    {
+        if (u16[i] > 0x7F)
+        {
+            if (u16[i] < 0x800) {
+                (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x000FC0) >> 6) | 0xC0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u16[i] & 0x00003F) >> 0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 2;
+            } else if (u16[i] <= 0xD7FF || 0xE000 <= u16[i]) {
+                (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x03F000) >> 12) | 0xE0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u16[i] & 0x000FC0) >>  6) | 0x80;
+                (*u8)[gp_str_length(*u8) + 2].c = ((u16[i] & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 3;
+            } else { // surrogate pair
+                const uint32_t encoding = 0x10000
+                    | ((uint32_t)(u16[i + 0] &~ 0xD800) << 10)
+                    | ((uint32_t)(u16[i + 1] &~ 0xDC00));
+                (*u8)[gp_str_length(*u8) + 0].c = ((encoding & 0x1C0000) >> 18) | 0xF0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((encoding & 0x03F000) >> 12) | 0x80;
+                (*u8)[gp_str_length(*u8) + 2].c = ((encoding & 0x000FC0) >>  6) | 0x80;
+                (*u8)[gp_str_length(*u8) + 3].c = ((encoding & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 4;
+                ++i;
+            }
+        }
+        else
+        {
+            (*u8)[((GPStringHeader*)*u8 - 1)->length++].c = u16[i];
+        }
+    }
+}
 
 GP_NONNULL_ARGS()
 void gp_utf8_to_wcs(
