@@ -30,7 +30,8 @@ GPLocale gp_default_locale(void);
 
 // Creates an UTF-8 locale in category LC_ALL. The .locale field should be freed
 // with gp_locale_delete().
-// locale_code should be in form "xx_YY" or an empty string.
+// locale_code should be in form "xx_YY" or an empty string. You should check
+// the .locale field of the return value is not (locale_t)0 before using.
 GPLocale gp_locale_new(const char* locale_code) GP_NONNULL_ARGS();
 void     gp_locale_delete(locale_t);
 
@@ -110,14 +111,14 @@ void gp_str_to_lower_full(
     GPString*,
     GPLocale);
 
-// Full language sensitive Unicode case mapping.
+// Capitalizes the first character according to full language sensitive Unicode
+// titlecase mapping.
 GP_NONNULL_ARGS()
-void gp_str_to_title_full(
+void gp_str_capitalize(
     GPString*,
     GPLocale);
 
-// Full language sensitive Unicode case folding and collation. locale.locale
-// must not be NULL!
+// Full language sensitive Unicode case folding and collation.
 GP_NONNULL_ARGS()
 int gp_str_case_compare(
     const GPString s1,

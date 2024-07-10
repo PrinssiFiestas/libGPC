@@ -108,6 +108,29 @@ int main(void)
             }
         }
 
+        gp_test("Capitalize");
+        {
+            GPString str = gp_str_new(arena, 64, "blah blah blah");
+            gp_str_capitalize(&str, gp_default_locale());
+            gp_expect(gp_str_equal(str, "Blah blah blah", strlen("Blah blah blah")));
+
+            gp_str_copy(&str, "\u0345\u0307\u0307asdf", strlen("\u0345\u0307\u0307asdf"));
+            const char* result = "\u0307\u0307Ιasdf";
+            gp_str_capitalize(&str, gp_default_locale());
+            gp_expect(gp_str_equal(str, result, strlen(result)));
+
+            if (lithuanian.locale != (locale_t)0) { // remove dot above after 'i'
+                gp_str_copy(&str, "i\u0307blah", strlen("i\u0307blah"));
+                gp_str_capitalize(&str, lithuanian);
+                gp_expect(gp_str_equal(str, "Iblah", strlen("Iblah")), str);
+            }
+            if (turkish.locale != (locale_t)0) {
+                gp_str_copy(&str, "iasdf", strlen("iasdf"));
+                gp_str_capitalize(&str, turkish);
+                gp_expect(gp_str_equal(str, "İasdf", strlen("İasdf")));
+            }
+        }
+
         #if 0
         gp_test("Case insensitive comparison");
         {
