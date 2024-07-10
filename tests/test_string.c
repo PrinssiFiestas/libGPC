@@ -421,36 +421,6 @@ int main(void)
         }
     }
 
-    #if 0 // TODO figure out the API and do the tests
-    gp_suite("Case insensitive comparison");
-    {
-        GPString str1 = gp_str_on_stack(NULL, 64, "hrnec");
-        GPString str2 = gp_str_on_stack(NULL, 64, "chrt");
-
-        if (setlocale(LC_ALL, "en_US.utf8") != NULL)
-        { gp_test("American locale");
-            gp_expect(gp_str_case_compare(str1, str2) > 0);
-        }
-
-        if (setlocale(LC_COLLATE, "cs_CZ.utf8") != NULL)
-        { gp_test("Czech lcoale");
-            gp_expect(gp_str_case_compare(str1, str2) < 0);
-        }
-
-        gp_str_copy(&str1, "år",    strlen("år"));
-        gp_str_copy(&str1, "ängel", strlen("ängel"));
-        if (setlocale(LC_COLLATE, "en_US.utf8") != NULL)
-        { gp_test("American locale å");
-            gp_expect(gp_str_case_compare(str1, str2) < 0);
-        }
-
-        if (setlocale(LC_COLLATE, "sv_SE.utf8") != NULL)
-        { gp_test("Swedish locale å");
-            gp_expect(gp_str_case_compare(str1, str2) > 0);
-        }
-    }
-    #endif
-
     gp_suite("Validate");
     {
         GPString str = gp_str_new(gp_heap, 32, "");

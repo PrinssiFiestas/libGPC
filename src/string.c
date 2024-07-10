@@ -561,9 +561,9 @@ GPArray(uint32_t) gp_utf8_to_utf32_new(const GPAllocator* allocator, const GPStr
     return u32;
 }
 
-static uint32_t gp_u32_to_upper(uint32_t);
-static uint32_t gp_u32_to_lower(uint32_t);
-static uint32_t gp_u32_to_title(uint32_t c)
+uint32_t gp_u32_to_upper(uint32_t);
+uint32_t gp_u32_to_lower(uint32_t);
+uint32_t gp_u32_to_title(uint32_t c)
 {
     if (c < 0x100)
     {
@@ -791,7 +791,7 @@ int gp_str_file(
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-static uint32_t gp_u32_to_upper(uint32_t c)
+uint32_t gp_u32_to_upper(uint32_t c)
 {
   /* Based on and tested against Unicode 5.2 */
   /* Expression used to filter out the characters for the below code:
@@ -1290,7 +1290,7 @@ static uint32_t gp_u32_to_upper(uint32_t c)
   return c;
 }
 
-static uint32_t gp_u32_to_lower(uint32_t c)
+uint32_t gp_u32_to_lower(uint32_t c)
 {
   /* Based on and tested against Unicode 5.2 */
   /* Expression used to filter out the characters for the below code:

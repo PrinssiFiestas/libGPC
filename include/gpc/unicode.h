@@ -82,15 +82,16 @@ void gp_utf16_to_utf8(
     const uint16_t*  utf16,
     size_t           utf16_length);
 
+// Output will be null-terminated.
 GP_NONNULL_ARGS()
 void gp_utf8_to_wcs(
-    GPArray(wchar_t)* out_wcs,
+    GPArray(wchar_t)* out_unicode_wide_string,
     const void*       utf8,
     size_t            utf8_length);
 
 GP_NONNULL_ARGS()
 void gp_wcs_to_utf8(
-    GPString*       out_utf8,
+    GPString*       out_unicode_wide_string,
     const wchar_t*  wcs,
     size_t          wcs_length);
 
@@ -98,25 +99,26 @@ void gp_wcs_to_utf8(
 // Strings
 
 // Full language sensitive Unicode case mapping.
-GP_NONNULL_ARGS(1)
+GP_NONNULL_ARGS()
 void gp_str_to_upper_full(
     GPString*,
     GPLocale);
 
 // Full language sensitive Unicode case mapping.
-GP_NONNULL_ARGS(1)
+GP_NONNULL_ARGS()
 void gp_str_to_lower_full(
     GPString*,
     GPLocale);
 
 // Full language sensitive Unicode case mapping.
-GP_NONNULL_ARGS(1)
+GP_NONNULL_ARGS()
 void gp_str_to_title_full(
     GPString*,
     GPLocale);
 
-// Full language sensitive Unicode case folding and collation.
-GP_NONNULL_ARGS(1)
+// Full language sensitive Unicode case folding and collation. locale.locale
+// must not be NULL!
+GP_NONNULL_ARGS()
 int gp_str_case_compare(
     const GPString s1,
     const void*    s2,
