@@ -119,6 +119,10 @@ int main(void)
             gp_str_capitalize(&str, gp_default_locale());
             gp_expect(gp_str_equal(str, result, strlen(result)));
 
+            gp_str_copy(&str, "ǳ asdf", strlen("ǳ asdf"));
+            gp_str_capitalize(&str, gp_default_locale());
+            gp_expect(gp_str_equal(str, "ǲ asdf", strlen("ǲ asdf")));
+
             if (lithuanian.locale != (locale_t)0) { // remove dot above after 'i'
                 gp_str_copy(&str, "i\u0307blah", strlen("i\u0307blah"));
                 gp_str_capitalize(&str, lithuanian);

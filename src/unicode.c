@@ -417,6 +417,56 @@ void gp_wcs_to_utf8(
         gp_utf16_to_utf8(utf8, (uint16_t*)wcs, wcs_length);
 }
 
+uint32_t gp_u32_to_upper(uint32_t c)
+{
+    #if !_WIN32
+    return towupper_l(c, gp_default_locale().locale);
+    #else
+    if (c <= WCHAR_MAX)
+        return _towupper_l(c, gp_default_locale().locale);
+
+    // Based on Unicode 15.1.0
+    // Expression used to filter out the characters for the below code:
+    // awk -F\; '{ if ( $13 != "" ) print $1; }' UnicodeData.txt
+
+    if      ((0x10428 <= c && c <= 0x1044F)  ||
+             (0x104D8 <= c && c <= 0x104FB)) return c - 0x28;
+    else if ((0x10597 <= c && c <= 0x105B9)  ||
+             (0x105BB == c || c == 0x105BC)) return c - 0x27;
+    else if ((0x10CC0 <= c && c <= 0x10CF2)) return c - 0x40;
+    else if ((0x118C0 <= c && c <= 0x118DF)  ||
+             (0x16E60 <= c && c <= 0x16E7F)) return c - 0x20;
+    else if ((0x1E922 <= c && c <= 0x1E943)) return c - 0x22;
+
+    return c;
+    #endif
+}
+
+uint32_t gp_u32_to_lower(uint32_t c)
+{
+    #if !_WIN32
+    return towlower_l(c, gp_default_locale().locale);
+    #else
+    if (c <= WCHAR_MAX)
+        return _towlower_l(c, gp_default_locale().locale);
+
+    // Based on Unicode 15.1.0
+    // Expression used to filter out the characters for the below code:
+    // awk -F\; '{ if ( $14 != "" ) print $1; }' UnicodeData.txt
+
+    if      ((0x10400 <= c && c <= 0x10427)  ||
+             (0x104B0 <= c && c <= 0x104D3)) return c + 0x28;
+    else if ((0x10570 <= c && c <= 0x10592)  ||
+             (0x10594 == c || c == 0x10595)) return c + 0x27;
+    else if ((0x10C80 <= c && c <= 0x10CB2)) return c + 0x40;
+    else if ((0x118A0 <= c && c <= 0x118BF)  ||
+             (0x16E40 <= c && c <= 0x16E5F)) return c + 0x20;
+    else if ((0x1E900 <= c && c <= 0x1E921)) return c + 0x22;
+
+    return c;
+    #endif
+}
+
 // ----------------------------------------------------------------------------
 // String extensions
 
