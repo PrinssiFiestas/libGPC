@@ -504,7 +504,12 @@ static bool gp_is_diatrical(const uint32_t encoding)
 #define GP_u32_APPEND1(CODEPOINT) \
     u32[((GPArrayHeader*)u32 - 1)->length++] = (CODEPOINT); \
     required_capacity += gp_utf32_to_utf8_byte_length(CODEPOINT)
-#define GP_u32_APPEND(...) do { GP_PROCESS_ALL_ARGS(GP_u32_APPEND1, GP_SEMICOLON, __VA_ARGS__); } while(0)
+#define GP_u32_APPEND(...) do \
+{ \
+    if (GP_COUNT_ARGS(__VA_ARGS__) > 1) \
+        u32 = gp_arr_reserve(sizeof u32[0], u32, u32_capacity += GP_COUNT_ARGS(__VA_ARGS__)); \
+    GP_PROCESS_ALL_ARGS(GP_u32_APPEND1, GP_SEMICOLON, __VA_ARGS__); \
+} while(0)
 
 uint32_t gp_u32_to_upper(uint32_t);
 void gp_str_to_upper_full(
@@ -514,8 +519,9 @@ void gp_str_to_upper_full(
     // TODO ASCII optimization would go here if not Turkish locale
 
     GPArena* scratch = gp_scratch_arena();
+    size_t u32_capacity = gp_str_length(*str); // this gets incremented by GP_u32_APPEND()
     GPArray(uint32_t) u32 = gp_arr_new(
-        (GPAllocator*)scratch, sizeof u32[0], gp_str_length(*str));
+        (GPAllocator*)scratch, sizeof u32[0], u32_capacity);
 
     size_t required_capacity = 0; // this gets incremented by GP_u32_APPEND()
     (*str)[gp_str_length(*str)].c = '\0'; // last lookahead
@@ -608,13 +614,12 @@ void gp_str_to_upper_full(
 
             default:
             if (0x1F80 <= encoding && encoding <= 0x1FAF) {
-                if      (encoding < 0x1F88) GP_u32_APPEND(0x1F08 + encoding - 0x1F80);
-                else if (encoding < 0x1F90) GP_u32_APPEND(0x1F08 + encoding - 0x1F88);
-                else if (encoding < 0x1F98) GP_u32_APPEND(0x1F28 + encoding - 0x1F90);
-                else if (encoding < 0x1FA0) GP_u32_APPEND(0x1F28 + encoding - 0x1F98);
-                else if (encoding < 0x1FA8) GP_u32_APPEND(0x1F68 + encoding - 0x1FA0);
-                else                        GP_u32_APPEND(0x1F68 + encoding - 0x1FA8);
-                GP_u32_APPEND(0x0399);
+                if      (encoding < 0x1F88) GP_u32_APPEND(0x1F08 + encoding - 0x1F80, 0x0399);
+                else if (encoding < 0x1F90) GP_u32_APPEND(0x1F08 + encoding - 0x1F88, 0x0399);
+                else if (encoding < 0x1F98) GP_u32_APPEND(0x1F28 + encoding - 0x1F90, 0x0399);
+                else if (encoding < 0x1FA0) GP_u32_APPEND(0x1F28 + encoding - 0x1F98, 0x0399);
+                else if (encoding < 0x1FA8) GP_u32_APPEND(0x1F68 + encoding - 0x1FA0, 0x0399);
+                else                        GP_u32_APPEND(0x1F68 + encoding - 0x1FA8, 0x0399);
             } else if (encoding == 'i') {
                 if (strncmp(locale.code, "tr", 2) == 0 || strncmp(locale.code, "az", 2) == 0)
                     GP_u32_APPEND(0x0130);
@@ -638,8 +643,8 @@ void gp_str_to_upper_full(
 }
 
 static bool gp_is_lithuanian_accent(uint32_t encoding)
-{
-    switch (encoding) { // Only relevants for special case in gp_to_lower_full() listed here
+{ // Only relevants for special cases in gp_to_lower_full() listed here.
+    switch (encoding) {
         case 0x0300: // grave
         case 0x00B4: // acute
         case 0x0303: // tilde above
@@ -658,25 +663,23 @@ static bool gp_is_above_combining_class(const uint32_t encoding)
         case 0x0351: case 0x0352: case 0x0357: case 0x035B: case 0x05A8:
         case 0x05A9: case 0x05AB: case 0x05AC: case 0x05AF: case 0x05C4:
         case 0x0653: case 0x0654:
-            return true;
-
-        default:
-        if      (0x0300 <= encoding && encoding <= 0x0314) return true;
-        else if (0x033D <= encoding && encoding <= 0x0344) return true;
-        else if (0x0363 <= encoding && encoding <= 0x036F) return true;
-        else if (0x0483 <= encoding && encoding <= 0x0487) return true;
-        else if (0x0592 <= encoding && encoding <= 0x0599 && encoding != 0x0596) return true;
-        else if (0x0483 <= encoding && encoding <= 0x0487) return true;
-        else if (0x059C <= encoding && encoding <= 0x05A1) return true;
-        else if (0x0610 <= encoding && encoding <= 0x0617) return true;
-        else if (0x0657 <= encoding && encoding <= 0x065E && encoding != 0x065C) return true;
-        else if (0x06D6 <= encoding && encoding <= 0x06D9) return true;
+        return true;
     }
+    if      (0x0300 <= encoding && encoding <= 0x0314) return true;
+    else if (0x033D <= encoding && encoding <= 0x0344) return true;
+    else if (0x0363 <= encoding && encoding <= 0x036F) return true;
+    else if (0x0483 <= encoding && encoding <= 0x0487) return true;
+    else if (0x0592 <= encoding && encoding <= 0x0599 && encoding != 0x0596) return true;
+    else if (0x0483 <= encoding && encoding <= 0x0487) return true;
+    else if (0x059C <= encoding && encoding <= 0x05A1) return true;
+    else if (0x0610 <= encoding && encoding <= 0x0617) return true;
+    else if (0x0657 <= encoding && encoding <= 0x065E && encoding != 0x065C) return true;
+    else if (0x06D6 <= encoding && encoding <= 0x06D9) return true;
     return false;
 }
 #endif
 
-static bool gp_is_word_final(const uint32_t lookbehind, const  uint32_t lookahead, const GPLocale locale)
+static bool gp_is_word_final(const uint32_t lookbehind, const uint32_t lookahead, const GPLocale locale)
 {
     #if !_WIN32
     return (lookbehind <= WCHAR_MAX && iswalpha_l(lookbehind, locale.locale)) &&
@@ -695,8 +698,9 @@ void gp_str_to_lower_full(
     // TODO ASCII optimization would go here if not Turkish locale.
 
     GPArena* scratch = gp_scratch_arena();
+    size_t u32_capacity = gp_str_length(*str); // this gets incremented by GP_u32_APPEND()
     GPArray(uint32_t) u32 = gp_arr_new(
-        (GPAllocator*)scratch, sizeof u32[0], gp_str_length(*str));
+        (GPAllocator*)scratch, sizeof u32[0], u32_capacity);
     size_t required_capacity = 0;
     (*str)[gp_str_length(*str)].c = '\0'; // last lookahead
     uint32_t lookahead;
@@ -815,6 +819,7 @@ void gp_str_capitalize(
         ((GPStringHeader*)*str - 1)->length -= second_length;
     }
 
+    size_t u32_capacity = 0; // dummy for GP_u32_APPEND()
     GPArray(uint32_t) u32 = gp_arr_on_stack(NULL, 4, uint32_t);
     size_t required_capacity = 0; // this gets incremented by GP_u32_APPEND()
 
@@ -923,3 +928,138 @@ int gp_str_case_compare(
     return result;
 }
 
+#define GP_wcs_APPEND1(CODEPOINT) \
+    (*wcs)[((GPArrayHeader*)*wcs - 1)->length++] = (CODEPOINT)
+#define GP_wcs_APPEND(...) do \
+{ \
+    if (GP_COUNT_ARGS(__VA_ARGS__) > 1) \
+        *(wcs) = gp_arr_reserve(sizeof (*wcs)[0], *wcs, wcs_capacity += GP_COUNT_ARGS(__VA_ARGS__)); \
+    GP_PROCESS_ALL_ARGS(GP_wcs_APPEND1, GP_SEMICOLON, __VA_ARGS__); \
+} while(0)
+
+void gp_wcs_fold_str(GPArray(wchar_t)* wcs, const GPString str, const GPLocale locale)
+{
+    ((GPArrayHeader*)*wcs - 1)->length = 0;
+    size_t wcs_capacity = gp_str_length(str);
+    *wcs = gp_arr_reserve(sizeof(*wcs)[0], *wcs, wcs_capacity);
+    const bool turkish = strncmp(locale.code, "tr", 2) == 0 || strncmp(locale.code, "az", 2) == 0;
+
+    size_t i = 0;
+    if ( ! turkish) for (; i < gp_str_length(str); ++i)
+    {
+        if (str[i].c > 0x7F)
+            break;
+        (*wcs)[i] = 'A' <= str[i].c && str[i].c <= 'Z' ? str[i].c + 'a' - 'A' : str[i].c;
+    }
+    ((GPArrayHeader*)*wcs - 1)->length = i;
+
+    for (size_t codepoint_length; i < gp_str_length(str); i += codepoint_length)
+    {
+        // TODO more ASCII optimization here
+
+        uint32_t encoding;
+        codepoint_length = gp_utf8_encode(&encoding, str, i);
+
+        switch (encoding) {
+            case 'I': if (turkish) GP_wcs_APPEND(0x0131); else GP_wcs_APPEND('i'); break;
+            case 0x0130: GP_wcs_APPEND('i'); if ( ! turkish) GP_wcs_APPEND(0x0307); break; // LATIN CAPITAL LETTER I WITH DOT ABOVE
+
+            case 0x00B5: GP_wcs_APPEND(0x03BC                ); break; // MICRO SIGN
+            case 0x00DF: GP_wcs_APPEND(0x0073, 0x0073        ); break; // LATIN SMALL LETTER SHARP S
+            case 0x0149: GP_wcs_APPEND(0x02BC, 0x006E        ); break; // LATIN SMALL LETTER N PRECEDED BY APOSTROPHE
+            case 0x017F: GP_wcs_APPEND(0x0073                ); break; // LATIN SMALL LETTER LONG S
+            case 0x01F0: GP_wcs_APPEND(0x006A, 0x030C        ); break; // LATIN SMALL LETTER J WITH CARON
+            case 0x0345: GP_wcs_APPEND(0x03B9                ); break; // COMBINING GREEK YPOGEGRAMMENI
+            case 0x0390: GP_wcs_APPEND(0x03B9, 0x0308, 0x0301); break; // GREEK SMALL LETTER IOTA WITH DIALYTIKA AND TONOS
+            case 0x03B0: GP_wcs_APPEND(0x03C5, 0x0308, 0x0301); break; // GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND TONOS
+            case 0x03C2: GP_wcs_APPEND(0x03C3                ); break; // GREEK SMALL LETTER FINAL SIGMA
+            case 0x03D0: GP_wcs_APPEND(0x03B2                ); break; // GREEK BETA SYMBOL
+            case 0x03D1: GP_wcs_APPEND(0x03B8                ); break; // GREEK THETA SYMBOL
+            case 0x03D5: GP_wcs_APPEND(0x03C6                ); break; // GREEK PHI SYMBOL
+            case 0x03D6: GP_wcs_APPEND(0x03C0                ); break; // GREEK PI SYMBOL
+            case 0x03F0: GP_wcs_APPEND(0x03BA                ); break; // GREEK KAPPA SYMBOL
+            case 0x03F1: GP_wcs_APPEND(0x03C1                ); break; // GREEK RHO SYMBOL
+            case 0x03F5: GP_wcs_APPEND(0x03B5                ); break; // GREEK LUNATE EPSILON SYMBOL
+            case 0x0587: GP_wcs_APPEND(0x0565, 0x0582        ); break; // ARMENIAN SMALL LIGATURE ECH YIWN
+            case 0x1E9E: GP_wcs_APPEND(0x0073, 0x0073        ); break; // LATIN CAPITAL LETTER SHARP S
+            case 0x1F50: GP_wcs_APPEND(0x03C5, 0x0313        ); break; // GREEK SMALL LETTER UPSILON WITH PSILI
+            case 0x1F52: GP_wcs_APPEND(0x03C5, 0x0313, 0x0300); break; // GREEK SMALL LETTER UPSILON WITH PSILI AND VARIA
+            case 0x1F54: GP_wcs_APPEND(0x03C5, 0x0313, 0x0301); break; // GREEK SMALL LETTER UPSILON WITH PSILI AND OXIA
+            case 0x1F56: GP_wcs_APPEND(0x03C5, 0x0313, 0x0342); break; // GREEK SMALL LETTER UPSILON WITH PSILI AND PERISPOMENI
+            case 0x1FB2: GP_wcs_APPEND(0x1F70, 0x03B9        ); break; // GREEK SMALL LETTER ALPHA WITH VARIA AND YPOGEGRAMMENI
+            case 0x1FB3: GP_wcs_APPEND(0x03B1, 0x03B9        ); break; // GREEK SMALL LETTER ALPHA WITH YPOGEGRAMMENI
+            case 0x1FB4: GP_wcs_APPEND(0x03AC, 0x03B9        ); break; // GREEK SMALL LETTER ALPHA WITH OXIA AND YPOGEGRAMMENI
+            case 0x1FB6: GP_wcs_APPEND(0x03B1, 0x0342        ); break; // GREEK SMALL LETTER ALPHA WITH PERISPOMENI
+            case 0x1FB7: GP_wcs_APPEND(0x03B1, 0x0342, 0x03B9); break; // GREEK SMALL LETTER ALPHA WITH PERISPOMENI AND YPOGEGRAMMENI
+            case 0x1FBC: GP_wcs_APPEND(0x03B1, 0x03B9        ); break; // GREEK CAPITAL LETTER ALPHA WITH PROSGEGRAMMENI
+            case 0x1FBE: GP_wcs_APPEND(0x03B9                ); break; // GREEK PROSGEGRAMMENI
+            case 0x1FC2: GP_wcs_APPEND(0x1F74, 0x03B9        ); break; // GREEK SMALL LETTER ETA WITH VARIA AND YPOGEGRAMMENI
+            case 0x1FC3: GP_wcs_APPEND(0x03B7, 0x03B9        ); break; // GREEK SMALL LETTER ETA WITH YPOGEGRAMMENI
+            case 0x1FC4: GP_wcs_APPEND(0x03AE, 0x03B9        ); break; // GREEK SMALL LETTER ETA WITH OXIA AND YPOGEGRAMMENI
+            case 0x1FC6: GP_wcs_APPEND(0x03B7, 0x0342        ); break; // GREEK SMALL LETTER ETA WITH PERISPOMENI
+            case 0x1FC7: GP_wcs_APPEND(0x03B7, 0x0342, 0x03B9); break; // GREEK SMALL LETTER ETA WITH PERISPOMENI AND YPOGEGRAMMENI
+            case 0x1FCC: GP_wcs_APPEND(0x03B7, 0x03B9        ); break; // GREEK CAPITAL LETTER ETA WITH PROSGEGRAMMENI
+            case 0x1FD2: GP_wcs_APPEND(0x03B9, 0x0308, 0x0300); break; // GREEK SMALL LETTER IOTA WITH DIALYTIKA AND VARIA
+            case 0x1FD3: GP_wcs_APPEND(0x03B9, 0x0308, 0x0301); break; // GREEK SMALL LETTER IOTA WITH DIALYTIKA AND OXIA
+            case 0x1FD6: GP_wcs_APPEND(0x03B9, 0x0342        ); break; // GREEK SMALL LETTER IOTA WITH PERISPOMENI
+            case 0x1FD7: GP_wcs_APPEND(0x03B9, 0x0308, 0x0342); break; // GREEK SMALL LETTER IOTA WITH DIALYTIKA AND PERISPOMENI
+            case 0x1FE2: GP_wcs_APPEND(0x03C5, 0x0308, 0x0300); break; // GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND VARIA
+            case 0x1FE3: GP_wcs_APPEND(0x03C5, 0x0308, 0x0301); break; // GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND OXIA
+            case 0x1FE4: GP_wcs_APPEND(0x03C1, 0x0313        ); break; // GREEK SMALL LETTER RHO WITH PSILI
+            case 0x1FE6: GP_wcs_APPEND(0x03C5, 0x0342        ); break; // GREEK SMALL LETTER UPSILON WITH PERISPOMENI
+            case 0x1FE7: GP_wcs_APPEND(0x03C5, 0x0308, 0x0342); break; // GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND PERISPOMENI
+            case 0x1FF2: GP_wcs_APPEND(0x1F7C, 0x03B9        ); break; // GREEK SMALL LETTER OMEGA WITH VARIA AND YPOGEGRAMMENI
+            case 0x1FF3: GP_wcs_APPEND(0x03C9, 0x03B9        ); break; // GREEK SMALL LETTER OMEGA WITH YPOGEGRAMMENI
+            case 0x1FF4: GP_wcs_APPEND(0x03CE, 0x03B9        ); break; // GREEK SMALL LETTER OMEGA WITH OXIA AND YPOGEGRAMMENI
+            case 0x1FF6: GP_wcs_APPEND(0x03C9, 0x0342        ); break; // GREEK SMALL LETTER OMEGA WITH PERISPOMENI
+            case 0x1FF7: GP_wcs_APPEND(0x03C9, 0x0342, 0x03B9); break; // GREEK SMALL LETTER OMEGA WITH PERISPOMENI AND YPOGEGRAMMENI
+            case 0x1FFC: GP_wcs_APPEND(0x03C9, 0x03B9        ); break; // GREEK CAPITAL LETTER OMEGA WITH PROSGEGRAMMENI
+            case 0x1C80: GP_wcs_APPEND(0x0432                ); break; // CYRILLIC SMALL LETTER ROUNDED VE
+            case 0x1C81: GP_wcs_APPEND(0x0434                ); break; // CYRILLIC SMALL LETTER LONG-LEGGED DE
+            case 0x1C82: GP_wcs_APPEND(0x043E                ); break; // CYRILLIC SMALL LETTER NARROW O
+            case 0x1C83: GP_wcs_APPEND(0x0441                ); break; // CYRILLIC SMALL LETTER WIDE ES
+            case 0x1C84: GP_wcs_APPEND(0x0442                ); break; // CYRILLIC SMALL LETTER TALL TE
+            case 0x1C85: GP_wcs_APPEND(0x0442                ); break; // CYRILLIC SMALL LETTER THREE-LEGGED TE
+            case 0x1C86: GP_wcs_APPEND(0x044A                ); break; // CYRILLIC SMALL LETTER TALL HARD SIGN
+            case 0x1C87: GP_wcs_APPEND(0x0463                ); break; // CYRILLIC SMALL LETTER TALL YAT
+            case 0x1C88: GP_wcs_APPEND(0xA64B                ); break; // CYRILLIC SMALL LETTER UNBLENDED UK
+            case 0x1E96: GP_wcs_APPEND(0x0068, 0x0331        ); break; // LATIN SMALL LETTER H WITH LINE BELOW
+            case 0x1E97: GP_wcs_APPEND(0x0074, 0x0308        ); break; // LATIN SMALL LETTER T WITH DIAERESIS
+            case 0x1E98: GP_wcs_APPEND(0x0077, 0x030A        ); break; // LATIN SMALL LETTER W WITH RING ABOVE
+            case 0x1E99: GP_wcs_APPEND(0x0079, 0x030A        ); break; // LATIN SMALL LETTER Y WITH RING ABOVE
+            case 0x1E9A: GP_wcs_APPEND(0x0061, 0x02BE        ); break; // LATIN SMALL LETTER A WITH RIGHT HALF RING
+            case 0x1E9B: GP_wcs_APPEND(0x1E61                ); break; // LATIN SMALL LETTER LONG S WITH DOT ABOVE
+            case 0xFB00: GP_wcs_APPEND(0x0066, 0x0066        ); break; // LATIN SMALL LIGATURE FF
+            case 0xFB01: GP_wcs_APPEND(0x0066, 0x0069        ); break; // LATIN SMALL LIGATURE FI
+            case 0xFB02: GP_wcs_APPEND(0x0066, 0x006C        ); break; // LATIN SMALL LIGATURE FL
+            case 0xFB03: GP_wcs_APPEND(0x0066, 0x0066, 0x0069); break; // LATIN SMALL LIGATURE FFI
+            case 0xFB04: GP_wcs_APPEND(0x0066, 0x0066, 0x006C); break; // LATIN SMALL LIGATURE FFL
+            case 0xFB05: GP_wcs_APPEND(0x0073, 0x0074        ); break; // LATIN SMALL LIGATURE LONG S T
+            case 0xFB06: GP_wcs_APPEND(0x0073, 0x0074        ); break; // LATIN SMALL LIGATURE ST
+            case 0xFB13: GP_wcs_APPEND(0x0574, 0x0576        ); break; // ARMENIAN SMALL LIGATURE MEN NOW
+            case 0xFB14: GP_wcs_APPEND(0x0574, 0x0565        ); break; // ARMENIAN SMALL LIGATURE MEN ECH
+            case 0xFB15: GP_wcs_APPEND(0x0574, 0x056B        ); break; // ARMENIAN SMALL LIGATURE MEN INI
+            case 0xFB16: GP_wcs_APPEND(0x057E, 0x0576        ); break; // ARMENIAN SMALL LIGATURE VEW NOW
+            case 0xFB17: GP_wcs_APPEND(0x0574, 0x056D        ); break; // ARMENIAN SMALL LIGATURE MEN XEH
+
+            default:
+            if      (0x13F8 <= encoding && encoding <= 0x13FD) GP_wcs_APPEND(encoding - 0x8);
+            else if (0x1F80 <= encoding && encoding <= 0x1F87) GP_wcs_APPEND(encoding - 0x80, 0x03B9);
+            else if (0x1F88 <= encoding && encoding <= 0x1F8F) GP_wcs_APPEND(encoding - 0x88, 0x03B9);
+            else if (0x1F90 <= encoding && encoding <= 0x1F97) GP_wcs_APPEND(encoding - 0x70, 0x03B9);
+            else if (0x1F98 <= encoding && encoding <= 0x1F9F) GP_wcs_APPEND(encoding - 0x78, 0x03B9);
+            else if (0x1FA0 <= encoding && encoding <= 0x1FA7) GP_wcs_APPEND(encoding - 0x40, 0x03B9);
+            else if (0x1FA8 <= encoding && encoding <= 0x1FAF) GP_wcs_APPEND(encoding - 0x48, 0x03B9);
+            else if (0xAB70 <= encoding && encoding <= 0xABBF) GP_wcs_APPEND(encoding - 0x97D0);
+            else {
+                uint32_t lower = gp_u32_to_lower(encoding);
+                if (lower <= WCHAR_MAX) {
+                    GP_wcs_APPEND(lower);
+                } else { // surrogate pair in Windows
+                    lower &= ~0x10000;
+                    GP_wcs_APPEND((lower >> 10) | 0xD800, (lower & 0x3FF) | 0xDC00);
+                }
+            }
+        }
+    }
+}
