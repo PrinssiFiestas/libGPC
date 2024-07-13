@@ -1136,13 +1136,13 @@ void gp_wcs_fold_utf8(
 
 static int gp_utf8_codepoint_compare(const void*_s1, const void*_s2)
 {
-    GPString s1 = *(GPString*)_s1;
-    GPString s2 = *(GPString*)_s2;
-    const size_t min_length = gp_str_length(s1) < gp_str_length(s2) ? gp_str_length(s1) : gp_str_length(s2);
+    const GPString s1 = *(GPString*)_s1;
+    const GPString s2 = *(GPString*)_s2;
+    const size_t min_length = gp_min(gp_str_length(s1), gp_str_length(s2));
     for (size_t i = 0, codepoint_length; i < min_length; i += codepoint_length)
     {
         uint32_t cp1, cp2;
-        codepoint_length = gp_utf8_encode(&cp1, s1, i); gp_utf8_encode(&cp2, s1, i);
+        codepoint_length = gp_utf8_encode(&cp1, s1, i); gp_utf8_encode(&cp2, s2, i);
         if (cp1 != cp2)
             return cp1 - cp2;
     }
@@ -1175,36 +1175,36 @@ static int gp_wcs_collate(const void*_s1, const void*_s2)
 }
 
 void gp_str_sort(
-    GPArray(GPString) strs,
+    GPArray(GPString)* strs,
     const int flags,
     GPLocale locale)
 {
     const bool fold    = flags & 0x4;
     const bool collate = flags & 0x2;
-    if ( ! (fold || collate)) {
-        qsort(strs, gp_arr_length(strs), sizeof(GPString), gp_utf8_codepoint_compare);
+    if ( ! (fold | collate)) {
+        qsort(*strs, gp_arr_length(*strs), sizeof(GPString), gp_utf8_codepoint_compare);
         return;
     }
     GPArena* scratch = gp_scratch_arena();
-    GPNarrowWide* pairs = gp_mem_alloc((GPAllocator*)scratch, sizeof pairs[0] * gp_arr_length(strs));
+    GPNarrowWide* pairs = gp_mem_alloc((GPAllocator*)scratch, sizeof pairs[0] * gp_arr_length(*strs));
 
-    for (size_t i = 0; i < gp_arr_length(strs); ++i) {
-        pairs[i].narrow = strs[i];
+    for (size_t i = 0; i < gp_arr_length(*strs); ++i) {
+        pairs[i].narrow = (*strs)[i];
         pairs[i].locale = &locale;
         pairs[i].wide = gp_arr_new((GPAllocator*)scratch, sizeof pairs[i].wide[0], 0);
         if (fold)
-            gp_wcs_fold_utf8(&pairs[i].wide, strs[i], gp_str_length(strs[i]), locale);
+            gp_wcs_fold_utf8(&pairs[i].wide, (*strs)[i], gp_str_length((*strs)[i]), locale);
         else
-            gp_utf8_to_wcs(&pairs[i].wide, strs[i], gp_str_length(strs[i]));
+            gp_utf8_to_wcs(&pairs[i].wide, (*strs)[i], gp_str_length((*strs)[i]));
     }
 
     if (collate)
-        qsort(pairs, gp_arr_length(strs), sizeof pairs[0], gp_wcs_collate);
+        qsort(pairs, gp_arr_length(*strs), sizeof pairs[0], gp_wcs_collate);
     else
-        qsort(pairs, gp_arr_length(strs), sizeof pairs[0], gp_wcs_compare);
+        qsort(pairs, gp_arr_length(*strs), sizeof pairs[0], gp_wcs_compare);
 
-    for (size_t i = 0; i < gp_arr_length(strs); ++i)
-        strs[i] = pairs[i].narrow;
+    for (size_t i = 0; i < gp_arr_length(*strs); ++i)
+        (*strs)[i] = pairs[i].narrow;
 
     gp_arena_rewind(scratch, pairs);
 }

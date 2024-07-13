@@ -151,9 +151,9 @@ void gp_str_join(
 // insensitive sorting and collating.
 GP_NONNULL_ARGS()
 void gp_str_sort(
-    GPArray(GPString) strs,
-    int               flags,
-    GPLocale          locale);
+    GPArray(GPString)* strs,
+    int                flags,
+    GPLocale           locale);
 
 
 // ----------------------------------------------------------------------------

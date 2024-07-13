@@ -227,6 +227,35 @@ int main(void)
             gp_locale_delete(swedish.locale);
         }
 
+        gp_test("Sorting");
+        {
+            GPArray(GPString) strs = gp_arr_on_stack(NULL, 16, GPString,
+                gp_str_on_stack(NULL, 16, "sbloink"),
+                gp_str_on_stack(NULL, 16, "i"),
+                gp_str_on_stack(NULL, 16, "asdf"),
+                gp_str_on_stack(NULL, 16, "İ"),
+                gp_str_on_stack(NULL, 16, "Sbloink"));
+
+            // Lexicographic sorting
+            gp_str_sort(&strs, 0, gp_default_locale());
+            gp_expect(gp_str_equal(strs[0], "Sbloink", strlen("Sbloink")));
+            gp_expect(gp_str_equal(strs[1], "asdf",    strlen("asdf")));
+            gp_expect(gp_str_equal(strs[2], "i",       strlen("i")));
+            gp_expect(gp_str_equal(strs[3], "sbloink", strlen("sbloink")));
+            gp_expect(gp_str_equal(strs[4], "İ",       strlen("İ")));
+
+            if (turkish.locale == (locale_t)0)
+                goto skip_turkish_sort;
+
+            gp_str_sort(&strs, GP_CASE_FOLD | GP_COLLATE, turkish);
+            gp_expect(gp_str_equal(strs[0], "asdf",    strlen("asdf")));
+            gp_expect(gp_str_equal(strs[1], "i",       strlen("i")));
+            gp_expect(gp_str_equal(strs[2], "İ",       strlen("İ")));
+            gp_expect(gp_str_equal(strs[3], "Sbloink", strlen("Sbloink")));
+            gp_expect(gp_str_equal(strs[4], "sbloink", strlen("sbloink")));
+            skip_turkish_sort: (void)0;
+        }
+
         gp_locale_delete(turkish.locale);
         gp_locale_delete(lithuanian.locale);
     }
