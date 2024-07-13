@@ -138,7 +138,7 @@ int main(void)
         gp_test("Split and join");
         {
             GPString str = gp_str_new(arena, 64, "\t\tHello, I'm  the Prince!\r\n");
-            GPArray(GPString) substrs = gp_str_split(arena, str, GP_WHITESPACE);
+            GPArray(GPString) substrs = gp_str_split(gp_heap, str, GP_WHITESPACE);
             gp_expect(gp_arr_length(substrs) == 4);
             gp_expect(gp_str_equal(substrs[0], "Hello,",  strlen("Hello,")));
             gp_expect(gp_str_equal(substrs[1], "I'm",     strlen("I'm")));
@@ -148,6 +148,11 @@ int main(void)
             const char* trimmed = "Hello, I'm the Prince!";
             gp_str_join(&str, substrs, " ");
             gp_expect(gp_str_equal(str, trimmed, strlen(trimmed)));
+
+            // Heap used in this example to show how to free if needed.
+            for (size_t i = 0; i < gp_arr_length(substrs); ++i)
+                gp_str_delete(substrs[i]);
+            gp_arr_delete(substrs);
 
             // Test edge cases of not having leading or trailing whitespace.
             substrs = gp_str_split(arena, str, GP_WHITESPACE);
