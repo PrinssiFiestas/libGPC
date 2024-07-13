@@ -3,6 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include <gpc/unicode.h>
+#include <gpc/utils.h>
 #include "thread.h"
 #include <stdlib.h>
 #include <wchar.h>
@@ -402,7 +403,7 @@ void gp_utf8_to_wcs(
     else
         gp_utf8_to_utf16((GPArray(uint16_t)*)wcs, utf8, utf8_length);
     *wcs = gp_arr_reserve(sizeof(*wcs)[0], *wcs, gp_arr_length(*wcs) + sizeof"");
-    (*wcs)[gp_arr_length(*wcs)] = 0;
+    (*wcs)[gp_arr_length(*wcs)] = L'\0';
 }
 
 void gp_wcs_to_utf8(
@@ -470,6 +471,100 @@ uint32_t gp_u32_to_lower(uint32_t c)
 // ----------------------------------------------------------------------------
 // String extensions
 
+GPArray(GPString) gp_str_split(
+    const GPAllocator* allocator,
+    const GPString str,
+    const char*const separators)
+{
+    GPArray(GPString) substrs = NULL;
+    size_t i = gp_str_find_first_not_of(str, separators, 0);
+    if (i == GP_NOT_FOUND)
+        return gp_arr_new(allocator, sizeof(GPString), 1);
+
+    size_t indices_length = 0;
+    struct start_end_pair {
+        size_t start, end;
+    } indices[128];
+
+    while (true)
+    {
+        for (indices_length = 0;
+            indices_length < sizeof indices / sizeof indices[0];
+            ++indices_length)
+        {
+            indices[indices_length].start = i;
+            i = gp_str_find_first_of(str, separators, i);
+            if (i == GP_NOT_FOUND) {
+                indices[indices_length++].end = gp_str_length(str);
+                break;
+            }
+            indices[indices_length].end = i;
+            i = gp_str_find_first_not_of(str, separators, i);
+            if (i == GP_NOT_FOUND) {
+                ++indices_length;
+                break;
+            }
+        }
+
+        if (substrs == NULL)
+            substrs = gp_arr_new(
+                allocator,
+                sizeof(GPString),
+                i == GP_NOT_FOUND ? indices_length : 2 * indices_length);
+        else
+            substrs = gp_arr_reserve(
+                sizeof(GPString),
+                substrs, i == GP_NOT_FOUND ?
+                    gp_arr_length(substrs) + indices_length
+                  : 3 * gp_arr_length(substrs));
+
+        for (size_t j = 0; j < indices_length; ++j)
+        {
+            substrs[gp_arr_length(substrs) + j] = gp_str_new(
+                allocator,
+                gp_next_power_of_2(indices[j].end - indices[j].start),
+                "");
+            ((GPStringHeader*)(substrs[gp_arr_length(substrs) + j]) - 1)->length =
+                indices[j].end - indices[j].start;
+            memcpy(
+                substrs[gp_arr_length(substrs) + j],
+                str + indices[j].start,
+                gp_str_length(substrs[gp_arr_length(substrs) + j]));
+        }
+        ((GPArrayHeader*)substrs - 1)->length += indices_length;
+
+        if (i == GP_NOT_FOUND)
+            break;
+
+    }
+    return substrs;
+}
+
+void gp_str_join(GPString* out, GPArray(GPString) strs, const char* separator)
+{
+    ((GPStringHeader*)*out - 1)->length = 0;
+    if (gp_arr_length(strs) == 0)
+        return;
+
+    const size_t separator_length = strlen(separator);
+    size_t required_capacity = -separator_length;
+    for (size_t i = 0; i < gp_arr_length(strs); ++i)
+        required_capacity += gp_str_length(strs[i]) + separator_length;
+
+    gp_str_reserve(out, required_capacity);
+    for (size_t i = 0; i < gp_arr_length(strs) - 1; ++i)
+    {
+        memcpy(*out + gp_str_length(*out), strs[i], gp_str_length(strs[i]));
+        memcpy(*out + gp_str_length(*out) + gp_str_length(strs[i]), separator, separator_length);
+        ((GPStringHeader*)*out - 1)->length += gp_str_length(strs[i]) + separator_length;
+    }
+    memcpy(
+        *out + gp_str_length(*out),
+        strs[gp_arr_length(strs) - 1],
+        gp_str_length(strs[gp_arr_length(strs) - 1]));
+    ((GPStringHeader*)*out - 1)->length += gp_str_length(strs[gp_arr_length(strs) - 1]);
+}
+
 static bool gp_is_soft_dotted(const uint32_t encoding)
 {
     switch (encoding) {
@@ -507,7 +602,7 @@ static bool gp_is_diatrical(const uint32_t encoding)
 #define GP_u32_APPEND(...) do \
 { \
     if (GP_COUNT_ARGS(__VA_ARGS__) > 1) \
-        u32 = gp_arr_reserve(sizeof u32[0], u32, u32_capacity += GP_COUNT_ARGS(__VA_ARGS__)); \
+        u32 = gp_arr_reserve(sizeof u32[0], u32, u32_capacity += GP_COUNT_ARGS(__VA_ARGS__) - 1); \
     GP_PROCESS_ALL_ARGS(GP_u32_APPEND1, GP_SEMICOLON, __VA_ARGS__); \
 } while(0)
 
@@ -900,60 +995,34 @@ void gp_str_capitalize(
     ((GPStringHeader*)*str - 1)->length += required_capacity - first_length;
 }
 
-int gp_str_case_compare(
-    const GPString _s1,
-    const void*const _s2,
-    const size_t s2_length,
-    GPLocale locale)
-{
-    const char* s1 = (const char*)_s1;
-    const char* s2 = (const char*)_s2;
-
-    GPArena* scratch = gp_scratch_arena();
-    const size_t buf1_cap = gp_str_length(_s1) + sizeof"";
-    const size_t buf2_cap = s2_length          + sizeof"";
-    wchar_t* buf1 = gp_mem_alloc((GPAllocator*)scratch, buf1_cap * sizeof*buf1);
-    wchar_t* buf2 = gp_mem_alloc((GPAllocator*)scratch, buf2_cap * sizeof*buf2);
-
-    mbsrtowcs(buf1, &(const char*){s1}, buf1_cap, &(mbstate_t){0});
-    mbsrtowcs(buf2, &(const char*){s2}, buf2_cap, &(mbstate_t){0});
-
-    #if _WIN32
-    int result = _wcsicoll_l(buf1, buf2, locale.locale);
-    #else // TODO is wcscasecmp_l() doing collation? If not, get rid of it!
-    int result = wcscasecmp_l(buf1, buf2, locale.locale);
-    #endif
-
-    gp_arena_rewind(scratch, buf1);
-    return result;
-}
-
 #define GP_wcs_APPEND1(CODEPOINT) \
     (*wcs)[((GPArrayHeader*)*wcs - 1)->length++] = (CODEPOINT)
 #define GP_wcs_APPEND(...) do \
 { \
     if (GP_COUNT_ARGS(__VA_ARGS__) > 1) \
-        *(wcs) = gp_arr_reserve(sizeof (*wcs)[0], *wcs, wcs_capacity += GP_COUNT_ARGS(__VA_ARGS__)); \
+        *(wcs) = gp_arr_reserve(sizeof (*wcs)[0], *wcs, wcs_capacity += GP_COUNT_ARGS(__VA_ARGS__) - 1); \
     GP_PROCESS_ALL_ARGS(GP_wcs_APPEND1, GP_SEMICOLON, __VA_ARGS__); \
 } while(0)
 
-void gp_wcs_fold_str(GPArray(wchar_t)* wcs, const GPString str, const GPLocale locale)
+void gp_wcs_fold_utf8(
+    GPArray(wchar_t)* wcs, const void*_str, const size_t str_length, const GPLocale locale)
 {
+    const uint8_t* str = _str;
     ((GPArrayHeader*)*wcs - 1)->length = 0;
-    size_t wcs_capacity = gp_str_length(str);
+    size_t wcs_capacity = str_length + sizeof"";
     *wcs = gp_arr_reserve(sizeof(*wcs)[0], *wcs, wcs_capacity);
     const bool turkish = strncmp(locale.code, "tr", 2) == 0 || strncmp(locale.code, "az", 2) == 0;
 
     size_t i = 0;
-    if ( ! turkish) for (; i < gp_str_length(str); ++i)
+    if ( ! turkish) for (; i < str_length; ++i)
     {
-        if (str[i].c > 0x7F)
+        if (str[i] > 0x7F)
             break;
-        (*wcs)[i] = 'A' <= str[i].c && str[i].c <= 'Z' ? str[i].c + 'a' - 'A' : str[i].c;
+        (*wcs)[i] = 'A' <= str[i] && str[i] <= 'Z' ? str[i] + 'a' - 'A' : str[i];
     }
     ((GPArrayHeader*)*wcs - 1)->length = i;
 
-    for (size_t codepoint_length; i < gp_str_length(str); i += codepoint_length)
+    for (size_t codepoint_length; i < str_length; i += codepoint_length)
     {
         // TODO more ASCII optimization here
 
@@ -1062,4 +1131,129 @@ void gp_wcs_fold_str(GPArray(wchar_t)* wcs, const GPString str, const GPLocale l
             }
         }
     }
+    (*wcs)[gp_arr_length(*wcs)] = L'\0';
 }
+
+static int gp_utf8_codepoint_compare(const void*_s1, const void*_s2)
+{
+    GPString s1 = *(GPString*)_s1;
+    GPString s2 = *(GPString*)_s2;
+    const size_t min_length = gp_str_length(s1) < gp_str_length(s2) ? gp_str_length(s1) : gp_str_length(s2);
+    for (size_t i = 0, codepoint_length; i < min_length; i += codepoint_length)
+    {
+        uint32_t cp1, cp2;
+        codepoint_length = gp_utf8_encode(&cp1, s1, i); gp_utf8_encode(&cp2, s1, i);
+        if (cp1 != cp2)
+            return cp1 - cp2;
+    }
+    return gp_str_length(s1) - gp_str_length(s2);
+}
+
+typedef struct gp_narrow_wide
+{
+    GPString         narrow;
+    GPArray(wchar_t) wide;
+    GPLocale*        locale;
+} GPNarrowWide;
+
+static int gp_wcs_compare(const void*_s1, const void*_s2)
+{
+    const GPNarrowWide* s1 = _s1;
+    const GPNarrowWide* s2 = _s2;
+    return wcscmp(s1->wide, s2->wide);
+}
+
+static int gp_wcs_collate(const void*_s1, const void*_s2)
+{
+    const GPNarrowWide* s1 = _s1;
+    const GPNarrowWide* s2 = _s2;
+    #if !_WIN32
+    return wcscoll_l(s1->wide, s2->wide, s1->locale->locale);
+    #else
+    return _wcscoll_l(s1->wide, s2->wide, s1->locale->locale);
+    #endif
+}
+
+void gp_str_sort(
+    GPArray(GPString) strs,
+    const int flags,
+    GPLocale locale)
+{
+    const bool fold    = flags & 0x4;
+    const bool collate = flags & 0x2;
+    if ( ! (fold || collate)) {
+        qsort(strs, gp_arr_length(strs), sizeof(GPString), gp_utf8_codepoint_compare);
+        return;
+    }
+    GPArena* scratch = gp_scratch_arena();
+    GPNarrowWide* pairs = gp_mem_alloc((GPAllocator*)scratch, sizeof pairs[0] * gp_arr_length(strs));
+
+    for (size_t i = 0; i < gp_arr_length(strs); ++i) {
+        pairs[i].narrow = strs[i];
+        pairs[i].locale = &locale;
+        pairs[i].wide = gp_arr_new((GPAllocator*)scratch, sizeof pairs[i].wide[0], 0);
+        if (fold)
+            gp_wcs_fold_utf8(&pairs[i].wide, strs[i], gp_str_length(strs[i]), locale);
+        else
+            gp_utf8_to_wcs(&pairs[i].wide, strs[i], gp_str_length(strs[i]));
+    }
+
+    if (collate)
+        qsort(pairs, gp_arr_length(strs), sizeof pairs[0], gp_wcs_collate);
+    else
+        qsort(pairs, gp_arr_length(strs), sizeof pairs[0], gp_wcs_compare);
+
+    for (size_t i = 0; i < gp_arr_length(strs); ++i)
+        strs[i] = pairs[i].narrow;
+
+    gp_arena_rewind(scratch, pairs);
+}
+
+int gp_str_compare(
+    const GPString s1,
+    const void*const s2,
+    const size_t s2_length,
+    const int flags,
+    const GPLocale locale)
+{
+    const bool fold    = flags & 0x4;
+    const bool collate = flags & 0x2;
+    if ( ! (fold || collate))
+    {
+        const size_t min_length = gp_str_length(s1) < s2_length ? gp_str_length(s1) : s2_length;
+        for (size_t i = 0, codepoint_length; i < min_length; i += codepoint_length)
+        {
+            uint32_t cp1, cp2;
+            codepoint_length = gp_utf8_encode(&cp1, s1, i); gp_utf8_encode(&cp2, s1, i);
+            if (cp1 != cp2)
+                return cp1 - cp2;
+        }
+        return gp_str_length(s1) - s2_length;
+    }
+    GPArena* scratch = gp_scratch_arena();
+    GPArray(wchar_t) wcs1 = gp_arr_new((GPAllocator*)scratch, sizeof wcs1[0], 0);
+    GPArray(wchar_t) wcs2 = gp_arr_new((GPAllocator*)scratch, sizeof wcs2[0], 0);
+
+    if (fold) {
+        gp_wcs_fold_utf8(&wcs1, s1, gp_str_length(s1), locale);
+        gp_wcs_fold_utf8(&wcs2, s2, s2_length,         locale);
+    } else {
+        gp_utf8_to_wcs(&wcs1, s1, gp_str_length(s1));
+        gp_utf8_to_wcs(&wcs2, s2, s2_length);
+    }
+
+    int result;
+    if (collate) {
+        #if !_WIN32
+        result = wcscoll_l(wcs1, wcs2, locale.locale);
+        #else
+        result = _wcscoll_l(wcs1, wcs2, locale.locale);
+        #endif
+    } else {
+        result = wcscmp(wcs1, wcs2);
+    }
+
+    gp_arena_rewind(scratch, gp_arr_allocation(wcs1));
+    return result;
+}
+

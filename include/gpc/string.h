@@ -157,8 +157,12 @@ size_t gp_str_replace_all(
     "\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006" \
     "\u2007\u2008\u2009\u200A\u2028\u2029\u202F\u205F\u3000\xC2\x85"
 
-// Flags: 'l' left, 'r' right, 'a' ASCII char set only. Separate flags with |.
-// Trims whitespace if char_set is NULL.
+#define GP_LEFT  'l'
+#define GP_RIGHT 'r'
+#define GP_ASCII 'a'
+
+// Flags: 'l' or GP_LEFT, 'r' or GP_RIGHT, 'a' or GP_ASCII for ASCII char set
+// only. Separate flags with |. Trims whitespace if char_set is NULL.
 GP_NONNULL_ARGS(1)
 void gp_str_trim(
     GPString*,
@@ -175,10 +179,8 @@ GP_NONNULL_ARGS()
 void gp_str_to_lower(
     GPString*);
 
-// Only converts Unicode characters with 1:1 mapping.
-GP_NONNULL_ARGS()
-void gp_str_to_title(
-    GPString*);
+
+
 
 // Unicode standard recommends using this as replacement character for invalid
 // bytes.

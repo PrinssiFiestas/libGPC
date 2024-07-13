@@ -118,13 +118,42 @@ void gp_str_capitalize(
     GPString*,
     GPLocale);
 
-// Full language sensitive Unicode case folding and collation.
+#define GP_CASE_FOLD 'f'
+#define GP_COLLATE   'c'
+
+// Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
+// comparison. 'c' or GP_COLLATE for collation. Separate flags with |. 0 will
+// compare codepoints lexicographically and is the fastest. locale affects case
+// insensitive comparison and collating.
 GP_NONNULL_ARGS()
-int gp_str_case_compare(
+int gp_str_compare(
     const GPString s1,
     const void*    s2,
     size_t         s2_length,
+    int            flags,
     GPLocale       locale);
+
+GP_NONNULL_ARGS()
+GPArray(GPString) gp_str_split(
+    const GPAllocator*,
+    GPString    str,
+    const char* separator_char_set);
+
+GP_NONNULL_ARGS()
+void gp_str_join(
+    GPString*         dest,
+    GPArray(GPString) srcs,
+    const char*       separator);
+
+// Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
+// sorting. 'c' or GP_COLLATE for collation. Separate flags with |. 0 will sort
+// codepoints lexicographically and is the fastest. locale affects case
+// insensitive sorting and collating.
+GP_NONNULL_ARGS()
+void gp_str_sort(
+    GPArray(GPString) strs,
+    int               flags,
+    GPLocale          locale);
 
 
 // ----------------------------------------------------------------------------

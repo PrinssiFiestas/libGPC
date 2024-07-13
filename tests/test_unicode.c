@@ -135,6 +135,29 @@ int main(void)
             }
         }
 
+        gp_test("Split and join");
+        {
+            GPString str = gp_str_new(arena, 64, "\t\tHello, I'm  the Prince!\r\n");
+            GPArray(GPString) substrs = gp_str_split(arena, str, GP_WHITESPACE);
+            gp_expect(gp_arr_length(substrs) == 4);
+            gp_expect(gp_str_equal(substrs[0], "Hello,",  strlen("Hello,")));
+            gp_expect(gp_str_equal(substrs[1], "I'm",     strlen("I'm")));
+            gp_expect(gp_str_equal(substrs[2], "the",     strlen("the")));
+            gp_expect(gp_str_equal(substrs[3], "Prince!", strlen("Prince!")));
+
+            const char* trimmed = "Hello, I'm the Prince!";
+            gp_str_join(&str, substrs, " ");
+            gp_expect(gp_str_equal(str, trimmed, strlen(trimmed)));
+
+            // Test edge cases of not having leading or trailing whitespace.
+            substrs = gp_str_split(arena, str, GP_WHITESPACE);
+            gp_expect(gp_arr_length(substrs) == 4);
+            gp_expect(gp_str_equal(substrs[0], "Hello,",  strlen("Hello,")));
+            gp_expect(gp_str_equal(substrs[1], "I'm",     strlen("I'm")));
+            gp_expect(gp_str_equal(substrs[2], "the",     strlen("the")));
+            gp_expect(gp_str_equal(substrs[3], "Prince!", strlen("Prince!")));
+        }
+
         #if 0
         gp_test("Case insensitive comparison");
         {
