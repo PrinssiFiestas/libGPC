@@ -380,15 +380,6 @@ size_t gp_find_first(
 {
     return gp_str_find_first(haystack, needle, gp_str_length_cpp(needle), start);
 }
-size_t gp_find_first(
-    const GPString   haystack,
-    const void*const needle,
-    const size_t     needle_length,
-    const size_t     start = 0)
-{
-    return gp_str_find_first(haystack, needle, needle_length, start);
-}
-
 // ---------------------------
 // gp_find_last()
 
@@ -2000,14 +1991,14 @@ GPString gp_to_valid_new(
 #define GP_TO_VALID3(ALC, STR, REPL) gp_to_valid_new((GPAllocator*)(ALC), STR, REPL)
 #define GP_TO_VALID(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_VALID3, GP_TO_VALID2)(A,__VA_ARGS__)
 
-inline size_t gp_find_first99(const GPString haystack, GPStrIn needle)
+inline size_t gp_find_first99(const GPString haystack, GPStrIn needle, const size_t start)
 {
-    return gp_str_find_first(haystack, needle.data, needle.length, 0);
+    return gp_str_find_first(haystack, needle.data, needle.length, start);
 }
-#define GP_FIND_FIRST2(HAY, NDL)                gp_find_first99(HAY, GP_STR_IN(NDL))
-#define GP_FIND_FIRST3(HAY, NDL, NDLLEN)        gp_str_find_first(HAY, NDL, NDLLEN, 0)
-#define GP_FIND_FIRST(A, ...) \
-    GP_OVERLOAD3(__VA_ARGS__, gp_str_find_first, GP_FIND_FIRST3, GP_FIND_FIRST2)(A, __VA_ARGS__)
+#define GP_FIND_FIRST2(HAY, NDL)               gp_find_first99(HAY, GP_STR_IN(NDL), 0)
+#define GP_FIND_FIRST3(HAY, NDL, START)        gp_find_first99(HAY, GP_STR_IN(NDL), START)
+#define GP_FIND_FIRST(...) \
+    GP_OVERLOAD3(__VA_ARGS__, GP_FIND_FIRST3, GP_FIND_FIRST2, UNUSED)(__VA_ARGS__)
 
 inline size_t gp_find_last99(const GPString haystack, GPStrIn needle)
 {
@@ -2037,11 +2028,10 @@ size_t gp_codepoint_count99(GPStrIn s);
 #define GP_CODEPOINT_COUNT(...) gp_codepoint_count99(GP_STR_IN(__VA_ARGS__))
 
 bool gp_is_valid99(GPStrIn s, size_t*i);
-#define GP_IS_VALID1(S)       gp_is_valid99(GP_STR_IN(S),    NULL)
-#define GP_IS_VALID2(S, L)    gp_is_valid99(GP_STR_IN(S, L), NULL)
-#define GP_IS_VALID3(S, L, I) gp_is_valid99(GP_STR_IN(S, L), I)
+#define GP_IS_VALID1(S)    gp_is_valid99(GP_STR_IN(S), NULL)
+#define GP_IS_VALID2(S, I) gp_is_valid99(GP_STR_IN(S), I)
 #define GP_IS_VALID(...) \
-    GP_OVERLOAD3(__VA_ARGS__, GP_IS_VALID3, GP_IS_VALID2, GP_IS_VALID1)(__VA_ARGS__)
+    GP_OVERLOAD2(__VA_ARGS__, GP_IS_VALID2, GP_IS_VALID1)(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Strings and arrays

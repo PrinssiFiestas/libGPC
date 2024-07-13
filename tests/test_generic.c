@@ -88,21 +88,20 @@ int main(void)
         GPString str1 = gp_str(&arena);
         GPString str2 = gp_str(&arena);
         GPString str3 = gp_str(&arena, ""); // same as the ones above
-        char cstr[64] = "blah";
         gp_test("Repeat");
         {
-            gp_repeat(&str1, 2, cstr, strlen(cstr)); // ok, length given
+            gp_repeat(&str1, 2, "blah"); // ok, literla string
             gp_repeat(&str2, 3, "BLAH"); // ok, literal string
             gp_repeat(&str3, 4, str1);   // ok, GPString
-            //gp_repeat(&str3, 5, cstr); // not ok, non-literal without length!
+            //gp_repeat(&str3, 5, cstr); // not ok in C99, non-literal
 
             // Same as above but by passing an allocator, a copy is made instead
             // of writing to an output string.
-            GPString copy1 = gp_repeat(&arena, 2, "blah", strlen("blah"));
+            GPString copy1 = gp_repeat(&arena, 2, "blah");
             GPString copy2 = gp_repeat(&arena, 3, "BLAH");
             GPString copy3 = gp_repeat(&arena, 4, str1);
 
-            gp_expect(gp_equal(str1, "blahblah", strlen("blahblah")));
+            gp_expect(gp_equal(str1, "blahblah"));
             gp_expect(gp_equal(str2, "BLAHBLAHBLAH"));
             gp_expect(gp_equal(copy1, str1));
             gp_expect(gp_equal(copy2, str2));
@@ -184,16 +183,14 @@ int main(void)
         gp_test("Find first");
         {
             GPString haystack = gp_str(&arena, "yeah blah nope blah yeah");
-            gp_expect(gp_find_first(haystack, "blah")                    == 5);
-            gp_expect(gp_find_first(haystack, "blah", strlen("blah"))    == 5);
-            gp_expect(gp_find_first(haystack, "blah", strlen("blah"), 6) == 15);
+            gp_expect(gp_find_first(haystack, "blah")    ==  5);
+            gp_expect(gp_find_first(haystack, "blah", 6) == 15);
         }
 
         gp_test("Find last");
         {
             GPString haystack = gp_str(&arena, "yeah blah nope blah yeah");
-            gp_expect(gp_find_last(haystack, "blah")                    == 15);
-            gp_expect(gp_find_last(haystack, "blah", strlen("blah"))    == 15);
+            gp_expect(gp_find_last(haystack, "blah")                 == 15);
         }
 
         gp_test("Find first of");
@@ -217,7 +214,6 @@ int main(void)
                 GPString a = gp_str(&arena, "😂aAaAäÄä😂");
                 GPString b = gp_copy(&arena, a);
                 gp_expect(gp_equal_case(a, b));
-                gp_expect(gp_equal_case(a, b, gp_length(b)));
                 gp_expect(gp_equal_case(a, "😂aAaAäÄä😂"));
             }
         }
@@ -235,13 +231,10 @@ int main(void)
             size_t invalid_index;
             gp_expect(   gp_is_valid(str));
             gp_expect(   gp_is_valid("😂aÄ😂"));
-            gp_expect(   gp_is_valid(str, gp_length(str)));
-            gp_expect(   gp_is_valid(str, gp_length(str), &invalid_index));
             gp_copy(&str, "😂a\xffÄ😂");
             gp_expect( ! gp_is_valid(str));
             gp_expect( ! gp_is_valid("😂a\xffÄ😂"));
-            gp_expect( ! gp_is_valid(str, gp_length(str)));
-            gp_expect( ! gp_is_valid(str, gp_length(str), &invalid_index));
+            gp_expect( ! gp_is_valid(str, &invalid_index));
             gp_expect(invalid_index == 5);
         }
     }
@@ -436,7 +429,7 @@ int main(void)
             #else // cast required
             char* result = gp_foldr(cstrs, (char*)nullptr, append);
             #endif
-            gp_expect(gp_equal(result, strlen(result), "three two one ", strlen("three two one ")));
+            gp_expect(gp_bytes_equal(result, strlen(result), "three two one ", strlen("three two one ")));
 
             #if TYPE_CHECK // incompatible pointers
             gp_fold(cstrs, 0, sum);
@@ -481,26 +474,20 @@ int main(void)
         gp_test("Functionality");
         {
             GPDictionary(int) dict = gp_dict(&arena, int);
-            GPString key1    = gp_str(&arena, "key1");
-            const char* key2 = "key2";
-            gp_put(&dict, key1,               1);
-            gp_put(&dict, key2, strlen(key2), 2);
-            gp_put(&dict, "key3",             3);
+            GPString key1 = gp_str(&arena, "key1");
+            gp_put(&dict, key1,   1);
+            gp_put(&dict, "key2", 3);
             #if defined(GP_TYPEOF) || __cplusplus
-            gp_expect(*gp_get(dict, key1)               == 1);
-            gp_expect(*gp_get(dict, key2, strlen(key2)) == 2);
-            gp_expect(*gp_get(dict, "key3")             == 3);
+            gp_expect(*gp_get(dict, key1)   == 1);
+            gp_expect(*gp_get(dict, "key2") == 3);
             #else // cast required for dereferencing the return value
-            gp_expect(*(int*)gp_get(dict, key1)               == 1);
-            gp_expect(*(int*)gp_get(dict, key2, strlen(key2)) == 2);
-            gp_expect(*(int*)gp_get(dict, "key3")             == 3);
+            gp_expect(*(int*)gp_get(dict, key1)   == 1);
+            gp_expect(*(int*)gp_get(dict, "key2") == 3);
             #endif
             gp_expect(gp_remove(&dict, key1));
-            gp_expect(gp_remove(&dict, key2, strlen(key2)));
-            gp_expect(gp_remove(&dict, "key3"));
-            gp_expect(gp_get(dict, key1)               == NULL);
-            gp_expect(gp_get(dict, key2, strlen(key2)) == NULL);
-            gp_expect(gp_get(dict, "key3")             == NULL);
+            gp_expect(gp_remove(&dict, "key2"));
+            gp_expect(gp_get(dict, key1)   == NULL);
+            gp_expect(gp_get(dict, "key2") == NULL);
 
             #if TYPE_CHECK
             gp_put(&dict, key1, "blah"); // assign char[] to int

@@ -15,7 +15,7 @@ extern inline size_t gp_count99(GPStrIn haystack, GPStrIn needle);
 extern inline GPString gp_repeat99(size_t a_size, const void* a, size_t count, GPStrIn in);
 extern inline GPString gp_to_valid_new(
     const GPAllocator* alc, const GPString str, const char*const replacement);
-extern inline size_t gp_find_first99(const GPString haystack, GPStrIn needle);
+extern inline size_t gp_find_first99(const GPString haystack, GPStrIn needle, size_t);
 extern inline size_t gp_find_last99(const GPString haystack, GPStrIn needle);
 extern inline bool gp_equal_case99(const GPString a, GPStrIn b);
 
