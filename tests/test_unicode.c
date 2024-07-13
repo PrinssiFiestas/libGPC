@@ -158,35 +158,74 @@ int main(void)
             gp_expect(gp_str_equal(substrs[3], "Prince!", strlen("Prince!")));
         }
 
-        #if 0
-        gp_test("Case insensitive comparison");
+        gp_test("Case insensitive but locale sensitive comparison");
         {
-            GPString str1 = gp_str_on_stack(NULL, 64, "hrnec");
-            GPString str2 = gp_str_on_stack(NULL, 64, "chrt");
+            GPString str1 = gp_str_on_stack(NULL, 64, "hRnec");
+            GPString str2 = gp_str_on_stack(NULL, 64, "Chrt");
 
-            if (setlocale(LC_ALL, "en_US.utf8") != NULL)
-            { gp_test("American locale");
-                gp_expect(gp_str_case_compare(str1, str2) > 0);
+            gp_test("Default locale");
+            {
+                gp_expect(gp_str_compare(
+                    str1, str2,
+                    gp_str_length(str2),
+                    GP_CASE_FOLD | GP_COLLATE,
+                    gp_default_locale()) > 0);
+
+                // Lexicographic comparison of codepoints
+                gp_expect(gp_str_compare(
+                    str1, str2,
+                    gp_str_length(str2),
+                    0,
+                    gp_default_locale()) > 0);
             }
 
-            if (setlocale(LC_COLLATE, "cs_CZ.utf8") != NULL)
-            { gp_test("Czech lcoale");
-                gp_expect(gp_str_case_compare(str1, str2) < 0);
+            GPLocale czech = gp_locale_new("cs_CZ");
+            if (czech.locale != (locale_t)0)
+            { gp_test("Czech locale");
+                gp_expect(gp_str_compare(
+                    str1, str2,
+                    gp_str_length(str2),
+                    GP_CASE_FOLD | GP_COLLATE,
+                    czech) < 0);
+
+                gp_expect(gp_str_compare(
+                    str1, str2,
+                    gp_str_length(str2),
+                    GP_COLLATE,
+                    czech) > 0);
+
+                gp_expect(gp_str_compare(
+                    str1, str2,
+                    gp_str_length(str2),
+                    GP_CASE_FOLD,
+                    czech) > 0);
             }
+            gp_locale_delete(czech.locale);
 
             gp_str_copy(&str1, "år",    strlen("år"));
-            gp_str_copy(&str1, "ängel", strlen("ängel"));
-            if (setlocale(LC_COLLATE, "en_US.utf8") != NULL)
+            gp_str_copy(&str1, "Ängel", strlen("Ängel"));
+            GPLocale american = gp_locale_new("en_US");
+            if (american.locale != (locale_t)0)
             { gp_test("American locale å");
-                gp_expect(gp_str_case_compare(str1, str2) < 0);
+                gp_expect(gp_str_compare(
+                    str1, str2,
+                    gp_str_length(str2),
+                    GP_CASE_FOLD | GP_COLLATE,
+                    american) < 0);
             }
+            gp_locale_delete(american.locale);
 
-            if (setlocale(LC_COLLATE, "sv_SE.utf8") != NULL)
+            GPLocale swedish = gp_locale_new("sv_SE");
+            if (swedish.locale != (locale_t)0)
             { gp_test("Swedish locale å");
-                gp_expect(gp_str_case_compare(str1, str2) > 0);
+                gp_expect(gp_str_compare(
+                    str1, str2,
+                    gp_str_length(str2),
+                    GP_CASE_FOLD | GP_COLLATE,
+                    swedish) > 0);
             }
+            gp_locale_delete(swedish.locale);
         }
-        #endif
 
         gp_locale_delete(turkish.locale);
         gp_locale_delete(lithuanian.locale);

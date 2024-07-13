@@ -477,14 +477,14 @@ GPArray(GPString) gp_str_split(
     const char*const separators)
 {
     GPArray(GPString) substrs = NULL;
-    size_t i = gp_str_find_first_not_of(str, separators, 0);
+    size_t j, i = gp_str_find_first_not_of(str, separators, 0);
     if (i == GP_NOT_FOUND)
         return gp_arr_new(allocator, sizeof(GPString), 1);
 
     size_t indices_length = 0;
     struct start_end_pair {
         size_t start, end;
-    } indices[128];
+    } indices[256];
 
     while (true)
     {
@@ -518,7 +518,7 @@ GPArray(GPString) gp_str_split(
                     gp_arr_length(substrs) + indices_length
                   : 3 * gp_arr_length(substrs));
 
-        for (size_t j = 0; j < indices_length; ++j)
+        for (j = 0; j < indices_length; ++j)
         {
             substrs[gp_arr_length(substrs) + j] = gp_str_new(
                 allocator,
