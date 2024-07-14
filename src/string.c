@@ -682,27 +682,31 @@ void gp_str_to_valid(
     GPString* str,
     const char* replacement)
 {
-          size_t length = gp_str_length(*str);
     const size_t replacement_length = strlen(replacement);
 
     size_t start = 0;
-    while ((start = gp_str_find_invalid(*str, start, length)) != GP_NOT_FOUND)
+    if (replacement_length == 0) while ((start = gp_str_find_invalid(*str, start, gp_str_length(*str))) != GP_NOT_FOUND)
     {
-        const size_t end = gp_str_find_valid(*str, start, length);
-        gp_str_reserve(str,
-            gp_str_length(*str) + replacement_length - (end - start));
-
-        length = gp_bytes_replace_range(
-            *str,
-            length,
-            start,
-            end,
-            replacement,
-            replacement_length);
-
-        start += replacement_length;
+        const size_t end = gp_str_find_valid(*str, start, gp_str_length(*str));
+        memmove(*str + start, *str + end, gp_str_length(*str) - end);
+        gp_str_header(*str)->length -= end - start;
     }
-    gp_str_header(*str)->length = length;
+    else if (replacement_length == 1) while ((start = gp_str_find_invalid(*str, start, gp_str_length(*str))) != GP_NOT_FOUND)
+    {
+        const size_t end = gp_str_find_valid(*str, start, gp_str_length(*str));
+        memset(*str + start, replacement[0], end - start);
+        start = end;
+    }
+    else while ((start = gp_str_find_invalid(*str, start, gp_str_length(*str))) != GP_NOT_FOUND)
+    {
+        const size_t end = gp_str_find_valid(*str, start, gp_str_length(*str));
+
+        gp_str_reserve(str, gp_str_length(*str) + (end - start) * (replacement_length - 1));
+        memmove(*str + start + (end - start) * replacement_length, *str + end, gp_str_length(*str) - end);
+        gp_bytes_repeat(*str + start, end - start, replacement, replacement_length);
+        gp_str_header(*str)->length += (end - start) * (replacement_length - 1);
+        start += (end - start) * replacement_length;
+    }
 }
 
 int gp_str_file(

@@ -177,7 +177,7 @@ int main(void)
             gp_append(&str2, "\xff\xff\xff");
             GPString str3 = gp_to_valid(&arena, str2, GP_REPLACEMENT_CHARACTER);
             gp_to_valid(&str2, GP_REPLACEMENT_CHARACTER);
-            gp_expect(gp_equal(str2, str3) && gp_equal(str2, "blah�"), str2);
+            gp_expect(gp_equal(str2, str3) && gp_equal(str2, "blah���"), str2);
         }
 
         gp_test("Find first");
