@@ -53,11 +53,11 @@ int main(void)
 
     gp_suite("String extensions");
     {
-        GPLocale turkish    = gp_locale_new("tr_TR");
-        GPLocale lithuanian = gp_locale_new("lt_LT");
+        GPLocale* turkish    = gp_locale_new("tr_TR");
+        GPLocale* lithuanian = gp_locale_new("lt_LT");
         #if ASSERT_LOCALE // In this case, we actually don't care since we can
                           // just skip tests that depend installed locales.
-        gp_assert(turkish.locale != (locale_t)0 && lithuanian.locale != (locale_t)0);
+        gp_assert(turkish->locale != gp_default_locale() && lithuanian->locale != gp_default_locale());
         #endif
 
         gp_test("To upper full Unicode mapping");
@@ -76,12 +76,12 @@ int main(void)
             gp_str_to_upper_full(&str, gp_default_locale());
             gp_expect(gp_str_equal(str, result, strlen(result)));
 
-            if (lithuanian.locale != (locale_t)0) { // remove dot above after 'i'
+            if (lithuanian != NULL) { // remove dot above after 'i'
                 gp_str_copy(&str, "i\u0307blah", strlen("i\u0307blah"));
                 gp_str_to_upper_full(&str, lithuanian);
                 gp_expect(gp_str_equal(str, "IBLAH", strlen("IBLAH")), str);
             }
-            if (turkish.locale != (locale_t)0) {
+            if (turkish != NULL) {
                 gp_str_copy(&str, "i", 1);
                 gp_str_to_upper_full(&str, turkish);
                 gp_expect(gp_str_equal(str, "İ", strlen("İ")));
@@ -95,13 +95,13 @@ int main(void)
             const char* result = "ὀδυσσεύς ὀδυσσεύς. ὀδυσσεύς3 σς\tσ";
             gp_expect(gp_str_equal(str, result, strlen(result)), str);
 
-            if (lithuanian.locale != (locale_t)0) { // remove dot above after 'i'
+            if (lithuanian != NULL) { // remove dot above after 'i'
                 gp_str_copy(&str, "II\u0300Ì", strlen("II\u0300Ì"));
                 gp_str_to_lower_full(&str, lithuanian);
                 result = "ii\u0307\u0300i\u0307\u0300";
                 gp_expect(gp_str_equal(str, result, strlen(result)), str);
             }
-            if (turkish.locale != (locale_t)0) {
+            if (turkish != NULL) {
                 gp_str_copy(&str, "I", 1);
                 gp_str_to_lower_full(&str, turkish);
                 gp_expect(gp_str_equal(str, "ı", strlen("ı")));
@@ -123,12 +123,12 @@ int main(void)
             gp_str_capitalize(&str, gp_default_locale());
             gp_expect(gp_str_equal(str, "ǲ asdf", strlen("ǲ asdf")));
 
-            if (lithuanian.locale != (locale_t)0) { // remove dot above after 'i'
+            if (lithuanian != NULL) { // remove dot above after 'i'
                 gp_str_copy(&str, "i\u0307blah", strlen("i\u0307blah"));
                 gp_str_capitalize(&str, lithuanian);
                 gp_expect(gp_str_equal(str, "Iblah", strlen("Iblah")), str);
             }
-            if (turkish.locale != (locale_t)0) {
+            if (turkish != NULL) {
                 gp_str_copy(&str, "iasdf", strlen("iasdf"));
                 gp_str_capitalize(&str, turkish);
                 gp_expect(gp_str_equal(str, "İasdf", strlen("İasdf")));
@@ -165,15 +165,15 @@ int main(void)
 
         gp_test("Case insensitive but locale sensitive comparison");
         {
-            GPString str1 = gp_str_on_stack(NULL, 64, "hRnec");
-            GPString str2 = gp_str_on_stack(NULL, 64, "Chrt");
+            GPString str1 = gp_str_on_stack(NULL, 64, "hrnec");
+            GPString str2 = gp_str_on_stack(NULL, 64, "chrt");
 
             gp_test("Default locale");
             {
                 gp_expect(gp_str_compare(
                     str1, str2,
                     gp_str_length(str2),
-                    GP_CASE_FOLD | GP_COLLATE,
+                    GP_COLLATE,
                     gp_default_locale()) > 0);
 
                 // Lexicographic comparison of codepoints
@@ -184,8 +184,8 @@ int main(void)
                     gp_default_locale()) > 0);
             }
 
-            GPLocale czech = gp_locale_new("cs_CZ");
-            if (czech.locale != (locale_t)0)
+            GPLocale* czech = gp_locale_new("cs_CZ");
+            if (czech != NULL)
             { gp_test("Czech locale");
                 gp_expect(gp_str_compare(
                     str1, str2,
@@ -197,20 +197,20 @@ int main(void)
                     str1, str2,
                     gp_str_length(str2),
                     GP_COLLATE,
-                    czech) > 0);
+                    czech) < 0);
 
                 gp_expect(gp_str_compare(
                     str1, str2,
                     gp_str_length(str2),
-                    GP_CASE_FOLD,
+                    0, // comparing codepoints, Czech locale does nothing here
                     czech) > 0);
             }
-            gp_locale_delete(czech.locale);
+            gp_locale_delete(czech);
 
             gp_str_copy(&str1, "år",    strlen("år"));
             gp_str_copy(&str1, "Ängel", strlen("Ängel"));
-            GPLocale american = gp_locale_new("en_US");
-            if (american.locale != (locale_t)0)
+            GPLocale* american = gp_locale_new("en_US");
+            if (american != NULL)
             { gp_test("American locale å");
                 gp_expect(gp_str_compare(
                     str1, str2,
@@ -218,10 +218,10 @@ int main(void)
                     GP_CASE_FOLD | GP_COLLATE,
                     american) < 0);
             }
-            gp_locale_delete(american.locale);
+            gp_locale_delete(american);
 
-            GPLocale swedish = gp_locale_new("sv_SE");
-            if (swedish.locale != (locale_t)0)
+            GPLocale* swedish = gp_locale_new("sv_SE");
+            if (swedish != NULL)
             { gp_test("Swedish locale å");
                 gp_expect(gp_str_compare(
                     str1, str2,
@@ -229,7 +229,7 @@ int main(void)
                     GP_CASE_FOLD | GP_COLLATE,
                     swedish) > 0);
             }
-            gp_locale_delete(swedish.locale);
+            gp_locale_delete(swedish);
         }
 
         gp_test("Sorting");
@@ -249,7 +249,7 @@ int main(void)
             gp_expect(gp_str_equal(strs[3], "sbloink", strlen("sbloink")));
             gp_expect(gp_str_equal(strs[4], "İ",       strlen("İ")));
 
-            if (turkish.locale == (locale_t)0)
+            if (turkish == NULL)
                 goto skip_turkish_sort;
 
             gp_str_sort(&strs, GP_CASE_FOLD | GP_COLLATE, turkish);
@@ -261,8 +261,8 @@ int main(void)
             skip_turkish_sort: (void)0;
         }
 
-        gp_locale_delete(turkish.locale);
-        gp_locale_delete(lithuanian.locale);
+        gp_locale_delete(turkish);
+        gp_locale_delete(lithuanian);
     }
 
     gp_arena_delete(&_arena);

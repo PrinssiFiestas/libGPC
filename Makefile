@@ -2,17 +2,17 @@
 # Copyright (c) 2023 Lauri Lorenzo Fiestas
 # https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-CC      = gcc
-CFLAGS  = -Wall -Wextra -Werror
-CFLAGS += -Wno-comment
-CFLAGS += -Iinclude
-CFLAGS += -D_GNU_SOURCE # memmem(), stat64()
-CFLAGS += -lm -lpthread
+CC = gcc
+override CFLAGS += -Wall -Wextra -Werror
+override CFLAGS += -Wno-comment
+override CFLAGS += -Iinclude
+#override CFLAGS += -D_GNU_SOURCE # memmem(), stat64(), locale_t
+override CFLAGS += -lm -lpthread
 
 DEBUG_CFLAGS   = -ggdb3 -gdwarf
 RELEASE_CFLAGS = -O3 -DNDEBUG
 ifeq ($(CC), clang) # in some systems Clang ignores -lm and crashes with -flto
-	CFLAGS += -Wno-unused-command-line-argument
+	override CFLAGS += -Wno-unused-command-line-argument
 else
 	RELEASE_CFLAGS += -flto
 endif
@@ -102,12 +102,12 @@ install:
 build/singleheadergen$(EXE_EXT): tools/singleheadergen.c | build/libgpc.so
 	$(CC) $? build/libgpc.so $(CFLAGS) $(RELEASE_CFLAGS) -o $@
 
-release: CFLAGS += $(RELEASE_CFLAGS)
+release: override CFLAGS += $(RELEASE_CFLAGS)
 release: build/libgpc.so
-debug: CFLAGS += $(DEBUG_CFLAGS)
+debug: override CFLAGS += $(DEBUG_CFLAGS)
 debug: build/libgpcd.so
 
-analyze: CFLAGS += -fanalyzer
+analyze: override CFLAGS += -fanalyzer
 analyze: build_tests
 
 build/libgpc.so: $(OBJS)
@@ -127,7 +127,7 @@ $(DEBUG_OBJS): build/%d.o : src/%.c
 -include $(OBJS:.o=.d)
 -include $(DEBUG_OBJS:.o=.d)
 
-build_tests: CFLAGS += -DGP_TESTS $(DEBUG_CFLAGS)
+build_tests: override CFLAGS += -DGP_TESTS $(DEBUG_CFLAGS)
 build_tests: $(TESTS)
 
 $(TESTS): build/test_%d$(EXE_EXT) : tests/test_%.c $(DEBUG_OBJS)
@@ -144,7 +144,7 @@ tests:
 	make run_tests
 	make single_header
 
-build_release_tests: CFLAGS += -DGP_TESTS $(RELEASE_CFLAGS)
+build_release_tests: override CFLAGS += -DGP_TESTS $(RELEASE_CFLAGS)
 build_release_tests: $(RELEASE_TESTS)
 
 $(RELEASE_TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(OBJS)

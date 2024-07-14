@@ -16,24 +16,45 @@
 // ----------------------------------------------------------------------------
 // Locales
 
-#if _WIN32
+// Portably sets global locale to UTF-8.
+// locale_code should be in form "xx_YY" or an empty string.
+GP_NONNULL_ARGS()
+void gp_set_utf8_global_locale(int category, const char* locale_code);
+
+#if _WIN32//
 typedef _locale_t locale_t;
+#elif _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
+typedef void* locale_t;
 #endif
-typedef struct gp_locale
+typedef const struct gp_locale
 {
     locale_t locale;
-    char     code[8]; // in form "xx_YY"
+    char     code[];
 } GPLocale;
 
-// Some UTF-8 locale in category LC_ALL. No need to call gp_locale_delete().
-GPLocale gp_default_locale(void);
+#if !_WIN32 && _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
 
-// Creates an UTF-8 locale in category LC_ALL. The .locale field should be freed
-// with gp_locale_delete().
-// locale_code should be in form "xx_YY" or an empty string. You should check
-// the .locale field of the return value is not (locale_t)0 before using.
-GPLocale gp_locale_new(const char* locale_code) GP_NONNULL_ARGS();
-void     gp_locale_delete(locale_t);
+#define gp_default_locale() NULL
+#define gp_locale_new()     NULL
+#define gp_locale_delete() (void)0
+
+#else
+
+#define GP_LOCALE_T_AVAILABLE 1
+
+// Some UTF-8 locale in category LC_ALL. Passing to gp_locale_delete() is safe
+// but unnecessary.
+GPLocale* gp_default_locale(void) GP_NONNULL_RETURN;
+
+// Creates an UTF-8 locale in category LC_ALL.
+// locale_code should be in form "xx_YY" or an empty string.
+// Returns NULL if creating locale fails. Otherwise, the return value shuold be
+// passed to gp_locale_delete() to free resources.
+GPLocale* gp_locale_new(const char* locale_code) GP_NONNULL_ARGS();
+
+void gp_locale_delete(GPLocale* optional);
+
+#endif // !_WIN32 && _XOPEN_SOURCE < 700
 
 // ----------------------------------------------------------------------------
 // Unicode
@@ -99,39 +120,42 @@ void gp_wcs_to_utf8(
 // ----------------------------------------------------------------------------
 // Strings
 
-// Full language sensitive Unicode case mapping.
-GP_NONNULL_ARGS()
+// Full language sensitive Unicode case mapping. Uses global locale if locale is
+// NULL.
+GP_NONNULL_ARGS(1)
 void gp_str_to_upper_full(
     GPString*,
-    GPLocale);
+    GPLocale* optional);
 
-// Full language sensitive Unicode case mapping.
-GP_NONNULL_ARGS()
+// Full language sensitive Unicode case mapping. Uses global locale if locale is
+// NULL.
+GP_NONNULL_ARGS(1)
 void gp_str_to_lower_full(
     GPString*,
-    GPLocale);
+    GPLocale* optional);
 
 // Capitalizes the first character according to full language sensitive Unicode
-// titlecase mapping.
-GP_NONNULL_ARGS()
+// titlecase mapping. Uses global locale if locale is NULL.
+GP_NONNULL_ARGS(1)
 void gp_str_capitalize(
     GPString*,
-    GPLocale);
+    GPLocale* optional);
 
 #define GP_CASE_FOLD 'f'
 #define GP_COLLATE   'c'
 
 // Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
 // comparison. 'c' or GP_COLLATE for collation. Separate flags with |. 0 will
-// compare codepoints lexicographically and is the fastest. locale affects case
-// insensitive comparison and collating.
-GP_NONNULL_ARGS()
+// compare codepoints lexicographically and is the fastest. Locale affects case
+// insensitive comparison and collating. Uses global locale if locale is NULL.
+
+GP_NONNULL_ARGS(1, 2)
 int gp_str_compare(
     const GPString s1,
     const void*    s2,
     size_t         s2_length,
     int            flags,
-    GPLocale       locale);
+    GPLocale*      optional);
 
 GP_NONNULL_ARGS()
 GPArray(GPString) gp_str_split(
@@ -148,12 +172,12 @@ void gp_str_join(
 // Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
 // sorting. 'c' or GP_COLLATE for collation. Separate flags with |. 0 will sort
 // codepoints lexicographically and is the fastest. locale affects case
-// insensitive sorting and collating.
+// insensitive sorting and collating. Uses global locale if locale is NULL.
 GP_NONNULL_ARGS()
 void gp_str_sort(
     GPArray(GPString)* strs,
     int                flags,
-    GPLocale           locale);
+    GPLocale*          optional);
 
 
 // ----------------------------------------------------------------------------

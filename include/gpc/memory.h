@@ -94,9 +94,11 @@ void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
 
 // Get lastly created scope in callbacks. You should prefer to just pass scopes
 // as arguments when possible.
-GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
+GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
 
-// Feel free to define your own values for these
+// Feel free to define your own values for these. If C11 atomics are available,
+// the scope allocator estimates optimal init size during runtime. This init
+// size determines minimum arena size.
 #ifndef GP_SCOPE_DEFAULT_INIT_SIZE
 #define GP_SCOPE_DEFAULT_INIT_SIZE 256
 #endif
@@ -141,7 +143,8 @@ void gp_arena_delete(GPArena* optional);
 // the arena. Scratch arenas get deleted automatically when threads exit.
 GPArena* gp_scratch_arena(void) GP_NODISCARD;
 
-// Feel free to define your own values for these
+// Feel free to define your own values for these. 256 is extremely conservative,
+// you probably want much larger scratch arenas.
 #ifndef GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE
 #define GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE 256
 #endif

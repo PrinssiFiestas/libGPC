@@ -296,12 +296,12 @@ static GPScope* gp_last_scope_of(GPArena* scope_factory)
        gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT));
 }
 
-GPAllocator* gp_last_scope(GPAllocator* fallback)
+GPAllocator* gp_last_scope(const GPAllocator* fallback)
 {
     GPArena* factory = gp_thread_local_get(gp_scope_factory_key);
     GPScope* scope = NULL;
     if (factory == NULL || (scope = gp_last_scope_of(factory)) == (GPScope*)factory)
-        return fallback;
+        return (GPAllocator*)fallback;
     return (GPAllocator*)scope;
 }
 
