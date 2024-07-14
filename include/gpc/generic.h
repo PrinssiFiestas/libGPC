@@ -1830,7 +1830,7 @@ inline GPArray(void) gp_arr99(const GPAllocator* alc,
     return memcpy(out, init, elem_size * init_length);
 }
 #define GP_ARR_NEW(ALC, TYPE, ...) (TYPE*)gp_arr99( \
-    (GPAllocator*)(ALC), \
+    GP_ALC(ALC), \
     sizeof(TYPE), \
     (TYPE[]){(TYPE){0},__VA_ARGS__} + 1, \
     sizeof((TYPE[]){(TYPE){0},__VA_ARGS__}) / sizeof(TYPE) - 1)
@@ -1850,32 +1850,32 @@ inline GPArray(void) gp_arr99(const GPAllocator* alc,
     (T const *)(gp_arr_on_stack(NULL, GP_COUNT_ARGS(__VA_ARGS__), T, __VA_ARGS__))
 #endif
 
-#define GP_STR_NEW1(ALC)            gp_str_new((GPAllocator*)(ALC), 16, "")
-#define GP_STR_NEW2(ALC, INIT)      gp_str_new((GPAllocator*)(ALC), 16, INIT)
-#define GP_STR_NEW3(ALC, CAP, INIT) gp_str_new((GPAllocator*)(ALC), CAP, INIT)
+#define GP_STR_NEW1(ALC)            gp_str_new(GP_ALC(ALC), 16, "")
+#define GP_STR_NEW2(ALC, INIT)      gp_str_new(GP_ALC(ALC), 16, INIT)
+#define GP_STR_NEW3(ALC, CAP, INIT) gp_str_new(GP_ALC(ALC), CAP, INIT)
 #define GP_STR_NEW(...) \
     GP_OVERLOAD3(__VA_ARGS__, GP_STR_NEW3, GP_STR_NEW2, GP_STR_NEW1)(__VA_ARGS__)
 
-#define GP_HMAP1(ALC) gp_hash_map_new((GPAllocator*)(ALC), NULL)
+#define GP_HMAP1(ALC) gp_hash_map_new(GP_ALC(ALC), NULL)
 #define GP_HMAP2(ALC, ELEM_SIZE) \
-    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+    gp_hash_map_new(GP_ALC(ALC), &(GPMapInitializer){ \
         .element_size = ELEM_SIZE, .capacity = 0, .destructor = NULL})
 #define GP_HMAP3(ALC, ELEM_SIZE, DCTOR) \
-    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+    gp_hash_map_new(GP_ALC(ALC), &(GPMapInitializer){ \
         .element_size = ELEM_SIZE, .capacity = 0, .destructor = (void(*)(void*))(DCTOR)})
 #define GP_HMAP4(ALC, ELEM_SIZE, DCTOR, CAP) \
-    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+    gp_hash_map_new(GP_ALC(ALC), &(GPMapInitializer){ \
         .element_size = ELEM_SIZE, .capacity = CAP, .destructor = (void(*)(void*))(DCTOR)})
 #define GP_HMAP_NEW(...) GP_OVERLOAD4(__VA_ARGS__, GP_HMAP4, GP_HMAP3, GP_HMAP2, GP_HMAP1)(__VA_ARGS__)
 
 #define GP_DICT2(ALC, TYPE) (TYPE*) \
-    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+    gp_hash_map_new(GP_ALC(ALC), &(GPMapInitializer){ \
         .element_size = sizeof(TYPE), .capacity = 0, .destructor = NULL})
 #define GP_DICT3(ALC, TYPE, DCTOR) (TYPE*) \
-    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+    gp_hash_map_new(GP_ALC(ALC), &(GPMapInitializer){ \
         .element_size = GP_SIZEOF_TYPEOF((DCTOR)((TYPE*)0), (TYPE){0}), .capacity = 0, .destructor = (void(*)(void*))(DCTOR)})
 #define GP_DICT4(ALC, TYPE, DCTOR, CAP) (TYPE*) \
-    gp_hash_map_new((GPAllocator*)(ALC), &(GPMapInitializer){ \
+    gp_hash_map_new(GP_ALC(ALC), &(GPMapInitializer){ \
         .element_size = GP_SIZEOF_TYPEOF((DCTOR)((TYPE*)0), (TYPE){0}), .capacity = CAP, .destructor = (void(*)(void*))(DCTOR)})
 #define GP_DICT_NEW(A,...) GP_OVERLOAD3(__VA_ARGS__, GP_DICT4, GP_DICT3, GP_DICT2)(A, __VA_ARGS__)
 

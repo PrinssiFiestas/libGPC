@@ -55,7 +55,11 @@ static GPLocale gp_default_locale_internal = {0};
 static void gp_delete_default_locale(void)
 {
     if (gp_default_locale_internal.locale != (locale_t)0)
-        gp_locale_delete(gp_default_locale_internal.locale);
+        #if _WIN32
+        _free_locale(gp_default_locale_internal.locale);
+        #else
+        freelocale(gp_default_locale_internal.locale);
+        #endif
 }
 
 static void gp_init_default_locale(void)
