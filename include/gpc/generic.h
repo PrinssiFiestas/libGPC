@@ -1246,6 +1246,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_to_upper(...)            GP_TO_UPPER11(__VA_ARGS__)
 #define gp_to_lower(...)            GP_TO_LOWER11(__VA_ARGS__)
 #define gp_to_valid(...)            GP_TO_VALID(__VA_ARGS__)
+#define gp_capitalize(...)          GP_CAPITALIZE11(__VA_ARGS__)
 #define gp_find_first(...)          GP_FIND_FIRST(__VA_ARGS__)
 #define gp_find_last(...)           GP_FIND_LAST(__VA_ARGS__)
 #define gp_find_first_of(...)       GP_FIND_FIRST_OF(__VA_ARGS__)
@@ -1314,6 +1315,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_to_upper(...)            GP_TO_UPPER99(__VA_ARGS__)
 #define gp_to_lower(...)            GP_TO_LOWER99(__VA_ARGS__)
 #define gp_to_valid(...)            GP_TO_VALID(__VA_ARGS__)
+#define gp_capitalize(...)          GP_CAPITALIZE99(__VA_ARGS__)
 #define gp_find_first(...)          GP_FIND_FIRST(__VA_ARGS__)
 #define gp_find_last(...)           GP_FIND_LAST(__VA_ARGS__)
 #define gp_find_first_of(...)       GP_FIND_FIRST_OF(__VA_ARGS__)
@@ -1514,6 +1516,12 @@ static inline GPString gp_str_trim_new3(const void*const alc, GPStrIn str, const
     GP_PROCESS_ALL_ARGS(GP_TO_LOWER_SELECTION, GP_COMMA, GP_ALC_TYPES)) \
     ((void*)(A), GP_STR_OR_LOCALE(B))
 #define GP_TO_LOWER11(...) GP_OVERLOAD3(__VA_ARGS__, GP_TO_LOWER3, GP_TO_LOWER11_2, GP_TO_LOWER1)(__VA_ARGS__)
+
+#define GP_CAPITALIZE_SELECTION(T) T*: gp_capitalize_new, const T*: gp_capitalize_new
+#define GP_CAPITALIZE11_2(A, B) _Generic(A, GPString*: gp_str_capitalize, \
+    GP_PROCESS_ALL_ARGS(GP_CAPITALIZE_SELECTION, GP_COMMA, GP_ALC_TYPES)) \
+    ((void*)(A), GP_STR_OR_LOCALE(B))
+#define GP_CAPITALIZE11(...) GP_OVERLOAD3(__VA_ARGS__, GP_CAPITALIZE3, GP_CAPITALIZE11_2, GP_CAPITALIZE1)(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Strings and arrays
@@ -2059,6 +2067,26 @@ GPString gp_to_valid_new(
 #define GP_TO_VALID2(A, REPL)        gp_str_to_valid(A, REPL)
 #define GP_TO_VALID3(ALC, STR, REPL) gp_to_valid_new(GP_ALC(ALC), GP_STR_IN(STR), REPL)
 #define GP_TO_VALID(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_VALID3, GP_TO_VALID2)(A,__VA_ARGS__)
+
+GPString gp_capitalize_new(const GPAllocator*, GPStrIn);
+GPString gp_capitalize_locale_new(const GPAllocator*, GPStrIn, GPLocale*);
+inline GPString gp_capitalize99(const size_t a_size, const void* a, const void* b, const char* b_id)
+{
+    if (a_size <= sizeof(GPAllocator)) {
+        gp_str_capitalize((GPString*)a, b);
+        return (GPString)a;
+    } // TODO don't copy and process, just write to output!
+    const size_t b_length = b_id[0] == '"' ? strlen(b) : gp_str_length((GPString)b);
+    GPString out = gp_str_new(a, b_length, "");
+    memcpy(out, b, b_length);
+    ((GPStringHeader*)out - 1)->length = b_length;
+    gp_str_capitalize(&out, gp_default_locale());
+    return out;
+}
+#define GP_CAPITALIZE1(STR)           gp_str_capitalize(STR, gp_default_locale())
+#define GP_CAPITALIZE99_2(A, B)       gp_capitalize99(GP_SIZEOF_TYPEOF(*(A)), A, B, #B)
+#define GP_CAPITALIZE3(ALC, STR, LOC) gp_capitalize_full_new(GP_ALC(ALC), GP_STR_IN(STR), LOC)
+#define GP_CAPITALIZE99(...) GP_OVERLOAD3(__VA_ARGS__, GP_CAPITALIZE3, GP_CAPITALIZE99_2, GP_CAPITALIZE1)(__VA_ARGS__)
 
 inline size_t gp_find_first99(const GPString haystack, GPStrIn needle, const size_t start)
 {

@@ -164,6 +164,8 @@ int main(void)
             gp_expect(gp_equal(str4, ""));
         }
 
+        GPLocale* turkish = gp_locale_new("tr_TR");
+
         gp_test("To upper, lower, and valid");
         {
             GPString str0 = gp_str(&arena, "blah");
@@ -178,7 +180,6 @@ int main(void)
             gp_copy(&str0, "ﬁre!🔥");
             gp_to_upper(&str0, gp_default_locale());
             gp_expect(gp_equal(str0, "FIRE!🔥"));
-            GPLocale* turkish = gp_locale_new("tr_TR");
             if (turkish == NULL) goto skip_turkish;
             gp_copy(&str0, "iıİI");
             GPString str3 = gp_to_upper(&arena, str0, turkish);
@@ -187,7 +188,6 @@ int main(void)
             gp_expect(gp_equal(str3, "iıiı"));
             GPString str4 = gp_to_lower(&arena, str0, turkish);
             gp_expect(gp_equal(str4, "iıiı"));
-            gp_locale_delete(turkish);
             skip_turkish:
 
             gp_append(&str2, "\xff\xff\xff");
@@ -195,6 +195,18 @@ int main(void)
             gp_to_valid(&str2, GP_REPLACEMENT_CHARACTER);
             gp_expect(gp_equal(str2, str5) && gp_equal(str2, "blah���"), str2);
         }
+
+        gp_test("Capitalize");
+        {
+            GPString str1 = gp_str(&arena, "ﬁre!🔥");
+            GPString str2 = gp_str(&arena, "iasdf");
+            gp_capitalize(&str1);
+            gp_capitalize(&str2, turkish);
+            gp_expect(gp_equal(str1, "Fire!🔥"));
+            gp_expect(gp_equal(str2, "İasdf"));
+        }
+
+        gp_locale_delete(turkish);
 
         gp_test("Find first");
         {
