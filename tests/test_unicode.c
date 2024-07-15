@@ -249,15 +249,22 @@ int main(void)
             gp_expect(gp_str_equal(strs[3], "sbloink", strlen("sbloink")));
             gp_expect(gp_str_equal(strs[4], "İ",       strlen("İ")));
 
+            gp_str_sort(&strs, GP_REVERSE, gp_default_locale());
+            gp_expect(gp_str_equal(strs[0], "İ",       strlen("İ")));
+            gp_expect(gp_str_equal(strs[1], "sbloink", strlen("sbloink")));
+            gp_expect(gp_str_equal(strs[2], "i",       strlen("i")));
+            gp_expect(gp_str_equal(strs[3], "asdf",    strlen("asdf")));
+            gp_expect(gp_str_equal(strs[4], "Sbloink", strlen("Sbloink")));
+
             if (turkish == NULL)
                 goto skip_turkish_sort;
 
             gp_str_sort(&strs, GP_CASE_FOLD | GP_COLLATE, turkish);
             gp_expect(gp_str_equal(strs[0], "asdf",    strlen("asdf")));
-            gp_expect(gp_str_equal(strs[1], "i",       strlen("i")));
-            gp_expect(gp_str_equal(strs[2], "İ",       strlen("İ")));
-            gp_expect(gp_str_equal(strs[3], "Sbloink", strlen("Sbloink")));
-            gp_expect(gp_str_equal(strs[4], "sbloink", strlen("sbloink")));
+            gp_expect(gp_str_equal(strs[1], "İ",       strlen("İ")));
+            gp_expect(gp_str_equal(strs[2], "i",       strlen("i")));
+            gp_expect(gp_str_equal(strs[3], "sbloink", strlen("sbloink")));
+            gp_expect(gp_str_equal(strs[4], "Sbloink", strlen("Sbloink")));
             skip_turkish_sort: (void)0;
         }
 

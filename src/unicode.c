@@ -1234,6 +1234,11 @@ static int gp_utf8_codepoint_compare(const void*_s1, const void*_s2)
     return gp_str_length(s1) - gp_str_length(s2);
 }
 
+static int gp_utf8_codepoint_compare_reverse(const void*_s1, const void*_s2)
+{
+    return gp_utf8_codepoint_compare(_s2, _s1);
+}
+
 typedef struct gp_narrow_wide
 {
     GPString         narrow;
@@ -1246,6 +1251,13 @@ static int gp_wcs_compare(const void*_s1, const void*_s2)
     const GPNarrowWide* s1 = _s1;
     const GPNarrowWide* s2 = _s2;
     return wcscmp(s1->wide, s2->wide);
+}
+
+static int gp_wcs_compare_reverse(const void*_s1, const void*_s2)
+{
+    const GPNarrowWide* s1 = _s1;
+    const GPNarrowWide* s2 = _s2;
+    return wcscmp(s2->wide, s1->wide);
 }
 
 static int gp_wcs_collate(const void*_s1, const void*_s2)
@@ -1263,15 +1275,22 @@ static int gp_wcs_collate(const void*_s1, const void*_s2)
     #endif
 }
 
+static int gp_wcs_collate_reverse(const void* s1, const void* s2)
+{
+    return gp_wcs_collate(s2, s1);
+}
+
 void gp_str_sort(
     GPArray(GPString)* strs,
     const int flags,
     GPLocale* locale)
 {
     const bool fold    = flags & 0x4;
-    const bool collate = flags & 0x2;
+    const bool collate = flags & 0x1;
+    const bool reverse = flags & 0x10;
     if ( ! (fold | collate)) {
-        qsort(*strs, gp_arr_length(*strs), sizeof(GPString), gp_utf8_codepoint_compare);
+        qsort(*strs, gp_arr_length(*strs), sizeof(GPString),
+            !reverse ? gp_utf8_codepoint_compare : gp_utf8_codepoint_compare_reverse);
         return;
     }
     GPArena* scratch = gp_scratch_arena();
@@ -1288,9 +1307,9 @@ void gp_str_sort(
     }
 
     if (collate)
-        qsort(pairs, gp_arr_length(*strs), sizeof pairs[0], gp_wcs_collate);
+        qsort(pairs, gp_arr_length(*strs), sizeof pairs[0], !reverse ? gp_wcs_collate : gp_wcs_collate_reverse);
     else
-        qsort(pairs, gp_arr_length(*strs), sizeof pairs[0], gp_wcs_compare);
+        qsort(pairs, gp_arr_length(*strs), sizeof pairs[0], !reverse ? gp_wcs_compare : gp_wcs_compare_reverse);
 
     for (size_t i = 0; i < gp_arr_length(*strs); ++i)
         (*strs)[i] = pairs[i].narrow;
@@ -1306,7 +1325,8 @@ int gp_str_compare(
     const GPLocale* locale)
 {
     const bool fold    = flags & 0x4;
-    const bool collate = flags & 0x2;
+    const bool collate = flags & 0x1;
+    const bool reverse = flags & 0x10;
     if ( ! (fold || collate))
     {
         const size_t min_length = gp_str_length(s1) < s2_length ? gp_str_length(s1) : s2_length;
@@ -1315,9 +1335,9 @@ int gp_str_compare(
             uint32_t cp1, cp2;
             codepoint_length = gp_utf8_encode(&cp1, s1, i); gp_utf8_encode(&cp2, s2, i);
             if (cp1 != cp2)
-                return cp1 - cp2;
+                return !reverse ? cp1 - cp2 : cp2 - cp1;
         }
-        return gp_str_length(s1) - s2_length;
+        return !reverse ? gp_str_length(s1) - s2_length : s2_length - gp_str_length(s1);
     }
     GPArena* scratch = gp_scratch_arena();
     GPArray(wchar_t) wcs1 = gp_arr_new((GPAllocator*)scratch, sizeof wcs1[0], 0);
@@ -1348,6 +1368,6 @@ int gp_str_compare(
     }
 
     gp_arena_rewind(scratch, gp_arr_allocation(wcs1));
-    return result;
+    return !reverse ? result : -result;
 }
 

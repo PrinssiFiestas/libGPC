@@ -149,12 +149,13 @@ void gp_str_capitalize(
 
 #define GP_CASE_FOLD 'f'
 #define GP_COLLATE   'c'
+#define GP_REVERSE   'r'
 
 // Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
-// comparison. 'c' or GP_COLLATE for collation. Separate flags with |. 0 will
-// compare codepoints lexicographically and is the fastest. Locale affects case
-// insensitive comparison and collating. Uses global locale if locale is NULL.
-
+// comparison. 'c' or GP_COLLATE for collation. 'r' or GP_REVERSE to invert
+// result. Separate flags with |. 0 will compare codepoints lexicographically
+// and is the fastest. Locale affects case insensitive comparison and collating.
+// Uses global locale if locale is NULL.
 GP_NONNULL_ARGS(1, 2)
 int gp_str_compare(
     const GPString s1,
@@ -177,9 +178,10 @@ void gp_str_join(
     const char*             separator);
 
 // Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
-// sorting. 'c' or GP_COLLATE for collation. Separate flags with |. 0 will sort
-// codepoints lexicographically and is the fastest. locale affects case
-// insensitive sorting and collating. Uses global locale if locale is NULL.
+// sorting. 'c' or GP_COLLATE for collation. 'r' or GP_REVERSE to reverse the
+// result order. Separate flags with |. 0 will sort codepoints lexicographically
+// and is the fastest. locale affects case insensitive sorting and collating.
+// Uses global locale if locale is NULL.
 GP_NONNULL_ARGS()
 void gp_str_sort(
     GPArray(GPString)* strs,
