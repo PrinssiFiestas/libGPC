@@ -25,13 +25,16 @@ extern "C" {
     GPString gp_replace_new(const GPAllocator*, GPStrIn, GPStrIn, GPStrIn, size_t);
     GPString gp_replace_all_new(const GPAllocator*, GPStrIn, GPStrIn, GPStrIn);
     GPString gp_str_trim_new(const void*, GPStrIn, const char*, int);
-    GPString gp_to_upper_new(const GPAllocator*, GPString);
-    GPString gp_to_lower_new(const GPAllocator*, GPString);
-    GPString gp_to_valid_new(const GPAllocator*, GPString, const char*);
-    GPString gp_to_upper_full_new(const GPAllocator*, GPString, GPLocale*);
-    GPString gp_to_lower_full_new(const GPAllocator*, GPString, GPLocale*);
+    GPString gp_to_upper_new(const GPAllocator*, GPStrIn);
+    GPString gp_to_lower_new(const GPAllocator*, GPStrIn);
+    GPString gp_to_valid_new(const GPAllocator*, GPStrIn, const char*);
+    GPString gp_to_upper_full_new(const GPAllocator*, GPStrIn, GPLocale*);
+    GPString gp_to_lower_full_new(const GPAllocator*, GPStrIn, GPLocale*);
+    GPString gp_capitalize_new(const GPAllocator*, GPStrIn);
+    GPString gp_capitalize_locale_new(const GPAllocator*, GPStrIn, GPLocale*);
     size_t gp_bytes_codepoint_count(const void*, size_t);
     bool gp_bytes_is_valid_utf8(const void*, size_t, size_t*);
+    GPString gp_join_new(const GPAllocator*, const GPArray(GPString), const char*);
 }
 static inline size_t gp_str_length_cpp(const GPString str) { return gp_str_length(str); }
 static inline size_t gp_str_length_cpp(const char*const str) { return strlen(str); }
@@ -343,17 +346,19 @@ static inline void gp_to_upper(GPString* str, GPLocale* locale)
 {
     gp_str_to_upper_full(str, locale);
 }
-template <typename T_ALLOCATOR>
+template <typename T_ALLOCATOR, typename T_STRING>
 static inline GPString gp_to_upper(
-    T_ALLOCATOR* allocator, GPString str)
+    T_ALLOCATOR* allocator, T_STRING str)
 {
-    return gp_to_upper_new(gp_alc_cpp(allocator), str);
+    GPStrIn s = { (uint8_t*)str, gp_str_length_cpp(str) };
+    return gp_to_upper_new(gp_alc_cpp(allocator), s);
 }
-template <typename T_ALLOCATOR>
+template <typename T_ALLOCATOR, typename T_STRING>
 static inline GPString gp_to_upper(
-    T_ALLOCATOR* allocator, GPString str, GPLocale* locale)
+    T_ALLOCATOR* allocator, T_STRING str, GPLocale* locale)
 {
-    return gp_to_upper_new_full(gp_alc_cpp(allocator), str, locale);
+    GPStrIn s = { (uint8_t*)str, gp_str_length_cpp(str) };
+    return gp_to_upper_full_new(gp_alc_cpp(allocator), s, locale);
 }
 
 // ---------------------------
@@ -367,15 +372,17 @@ static inline void gp_to_lower(GPString* str, GPLocale* locale)
 {
     gp_str_to_lower_full(str, locale);
 }
-template <typename T_ALLOCATOR>
-static inline GPString gp_to_lower(T_ALLOCATOR* allocator, GPString str)
+template <typename T_ALLOCATOR, typename T_STRING>
+static inline GPString gp_to_lower(T_ALLOCATOR* allocator, T_STRING str)
 {
-    return gp_to_lower_new(gp_alc_cpp(allocator), str);
+    GPStrIn s = { (uint8_t*)str, gp_str_length_cpp(str) };
+    return gp_to_lower_new(gp_alc_cpp(allocator), s);
 }
-template <typename T_ALLOCATOR>
-static inline GPString gp_to_lower(T_ALLOCATOR* allocator, GPString str, GPLocale* locale)
+template <typename T_ALLOCATOR, typename T_STRING>
+static inline GPString gp_to_lower(T_ALLOCATOR* allocator, T_STRING str, GPLocale* locale)
 {
-    return gp_to_lower_full_new(gp_alc_cpp(allocator), str, locale);
+    GPStrIn s = { (uint8_t*)str, gp_str_length_cpp(str) };
+    return gp_to_lower_full_new(gp_alc_cpp(allocator), s, locale);
 }
 
 // ---------------------------
@@ -385,11 +392,36 @@ static inline void gp_to_valid(GPString* str, const char*const replacement)
 {
     gp_str_to_valid(str, replacement);
 }
-template <typename T_ALLOCATOR>
+template <typename T_ALLOCATOR, typename T_STRING>
 static inline GPString gp_to_valid(
-    T_ALLOCATOR* allocator, GPString str, const char*const replacement)
+    T_ALLOCATOR* allocator, T_STRING str, const char*const replacement)
 {
-    return gp_to_valid_new(gp_alc_cpp(allocator), str, replacement);
+    GPStrIn s = { (uint8_t*)str, gp_str_length_cpp(str) };
+    return gp_to_valid_new(gp_alc_cpp(allocator), s, replacement);
+}
+
+// ---------------------------
+// gp_capitalize()
+
+static inline void gp_capitalize(GPString* str)
+{
+    gp_str_capitalize(str, gp_default_locale());
+}
+static inline void gp_capitalize(GPString* str, GPLocale* locale)
+{
+    gp_str_capitalize(str, locale);
+}
+template <typename T_ALLOCATOR, typename T_STRING>
+static inline GPString gp_capitalize(T_ALLOCATOR* allocator, T_STRING str)
+{
+    GPStrIn s = { (uint8_t*)str, gp_str_length_cpp(str) };
+    return gp_capitalize_new(gp_alc_cpp(allocator), s);
+}
+template <typename T_ALLOCATOR, typename T_STRING>
+static inline GPString gp_capitalize(T_ALLOCATOR* allocator, T_STRING str, GPLocale* locale)
+{
+    GPStrIn s = { (uint8_t*)str, gp_str_length_cpp(str) };
+    return gp_capitalize_locale_new(gp_alc_cpp(allocator), s, locale);
 }
 
 // ---------------------------
@@ -464,9 +496,9 @@ static inline size_t gp_codepoint_count(const void*const str, const size_t str_l
 // gp_is_valid()
 
 template <typename T_STRING>
-static inline bool gp_is_valid(T_STRING str)
+static inline bool gp_is_valid(T_STRING str, size_t* invalid_index = NULL)
 {
-    return gp_bytes_is_valid_utf8(str, gp_str_length_cpp(str), NULL);
+    return gp_bytes_is_valid_utf8(str, gp_str_length_cpp(str), invalid_index);
 }
 static inline bool gp_is_valid(const void*const str, const size_t length)
 {
@@ -478,8 +510,46 @@ static inline bool gp_is_valid(
     return gp_bytes_is_valid_utf8(str, length, out_invalid_index);
 }
 
+// ---------------------------
+// gp_compare()
+
+template <typename T_STRING>
+static inline int gp_compare(GPString s1, T_STRING s2, int flags = 0, GPLocale* locale = (GPLocale*)-1)
+{
+    return gp_str_compare(
+        s1, s2, gp_str_length_cpp(s2), flags, locale == (GPLocale*)-1 ? gp_default_locale() : locale);
+}
+
 // ----------------------------------------------------------------------------
 // Strings and arrays
+
+// ---------------------------
+// gp_split() and gp_str_join()
+
+template <typename T_STRING, typename T_ALLOCATOR>
+static inline GPArray(GPString) gp_split(
+    T_ALLOCATOR allocator, T_STRING str, const char* separator_char_set = GP_WHITESPACE)
+{
+    return gp_str_split(gp_alc_cpp(allocator), str, gp_str_length_cpp(str), separator_char_set);
+}
+
+static inline void gp_join(GPString* dest, const GPArray(GPString) srcs, const char* separator = "")
+{
+    gp_str_join(dest, srcs, separator);
+}
+template <typename T_ALLOCATOR>
+static inline GPString gp_join(T_ALLOCATOR allocator, const GPArray(GPString) srcs, const char* separator = "")
+{
+    return gp_join_new(gp_alc_cpp(allocator), srcs, separator);
+}
+
+// ---------------------------
+// gp_sort()
+
+static inline void gp_sort(GPArray(GPString)* strs, int flags = 0, GPLocale* locale = (GPLocale*)-1)
+{
+    gp_str_sort(strs, flags, locale == (GPLocale*)-1 ? gp_default_locale() : locale);
+}
 
 // ---------------------------
 // Getters
