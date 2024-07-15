@@ -25,9 +25,11 @@ extern "C" {
     GPString gp_replace_new(const GPAllocator*, GPStrIn, GPStrIn, GPStrIn, size_t);
     GPString gp_replace_all_new(const GPAllocator*, GPStrIn, GPStrIn, GPStrIn);
     GPString gp_str_trim_new(const void*, GPStrIn, const char*, int);
-    GPString gp_to_upper_new(const GPAllocator*, GPString, GPLocale);
-    GPString gp_to_lower_new(const GPAllocator*, GPString, GPLocale);
+    GPString gp_to_upper_new(const GPAllocator*, GPString);
+    GPString gp_to_lower_new(const GPAllocator*, GPString);
     GPString gp_to_valid_new(const GPAllocator*, GPString, const char*);
+    GPString gp_to_upper_full_new(const GPAllocator*, GPString, GPLocale*);
+    GPString gp_to_lower_full_new(const GPAllocator*, GPString, GPLocale*);
     size_t gp_bytes_codepoint_count(const void*, size_t);
     bool gp_bytes_is_valid_utf8(const void*, size_t, size_t*);
 }
@@ -335,13 +337,23 @@ static inline GPString gp_trim(T_ALLOCATOR* allocator,
 
 static inline void gp_to_upper(GPString* str)
 {
-    gp_str_to_upper(str, locale);
+    gp_str_to_upper(str);
+}
+static inline void gp_to_upper(GPString* str, GPLocale* locale)
+{
+    gp_str_to_upper_full(str, locale);
 }
 template <typename T_ALLOCATOR>
 static inline GPString gp_to_upper(
     T_ALLOCATOR* allocator, GPString str)
 {
-    return gp_to_upper_new(gp_alc_cpp(allocator), str, locale);
+    return gp_to_upper_new(gp_alc_cpp(allocator), str);
+}
+template <typename T_ALLOCATOR>
+static inline GPString gp_to_upper(
+    T_ALLOCATOR* allocator, GPString str, GPLocale* locale)
+{
+    return gp_to_upper_new_full(gp_alc_cpp(allocator), str, locale);
 }
 
 // ---------------------------
@@ -351,10 +363,19 @@ static inline void gp_to_lower(GPString* str)
 {
     gp_str_to_lower(str);
 }
+static inline void gp_to_lower(GPString* str, GPLocale* locale)
+{
+    gp_str_to_lower_full(str, locale);
+}
 template <typename T_ALLOCATOR>
 static inline GPString gp_to_lower(T_ALLOCATOR* allocator, GPString str)
 {
     return gp_to_lower_new(gp_alc_cpp(allocator), str);
+}
+template <typename T_ALLOCATOR>
+static inline GPString gp_to_lower(T_ALLOCATOR* allocator, GPString str, GPLocale* locale)
+{
+    return gp_to_lower_full_new(gp_alc_cpp(allocator), str, locale);
 }
 
 // ---------------------------
@@ -1222,8 +1243,8 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_replace(...)             GP_REPLACE11(__VA_ARGS__)
 #define gp_replace_all(...)         GP_REPLACE_ALL11(__VA_ARGS__)
 #define gp_trim(...)                GP_TRIM11(__VA_ARGS__)
-#define gp_to_upper(...)            GP_TO_UPPER(__VA_ARGS__)
-#define gp_to_lower(...)            GP_TO_LOWER(__VA_ARGS__)
+#define gp_to_upper(...)            GP_TO_UPPER11(__VA_ARGS__)
+#define gp_to_lower(...)            GP_TO_LOWER11(__VA_ARGS__)
 #define gp_to_valid(...)            GP_TO_VALID(__VA_ARGS__)
 #define gp_find_first(...)          GP_FIND_FIRST(__VA_ARGS__)
 #define gp_find_last(...)           GP_FIND_LAST(__VA_ARGS__)
@@ -1290,8 +1311,8 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_replace(...)             GP_REPLACE99(__VA_ARGS__)
 #define gp_replace_all(...)         GP_REPLACE_ALL99(__VA_ARGS__)
 #define gp_trim(...)                GP_TRIM99(__VA_ARGS__)
-#define gp_to_upper(...)            GP_TO_UPPER(__VA_ARGS__)
-#define gp_to_lower(...)            GP_TO_LOWER(__VA_ARGS__)
+#define gp_to_upper(...)            GP_TO_UPPER99(__VA_ARGS__)
+#define gp_to_lower(...)            GP_TO_LOWER99(__VA_ARGS__)
 #define gp_to_valid(...)            GP_TO_VALID(__VA_ARGS__)
 #define gp_find_first(...)          GP_FIND_FIRST(__VA_ARGS__)
 #define gp_find_last(...)           GP_FIND_LAST(__VA_ARGS__)
@@ -1475,6 +1496,24 @@ static inline GPString gp_str_trim_new3(const void*const alc, GPStrIn str, const
     (A, _Generic(A, GPString*: B, default: GP_STR_IN(B)), C)
 #define GP_TRIM4(ALC, STR, CHARS, FLAGS) gp_str_trim_new(GP_ALC(ALC), GP_STR_IN(STR), CHARS, FLAGS)
 #define GP_TRIM11(...) GP_OVERLOAD4(__VA_ARGS__, GP_TRIM4, GP_TRIM11_3, GP_TRIM11_2, GP_TRIM1)(__VA_ARGS__)
+
+#define GP_STR_OR_LOCALE(A) _Generic(A, \
+    GPLocale*:   A, \
+    GPString:    gp_str_in11(GP_STRING,   A, 0), \
+    char*:       gp_str_in11(GP_CHAR_PTR, A, 0), \
+    const char*: gp_str_in11(GP_CHAR_PTR, A, 0))
+
+#define GP_TO_UPPER_SELECTION(T) T*: gp_to_upper_new, const T*: gp_to_upper_new
+#define GP_TO_UPPER11_2(A, B) _Generic(A, GPString*: gp_str_to_upper_full, \
+    GP_PROCESS_ALL_ARGS(GP_TO_UPPER_SELECTION, GP_COMMA, GP_ALC_TYPES)) \
+    ((void*)(A), GP_STR_OR_LOCALE(B))
+#define GP_TO_UPPER11(...) GP_OVERLOAD3(__VA_ARGS__, GP_TO_UPPER3, GP_TO_UPPER11_2, GP_TO_UPPER1)(__VA_ARGS__)
+
+#define GP_TO_LOWER_SELECTION(T) T*: gp_to_lower_new, const T*: gp_to_lower_new
+#define GP_TO_LOWER11_2(A, B) _Generic(A, GPString*: gp_str_to_lower_full, \
+    GP_PROCESS_ALL_ARGS(GP_TO_LOWER_SELECTION, GP_COMMA, GP_ALC_TYPES)) \
+    ((void*)(A), GP_STR_OR_LOCALE(B))
+#define GP_TO_LOWER11(...) GP_OVERLOAD3(__VA_ARGS__, GP_TO_LOWER3, GP_TO_LOWER11_2, GP_TO_LOWER1)(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Strings and arrays
@@ -1975,20 +2014,50 @@ GPString gp_trim99(
 #define GP_TRIM99(...) \
     GP_OVERLOAD4(__VA_ARGS__, GP_TRIM99_4, GP_TRIM99_3, GP_TRIM99_2, GP_TRIM99_1)(__VA_ARGS__)
 
-GPString gp_to_upper_new(const GPAllocator* alc, const GPString str);
+GPString gp_to_upper_new(const GPAllocator*, GPStrIn);
+GPString gp_to_upper_full_new(const GPAllocator*, GPStrIn, GPLocale*);
+inline GPString gp_to_upper99(const size_t a_size, const void* a, const void* b, const char* b_id)
+{
+    if (a_size <= sizeof(GPAllocator)) {
+        gp_str_to_upper_full((GPString*)a, b);
+        return (GPString)a;
+    } // TODO don't copy and process, just write to output!
+    const size_t b_length = b_id[0] == '"' ? strlen(b) : gp_str_length((GPString)b);
+    GPString out = gp_str_new(a, b_length, "");
+    memcpy(out, b, b_length);
+    ((GPStringHeader*)out - 1)->length = b_length;
+    gp_str_to_upper(&out);
+    return out;
+}
 #define GP_TO_UPPER1(STR)           gp_str_to_upper(STR)
-#define GP_TO_UPPER2(ALC, STR)      gp_to_upper_new(GP_ALC(ALC), STR)
-#define GP_TO_UPPER(...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_UPPER2, GP_TO_UPPER1)(__VA_ARGS__)
+#define GP_TO_UPPER99_2(A, B)       gp_to_upper99(GP_SIZEOF_TYPEOF(*(A)), A, B, #B)
+#define GP_TO_UPPER3(ALC, STR, LOC) gp_to_upper_full_new(GP_ALC(ALC), GP_STR_IN(STR), LOC)
+#define GP_TO_UPPER99(...) GP_OVERLOAD3(__VA_ARGS__, GP_TO_UPPER3, GP_TO_UPPER99_2, GP_TO_UPPER1)(__VA_ARGS__)
 
-GPString gp_to_lower_new(const GPAllocator* alc, const GPString str);
+GPString gp_to_lower_new(const GPAllocator*, GPStrIn);
+GPString gp_to_lower_full_new(const GPAllocator*, GPStrIn, GPLocale*);
+inline GPString gp_to_lower99(const size_t a_size, const void* a, const void* b, const char* b_id)
+{
+    if (a_size <= sizeof(GPAllocator)) {
+        gp_str_to_lower_full((GPString*)a, b);
+        return (GPString)a;
+    } // TODO don't copy and process, just write to output!
+    const size_t b_length = b_id[0] == '"' ? strlen(b) : gp_str_length((GPString)b);
+    GPString out = gp_str_new(a, b_length, "");
+    memcpy(out, b, b_length);
+    ((GPStringHeader*)out - 1)->length = b_length;
+    gp_str_to_lower(&out);
+    return out;
+}
 #define GP_TO_LOWER1(STR)           gp_str_to_lower(STR)
-#define GP_TO_LOWER2(ALC, STR)      gp_to_lower_new(GP_ALC(ALC), STR)
-#define GP_TO_LOWER(...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_LOWER2, GP_TO_LOWER1)(__VA_ARGS__)
+#define GP_TO_LOWER99_2(A, B)       gp_to_lower99(GP_SIZEOF_TYPEOF(*(A)), A, B, #B)
+#define GP_TO_LOWER3(ALC, STR, LOC) gp_to_lower_full_new(GP_ALC(ALC), GP_STR_IN(STR), LOC)
+#define GP_TO_LOWER99(...) GP_OVERLOAD3(__VA_ARGS__, GP_TO_LOWER3, GP_TO_LOWER99_2, GP_TO_LOWER1)(__VA_ARGS__)
 
 GPString gp_to_valid_new(
-    const GPAllocator* alc, const GPString str, const char*const replacement);
+    const GPAllocator* alc, GPStrIn str, const char*const replacement);
 #define GP_TO_VALID2(A, REPL)        gp_str_to_valid(A, REPL)
-#define GP_TO_VALID3(ALC, STR, REPL) gp_to_valid_new((GPAllocator*)(ALC), STR, REPL)
+#define GP_TO_VALID3(ALC, STR, REPL) gp_to_valid_new(GP_ALC(ALC), GP_STR_IN(STR), REPL)
 #define GP_TO_VALID(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_VALID3, GP_TO_VALID2)(A,__VA_ARGS__)
 
 inline size_t gp_find_first99(const GPString haystack, GPStrIn needle, const size_t start)

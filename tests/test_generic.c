@@ -174,10 +174,26 @@ int main(void)
             GPString str2 = gp_to_lower(&arena, str1);
             gp_expect(gp_equal(str1, str2) && gp_equal(str1, "blah"));
 
+            // Pass locale for full language sensitive case mapping.
+            gp_copy(&str0, "ﬁre!🔥");
+            gp_to_upper(&str0, gp_default_locale());
+            gp_expect(gp_equal(str0, "FIRE!🔥"));
+            GPLocale* turkish = gp_locale_new("tr_TR");
+            if (turkish == NULL) goto skip_turkish;
+            gp_copy(&str0, "iıİI");
+            GPString str3 = gp_to_upper(&arena, str0, turkish);
+            gp_expect(gp_equal(str3, "İIİI"));
+            gp_to_lower(&str3, turkish);
+            gp_expect(gp_equal(str3, "iıiı"));
+            GPString str4 = gp_to_lower(&arena, str0, turkish);
+            gp_expect(gp_equal(str4, "iıiı"));
+            gp_locale_delete(turkish);
+            skip_turkish:
+
             gp_append(&str2, "\xff\xff\xff");
-            GPString str3 = gp_to_valid(&arena, str2, GP_REPLACEMENT_CHARACTER);
+            GPString str5 = gp_to_valid(&arena, str2, GP_REPLACEMENT_CHARACTER);
             gp_to_valid(&str2, GP_REPLACEMENT_CHARACTER);
-            gp_expect(gp_equal(str2, str3) && gp_equal(str2, "blah���"), str2);
+            gp_expect(gp_equal(str2, str5) && gp_equal(str2, "blah���"), str2);
         }
 
         gp_test("Find first");

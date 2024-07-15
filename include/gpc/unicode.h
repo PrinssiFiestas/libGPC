@@ -38,14 +38,13 @@ typedef void GPLocale;
 
 #define GP_LOCALE_T_AVAILABLE 1
 
-#if _WIN32
-typedef _locale_t locale_t;
-#elif _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
-typedef void* locale_t;
-#endif
 typedef const struct gp_locale
 {
+    #if _WIN32
+    _locale_t locale;
+    #else
     locale_t locale;
+    #endif
     char     code[];
 } GPLocale;
 
