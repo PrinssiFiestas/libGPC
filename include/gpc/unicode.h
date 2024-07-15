@@ -21,7 +21,24 @@
 GP_NONNULL_ARGS()
 void gp_set_utf8_global_locale(int category, const char* locale_code);
 
-#if _WIN32//
+#if !_WIN32 && _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
+
+// By default locale_t is available in GNU C Library if using GCC compatible
+// compiler. However, with -std=c99 feature test macros must be used to enable
+// local locales. Functions that take GPLocale* as argument will work, but they
+// will use global locale instead. See
+// https://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html
+
+typedef void GPLocale;
+#define gp_default_locale() NULL
+#define gp_locale_new()     NULL
+#define gp_locale_delete() ((void)0)
+
+#else
+
+#define GP_LOCALE_T_AVAILABLE 1
+
+#if _WIN32
 typedef _locale_t locale_t;
 #elif _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
 typedef void* locale_t;
@@ -31,16 +48,6 @@ typedef const struct gp_locale
     locale_t locale;
     char     code[];
 } GPLocale;
-
-#if !_WIN32 && _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
-
-#define gp_default_locale() NULL
-#define gp_locale_new()     NULL
-#define gp_locale_delete() (void)0
-
-#else
-
-#define GP_LOCALE_T_AVAILABLE 1
 
 // Some UTF-8 locale in category LC_ALL. Passing to gp_locale_delete() is safe
 // but unnecessary.
@@ -54,7 +61,7 @@ GPLocale* gp_locale_new(const char* locale_code) GP_NONNULL_ARGS();
 
 void gp_locale_delete(GPLocale* optional);
 
-#endif // !_WIN32 && _XOPEN_SOURCE < 700
+#endif // !_WIN32 && _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
 
 // ----------------------------------------------------------------------------
 // Unicode

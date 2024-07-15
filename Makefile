@@ -6,7 +6,7 @@ CC = gcc
 override CFLAGS += -Wall -Wextra -Werror
 override CFLAGS += -Wno-comment
 override CFLAGS += -Iinclude
-#override CFLAGS += -D_GNU_SOURCE # memmem(), stat64(), locale_t
+override CFLAGS += -D_GNU_SOURCE # memmem(), stat64(), locale_t
 override CFLAGS += -lm -lpthread
 
 DEBUG_CFLAGS   = -ggdb3 -gdwarf
