@@ -1257,6 +1257,8 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_is_valid(...)            GP_IS_VALID(__VA_ARGS__)
 
 // Strings and arrays
+#define gp_split(...)               GP_SPLIT(__VA_ARGS__)
+#define gp_join(...)                GP_JOIN11(__VA_ARGS__)
 #define gp_length(...)              gp_arr_length(__VA_ARGS__)
 #define gp_capacity(...)            gp_arr_capacity(__VA_ARGS__)
 #define gp_allocation(...)          gp_arr_allocation(__VA_ARGS__)
@@ -1327,6 +1329,8 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_is_valid(...)            GP_IS_VALID(__VA_ARGS__)
 
 // Strings and arrays
+#define gp_split(...)               GP_SPLIT(__VA_ARGS__)
+#define gp_join(...)                GP_JOIN99(__VA_ARGS__)
 #define gp_length(...)              gp_arr_length(__VA_ARGS__)
 #define gp_capacity(...)            gp_arr_capacity(__VA_ARGS__)
 #define gp_allocation(...)          gp_arr_allocation(__VA_ARGS__)
@@ -1527,6 +1531,11 @@ static inline GPString gp_str_trim_new3(const void*const alc, GPStrIn str, const
 
 // ----------------------------------------------------------------------------
 // Strings and arrays
+
+GPString gp_join_new(const GPAllocator* allocator, const GPArray(GPString) srcs, const char* separator);
+#define GP_JOIN_SELECTION(T) T*: gp_join_new, const T*: gp_join_new
+#define GP_JOIN11(A, STRS, SEP) _Generic(A, GPString*: gp_str_join, \
+    GP_PROCESS_ALL_ARGS(GP_JOIN_SELECTION, GP_COMMA, GP_ALC_TYPES))((void*)(A), STRS, SEP)
 
 GP_NONNULL_ARGS()
 static inline void gp_str_reserve11(const size_t unused, GPString* str, const size_t size)
@@ -2143,6 +2152,24 @@ bool gp_is_valid99(GPStrIn s, size_t*i);
 
 // ----------------------------------------------------------------------------
 // Strings and arrays
+
+inline GPArray(GPString) gp_split99(const GPAllocator* alc, GPStrIn str, const char* separators)
+{
+    return gp_str_split(alc, str.data, str.length, separators);
+}
+#define GP_SPLIT(ALC, STR, SEP) gp_split99(GP_ALC(ALC), GP_STR_IN(STR), SEP)
+
+GPString gp_join_new(const GPAllocator* allocator, const GPArray(GPString) srcs, const char* separator);
+inline GPString gp_join_new99(
+    size_t a_size, const void* a, const GPArray(GPString) srcs, const char* separator)
+{
+    if (a_size < sizeof(GPAllocator)) {
+        gp_str_join((GPString*)a, srcs, separator);
+        return *(GPString*)a;
+    }
+    return gp_join_new(a, srcs, separator);
+}
+#define GP_JOIN99(A, STRS, SEP) gp_join_new99(GP_SIZEOF_TYPEOF(*(A)), A, STRS, SEP)
 
 #define GP_IS_ALC99(A) (GP_SIZEOF_TYPEOF(*(A)) >= sizeof(GPAllocator))
 

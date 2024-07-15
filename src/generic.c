@@ -24,6 +24,9 @@ extern inline GPString gp_to_upper99(const size_t a_size, const void* a, const v
 extern inline GPString gp_to_lower99(const size_t a_size, const void* a, const void* b, const char* b_id);
 extern inline GPString gp_capitalize99(const size_t a_size, const void* a, const void* b, const char* b_id);
 
+extern inline GPArray(GPString) gp_split99(const GPAllocator*, GPStrIn, const char*);
+extern inline GPString gp_join_new99(size_t a_size, const void* a, const GPArray(GPString) srcs, const char* separator);
+
 extern inline void* gp_push99(const size_t elem_size, void*_parr);
 
 extern inline void* gp_put99(GPHashMap* dict, GPStrIn key);
@@ -176,6 +179,31 @@ GPString gp_capitalize_locale_new(const GPAllocator* alc, GPStrIn str, GPLocale*
 
 // ----------------------------------------------------------------------------
 // Srtings and arrays
+
+GPString gp_join_new(const GPAllocator* allocator, const GPArray(GPString) strs, const char* separator)
+{
+    if (gp_arr_length(strs) == 0)
+        return gp_str_new(allocator, 0, "");
+
+    const size_t separator_length = strlen(separator);
+    size_t required_capacity = -separator_length;
+    for (size_t i = 0; i < gp_arr_length(strs); ++i)
+        required_capacity += gp_str_length(strs[i]) + separator_length;
+
+    GPString out = gp_str_new(allocator, required_capacity, "");
+    for (size_t i = 0; i < gp_arr_length(strs) - 1; ++i)
+    {
+        memcpy(out + gp_str_length(out), strs[i], gp_str_length(strs[i]));
+        memcpy(out + gp_str_length(out) + gp_str_length(strs[i]), separator, separator_length);
+        ((GPStringHeader*)out - 1)->length += gp_str_length(strs[i]) + separator_length;
+    }
+    memcpy(
+        out + gp_str_length(out),
+        strs[gp_arr_length(strs) - 1],
+        gp_str_length(strs[gp_arr_length(strs) - 1]));
+    ((GPStringHeader*)out - 1)->length += gp_str_length(strs[gp_arr_length(strs) - 1]);
+    return out;
+}
 
 void gp_reserve99(const size_t elem_size, void* px, const size_t capacity)
 {

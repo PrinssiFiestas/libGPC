@@ -172,9 +172,9 @@ GPArray(GPString) gp_str_split(
 
 GP_NONNULL_ARGS()
 void gp_str_join(
-    GPString*         dest,
-    GPArray(GPString) srcs,
-    const char*       separator);
+    GPString*               dest,
+    const GPArray(GPString) srcs,
+    const char*             separator);
 
 // Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
 // sorting. 'c' or GP_COLLATE for collation. Separate flags with |. 0 will sort

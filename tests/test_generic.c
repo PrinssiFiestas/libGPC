@@ -281,6 +281,17 @@ int main(void)
 
     gp_suite("Arrays and strings");
     {
+        gp_test("Split and join");
+        {
+            GPString str1 = gp_str(&arena, "blah blah blah");
+            GPArray(GPString) arr1 = gp_split(&arena, str1, " ");
+            GPArray(GPString) arr2 = gp_split(&arena, "BLAH BLAH BLAH", " ");
+            gp_join(&str1, arr1, "_");
+            gp_expect(gp_equal(str1, "blah_blah_blah"));
+            GPString str2 = gp_join(&arena, arr2, "|");
+            gp_expect(gp_equal(str2, "BLAH|BLAH|BLAH"));
+        }
+
         gp_test("Copy");
         {
             GPString str1 = gp_str(&arena);

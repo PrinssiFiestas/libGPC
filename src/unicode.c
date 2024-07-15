@@ -611,7 +611,7 @@ GPArray(GPString) gp_str_split(
     return substrs;
 }
 
-void gp_str_join(GPString* out, GPArray(GPString) strs, const char* separator)
+void gp_str_join(GPString* out, const GPArray(GPString) strs, const char* separator)
 {
     ((GPStringHeader*)*out - 1)->length = 0;
     if (gp_arr_length(strs) == 0)
