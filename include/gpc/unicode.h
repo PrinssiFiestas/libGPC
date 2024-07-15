@@ -166,7 +166,8 @@ int gp_str_compare(
 GP_NONNULL_ARGS()
 GPArray(GPString) gp_str_split(
     const GPAllocator*,
-    GPString    str,
+    const void* str,
+    size_t      str_length,
     const char* separator_char_set);
 
 GP_NONNULL_ARGS()

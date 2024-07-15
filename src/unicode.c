@@ -5,6 +5,7 @@
 #include <gpc/unicode.h>
 #include <gpc/utils.h>
 #include "thread.h"
+#include "common.h"
 #include <stdlib.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -512,13 +513,42 @@ uint32_t gp_u32_to_lower(uint32_t c)
 // ----------------------------------------------------------------------------
 // String extensions
 
+static size_t gp_utf8_find_first_of(
+    const void*const haystack,
+    const size_t     haystack_length,
+    const char*const char_set,
+    const size_t     start)
+{
+    for (size_t cplen, i = start; i < haystack_length; i += cplen) {
+        cplen = gp_utf8_codepoint_length(haystack, i);
+        if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) != NULL)
+            return i;
+    }
+    return GP_NOT_FOUND;
+}
+
+static size_t gp_utf8_find_first_not_of(
+    const void*const haystack,
+    const size_t     haystack_length,
+    const char*const char_set,
+    const size_t     start)
+{
+    for (size_t cplen, i = start; i < haystack_length; i += cplen) {
+        cplen = gp_utf8_codepoint_length(haystack, i);
+        if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) == NULL)
+            return i;
+    }
+    return GP_NOT_FOUND;
+}
+
 GPArray(GPString) gp_str_split(
     const GPAllocator* allocator,
-    const GPString str,
+    const void*const str,
+    const size_t str_length,
     const char*const separators)
 {
     GPArray(GPString) substrs = NULL;
-    size_t j, i = gp_str_find_first_not_of(str, separators, 0);
+    size_t j, i = gp_utf8_find_first_not_of(str, str_length, separators, 0);
     if (i == GP_NOT_FOUND)
         return gp_arr_new(allocator, sizeof(GPString), 1);
 
@@ -534,13 +564,13 @@ GPArray(GPString) gp_str_split(
             ++indices_length)
         {
             indices[indices_length].start = i;
-            i = gp_str_find_first_of(str, separators, i);
+            i = gp_utf8_find_first_of(str, str_length, separators, i);
             if (i == GP_NOT_FOUND) {
-                indices[indices_length++].end = gp_str_length(str);
+                indices[indices_length++].end = str_length;
                 break;
             }
             indices[indices_length].end = i;
-            i = gp_str_find_first_not_of(str, separators, i);
+            i = gp_utf8_find_first_not_of(str, str_length, separators, i);
             if (i == GP_NOT_FOUND) {
                 ++indices_length;
                 break;
