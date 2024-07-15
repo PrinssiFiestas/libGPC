@@ -19,11 +19,6 @@
 #include <wchar.h>
 #include <locale.h>
 
-#if _WIN32
-// quick hack to disable locale dependent tests for now
-#define setlocale(...) NULL
-#endif
-
 #define arr_assert_eq(ARR, CARR, CARR_LENGTH) do { \
     GP_TYPEOF(ARR  )  _gp_arr1 = (ARR);  \
     GP_TYPEOF(*CARR)* _gp_arr2 = (CARR); \
@@ -237,13 +232,30 @@ int main(void)
 
         gp_test("Equal case");
         {
-            if (setlocale(LC_ALL, "C.utf8") != NULL)
-            {
-                GPString a = gp_str(&arena, "😂aAaAäÄä😂");
-                GPString b = gp_copy(&arena, a);
-                gp_expect(gp_equal_case(a, b));
-                gp_expect(gp_equal_case(a, "😂aAaAäÄä😂"));
-            }
+            GPString a = gp_str(&arena, "😂aAaAäÄä😂");
+            GPString b = gp_copy(&arena, a);
+            gp_expect(gp_equal_case(a, b));
+            gp_expect(gp_equal_case(a, "😂aAaAäÄä😂"));
+        }
+
+        gp_test("Compare");
+        {
+            GPString str = gp_str(&arena, "chrt");
+            GPLocale* czech = gp_locale_new("cs_CZ");
+
+            gp_expect(gp_compare(str, "hrnec") < 0);
+            gp_expect(gp_compare(str, "HRNEC") > 0);
+            gp_expect(gp_compare(str, "HRNEC", GP_CASE_FOLD) < 0);
+            if (czech != NULL)
+                gp_expect(gp_compare(str, "hrnec", GP_COLLATE, czech) > 0);
+
+            gp_expect(gp_compare(str, gp_str(&arena, "hrnec")) < 0);
+            gp_expect(gp_compare(str, gp_str(&arena, "HRNEC")) > 0);
+            gp_expect(gp_compare(str, gp_str(&arena, "HRNEC"), GP_CASE_FOLD) < 0);
+            if (czech != NULL)
+                gp_expect(gp_compare(str, gp_str(&arena, "hrnec"), GP_COLLATE, czech) > 0);
+
+            gp_locale_delete(czech);
         }
 
         gp_test("Codepoint count");

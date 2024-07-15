@@ -1252,6 +1252,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_find_first_of(...)       GP_FIND_FIRST_OF(__VA_ARGS__)
 #define gp_find_first_not_of(...)   GP_FIND_FIRST_NOT_OF(__VA_ARGS__)
 #define gp_equal_case(...)          GP_EQUAL_CASE(__VA_ARGS__)
+#define gp_compare(...)             GP_COMPARE(__VA_ARGS__)
 #define gp_codepoint_count(...)     GP_CODEPOINT_COUNT(__VA_ARGS__)
 #define gp_is_valid(...)            GP_IS_VALID(__VA_ARGS__)
 
@@ -1321,6 +1322,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_find_first_of(...)       GP_FIND_FIRST_OF(__VA_ARGS__)
 #define gp_find_first_not_of(...)   GP_FIND_FIRST_NOT_OF(__VA_ARGS__)
 #define gp_equal_case(...)          GP_EQUAL_CASE(__VA_ARGS__)
+#define gp_compare(...)             GP_COMPARE(__VA_ARGS__)
 #define gp_codepoint_count(...)     GP_CODEPOINT_COUNT(__VA_ARGS__)
 #define gp_is_valid(...)            GP_IS_VALID(__VA_ARGS__)
 
@@ -2120,6 +2122,15 @@ inline bool gp_equal_case99(const GPString a, GPStrIn b)
 #define GP_EQUAL_CASE2(A, B) gp_equal_case99(a, GP_STR_IN(B))
 #define GP_EQUAL_CASE(A,...) \
     GP_OVERLOAD2(__VA_ARGS__, gp_str_equal_case, GP_EQUAL_CASE2)(A, __VA_ARGS__)
+
+inline int gp_compare99(const GPString str1, GPStrIn str2, int flags, GPLocale* locale)
+{
+    return gp_str_compare(str1, str2.data, str2.length, flags, locale);
+}
+#define GP_COMPARE2(STR1, STR2)                gp_compare99(STR1, GP_STR_IN(STR2), 0, gp_default_locale())
+#define GP_COMPARE3(STR1, STR2, FLAGS)         gp_compare99(STR1, GP_STR_IN(STR2), FLAGS, gp_default_locale())
+#define GP_COMPARE4(STR1, STR2, FLAGS, LOCALE) gp_compare99(STR1, GP_STR_IN(STR2), FLAGS, LOCALE)
+#define GP_COMPARE(STR1,...) GP_OVERLOAD3(__VA_ARGS__, GP_COMPARE4, GP_COMPARE3, GP_COMPARE2)(STR1,__VA_ARGS__)
 
 size_t gp_codepoint_count99(GPStrIn s);
 #define GP_CODEPOINT_COUNT(...) gp_codepoint_count99(GP_STR_IN(__VA_ARGS__))

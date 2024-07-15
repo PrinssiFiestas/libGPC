@@ -12,6 +12,21 @@
 // ----------------------------------------------------------------------------
 // Locale
 
+const char* gp_set_utf8_global_locale(int category, const char* locale_code)
+{
+    char full_locale_code[16] = "";
+    strncpy(full_locale_code, locale_code, strlen("xx_XX"));
+    #ifndef _WIN32
+    if (locale_code[0] == '\0')
+        full_locale_code[0] = 'C';
+    #endif
+    #ifndef __MINGW32__
+    strcat(full_locale_code, ".UTF-8");
+    #endif
+
+    return setlocale(category, full_locale_code);
+}
+
 #if GP_LOCALE_T_AVAILABLE
 
 static GPLocale* gp_default_locale_internal = NULL;
@@ -1268,7 +1283,7 @@ int gp_str_compare(
         for (size_t i = 0, codepoint_length; i < min_length; i += codepoint_length)
         {
             uint32_t cp1, cp2;
-            codepoint_length = gp_utf8_encode(&cp1, s1, i); gp_utf8_encode(&cp2, s1, i);
+            codepoint_length = gp_utf8_encode(&cp1, s1, i); gp_utf8_encode(&cp2, s2, i);
             if (cp1 != cp2)
                 return cp1 - cp2;
         }

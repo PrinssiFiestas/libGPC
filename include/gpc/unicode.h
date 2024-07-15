@@ -19,7 +19,7 @@
 // Portably sets global locale to UTF-8.
 // locale_code should be in form "xx_YY" or an empty string.
 GP_NONNULL_ARGS()
-void gp_set_utf8_global_locale(int category, const char* locale_code);
+const char* gp_set_utf8_global_locale(int category, const char* locale_code);
 
 #if !_WIN32 && _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
 

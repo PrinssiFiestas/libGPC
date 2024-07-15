@@ -10,11 +10,6 @@
 #include <signal.h>
 #include <inttypes.h>
 
-#if _WIN32
-// quick hack to disable locale dependent tests for now
-#define setlocale(...) NULL
-#endif
-
 int main(void)
 {
     gp_suite("Creating strings");
@@ -118,13 +113,10 @@ int main(void)
 
         gp_test("Case insensitive");
         {
-            if (setlocale(LC_ALL, "C.utf8") != NULL)
-            {
-                const GPString AaAaOo = gp_str_on_stack(NULL, 24, "AaÄäÖö");
-                gp_expect(   gp_str_equal_case(AaAaOo, "aaÄÄöÖ", strlen("aaÄÄöÖ")));
-                gp_expect( ! gp_str_equal_case(AaAaOo, "aaxÄöÖ", strlen("aaxÄöÖ")));
-                gp_expect( ! gp_str_equal_case(AaAaOo, "aaÄÄöÖuu", strlen("aaÄÄöÖuu")));
-            }
+            const GPString AaAaOo = gp_str_on_stack(NULL, 24, "AaÄäÖö");
+            gp_expect(   gp_str_equal_case(AaAaOo, "aaÄÄöÖ", strlen("aaÄÄöÖ")));
+            gp_expect( ! gp_str_equal_case(AaAaOo, "aaxÄöÖ", strlen("aaxÄöÖ")));
+            gp_expect( ! gp_str_equal_case(AaAaOo, "aaÄÄöÖuu", strlen("aaÄÄöÖuu")));
         }
     }
 
@@ -553,8 +545,10 @@ int main(void)
     // ------------------------------------------------------------------------
     // Internal tests
 
-    if (sizeof(wchar_t) == sizeof(uint32_t) && setlocale(LC_ALL, "C.UTF-8"))
+    if (sizeof(wchar_t) == sizeof(uint32_t))
     {
+        gp_assert(gp_set_utf8_global_locale(LC_ALL, ""));
+
         gp_suite("Unicode conversions");
         {
             #define BUF_LEN (1024)

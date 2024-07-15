@@ -18,6 +18,7 @@ extern inline GPString gp_to_valid_new(
 extern inline size_t gp_find_first99(const GPString haystack, GPStrIn needle, size_t);
 extern inline size_t gp_find_last99(const GPString haystack, GPStrIn needle);
 extern inline bool gp_equal_case99(const GPString a, GPStrIn b);
+extern inline int gp_compare99(GPString, GPStrIn, int, GPLocale*);
 
 extern inline GPString gp_to_upper99(const size_t a_size, const void* a, const void* b, const char* b_id);
 extern inline GPString gp_to_lower99(const size_t a_size, const void* a, const void* b, const char* b_id);
