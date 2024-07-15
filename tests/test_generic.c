@@ -292,6 +292,22 @@ int main(void)
             gp_expect(gp_equal(str2, "BLAH|BLAH|BLAH"));
         }
 
+        gp_test("Sort");
+        {
+            // No separator for gp_split() defaults to GP_WHITESPACE
+            GPArray(GPString) arr = gp_split(&arena, "asdf ÄLÄSDEE BLOINK öö");
+            gp_sort(&arr);
+            gp_expect(gp_equal(gp_join(&arena, arr), "BLOINKasdfÄLÄSDEEöö"));
+            gp_sort(&arr, GP_CASE_FOLD);
+            gp_expect(gp_equal(gp_join(&arena, arr), "asdfBLOINKÄLÄSDEEöö"));
+            GPLocale* finnish = gp_locale_new("fi_FI");
+            if (finnish != NULL) {
+                gp_sort(&arr, GP_COLLATE | GP_CASE_FOLD, finnish);
+                gp_expect(gp_equal(gp_join(&arena, arr), "asdfBLOINKÄLÄSDEEöö"), gp_join(&arena, arr));
+                gp_locale_delete(finnish);
+            }
+        }
+
         gp_test("Copy");
         {
             GPString str1 = gp_str(&arena);

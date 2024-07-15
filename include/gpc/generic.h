@@ -1259,6 +1259,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 // Strings and arrays
 #define gp_split(...)               GP_SPLIT(__VA_ARGS__)
 #define gp_join(...)                GP_JOIN11(__VA_ARGS__)
+#define gp_sort(...)                GP_SORT(__VA_ARGS__)
 #define gp_length(...)              gp_arr_length(__VA_ARGS__)
 #define gp_capacity(...)            gp_arr_capacity(__VA_ARGS__)
 #define gp_allocation(...)          gp_arr_allocation(__VA_ARGS__)
@@ -1331,6 +1332,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 // Strings and arrays
 #define gp_split(...)               GP_SPLIT(__VA_ARGS__)
 #define gp_join(...)                GP_JOIN99(__VA_ARGS__)
+#define gp_sort(...)                GP_SORT(__VA_ARGS__)
 #define gp_length(...)              gp_arr_length(__VA_ARGS__)
 #define gp_capacity(...)            gp_arr_capacity(__VA_ARGS__)
 #define gp_allocation(...)          gp_arr_allocation(__VA_ARGS__)
@@ -1534,8 +1536,11 @@ static inline GPString gp_str_trim_new3(const void*const alc, GPStrIn str, const
 
 GPString gp_join_new(const GPAllocator* allocator, const GPArray(GPString) srcs, const char* separator);
 #define GP_JOIN_SELECTION(T) T*: gp_join_new, const T*: gp_join_new
-#define GP_JOIN11(A, STRS, SEP) _Generic(A, GPString*: gp_str_join, \
+#define GP_JOIN11_2(A, STRS) _Generic(A, GPString*: gp_str_join, \
+    GP_PROCESS_ALL_ARGS(GP_JOIN_SELECTION, GP_COMMA, GP_ALC_TYPES))((void*)(A), STRS, "")
+#define GP_JOIN11_3(A, STRS, SEP) _Generic(A, GPString*: gp_str_join, \
     GP_PROCESS_ALL_ARGS(GP_JOIN_SELECTION, GP_COMMA, GP_ALC_TYPES))((void*)(A), STRS, SEP)
+#define GP_JOIN11(A,...) GP_OVERLOAD2(__VA_ARGS__, GP_JOIN11_3, GP_JOIN11_2)(A,__VA_ARGS__)
 
 GP_NONNULL_ARGS()
 static inline void gp_str_reserve11(const size_t unused, GPString* str, const size_t size)
@@ -2157,10 +2162,12 @@ inline GPArray(GPString) gp_split99(const GPAllocator* alc, GPStrIn str, const c
 {
     return gp_str_split(alc, str.data, str.length, separators);
 }
-#define GP_SPLIT(ALC, STR, SEP) gp_split99(GP_ALC(ALC), GP_STR_IN(STR), SEP)
+#define GP_SPLIT2(ALC, STR)      gp_split99(GP_ALC(ALC), GP_STR_IN(STR), GP_WHITESPACE)
+#define GP_SPLIT3(ALC, STR, SEP) gp_split99(GP_ALC(ALC), GP_STR_IN(STR), SEP)
+#define GP_SPLIT(ALC,...) GP_OVERLOAD2(__VA_ARGS__, GP_SPLIT3, GP_SPLIT2)(ALC,__VA_ARGS__)
 
 GPString gp_join_new(const GPAllocator* allocator, const GPArray(GPString) srcs, const char* separator);
-inline GPString gp_join_new99(
+inline GPString gp_join99(
     size_t a_size, const void* a, const GPArray(GPString) srcs, const char* separator)
 {
     if (a_size < sizeof(GPAllocator)) {
@@ -2169,7 +2176,14 @@ inline GPString gp_join_new99(
     }
     return gp_join_new(a, srcs, separator);
 }
-#define GP_JOIN99(A, STRS, SEP) gp_join_new99(GP_SIZEOF_TYPEOF(*(A)), A, STRS, SEP)
+
+#define GP_JOIN99_2(A, STRS)      gp_join99(GP_SIZEOF_TYPEOF(*(A)), A, STRS, "")
+#define GP_JOIN99_3(A, STRS, SEP) gp_join99(GP_SIZEOF_TYPEOF(*(A)), A, STRS, SEP)
+#define GP_JOIN99(A,...) GP_OVERLOAD2(__VA_ARGS__, GP_JOIN99_3, GP_JOIN99_2)(A,__VA_ARGS__)
+
+#define GP_SORT1(STRS)        gp_str_sort(STRS, 0,     gp_default_locale())
+#define GP_SORT2(STRS, FLAGS) gp_str_sort(STRS, FLAGS, gp_default_locale())
+#define GP_SORT(...) GP_OVERLOAD3(__VA_ARGS__, gp_str_sort, GP_SORT2, GP_SORT1)(__VA_ARGS__)
 
 #define GP_IS_ALC99(A) (GP_SIZEOF_TYPEOF(*(A)) >= sizeof(GPAllocator))
 

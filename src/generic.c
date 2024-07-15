@@ -25,7 +25,7 @@ extern inline GPString gp_to_lower99(const size_t a_size, const void* a, const v
 extern inline GPString gp_capitalize99(const size_t a_size, const void* a, const void* b, const char* b_id);
 
 extern inline GPArray(GPString) gp_split99(const GPAllocator*, GPStrIn, const char*);
-extern inline GPString gp_join_new99(size_t a_size, const void* a, const GPArray(GPString) srcs, const char* separator);
+extern inline GPString gp_join99(size_t a_size, const void* a, const GPArray(GPString) srcs, const char* separator);
 
 extern inline void* gp_push99(const size_t elem_size, void*_parr);
 
