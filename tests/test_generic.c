@@ -44,6 +44,8 @@
 
 int main(void)
 {
+    gp_assert(gp_default_locale() != NULL);
+
     // Tiny arena to put address sanitizer to work
     GPArena arena = gp_arena_new(1);
     arena.growth_coefficient = 0.0;
@@ -179,7 +181,7 @@ int main(void)
             {
                 gp_copy(&str0, "iıİI");
                 GPString str3 = gp_to_upper(&arena, str0, turkish);
-                gp_expect(gp_equal(str3, "İIİI"));
+                gp_expect(gp_equal(str3, "İIİI"), str3);
                 gp_to_lower(&str3, turkish);
                 gp_expect(gp_equal(str3, "iıiı"));
                 GPString str4 = gp_to_lower(&arena, str0, turkish);

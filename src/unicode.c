@@ -49,13 +49,13 @@ GPLocale* gp_locale_new(const char*const locale_code)
     strcat(full_locale_code, ".UTF-8");
     #endif
 
-    locale_t l =
-        #if _WIN32
-        _create_locale(LC_ALL, full_locale_code);
-        #else
-        newlocale(LC_ALL_MASK, full_locale_code, (locale_t)0);
-        #endif
+    #if _WIN32
+    _locale_t l = _create_locale(LC_ALL, full_locale_code);
+    if (l == (_locale_t)0)
+    #else
+    locale_t l = newlocale(LC_ALL_MASK, full_locale_code, (locale_t)0);
     if (l == (locale_t)0)
+    #endif
         return NULL;
 
     // Extend lifetime to match locale_t lifetime. Semi-pointless heap
@@ -71,12 +71,13 @@ void gp_locale_delete(GPLocale* locale)
 {
     if (locale == NULL || locale == gp_default_locale_internal)
         return;
-    if (locale->locale != (locale_t)0)
-        #if _WIN32
+    #if _WIN32
+    if (locale->locale != (_locale_t)0)
         _free_locale(locale->locale);
-        #else
+    #else
+    if (locale->locale != (locale_t)0)
         freelocale(locale->locale);
-        #endif
+    #endif
     gp_mem_dealloc(gp_heap, (void*)locale);
 }
 
@@ -85,12 +86,13 @@ static void gp_delete_default_locale(void)
     if (gp_default_locale_internal == NULL)
         return;
 
-    if (gp_default_locale_internal->locale != (locale_t)0)
-        #if _WIN32
+    #if _WIN32
+    if (gp_default_locale_internal->locale != (_locale_t)0)
         _free_locale(gp_default_locale_internal->locale);
-        #else
+    #else
+    if (gp_default_locale_internal->locale != (locale_t)0)
         freelocale(gp_default_locale_internal->locale);
-        #endif
+    #endif
     gp_mem_dealloc(gp_heap, (void*)gp_default_locale_internal);
 }
 
@@ -191,7 +193,7 @@ void gp_utf8_to_utf32(
     }
     size_t gp_bytes_codepoint_count(const void*, size_t);
     *u32 = gp_arr_reserve(sizeof(*u32)[0], *u32,
-        gp_arr_length(*u32) + gp_bytes_codepoint_count(u8 + i, u8_length));
+        gp_arr_length(*u32) + gp_bytes_codepoint_count((uint8_t*)u8 + i, u8_length));
 
     for (; i < u8_length; i += codepoint_length)
     {
@@ -456,59 +458,9 @@ void gp_wcs_to_utf8(
         gp_utf16_to_utf8(utf8, (uint16_t*)wcs, wcs_length);
 }
 
-uint32_t gp_u32_to_upper(uint32_t c)
-{
-    #if !_WIN32 && GP_LOCALE_T_AVAILABLE
-    return towupper_l(c, gp_default_locale()->locale);
-    #elif !_WIN32
-    return towupper(c);
-    #else
-    if (c <= WCHAR_MAX)
-        return _towupper_l(c, gp_default_locale()->locale);
-
-    // Based on Unicode 15.1.0
-    // Expression used to filter out the characters for the below code:
-    // awk -F\; '{ if ( $13 != "" ) print $1; }' UnicodeData.txt
-
-    if      ((0x10428 <= c && c <= 0x1044F)  ||
-             (0x104D8 <= c && c <= 0x104FB)) return c - 0x28;
-    else if ((0x10597 <= c && c <= 0x105B9)  ||
-             (0x105BB == c || c == 0x105BC)) return c - 0x27;
-    else if ((0x10CC0 <= c && c <= 0x10CF2)) return c - 0x40;
-    else if ((0x118C0 <= c && c <= 0x118DF)  ||
-             (0x16E60 <= c && c <= 0x16E7F)) return c - 0x20;
-    else if ((0x1E922 <= c && c <= 0x1E943)) return c - 0x22;
-
-    return c;
-    #endif
-}
-
-uint32_t gp_u32_to_lower(uint32_t c)
-{
-    #if !_WIN32 && GP_LOCALE_T_AVAILABLE
-    return towlower_l(c, gp_default_locale()->locale);
-    #elif !_WIN32
-    return towlower(c);
-    #else
-    if (c <= WCHAR_MAX)
-        return _towlower_l(c, gp_default_locale()->locale);
-
-    // Based on Unicode 15.1.0
-    // Expression used to filter out the characters for the below code:
-    // awk -F\; '{ if ( $14 != "" ) print $1; }' UnicodeData.txt
-
-    if      ((0x10400 <= c && c <= 0x10427)  ||
-             (0x104B0 <= c && c <= 0x104D3)) return c + 0x28;
-    else if ((0x10570 <= c && c <= 0x10592)  ||
-             (0x10594 == c || c == 0x10595)) return c + 0x27;
-    else if ((0x10C80 <= c && c <= 0x10CB2)) return c + 0x40;
-    else if ((0x118A0 <= c && c <= 0x118BF)  ||
-             (0x16E40 <= c && c <= 0x16E5F)) return c + 0x20;
-    else if ((0x1E900 <= c && c <= 0x1E921)) return c + 0x22;
-
-    return c;
-    #endif
-}
+uint32_t gp_u32_to_upper(uint32_t);
+uint32_t gp_u32_to_lower(uint32_t);
+uint32_t gp_u32_to_title(uint32_t);
 
 // ----------------------------------------------------------------------------
 // String extensions
@@ -521,7 +473,7 @@ static size_t gp_utf8_find_first_of(
 {
     for (size_t cplen, i = start; i < haystack_length; i += cplen) {
         cplen = gp_utf8_codepoint_length(haystack, i);
-        if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) != NULL)
+        if (strstr(char_set, memcpy((char[8]){}, (uint8_t*)haystack + i, cplen)) != NULL)
             return i;
     }
     return GP_NOT_FOUND;
@@ -535,7 +487,7 @@ static size_t gp_utf8_find_first_not_of(
 {
     for (size_t cplen, i = start; i < haystack_length; i += cplen) {
         cplen = gp_utf8_codepoint_length(haystack, i);
-        if (strstr(char_set, memcpy((char[8]){}, haystack + i, cplen)) == NULL)
+        if (strstr(char_set, memcpy((char[8]){}, (uint8_t*)haystack + i, cplen)) == NULL)
             return i;
     }
     return GP_NOT_FOUND;
@@ -599,7 +551,7 @@ GPArray(GPString) gp_str_split(
                 indices[j].end - indices[j].start;
             memcpy(
                 substrs[gp_arr_length(substrs) + j],
-                str + indices[j].start,
+                (uint8_t*)str + indices[j].start,
                 gp_str_length(substrs[gp_arr_length(substrs) + j]));
         }
         ((GPArrayHeader*)substrs - 1)->length += indices_length;
@@ -847,12 +799,13 @@ static bool gp_is_above_combining_class(const uint32_t encoding)
 }
 #endif
 
-static bool gp_is_word_final(const uint32_t lookbehind, const uint32_t lookahead, const GPLocale* locale)
+static bool gp_is_word_final(const uint32_t lookbehind, const uint32_t lookahead, GPLocale* locale)
 {
     if (locale == NULL)
         return (lookbehind <= WCHAR_MAX && iswalpha(lookbehind)) &&
             !  (lookahead  <= WCHAR_MAX && iswalpha(lookahead));
     #if _WIN32
+    //int _iswalpha_l(wint_t, _locale_t);
     return (lookbehind <= WCHAR_MAX && _iswalpha_l(lookbehind, locale->locale)) &&
         !  (lookahead  <= WCHAR_MAX && _iswalpha_l(lookahead,  locale->locale));
     #elif GP_LOCALE_T_AVAILABLE
@@ -1088,7 +1041,7 @@ void gp_str_capitalize(
 } while(0)
 
 void gp_wcs_fold_utf8(
-    GPArray(wchar_t)* wcs, const void*_str, const size_t str_length, const GPLocale* locale)
+    GPArray(wchar_t)* wcs, const void*_str, const size_t str_length, GPLocale* locale)
 {
     const char*const locale_code = locale != NULL ? locale->code : "";
 
@@ -1322,7 +1275,7 @@ int gp_str_compare(
     const void*const s2,
     const size_t s2_length,
     const int flags,
-    const GPLocale* locale)
+    GPLocale* locale)
 {
     const bool fold    = flags & 0x4;
     const bool collate = flags & 0x1;
@@ -1371,3 +1324,1193 @@ int gp_str_compare(
     return !reverse ? result : -result;
 }
 
+// ----------------------------------------------------------------------------
+// to_upper(), to_lower(), to_title()
+//
+// Turns out that Windows, despite Microshits claims, is not very Unicode
+// capable. `towupper()` and relevants fail with a large set of codepoints even
+// with /utf-8, /D_UNICODE, and any locale settings. So here we are reinventing
+// the wheel, once again, although I really don't feel like doing that, so I'll
+// just rip off some Newlib source code.
+
+// https://chromium.googlesource.com/native_client/nacl-newlib/+/refs/heads/main/newlib/libc/ctype
+
+/* Copyright (c) 2002 Red Hat Incorporated.
+   All rights reserved.
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+     Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+     Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+     The name of Red Hat Incorporated may not be used to endorse
+     or promote products derived from this software without specific
+     prior written permission.
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+   ARE DISCLAIMED.  IN NO EVENT SHALL RED HAT INCORPORATED BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+   ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+uint32_t gp_u32_to_upper(uint32_t c)
+{
+    #if GP_LOCALE_T_AVAILABLE && WCHAR_MAX >= INT32_MAX
+    return towupper_l(c, gp_default_locale()->locale);
+    #else
+    /* Based on and tested against Unicode 5.2 */
+    /* Expression used to filter out the characters for the below code:
+       awk -F\; '{ if ( $13 != "" ) print $1; }' UnicodeData.txt
+    */
+    if (c < 0x100)
+      {
+        if (c == 0x00b5)
+  	return 0x039c;
+
+        if ((c >= 0x00e0 && c <= 0x00fe && c != 0x00f7) ||
+  	  (c >= 0x0061 && c <= 0x007a))
+  	return (c - 0x20);
+
+        if (c == 0xff)
+  	return 0x0178;
+
+        return c;
+      }
+    else if (c < 0x300)
+      {
+        if ((c >= 0x0101 && c <= 0x012f) ||
+  	  (c >= 0x0133 && c <= 0x0137) ||
+  	  (c >= 0x014b && c <= 0x0177) ||
+  	  (c >= 0x01df && c <= 0x01ef) ||
+  	  (c >= 0x01f9 && c <= 0x021f) ||
+  	  (c >= 0x0223 && c <= 0x0233) ||
+  	  (c >= 0x0247 && c <= 0x024f))
+  	{
+  	  if (c & 0x01)
+  	    return (c - 1);
+  	  return c;
+  	}
+        if ((c >= 0x013a && c <= 0x0148) ||
+  	  (c >= 0x01ce && c <= 0x01dc) ||
+  	  c == 0x023c || c == 0x0242)
+  	{
+  	  if (!(c & 0x01))
+  	    return (c - 1);
+  	  return c;
+  	}
+
+        if (c == 0x0131)
+  	return 0x0049;
+
+        if (c == 0x017a || c == 0x017c || c == 0x017e)
+  	return (c - 1);
+
+        if (c >= 0x017f && c <= 0x0292)
+  	{
+  	  wint_t k;
+  	  switch (c)
+  	    {
+  	    case 0x017f:
+  	      k = 0x0053;
+  	      break;
+  	    case 0x0180:
+  	      k = 0x0243;
+  	      break;
+  	    case 0x0183:
+  	      k = 0x0182;
+  	      break;
+  	    case 0x0185:
+  	      k = 0x0184;
+  	      break;
+  	    case 0x0188:
+  	      k = 0x0187;
+  	      break;
+  	    case 0x018c:
+  	      k = 0x018b;
+  	      break;
+  	    case 0x0192:
+  	      k = 0x0191;
+  	      break;
+  	    case 0x0195:
+  	      k = 0x01f6;
+  	      break;
+  	    case 0x0199:
+  	      k = 0x0198;
+  	      break;
+  	    case 0x019a:
+  	      k = 0x023d;
+  	      break;
+  	    case 0x019e:
+  	      k = 0x0220;
+  	      break;
+  	    case 0x01a1:
+  	    case 0x01a3:
+  	    case 0x01a5:
+  	    case 0x01a8:
+  	    case 0x01ad:
+  	    case 0x01b0:
+  	    case 0x01b4:
+  	    case 0x01b6:
+  	    case 0x01b9:
+  	    case 0x01bd:
+  	    case 0x01c5:
+  	    case 0x01c8:
+  	    case 0x01cb:
+  	    case 0x01f2:
+  	    case 0x01f5:
+  	      k = c - 1;
+  	      break;
+  	    case 0x01bf:
+  	      k = 0x01f7;
+  	      break;
+  	    case 0x01c6:
+  	    case 0x01c9:
+  	    case 0x01cc:
+  	      k = c - 2;
+  	      break;
+  	    case 0x01dd:
+  	      k = 0x018e;
+  	      break;
+  	    case 0x01f3:
+  	      k = 0x01f1;
+  	      break;
+  	    case 0x023f:
+  	      k = 0x2c7e;
+  	      break;
+  	    case 0x0240:
+  	      k = 0x2c7f;
+  	      break;
+  	    case 0x0250:
+  	      k = 0x2c6f;
+  	      break;
+  	    case 0x0251:
+  	      k = 0x2c6d;
+  	      break;
+  	    case 0x0252:
+  	      k = 0x2c70;
+  	      break;
+  	    case 0x0253:
+  	      k = 0x0181;
+  	      break;
+  	    case 0x0254:
+  	      k = 0x0186;
+  	      break;
+  	    case 0x0256:
+  	      k = 0x0189;
+  	      break;
+  	    case 0x0257:
+  	      k = 0x018a;
+  	      break;
+  	    case 0x0259:
+  	      k = 0x018f;
+  	      break;
+  	    case 0x025b:
+  	      k = 0x0190;
+  	      break;
+  	    case 0x0260:
+  	      k = 0x0193;
+  	      break;
+  	    case 0x0263:
+  	      k = 0x0194;
+  	      break;
+  	    case 0x0268:
+  	      k = 0x0197;
+  	      break;
+  	    case 0x0269:
+  	      k = 0x0196;
+  	      break;
+  	    case 0x026b:
+  	      k = 0x2c62;
+  	      break;
+  	    case 0x026f:
+  	      k = 0x019c;
+  	      break;
+  	    case 0x0271:
+  	      k = 0x2c6e;
+  	      break;
+  	    case 0x0272:
+  	      k = 0x019d;
+  	      break;
+  	    case 0x0275:
+  	      k = 0x019f;
+  	      break;
+  	    case 0x027d:
+  	      k = 0x2c64;
+  	      break;
+  	    case 0x0280:
+  	      k = 0x01a6;
+  	      break;
+  	    case 0x0283:
+  	      k = 0x01a9;
+  	      break;
+  	    case 0x0288:
+  	      k = 0x01ae;
+  	      break;
+  	    case 0x0289:
+  	      k = 0x0244;
+  	      break;
+  	    case 0x028a:
+  	      k = 0x01b1;
+  	      break;
+  	    case 0x028b:
+  	      k = 0x01b2;
+  	      break;
+  	    case 0x028c:
+  	      k = 0x0245;
+  	      break;
+  	    case 0x0292:
+  	      k = 0x01b7;
+  	      break;
+  	    default:
+  	      k = 0;
+  	    }
+  	  if (k != 0)
+  	    return k;
+  	}
+      }
+    else if (c < 0x0400)
+      {
+        wint_t k;
+        if (c >= 0x03ad && c <= 0x03af)
+        	return (c - 0x25);
+        if (c >= 0x03b1 && c <= 0x03cb && c != 0x03c2)
+  	return (c - 0x20);
+
+        if (c >= 0x03d9 && c <= 0x03ef && (c & 1))
+  	return (c - 1);
+        switch (c)
+  	{
+  	case 0x0345:
+  	  k = 0x0399;
+  	  break;
+  	case 0x0371:
+  	case 0x0373:
+  	case 0x0377:
+  	case 0x03f8:
+  	case 0x03fb:
+  	  k = c - 1;
+  	  break;
+  	case 0x037b:
+  	case 0x037c:
+  	case 0x037d:
+  	  k = c + 0x82;
+  	  break;
+  	case 0x03ac:
+  	  k = 0x0386;
+  	  break;
+  	case 0x03c2:
+  	  k = 0x03a3;
+  	  break;
+  	case 0x03cc:
+  	  k = 0x038c;
+  	  break;
+  	case 0x03cd:
+  	case 0x03ce:
+  	  k = c - 0x3f;
+  	  break;
+  	case 0x03d0:
+  	  k = 0x0392;
+  	  break;
+  	case 0x03d1:
+  	  k = 0x0398;
+  	  break;
+  	case 0x03d5:
+  	  k = 0x03a6;
+  	  break;
+  	case 0x03d6:
+  	  k = 0x03a0;
+  	  break;
+  	case 0x03d7:
+  	  k = 0x03cf;
+  	  break;
+  	case 0x03f0:
+  	  k = 0x039a;
+  	  break;
+  	case 0x03f1:
+  	  k = 0x03a1;
+  	  break;
+  	case 0x03f2:
+  	  k = 0x03f9;
+  	  break;
+  	case 0x03f5:
+  	  k = 0x0395;
+  	  break;
+  	default:
+  	  k = 0;
+  	}
+        if (k != 0)
+  	return k;
+      }
+    else if (c < 0x500)
+      {
+        if (c >= 0x0430 && c <= 0x044f)
+  	return (c - 0x20);
+
+        if (c >= 0x0450 && c <= 0x045f)
+  	return (c - 0x50);
+
+        if ((c >= 0x0461 && c <= 0x0481) ||
+  	  (c >= 0x048b && c <= 0x04bf) ||
+  	  (c >= 0x04d1 && c <= 0x04ff))
+  	{
+  	  if (c & 0x01)
+  	    return (c - 1);
+  	  return c;
+  	}
+
+        if (c >= 0x04c2 && c <= 0x04ce)
+  	{
+  	  if (!(c & 0x01))
+  	    return (c - 1);
+  	  return c;
+  	}
+
+        if (c == 0x04cf)
+        	return 0x04c0;
+        if (c >= 0x04f7 && c <= 0x04f9)
+  	return (c - 1);
+      }
+    else if (c < 0x0600)
+      {
+        if (c >= 0x0501 && c <= 0x0525 && (c & 1))
+        	return c - 1;
+        if (c >= 0x0561 && c <= 0x0586)
+  	return (c - 0x30);
+      }
+    else if (c < 0x1f00)
+      {
+        if (c == 0x1d79)
+        	return 0xa77d;
+        if (c == 0x1d7d)
+        	return 0x2c63;
+        if ((c >= 0x1e01 && c <= 0x1e95) ||
+  	  (c >= 0x1ea1 && c <= 0x1eff))
+  	{
+  	  if (c & 0x01)
+  	    return (c - 1);
+  	  return c;
+  	}
+
+        if (c == 0x1e9b)
+  	return 0x1e60;
+      }
+    else if (c < 0x2000)
+      {
+
+        if ((c >= 0x1f00 && c <= 0x1f07) ||
+  	  (c >= 0x1f10 && c <= 0x1f15) ||
+  	  (c >= 0x1f20 && c <= 0x1f27) ||
+  	  (c >= 0x1f30 && c <= 0x1f37) ||
+  	  (c >= 0x1f40 && c <= 0x1f45) ||
+  	  (c >= 0x1f60 && c <= 0x1f67) ||
+  	  (c >= 0x1f80 && c <= 0x1f87) ||
+  	  (c >= 0x1f90 && c <= 0x1f97) ||
+  	  (c >= 0x1fa0 && c <= 0x1fa7))
+  	return (c + 0x08);
+        if (c >= 0x1f51 && c <= 0x1f57 && (c & 0x01))
+  	return (c + 0x08);
+
+        if (c >= 0x1f70 && c <= 0x1ff3)
+  	{
+  	  wint_t k;
+  	  switch (c)
+  	    {
+  	    case 0x1fb0:
+  	      k = 0x1fb8;
+  	      break;
+  	    case 0x1fb1:
+  	      k = 0x1fb9;
+  	      break;
+  	    case 0x1f70:
+  	      k = 0x1fba;
+  	      break;
+  	    case 0x1f71:
+  	      k = 0x1fbb;
+  	      break;
+  	    case 0x1fb3:
+  	      k = 0x1fbc;
+  	      break;
+  	    case 0x1fbe:
+  	      k = 0x0399;
+  	      break;
+  	    case 0x1f72:
+  	      k = 0x1fc8;
+  	      break;
+  	    case 0x1f73:
+  	      k = 0x1fc9;
+  	      break;
+  	    case 0x1f74:
+  	      k = 0x1fca;
+  	      break;
+  	    case 0x1f75:
+  	      k = 0x1fcb;
+  	      break;
+  	    case 0x1fc3:
+  	      k = 0x1fcc;
+  	      break;
+  	    case 0x1fd0:
+  	      k = 0x1fd8;
+  	      break;
+  	    case 0x1fd1:
+  	      k = 0x1fd9;
+  	      break;
+  	    case 0x1f76:
+  	      k = 0x1fda;
+  	      break;
+  	    case 0x1f77:
+  	      k = 0x1fdb;
+  	      break;
+  	    case 0x1fe0:
+  	      k = 0x1fe8;
+  	      break;
+  	    case 0x1fe1:
+  	      k = 0x1fe9;
+  	      break;
+  	    case 0x1f7a:
+  	      k = 0x1fea;
+  	      break;
+  	    case 0x1f7b:
+  	      k = 0x1feb;
+  	      break;
+  	    case 0x1fe5:
+  	      k = 0x1fec;
+  	      break;
+  	    case 0x1f78:
+  	      k = 0x1ff8;
+  	      break;
+  	    case 0x1f79:
+  	      k = 0x1ff9;
+  	      break;
+  	    case 0x1f7c:
+  	      k = 0x1ffa;
+  	      break;
+  	    case 0x1f7d:
+  	      k = 0x1ffb;
+  	      break;
+  	    case 0x1ff3:
+  	      k = 0x1ffc;
+  	      break;
+  	    default:
+  	      k = 0;
+  	    }
+  	  if (k != 0)
+  	    return k;
+  	}
+      }
+    else if (c < 0x3000)
+      {
+        if (c == 0x214e)
+        	return 0x2132;
+        if (c == 0x2184)
+        	return 0x2183;
+        if (c >= 0x2170 && c <= 0x217f)
+  	return (c - 0x10);
+
+        if (c >= 0x24d0 && c <= 0x24e9)
+  	return (c - 0x1a);
+
+        if (c >= 0x2c30 && c <= 0x2c5e)
+  	return (c - 0x30);
+        if ((c >= 0x2c68 && c <= 0x2c6c && !(c & 1)) ||
+  	  (c >= 0x2c81 && c <= 0x2ce3 &&  (c & 1)) ||
+  	  c == 0x2c73 || c == 0x2c76 ||
+  	  c == 0x2cec || c == 0x2cee)
+        	return (c - 1);
+        if (c >= 0x2c81 && c <= 0x2ce3 && (c & 1))
+  	return (c - 1);
+        if (c >= 0x2d00 && c <= 0x2d25)
+        	return (c - 0x1c60);
+        switch (c)
+        	{
+  	case 0x2c61:
+  	  return 0x2c60;
+  	case 0x2c65:
+  	  return 0x023a;
+  	case 0x2c66:
+  	  return 0x023e;
+  	}
+      }
+    else if (c >= 0xa000 && c < 0xb000)
+      {
+        if (((c >= 0xa641 && c <= 0xa65f) ||
+             (c >= 0xa663 && c <= 0xa66d) ||
+             (c >= 0xa681 && c <= 0xa697) ||
+             (c >= 0xa723 && c <= 0xa72f) ||
+             (c >= 0xa733 && c <= 0xa76f) ||
+             (c >= 0xa77f && c <= 0xa787)) &&
+  	  (c & 1))
+  	return (c - 1);
+
+        if (c == 0xa77a || c == 0xa77c || c == 0xa78c)
+  	return (c - 1);
+      }
+    else
+      {
+        if (c >= 0xff41 && c <= 0xff5a)
+  	return (c - 0x20);
+
+        if (c >= 0x10428 && c <= 0x1044f)
+  	return (c - 0x28);
+
+        // Run the awk expression again with updated UnicodeData.txt and compare
+        // the diff with UnicodeData.txt version 5.2.0 to get the most recent
+        // functionality. The code below is based on Unicode 15.1.0.
+        //
+        // awk -F\; '{ if ( $13 != "" ) print $1; }' UnicodeData.txt
+
+        switch (c) {
+            case 0x025C: return 0xA7AB;
+            case 0x0261: return 0xA7AC;
+            case 0x0265: return 0xA78D;
+            case 0x0266: return 0xA7AA;
+            case 0x026A: return 0xA7AE;
+            case 0x026C: return 0xA7AD;
+            case 0x0282: return 0xA7C5;
+            case 0x0287: return 0xA7B1;
+            case 0x029D: return 0xA7B2;
+            case 0x029E: return 0xA7B0;
+            case 0x03F3: return 0x037F;
+            case 0x0527: return c - 1;
+            case 0x0529: return c - 1;
+            case 0x052B: return c - 1;
+            case 0x052D: return c - 1;
+            case 0x052F: return c - 1;
+            case 0x1C80: return 0x0412;
+            case 0x1C81: return 0x0414;
+            case 0x1C82: return 0x041E;
+            case 0x1C83: return 0x0421;
+            case 0x1C84: return 0x0422;
+            case 0x1C85: return 0x0422;
+            case 0x1C86: return 0x042A;
+            case 0x1C87: return 0x0462;
+            case 0x1C88: return 0xA64A;
+            case 0xA791: return 0xA790;
+            case 0xA793: return 0xA792;
+            case 0xA794: return 0xA7C4;
+            case 0xA7C8: return c - 1;
+            case 0xA7CA: return c - 1;
+            case 0xA7D1: return c - 1;
+            case 0xA7D7: return c - 1;
+            case 0xA7D9: return c - 1;
+            case 0xA7F6: return c - 1;
+            case 0xAB53: return 0xA7B3;
+            case 0x1D8E: return 0xA7C6;
+            case 0x10FD: return 0x1CBD;
+            case 0x10FE: return 0x1CBE;
+            case 0x10FF: return 0x1CBF;
+            case 0x2C5F: return 0x2C2F;
+            case 0x2CF3: return 0x2cF2;
+            case 0x2D27: return 0x10C7;
+            case 0x2D2D: return 0x10CD;
+            case 0xA661: return 0xA660;
+            case 0xA699: return 0xA698;
+            case 0xA69B: return 0xA69A;
+        }
+
+        if  (0x10D0  <= c && c <= 0x10FA)   return c + (0x1C90 - 0x10D0);
+        if  (0x13F8  <= c && c <= 0x13FD)   return c - 8;
+        if ((0xA797  <= c && c <= 0xA7A9)   ||
+            (0xA7B5  <= c && c <= 0xA7C3)   && (c % 2)) return c - 1;
+        if  (0xAB70  <= c && c <= 0xABBF)   return c - (0xAB70 - 0x13A0);
+        if ((0x10428 <= c && c <= 0x1044F)  ||
+            (0x104D8 <= c && c <= 0x104FB)) return c - 0x28;
+        if ((0x10597 <= c && c <= 0x105B9)  ||
+            (0x105BB == c || c == 0x105BC)) return c - 0x27;
+        if ((0x10CC0 <= c && c <= 0x10CF2)) return c - 0x40;
+        if ((0x118C0 <= c && c <= 0x118DF)  ||
+            (0x16E60 <= c && c <= 0x16E7F)) return c - 0x20;
+        if ((0x1E922 <= c && c <= 0x1E943)) return c - 0x22;
+      }
+    return c;
+    #endif
+}
+
+uint32_t gp_u32_to_lower(uint32_t c)
+{
+    #if GP_LOCALE_T_AVAILABLE && WCHAR_MAX >= INT32_MAX
+    return towlower_l(c, gp_default_locale()->locale);
+    #else
+
+    /* Based on and tested against Unicode 5.2 */
+    /* Expression used to filter out the characters for the below code:
+       awk -F\; '{ if ( $14 != "" ) print $1; }' UnicodeData.txt
+    */
+    if (c < 0x100)
+      {
+        if ((c >= 0x0041 && c <= 0x005a) ||
+  	  (c >= 0x00c0 && c <= 0x00d6) ||
+  	  (c >= 0x00d8 && c <= 0x00de))
+  	return (c + 0x20);
+        return c;
+      }
+    else if (c < 0x300)
+      {
+        if ((c >= 0x0100 && c <= 0x012e) ||
+  	  (c >= 0x0132 && c <= 0x0136) ||
+  	  (c >= 0x014a && c <= 0x0176) ||
+  	  (c >= 0x01de && c <= 0x01ee) ||
+  	  (c >= 0x01f8 && c <= 0x021e) ||
+  	  (c >= 0x0222 && c <= 0x0232))
+  	{
+  	  if (!(c & 0x01))
+  	    return (c + 1);
+  	  return c;
+  	}
+        if (c == 0x0130)
+  	return 0x0069;
+        if ((c >= 0x0139 && c <= 0x0147) ||
+  	  (c >= 0x01cd && c <= 0x01db))
+  	{
+  	  if (c & 0x01)
+  	    return (c + 1);
+  	  return c;
+  	}
+
+        if (c >= 0x178 && c <= 0x01f7)
+  	{
+  	  wint_t k;
+  	  switch (c)
+  	    {
+  	    case 0x0178:
+  	      k = 0x00ff;
+  	      break;
+  	    case 0x0179:
+  	    case 0x017b:
+  	    case 0x017d:
+  	    case 0x0182:
+  	    case 0x0184:
+  	    case 0x0187:
+  	    case 0x018b:
+  	    case 0x0191:
+  	    case 0x0198:
+  	    case 0x01a0:
+  	    case 0x01a2:
+  	    case 0x01a4:
+  	    case 0x01a7:
+  	    case 0x01ac:
+  	    case 0x01af:
+  	    case 0x01b3:
+  	    case 0x01b5:
+  	    case 0x01b8:
+  	    case 0x01bc:
+  	    case 0x01c5:
+  	    case 0x01c8:
+  	    case 0x01cb:
+  	    case 0x01cd:
+  	    case 0x01cf:
+  	    case 0x01d1:
+  	    case 0x01d3:
+  	    case 0x01d5:
+  	    case 0x01d7:
+  	    case 0x01d9:
+  	    case 0x01db:
+  	    case 0x01f2:
+  	    case 0x01f4:
+  	      k = c + 1;
+  	      break;
+  	    case 0x0181:
+  	      k = 0x0253;
+  	      break;
+  	    case 0x0186:
+  	      k = 0x0254;
+  	      break;
+  	    case 0x0189:
+  	      k = 0x0256;
+  	      break;
+  	    case 0x018a:
+  	      k = 0x0257;
+  	      break;
+  	    case 0x018e:
+  	      k = 0x01dd;
+  	      break;
+  	    case 0x018f:
+  	      k = 0x0259;
+  	      break;
+  	    case 0x0190:
+  	      k = 0x025b;
+  	      break;
+  	    case 0x0193:
+  	      k = 0x0260;
+  	      break;
+  	    case 0x0194:
+  	      k = 0x0263;
+  	      break;
+  	    case 0x0196:
+  	      k = 0x0269;
+  	      break;
+  	    case 0x0197:
+  	      k = 0x0268;
+  	      break;
+  	    case 0x019c:
+  	      k = 0x026f;
+  	      break;
+  	    case 0x019d:
+  	      k = 0x0272;
+  	      break;
+  	    case 0x019f:
+  	      k = 0x0275;
+  	      break;
+  	    case 0x01a6:
+  	      k = 0x0280;
+  	      break;
+  	    case 0x01a9:
+  	      k = 0x0283;
+  	      break;
+  	    case 0x01ae:
+  	      k = 0x0288;
+  	      break;
+  	    case 0x01b1:
+  	      k = 0x028a;
+  	      break;
+  	    case 0x01b2:
+  	      k = 0x028b;
+  	      break;
+  	    case 0x01b7:
+  	      k = 0x0292;
+  	      break;
+  	    case 0x01c4:
+  	    case 0x01c7:
+  	    case 0x01ca:
+  	    case 0x01f1:
+  	      k = c + 2;
+  	      break;
+  	    case 0x01f6:
+  	      k = 0x0195;
+  	      break;
+  	    case 0x01f7:
+  	      k = 0x01bf;
+  	      break;
+  	    default:
+  	      k = 0;
+  	    }
+  	  if (k != 0)
+  	    return k;
+  	}
+        else if (c == 0x0220)
+        	return 0x019e;
+        else if (c >= 0x023a && c <= 0x024e)
+        	{
+  	  wint_t k;
+  	  switch (c)
+  	    {
+  	    case 0x023a:
+  	      k = 0x2c65;
+  	      break;
+  	    case 0x023b:
+  	    case 0x0241:
+  	    case 0x0246:
+  	    case 0x0248:
+  	    case 0x024a:
+  	    case 0x024c:
+  	    case 0x024e:
+  	      k = c + 1;
+  	      break;
+  	    case 0x023d:
+  	      k = 0x019a;
+  	      break;
+  	    case 0x023e:
+  	      k = 0x2c66;
+  	      break;
+  	    case 0x0243:
+  	      k = 0x0180;
+  	      break;
+  	    case 0x0244:
+  	      k = 0x0289;
+  	      break;
+  	    case 0x0245:
+  	      k = 0x028c;
+  	      break;
+  	    default:
+  	      k = 0;
+  	    }
+  	  if (k != 0)
+  	    return k;
+  	}
+      }
+    else if (c < 0x0400)
+      {
+        if (c == 0x0370 || c == 0x0372 || c == 0x0376)
+        	return (c + 1);
+        if (c >= 0x0391 && c <= 0x03ab && c != 0x03a2)
+  	return (c + 0x20);
+        if (c >= 0x03d8 && c <= 0x03ee && !(c & 0x01))
+  	return (c + 1);
+        if (c >= 0x0386 && c <= 0x03ff)
+  	{
+  	  wint_t k;
+  	  switch (c)
+  	    {
+  	    case 0x0386:
+  	      k = 0x03ac;
+  	      break;
+  	    case 0x0388:
+  	      k = 0x03ad;
+  	      break;
+  	    case 0x0389:
+  	      k = 0x03ae;
+  	      break;
+  	    case 0x038a:
+  	      k = 0x03af;
+  	      break;
+  	    case 0x038c:
+  	      k = 0x03cc;
+  	      break;
+  	    case 0x038e:
+  	      k = 0x03cd;
+  	      break;
+  	    case 0x038f:
+  	      k = 0x03ce;
+  	      break;
+  	    case 0x03cf:
+  	      k = 0x03d7;
+  	      break;
+  	    case 0x03f4:
+  	      k = 0x03b8;
+  	      break;
+  	    case 0x03f7:
+  	      k = 0x03f8;
+  	      break;
+  	    case 0x03f9:
+  	      k = 0x03f2;
+  	      break;
+  	    case 0x03fa:
+  	      k = 0x03fb;
+  	      break;
+  	    case 0x03fd:
+  	      k = 0x037b;
+  	      break;
+  	    case 0x03fe:
+  	      k = 0x037c;
+  	      break;
+  	    case 0x03ff:
+  	      k = 0x037d;
+  	      break;
+  	    default:
+  	      k = 0;
+  	    }
+  	  if (k != 0)
+  	    return k;
+  	}
+      }
+    else if (c < 0x500)
+      {
+        if (c >= 0x0400 && c <= 0x040f)
+  	return (c + 0x50);
+
+        if (c >= 0x0410 && c <= 0x042f)
+  	return (c + 0x20);
+
+        if ((c >= 0x0460 && c <= 0x0480) ||
+  	  (c >= 0x048a && c <= 0x04be) ||
+  	  (c >= 0x04d0 && c <= 0x04fe))
+  	{
+  	  if (!(c & 0x01))
+  	    return (c + 1);
+  	  return c;
+  	}
+
+        if (c == 0x04c0)
+  	return 0x04cf;
+        if (c >= 0x04c1 && c <= 0x04cd)
+  	{
+  	  if (c & 0x01)
+  	    return (c + 1);
+  	  return c;
+  	}
+      }
+    else if (c < 0x1f00)
+      {
+        if ((c >= 0x0500 && c <= 0x050e) ||
+  	  (c >= 0x0510 && c <= 0x0524) ||
+  	  (c >= 0x1e00 && c <= 0x1e94) ||
+  	  (c >= 0x1ea0 && c <= 0x1ef8))
+  	{
+  	  if (!(c & 0x01))
+  	    return (c + 1);
+  	  return c;
+  	}
+
+        if (c >= 0x0531 && c <= 0x0556)
+  	return (c + 0x30);
+        if (c >= 0x10a0 && c <= 0x10c5)
+  	return (c + 0x1c60);
+        if (c == 0x1e9e)
+  	return 0x00df;
+        if (c >= 0x1efa && c <= 0x1efe && !(c & 0x01))
+  	return (c + 1);
+      }
+    else if (c < 0x2000)
+      {
+        if ((c >= 0x1f08 && c <= 0x1f0f) ||
+  	  (c >= 0x1f18 && c <= 0x1f1d) ||
+  	  (c >= 0x1f28 && c <= 0x1f2f) ||
+  	  (c >= 0x1f38 && c <= 0x1f3f) ||
+  	  (c >= 0x1f48 && c <= 0x1f4d) ||
+  	  (c >= 0x1f68 && c <= 0x1f6f) ||
+  	  (c >= 0x1f88 && c <= 0x1f8f) ||
+  	  (c >= 0x1f98 && c <= 0x1f9f) ||
+  	  (c >= 0x1fa8 && c <= 0x1faf))
+  	return (c - 0x08);
+        if (c >= 0x1f59 && c <= 0x1f5f)
+  	{
+  	  if (c & 0x01)
+  	    return (c - 0x08);
+  	  return c;
+  	}
+
+        if (c >= 0x1fb8 && c <= 0x1ffc)
+  	{
+  	  wint_t k;
+  	  switch (c)
+  	    {
+  	    case 0x1fb8:
+  	    case 0x1fb9:
+  	    case 0x1fd8:
+  	    case 0x1fd9:
+  	    case 0x1fe8:
+  	    case 0x1fe9:
+  	      k = c - 0x08;
+  	      break;
+  	    case 0x1fba:
+  	    case 0x1fbb:
+  	      k = c - 0x4a;
+  	      break;
+  	    case 0x1fbc:
+  	      k = 0x1fb3;
+  	      break;
+  	    case 0x1fc8:
+  	    case 0x1fc9:
+  	    case 0x1fca:
+  	    case 0x1fcb:
+  	      k = c - 0x56;
+  	      break;
+  	    case 0x1fcc:
+  	      k = 0x1fc3;
+  	      break;
+  	    case 0x1fda:
+  	    case 0x1fdb:
+  	      k = c - 0x64;
+  	      break;
+  	    case 0x1fea:
+  	    case 0x1feb:
+  	      k = c - 0x70;
+  	      break;
+  	    case 0x1fec:
+  	      k = 0x1fe5;
+  	      break;
+  	    case 0x1ff8:
+  	    case 0x1ff9:
+  	      k = c - 0x80;
+  	      break;
+  	    case 0x1ffa:
+  	    case 0x1ffb:
+  	      k = c - 0x7e;
+  	      break;
+  	    case 0x1ffc:
+  	      k = 0x1ff3;
+  	      break;
+  	    default:
+  	      k = 0;
+  	    }
+  	  if (k != 0)
+  	    return k;
+  	}
+      }
+    else if (c < 0x2c00)
+      {
+        if (c >= 0x2160 && c <= 0x216f)
+  	return (c + 0x10);
+        if (c >= 0x24b6 && c <= 0x24cf)
+  	return (c + 0x1a);
+
+        switch (c)
+        	{
+  	case 0x2126:
+  	  return 0x03c9;
+  	case 0x212a:
+  	  return 0x006b;
+  	case 0x212b:
+  	  return 0x00e5;
+  	case 0x2132:
+  	  return 0x214e;
+  	case 0x2183:
+  	  return 0x2184;
+  	}
+      }
+    else if (c < 0x2d00)
+      {
+        if (c >= 0x2c00 && c <= 0x2c2e)
+  	return (c + 0x30);
+        if (c >= 0x2c80 && c <= 0x2ce2 && !(c & 0x01))
+  	return (c + 1);
+        switch (c)
+        	{
+  	case 0x2c60:
+  	  return 0x2c61;
+  	case 0x2c62:
+  	  return 0x026b;
+  	case 0x2c63:
+  	  return 0x1d7d;
+  	case 0x2c64:
+  	  return 0x027d;
+  	case 0x2c67:
+  	case 0x2c69:
+  	case 0x2c6b:
+  	case 0x2c72:
+  	case 0x2c75:
+  	case 0x2ceb:
+  	case 0x2ced:
+  	  return c + 1;
+  	case 0x2c6d:
+  	  return 0x0251;
+  	case 0x2c6e:
+  	  return 0x0271;
+  	case 0x2c6f:
+  	  return 0x0250;
+  	case 0x2c70:
+  	  return 0x0252;
+  	case 0x2c7e:
+  	  return 0x023f;
+  	case 0x2c7f:
+  	  return 0x0240;
+  	}
+      }
+    else if (c >= 0xa600 && c < 0xa800)
+      {
+        if ((c >= 0xa640 && c <= 0xa65e) ||
+  	  (c >= 0xa662 && c <= 0xa66c) ||
+  	  (c >= 0xa680 && c <= 0xa696) ||
+  	  (c >= 0xa722 && c <= 0xa72e) ||
+  	  (c >= 0xa732 && c <= 0xa76e) ||
+  	  (c >= 0xa77f && c <= 0xa786))
+  	{
+  	  if (!(c & 1))
+  	    return (c + 1);
+  	  return c;
+  	}
+        switch (c)
+        	{
+  	case 0xa779:
+  	case 0xa77b:
+  	case 0xa77e:
+  	case 0xa78b:
+  	  return (c + 1);
+  	case 0xa77d:
+  	  return 0x1d79;
+  	}
+      }
+    else
+      {
+        if (c >= 0xff21 && c <= 0xff3a)
+  	return (c + 0x20);
+
+        if (c >= 0x10400 && c <= 0x10427)
+  	return (c + 0x28);
+
+        // Run the awk expression again with updated UnicodeData.txt and compare
+        // the diff with UnicodeData.txt version 5.2.0 to get the most recent
+        // functionality. The code below is based on Unicode 15.1.0.
+        //
+        // awk -F\; '{ if ( $14 != "" ) print $1; }' UnicodeData.txt
+
+        switch (c) {
+            case 0x037F: return 0x03F3;
+            case 0x10C7: return 0x2D27;
+            case 0x10CD: return 0x2D2D;
+            case 0x1CBD: return 0x10FD;
+            case 0x1CBE: return 0x10FE;
+            case 0x1CBF: return 0x10FF;
+            case 0x2C2F: return 0x2C5F;
+            case 0x2CF2: return 0x2CF3;
+            case 0xA660: return 0xA661;
+            case 0xA698: return 0xA699;
+            case 0xA69A: return 0xA69B;
+            case 0xA78D: return 0x0265;
+            case 0xA790: return 0xA791;
+            case 0xA792: return 0xA793;
+            case 0xA7C5: return 0x0282;
+            case 0xA7C6: return 0x1D8E;
+            case 0xA7C7: return 0xA7C8;
+            case 0xA7C9: return 0xA7CA;
+            case 0xA7D0: return 0xA7D0;
+            case 0xA7D6: return 0xA7D7;
+            case 0xA7D8: return 0xA7D9;
+            case 0xA7F5: return 0xA7F6;
+            case 0xA7AA: return 0x0266;
+            case 0xA7AB: return 0x025C;
+            case 0xA7AC: return 0x0261;
+            case 0xA7AD: return 0x026C;
+            case 0xA7AE: return 0x026A;
+            case 0xA7B0: return 0x029E;
+            case 0xA7B1: return 0x0287;
+            case 0xA7B2: return 0x029D;
+            case 0xA7B3: return 0xAB53;
+            case 0xA7B4: return 0xA7B5;
+        }
+
+        if ((0x0526  <= c && c <= 0x052E)   && !(c % 2)) return c + 1;
+        if  (0x13A0  <= c && c <= 0x13EF)   return c + (0xAB70 - 0x13A0);
+        if  (0x13F0  <= c && c <= 0x13F5)   return c + 8;
+        if  (0x1C90  <= c && c <= 0x1CBA)   return c + (0x1C90 - 0x10D0);
+        if ((0xA796  <= c && c <= 0xA7A8)   ||
+            (0xA7B6  <= c && c <= 0xA7C4)   && !(c % 2)) return c + 1;
+        if ((0x10400 <= c && c <= 0x10427)  ||
+            (0x104B0 <= c && c <= 0x104D3)) return c + 0x28;
+        if ((0x10570 <= c && c <= 0x10592)  ||
+            (0x10594 == c || c == 0x10595)) return c + 0x27;
+        if ((0x10C80 <= c && c <= 0x10CB2)) return c + 0x40;
+        if ((0x118A0 <= c && c <= 0x118BF)  ||
+            (0x16E40 <= c && c <= 0x16E5F)) return c + 0x20;
+        if ((0x1E900 <= c && c <= 0x1E921)) return c + 0x22;
+      }
+    return c;
+    #endif
+}
+
+uint32_t gp_u32_to_title(uint32_t c)
+{
+    // Code below is based on differences between `stc` (simple titlecase) and
+    // `suc` (simple uppercase) fields in preparsed UnicodeData.txt.
+    //
+    // https://raw.githubusercontent.com/unicode-org/icu/main/icu4c/source/data/unidata/ppucd.txt
+
+    if (c < 0x100)
+    {
+        if (c == 0x00b5)
+	    return 0x039c;
+
+        if ((c >= 0x00e0 && c <= 0x00fe && c != 0x00f7) ||
+	    (c >= 0x0061 && c <= 0x007a))
+	    return (c - 0x20);
+
+        if (c == 0xff)
+	    return 0x0178;
+
+        return c;
+    }
+    if (0x01C4 <= c && c <= 0x01CC)
+    {
+        if (c < 0x01C7)
+            return 0x01C5;
+        else if (c < 0x01CA)
+            return 0x01C8;
+        else
+            return 0x01CB;
+    }
+    if (0x01F1 <= c && c <= 0x01F3)
+    {
+        return 0x01F2;
+    }
+    if ((0x10D0 <= c && c <= 0x10FA) ||
+        (0x10FD <= c && c <= 0x10FF))
+    {
+        return c;
+    }
+    return gp_u32_to_upper(c);
+}

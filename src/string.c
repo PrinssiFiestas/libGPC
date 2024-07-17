@@ -563,42 +563,7 @@ GPArray(uint32_t) gp_utf8_to_utf32_new(const GPAllocator* allocator, const GPStr
 
 uint32_t gp_u32_to_upper(uint32_t);
 uint32_t gp_u32_to_lower(uint32_t);
-uint32_t gp_u32_to_title(uint32_t c)
-{
-    if (c < 0x100)
-    {
-        if (c == 0x00b5)
-	    return 0x039c;
-
-        if ((c >= 0x00e0 && c <= 0x00fe && c != 0x00f7) ||
-	    (c >= 0x0061 && c <= 0x007a))
-	    return (c - 0x20);
-
-        if (c == 0xff)
-	    return 0x0178;
-
-        return c;
-    }
-    if (0x01C4 <= c && c <= 0x01CC)
-    {
-        if (c < 0x01C7)
-            return 0x01C5;
-        else if (c < 0x01CA)
-            return 0x01C8;
-        else
-            return 0x01CB;
-    }
-    if (0x01F1 <= c && c <= 0x01F3)
-    {
-        return 0x01F2;
-    }
-    if ((0x10D0 <= c && c <= 0x10FA) ||
-        (0x10FD <= c && c <= 0x10FF))
-    {
-        return c;
-    }
-    return gp_u32_to_upper(c);
-}
+uint32_t gp_u32_to_title(uint32_t);
 
 void gp_str_to_upper(GPString* str)
 {

@@ -63,7 +63,7 @@ $(CL_OBJS): build/%.obj : src/%.c
 	cl.exe $< -c $(CL_CFLAGS) -Fo"$@"
 
 $(CL_TESTS): build/test_%cl.exe : tests/test_%.c $(CL_OBJS)
-	cl.exe $< user32.lib $(CL_CFLAGS) $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.obj,$<)),$(CL_OBJS)) -Fe"$@" -Fo"build/"
+	cl.exe $< $(CL_CFLAGS) $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.obj,$<)),$(CL_OBJS)) -Fe"$@" -Fo"build/"
 
 run_cl_tests: $(CL_TESTS)
 	for test in $(CL_TESTS) ; do \

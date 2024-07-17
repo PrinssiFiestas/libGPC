@@ -18,6 +18,11 @@ int main(void)
     _arena.growth_coefficient = 0.0;
     GPAllocator* arena = (GPAllocator*)&_arena;
 
+    gp_suite("Locale");
+    {
+        gp_assert(gp_default_locale() != NULL);
+    }
+
     gp_suite("Conversions");
     {
         #if __STDC_VERSION__ >= 201112L
