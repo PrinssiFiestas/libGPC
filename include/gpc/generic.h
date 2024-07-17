@@ -54,11 +54,13 @@ static inline void* gp_insert_cpp(const size_t elem_size, void* out, const size_
 }
 // END OF PRIVATE HELPERS -----------------------------------------------------
 
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
+
 
 // C++: Provide overloads for your custom allocators instead of casting.
 static inline const GPAllocator* gp_alc_cpp(const GPAllocator* alc)
@@ -76,9 +78,9 @@ static inline const GPAllocator* gp_alc_cpp(const GPArena* alc)
 
 // These overloads are also avaiable in C as macros.
 //
-// T_STRING shall be GPString or a const char*. However, if C11 _Generic()
-// selection is not available in your compiler, const char* arguments MUST be
-// string literals.
+// T_STRING shall be GPString or a const char*. However, if not C++ and C11
+// _Generic() selection is not available in your compiler, const char* arguments
+// MUST be string literals.
 
 // ----------------------------------------------------------------------------
 // Builder functions

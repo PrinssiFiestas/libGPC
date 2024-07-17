@@ -64,6 +64,18 @@ static uintmax_t pf_get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
     }
 }
 
+static unsigned pf_write_wc(
+    struct pf_string* out,
+    pf_va_list* args,
+    const PFFormatSpecifier fmt)
+{
+    size_t gp_utf8_decode(void*, uint32_t);
+    char decoding[4];
+    const size_t length = gp_utf8_decode(decoding, (wchar_t)va_arg(args->list, unsigned));
+    pf_concat(out, decoding, length);
+    return length;
+}
+
 static void pf_c_string_padding(
     struct pf_string* out,
     const PFFormatSpecifier fmt,
@@ -445,9 +457,12 @@ int pf_vsnprintf_consuming(
         switch (fmt.conversion_format)
         {
             case 'c':
-                pf_push_char(&out, (char)va_arg(args->list, int));
-                written_by_conversion = 1;
-                break;
+                if (fmt.length_modifier != 'l') {
+                    pf_push_char(&out, (char)va_arg(args->list, int));
+                    written_by_conversion = 1;
+                } else {
+                    written_by_conversion += pf_write_wc(&out, args, fmt);
+                } break;
 
             case 's':
                 written_by_conversion += pf_write_s(&out, args, fmt);
