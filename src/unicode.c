@@ -799,22 +799,51 @@ static bool gp_is_above_combining_class(const uint32_t encoding)
 }
 #endif
 
-static bool gp_is_word_final(const uint32_t lookbehind, const uint32_t lookahead, GPLocale* locale)
+static bool gp_is_greek_letter(const uint32_t c)
 {
-    if (locale == NULL)
-        return (lookbehind <= WCHAR_MAX && iswalpha(lookbehind)) &&
-            !  (lookahead  <= WCHAR_MAX && iswalpha(lookahead));
-    #if _WIN32
-    //int _iswalpha_l(wint_t, _locale_t);
-    return (lookbehind <= WCHAR_MAX && _iswalpha_l(lookbehind, locale->locale)) &&
-        !  (lookahead  <= WCHAR_MAX && _iswalpha_l(lookahead,  locale->locale));
-    #elif GP_LOCALE_T_AVAILABLE
-    return (lookbehind <= WCHAR_MAX && iswalpha_l(lookbehind, locale->locale)) &&
-        !  (lookahead  <= WCHAR_MAX && iswalpha_l(lookahead,  locale->locale));
-    #else
-    return (lookbehind <= WCHAR_MAX && iswalpha(lookbehind)) &&
-        !  (lookahead  <= WCHAR_MAX && iswalpha(lookahead));
-    #endif
+    if ((0x0041 <= c && c <= 0x005a) ||
+        (0x0061 <= c && c <= 0x007a) ||
+        (0x0370 <= c && c <= 0x0377  && c != 0x0375)  ||
+        (0x037a <= c && c <= 0x037F  && c != 0x037E)) return true;
+    if ((0x0386 <= c && c <= 0x03FF)) {
+        switch (c) {
+            case 0x0387: case 0x038B: case 0x038D: case 0x03A2: case 0x03F6:
+            return false;
+        }   return true;
+    }
+    if ((0x1d00 <= c && c <= 0x1dbf) ||
+        (0x1f00 <= c && c <= 0x1f15) ||
+        (0x1f18 <= c && c <= 0x1f1d) ||
+        (0x1f20 <= c && c <= 0x1f45) ||
+        (0x1f48 <= c && c <= 0x1f4d) ||
+        (0x1f50 <= c && c <= 0x1f7d) ||
+        (0x1f80 <= c && c <= 0x1fbe) ||
+        (0x1fc2 <= c && c <= 0x1fcc) ||
+        (0x1fd0 <= c && c <= 0x1fd3) ||
+        (0x1fd6 <= c && c <= 0x1fdb) ||
+        (0x1fe0 <= c && c <= 0x1fec) ||
+        (0x1ff2 <= c && c <= 0x1ffc) ||
+        (0x2102 == c || c == 0x2107) ||
+        (0x210a <= c && c <= 0x2113) ||
+        (0x210a <= c && c <= 0x2115) ||
+        (0x2119 <= c && c <= 0x211d) ||
+        (0x2124 <= c && c <= 0x2139) ||
+        (0x213c <= c && c <= 0x213f) ||
+        (0x2145 <= c && c <= 0x2149) ||
+        (0xab30 <= c && c <= 0xab69)) {
+        switch (c) {
+            case 0x214e: return true;
+            case 0x1f58: case 0x1f5a: case 0x1f5c: case 0x1f5e: case 0x1fb5:
+            case 0x1fbd: case 0x1fc5: case 0x1ff5: case 0x2114: case 0x2125:
+            case 0x2127: case 0x2129: case 0x212e: case 0xab5b: return false;
+        }
+    }
+    return false;
+}
+
+static bool gp_is_greek_final(const uint32_t lookbehind, const uint32_t lookahead)
+{
+    return gp_is_greek_letter(lookbehind) && !gp_is_greek_letter(lookahead);
 }
 
 uint32_t gp_u32_to_lower(uint32_t);
@@ -845,7 +874,7 @@ void gp_str_to_lower_full(
 
         if (encoding == 0x03A3) // GREEK CAPITAL LETTER SIGMA
         {
-            if (gp_is_word_final(lookbehind, lookahead, locale))
+            if (gp_is_greek_final(lookbehind, lookahead))
                 GP_u32_APPEND(0x03C2); // GREEK SMALL LETTER FINAL SIGMA
             else
                 GP_u32_APPEND(0x03C3); // GREEK SMALL LETTER SIGMA
@@ -1329,7 +1358,7 @@ int gp_str_compare(
 //
 // Turns out that Windows, despite Microshits claims, is not very Unicode
 // capable. `towupper()` and relevants fail with a large set of codepoints even
-// with /utf-8, /D_UNICODE, and any locale settings. So here we are reinventing
+// with /utf-8, /D_UNICODE, and any locale settings. So here we are, reinventing
 // the wheel, once again, although I really don't feel like doing that, so I'll
 // just rip off some Newlib source code.
 
@@ -1916,7 +1945,7 @@ uint32_t gp_u32_to_upper(uint32_t c)
         if  (0x10D0  <= c && c <= 0x10FA)   return c + (0x1C90 - 0x10D0);
         if  (0x13F8  <= c && c <= 0x13FD)   return c - 8;
         if ((0xA797  <= c && c <= 0xA7A9)   ||
-            (0xA7B5  <= c && c <= 0xA7C3)   && (c % 2)) return c - 1;
+            (0xA7B5  <= c && c <= 0xA7C3))  return c - (c % 2);
         if  (0xAB70  <= c && c <= 0xABBF)   return c - (0xAB70 - 0x13A0);
         if ((0x10428 <= c && c <= 0x1044F)  ||
             (0x104D8 <= c && c <= 0x104FB)) return c - 0x28;
@@ -2459,7 +2488,7 @@ uint32_t gp_u32_to_lower(uint32_t c)
         if  (0x13F0  <= c && c <= 0x13F5)   return c + 8;
         if  (0x1C90  <= c && c <= 0x1CBA)   return c + (0x1C90 - 0x10D0);
         if ((0xA796  <= c && c <= 0xA7A8)   ||
-            (0xA7B6  <= c && c <= 0xA7C4)   && !(c % 2)) return c + 1;
+            (0xA7B6  <= c && c <= 0xA7C4))  return c + !(c % 2);
         if ((0x10400 <= c && c <= 0x10427)  ||
             (0x104B0 <= c && c <= 0x104D3)) return c + 0x28;
         if ((0x10570 <= c && c <= 0x10592)  ||
