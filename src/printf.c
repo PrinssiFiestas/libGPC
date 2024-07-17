@@ -66,8 +66,7 @@ static uintmax_t pf_get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
 
 static unsigned pf_write_wc(
     struct pf_string* out,
-    pf_va_list* args,
-    const PFFormatSpecifier fmt)
+    pf_va_list* args)
 {
     size_t gp_utf8_decode(void*, uint32_t);
     char decoding[4];
@@ -461,7 +460,7 @@ int pf_vsnprintf_consuming(
                     pf_push_char(&out, (char)va_arg(args->list, int));
                     written_by_conversion = 1;
                 } else {
-                    written_by_conversion += pf_write_wc(&out, args, fmt);
+                    written_by_conversion += pf_write_wc(&out, args);
                 } break;
 
             case 's':
