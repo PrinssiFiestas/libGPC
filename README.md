@@ -23,11 +23,11 @@ GPString i_am_the_prince(const GPAllocator* out_lifetime) {
 }
 ```
 
-The code example above only uses one macro: `gp_str_on_stack()`. The library almost always prefers to use functions, but is not afraid to use macros if they provide value. In this case, `gp_str_on_stack()`allows creating a string on stack that reallocates elsewhere, if needed, providing seamless way to use stack memory even for dynamic data. Function-like macros written in snake case are always hygienic.
+The code example above only uses one macro: `gp_str_on_stack()` which allows creating a string on stack that reallocates elsewhere, if needed, providing seamless way to use stack memory even for dynamic data. 
 
 The scope allocator is arena based which limits heap allocations and is much faster than traditional `malloc()` `free()` pairs. It can also handle forgotten `gp_end()`call or misplaced return statement so memory leaks are practically impossible.
 
-Most functionality in the library is thread safe and a big portion is reentrant. Internal ghost allocations are kept minimal. Most allocations are just the dynamic data structures being dynamic.
+Most functionality is thread safe and a big portion is reentrant. There is no internal heap allocations other than the ones required by `locale_t` and allocator initialization. Even using the scratch allocator and allocators provided by the user is kept minimal internally. 
 
 ## Documentation
 
