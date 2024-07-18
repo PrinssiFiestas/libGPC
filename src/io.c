@@ -205,7 +205,7 @@ static size_t gp_print_va_arg(
             const uintptr_t p = va_arg(args->list, uintptr_t);
             if (p != 0) {
                 strcpy(buf, "0x");
-                length = strlen("0x") + pf_xtoa(sizeof buf - strlen("0x"), buf, p);
+                length = strlen("0x") + pf_xtoa(sizeof buf - strlen("0x"), buf + strlen("0x"), p);
                 fwrite(buf, 1, length, out);
             } else {
                 length = strlen("(nil)");
