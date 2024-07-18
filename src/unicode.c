@@ -102,6 +102,9 @@ static void gp_init_default_locale(void)
     atexit(gp_delete_default_locale); // shut up sanitizer
 }
 
+// Using this shuold be avoided internally at least in debug configuration
+// because creating locales may allocate over 200 times which is confusing for
+// the user if they use Valgrind.
 GPLocale* gp_default_locale(void)
 {
     static GPThreadOnce default_locale_once = GP_THREAD_ONCE_INIT;
@@ -837,13 +840,19 @@ static bool gp_is_greek_letter(const uint32_t c)
             case 0x1fbd: case 0x1fc5: case 0x1ff5: case 0x2114: case 0x2125:
             case 0x2127: case 0x2129: case 0x212e: case 0xab5b: return false;
         }
+        return true;
     }
     return false;
 }
 
-static bool gp_is_greek_final(const uint32_t lookbehind, const uint32_t lookahead)
+static bool gp_is_greek_final(
+    const uint32_t lookbehind, uint32_t lookahead, const char* str)
 {
-    return gp_is_greek_letter(lookbehind) && !gp_is_greek_letter(lookahead);
+    if (!gp_is_greek_letter(lookbehind) && !gp_is_diatrical(lookbehind))
+        return false;
+    while (gp_is_diatrical(lookahead))
+        str += gp_utf8_encode(&lookahead, str, 0);
+    return !gp_is_greek_letter(lookahead);
 }
 
 uint32_t gp_u32_to_lower(uint32_t);
@@ -874,7 +883,7 @@ void gp_str_to_lower_full(
 
         if (encoding == 0x03A3) // GREEK CAPITAL LETTER SIGMA
         {
-            if (gp_is_greek_final(lookbehind, lookahead))
+            if (gp_is_greek_final(lookbehind, lookahead, (char*)*str + i + codepoint_length))
                 GP_u32_APPEND(0x03C2); // GREEK SMALL LETTER FINAL SIGMA
             else
                 GP_u32_APPEND(0x03C3); // GREEK SMALL LETTER SIGMA
@@ -1390,7 +1399,7 @@ int gp_str_compare(
 
 uint32_t gp_u32_to_upper(uint32_t c)
 {
-    #if GP_LOCALE_T_AVAILABLE && WCHAR_MAX >= INT32_MAX
+    #if !defined(NDEBUG) && GP_LOCALE_T_AVAILABLE && WCHAR_MAX >= INT32_MAX
     return towupper_l(c, gp_default_locale()->locale);
     #else
     /* Based on and tested against Unicode 5.2 */
@@ -1962,7 +1971,7 @@ uint32_t gp_u32_to_upper(uint32_t c)
 
 uint32_t gp_u32_to_lower(uint32_t c)
 {
-    #if GP_LOCALE_T_AVAILABLE && WCHAR_MAX >= INT32_MAX
+    #if !defined(NDEBUG) && GP_LOCALE_T_AVAILABLE && WCHAR_MAX >= INT32_MAX
     return towlower_l(c, gp_default_locale()->locale);
     #else
 

@@ -95,9 +95,9 @@ int main(void)
 
         gp_test("To lower full Unicode mapping");
         {
-            GPString str = gp_str_new(arena, 128, "ὈΔΥΣΣΕΎΣ ὈΔΥΣΣΕΎΣ. ὈΔΥΣΣΕΎΣ3 ΣΣ\tΣ");
+            GPString str = gp_str_new(arena, 128, "ὈΔΥΣΣΕΎΣ ὈΔΥΣΣΕΎΣ. ὈΔΥΣΣΕΎΣ3 ΣΣ\tΣ ΣΣ\u0301Σ\u0301");
             gp_str_to_lower_full(&str, gp_default_locale());
-            const char* result = "ὀδυσσεύς ὀδυσσεύς. ὀδυσσεύς3 σς\tσ";
+            const char* result = "ὀδυσσεύς ὀδυσσεύς. ὀδυσσεύς3 σς\tσ σσ\u0301ς\u0301";
             gp_expect(gp_str_equal(str, result, strlen(result)), str);
 
             if (lithuanian != NULL) { // remove dot above after 'i'
