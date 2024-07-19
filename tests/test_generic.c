@@ -243,13 +243,13 @@ int main(void)
             gp_expect(gp_compare(str, "hrnec") < 0);
             gp_expect(gp_compare(str, "HRNEC") > 0);
             gp_expect(gp_compare(str, "HRNEC", GP_CASE_FOLD) < 0);
-            if (gp_get_locale(czech) != (GPLocale)0)
+            if (gp_locale(czech) != (GPLocale)0)
                 gp_expect(gp_compare(str, "hrnec", GP_COLLATE, czech) > 0);
 
             gp_expect(gp_compare(str, gp_str(&arena, "hrnec")) < 0);
             gp_expect(gp_compare(str, gp_str(&arena, "HRNEC")) > 0);
             gp_expect(gp_compare(str, gp_str(&arena, "HRNEC"), GP_CASE_FOLD) < 0);
-            if (gp_get_locale(czech) != (GPLocale)0)
+            if (gp_locale(czech) != (GPLocale)0)
                 gp_expect(gp_compare(str, gp_str(&arena, "hrnec"), GP_COLLATE, czech) > 0);
         }
 
@@ -296,7 +296,7 @@ int main(void)
             gp_sort(&arr, GP_CASE_FOLD);
             gp_expect(gp_equal(gp_join(&arena, arr), "asdfBLOINKÄLÄSDEEöö"));
             const char* finnish = "fi_FI";
-            if (gp_get_locale(finnish) != (GPLocale)0) {
+            if (gp_locale(finnish) != (GPLocale)0) {
                 gp_sort(&arr, GP_COLLATE | GP_CASE_FOLD, finnish);
                 gp_expect(gp_equal(gp_join(&arena, arr), "asdfBLOINKÄLÄSDEEöö"), gp_join(&arena, arr));
             }

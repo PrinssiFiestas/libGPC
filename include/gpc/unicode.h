@@ -54,7 +54,7 @@ typedef _locale_t GPLocale;
 typedef locale_t GPLocale;
 #endif
 
-GPLocale gp_get_locale(const char* locale_code);
+GPLocale gp_locale(const char* locale_code);
 
 #endif // !_WIN32 && _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
 

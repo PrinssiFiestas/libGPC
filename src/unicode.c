@@ -52,7 +52,7 @@ static void gp_init_locale_table(void)
 
     #if GP_LOCALE_AVAILABLE
     #if !_WIN32
-    gp_default_locale = newlocale(LC_ALL_MASK, "C.UTF-8");
+    gp_default_locale = newlocale(LC_ALL_MASK, "C.UTF-8", (locale_t)0);
     #elif __MINGW32__
     gp_default_locale = _create_locale(LC_ALL, "");
     #else
@@ -63,7 +63,7 @@ static void gp_init_locale_table(void)
     atexit(gp_delete_locale_table); // shut up sanitizer
 }
 
-GPLocale gp_get_locale(const char* locale_code)
+GPLocale gp_locale(const char* locale_code)
 {
     #if ! GP_LOCALE_AVAILABLE
     return NULL;
@@ -1283,7 +1283,7 @@ static int gp_wcs_collate(const void*_s1, const void*_s2)
         return wcscoll(s1->wide, s2->wide);
     #if _WIN32
     return _wcscoll_l(s1->wide, s2->wide, s1->locale);
-    #elif GP_LOCALE_T_AVAILABLE
+    #elif GP_LOCALE_AVAILABLE
     return wcscoll_l(s1->wide, s2->wide, s1->locale);
     #else
     return wcscoll(s1->wide, s2->wide);
@@ -1313,7 +1313,7 @@ void gp_str_sort(
 
     for (size_t i = 0; i < gp_arr_length(*strs); ++i) {
         pairs[i].narrow = (*strs)[i];
-        pairs[i].locale = gp_get_locale(locale_code);
+        pairs[i].locale = gp_locale(locale_code);
         pairs[i].wide = gp_arr_new((GPAllocator*)scratch, sizeof pairs[i].wide[0], 0);
         if (fold)
             gp_wcs_fold_utf8(&pairs[i].wide, (*strs)[i], gp_str_length((*strs)[i]), locale_code);
@@ -1372,9 +1372,9 @@ int gp_str_compare(
             result = wcscoll(wcs1, wcs2);
         else
             #if _WIN32
-            result = _wcscoll_l(wcs1, wcs2, gp_get_locale(locale_code));
-            #elif GP_LOCALE_T_AVAILABLE
-            result = wcscoll_l(wcs1, wcs2, gp_get_locale(locale_code));
+            result = _wcscoll_l(wcs1, wcs2, gp_locale(locale_code));
+            #elif GP_LOCALE_AVAILABLE
+            result = wcscoll_l(wcs1, wcs2, gp_locale(locale_code));
             #else
             result = wcscoll(wcs1, wcs2);
             #endif

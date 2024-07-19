@@ -175,7 +175,7 @@ int main(void)
             }
 
             const char* czech = "cs_CZ";
-            if (gp_get_locale(czech) != (GPLocale)0)
+            if (gp_locale(czech) != (GPLocale)0)
             { gp_test("Czech locale");
                 gp_expect(gp_str_compare(
                     str1, str2,
@@ -199,7 +199,7 @@ int main(void)
             gp_str_copy(&str1, "år",    strlen("år"));
             gp_str_copy(&str1, "Ängel", strlen("Ängel"));
             const char* american = "en_US";
-            if (gp_get_locale(american) != (GPLocale)0)
+            if (gp_locale(american) != (GPLocale)0)
             { gp_test("American locale å");
                 gp_expect(gp_str_compare(
                     str1, str2,
@@ -209,7 +209,7 @@ int main(void)
             }
 
             const char* swedish = "sv_SE";
-            if (gp_get_locale(swedish) != (GPLocale)0)
+            if (gp_locale(swedish) != (GPLocale)0)
             { gp_test("Swedish locale å");
                 gp_expect(gp_str_compare(
                     str1, str2,
@@ -243,7 +243,7 @@ int main(void)
             gp_expect(gp_str_equal(strs[3], "asdf",    strlen("asdf")));
             gp_expect(gp_str_equal(strs[4], "Sbloink", strlen("Sbloink")));
 
-            if (gp_get_locale(turkish) == (GPLocale)0)
+            if (gp_locale(turkish) == (GPLocale)0)
                 goto skip_turkish_sort;
 
             // Exact ordering of equivalent strings depend on qsort() implementation.
