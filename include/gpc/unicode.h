@@ -29,7 +29,7 @@ extern "C" {
 // Locales
 
 // Portably sets global locale to UTF-8.
-// locale_code should be in form "xx_YY" or an empty string.
+// locale_code should be in form "xx_YY", or "xxx_YY", or an empty string.
 GP_NONNULL_ARGS()
 const char* gp_set_utf8_global_locale(int category, const char* locale_code);
 
@@ -42,7 +42,7 @@ const char* gp_set_utf8_global_locale(int category, const char* locale_code);
 // https://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html
 
 typedef void* GPLocale;
-#define gp_get_locale() NULL
+#define gp_get_locale() ((GPLocale)0)
 
 #else
 
@@ -54,7 +54,22 @@ typedef _locale_t GPLocale;
 typedef locale_t GPLocale;
 #endif
 
-GPLocale gp_locale(const char* locale_code);
+// Creates or fetches already created locale which can be used with _xxx_l()
+// family of functions in Microsoft UCRT library or with xxx_l() family of
+// functions in the GNU C Library. libGPC uses this internally when collating in
+// gp_str_compare() and gp_str_sort().
+//
+// locale_code should be in form "xx_YY", or "xxx_YY", or an empty string.
+// The created locale will be UTF-8 in category LC_ALL.
+//
+// Creating a locale is extremely expensive: glibc allocates over 200 times
+// internally. However, once created, they take very little space and there only
+// exists a limited set of locale codes. Due to these considerations, adding
+// thread safety and performance, libGPC does not provide a way of freeing the
+// created locales and you should NOT use native cleanup routines either. Any
+// subsequent calls with same locale_code will return a already created locale
+// without mutex locks.
+GPLocale gp_locale(const char* optional_locale_code);
 
 #endif // !_WIN32 && _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
 
