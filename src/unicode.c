@@ -4,6 +4,7 @@
 
 #include <gpc/unicode.h>
 #include <gpc/utils.h>
+#include <gpc/hashmap.h>
 #include "thread.h"
 #include "common.h"
 #include <stdlib.h>
@@ -12,6 +13,107 @@
 
 // ----------------------------------------------------------------------------
 // Locale
+
+static GPMap*  gp_locale_table;
+static GPMutex gp_locale_table_mutex;
+
+static void gp_locale_delete(void* locale)
+{
+    #if GP_LOCALE_AVAILABLE
+    #if _WIN32
+    if (locale != (GPLocale)0)
+        _free_locale(locale);
+    #else
+    if (locale != (GPLocale)0)
+        freelocale(locale);
+    #endif
+    #endif // GP_LOCALE_AVAILABLE
+    return;
+}
+
+static GPLocale gp_default_locale;
+
+static void gp_delete_locale_table(void)
+{
+    gp_map_delete(gp_locale_table);
+    gp_mutex_destroy(&gp_locale_table_mutex);
+    gp_locale_delete(gp_default_locale);
+}
+
+static void gp_init_locale_table(void)
+{
+    const GPMapInitializer init = {
+        .element_size =  0,
+        .capacity     = 32,
+        .destructor   = gp_locale_delete
+    };
+    gp_locale_table = gp_map_new(gp_heap, &init);
+    gp_mutex_init(&gp_locale_table_mutex);
+
+    #if GP_LOCALE_AVAILABLE
+    #if !_WIN32
+    gp_default_locale = newlocale(LC_ALL_MASK, "C.UTF-8");
+    #elif __MINGW32__
+    gp_default_locale = _create_locale(LC_ALL, "");
+    #else
+    gp_default_locale = _create_locale(LC_ALL, ".UTF-8");
+    #endif
+    #endif // GP_LOCALE_AVAILABLE
+
+    atexit(gp_delete_locale_table); // shut up sanitizer
+}
+
+GPLocale gp_get_locale(const char* locale_code)
+{
+    #if ! GP_LOCALE_AVAILABLE
+    return NULL;
+    #endif
+    if (locale_code == NULL)
+        return (GPLocale)0;
+
+    static GPThreadOnce locale_table_once = GP_THREAD_ONCE_INIT;
+    gp_thread_once(&locale_table_once, gp_init_locale_table);
+
+    if (locale_code[0] == '\0')
+        return gp_default_locale;
+
+    GPUint128 key = gp_u128(0, gp_bytes_hash64(locale_code, strlen(locale_code)));
+    GPLocale locale = (GPLocale)gp_map_get(gp_locale_table, key);
+
+    if (locale == (GPLocale)0) // Race condition might happen here.
+    {
+        gp_mutex_lock(&gp_locale_table_mutex);
+
+        // Handle the race condition mentioned above.
+        if ((locale = (GPLocale)gp_map_get(gp_locale_table, key)) != (GPLocale)0)
+        {
+            gp_mutex_unlock(&gp_locale_table_mutex);
+            return locale != (GPLocale)-1 ? locale : (GPLocale)0;
+        }
+        char full_locale_code[16] = "";
+        strncpy(full_locale_code, locale_code, strlen("xxx_XX"));
+        #ifndef _WIN32
+        if (locale_code[0] == '\0')
+            full_locale_code[0] = 'C';
+        #endif
+        #ifndef __MINGW32__
+        strcat(full_locale_code, ".UTF-8");
+        #endif
+
+        #if _WIN32
+        locale = _create_locale(LC_ALL, full_locale_code);
+        #else
+        locale = newlocale(LC_ALL_MASK, full_locale_code, (GPLocale)0);
+        #endif
+        if (locale == (GPLocale)0) // mark the locale as unavailable
+            locale = (GPLocale)-1;
+        gp_map_put(gp_locale_table, key, locale);
+        gp_mutex_unlock(&gp_locale_table_mutex);
+    }
+    if (locale == (GPLocale)-1)
+        return (GPLocale)0;
+    return locale;
+}
 
 const char* gp_set_utf8_global_locale(int category, const char* locale_code)
 {
@@ -27,92 +129,6 @@ const char* gp_set_utf8_global_locale(int category, const char* locale_code)
 
     return setlocale(category, full_locale_code);
 }
-
-#if GP_LOCALE_T_AVAILABLE
-
-static GPLocale* gp_default_locale_internal = NULL;
-
-GPLocale* gp_locale_new(const char*const locale_code)
-{
-    const size_t code_length = strlen(locale_code);
-
-    char lc[8] = "";
-    strncpy(lc, locale_code, strlen("xx_XX"));
-    char full_locale_code[16] = "";
-    strcpy(full_locale_code, lc);
-
-    #ifndef _WIN32
-    if (locale_code[0] == '\0')
-        full_locale_code[0] = 'C';
-    #endif
-    #ifndef __MINGW32__
-    strcat(full_locale_code, ".UTF-8");
-    #endif
-
-    #if _WIN32
-    _locale_t l = _create_locale(LC_ALL, full_locale_code);
-    if (l == (_locale_t)0)
-    #else
-    locale_t l = newlocale(LC_ALL_MASK, full_locale_code, (locale_t)0);
-    if (l == (locale_t)0)
-    #endif
-        return NULL;
-
-    // Extend lifetime to match locale_t lifetime. Semi-pointless heap
-    // allocation here, boohoo, newlocale() allocates internally over 200 times.
-    struct gp_locale* locale = gp_mem_alloc(gp_heap, sizeof*locale + code_length + sizeof"");
-    locale->locale = l;
-    strcpy(locale->code, locale_code);
-
-    return locale;
-}
-
-void gp_locale_delete(GPLocale* locale)
-{
-    if (locale == NULL || locale == gp_default_locale_internal)
-        return;
-    #if _WIN32
-    if (locale->locale != (_locale_t)0)
-        _free_locale(locale->locale);
-    #else
-    if (locale->locale != (locale_t)0)
-        freelocale(locale->locale);
-    #endif
-    gp_mem_dealloc(gp_heap, (void*)locale);
-}
-
-static void gp_delete_default_locale(void)
-{
-    if (gp_default_locale_internal == NULL)
-        return;
-
-    #if _WIN32
-    if (gp_default_locale_internal->locale != (_locale_t)0)
-        _free_locale(gp_default_locale_internal->locale);
-    #else
-    if (gp_default_locale_internal->locale != (locale_t)0)
-        freelocale(gp_default_locale_internal->locale);
-    #endif
-    gp_mem_dealloc(gp_heap, (void*)gp_default_locale_internal);
-}
-
-static void gp_init_default_locale(void)
-{
-    gp_default_locale_internal = gp_locale_new("");
-    atexit(gp_delete_default_locale); // shut up sanitizer
-}
-
-// Using this shuold be avoided internally at least in debug configuration
-// because creating locales may allocate over 200 times which is confusing for
-// the user if they use Valgrind.
-GPLocale* gp_default_locale(void)
-{
-    static GPThreadOnce default_locale_once = GP_THREAD_ONCE_INIT;
-    gp_thread_once(&default_locale_once, gp_init_default_locale);
-    return gp_default_locale_internal;
-}
-
-#endif // GP_LOCALE_T_AVAILABLE
 
 // ----------------------------------------------------------------------------
 // Unicode stuff
@@ -635,9 +651,11 @@ static bool gp_is_diatrical(const uint32_t encoding)
 uint32_t gp_u32_to_upper(uint32_t);
 void gp_str_to_upper_full(
     GPString* str,
-    GPLocale* locale)
+    const char* locale_code)
 {
-    const char*const locale_code = locale != NULL ? locale->code : "";
+    char code_buf[4] = "";
+    if (locale_code == NULL)
+        locale_code = strncpy(code_buf, setlocale(LC_ALL, NULL), 2);
 
     // TODO ASCII optimization would go here if not Turkish locale
 
@@ -858,9 +876,11 @@ static bool gp_is_greek_final(
 uint32_t gp_u32_to_lower(uint32_t);
 void gp_str_to_lower_full(
     GPString* str,
-    GPLocale* locale)
+    const char* locale_code)
 {
-    const char*const locale_code = locale != NULL ? locale->code : "";
+    char code_buf[4] = "";
+    if (locale_code == NULL)
+        locale_code = strncpy(code_buf, setlocale(LC_ALL, NULL), 2);
 
     // TODO ASCII optimization would go here if not Turkish locale.
 
@@ -946,9 +966,11 @@ void gp_str_to_lower_full(
 uint32_t gp_u32_to_title(uint32_t);
 void gp_str_capitalize(
     GPString* str,
-    GPLocale* locale)
+    const char* locale_code)
 {
-    const char*const locale_code = locale != NULL ? locale->code : "";
+    char code_buf[4] = "";
+    if (locale_code == NULL)
+        locale_code = strncpy(code_buf, setlocale(LC_ALL, NULL), 2);
 
     // TODO ASCII optimization would go here if not Turkish locale
 
@@ -1079,9 +1101,11 @@ void gp_str_capitalize(
 } while(0)
 
 void gp_wcs_fold_utf8(
-    GPArray(wchar_t)* wcs, const void*_str, const size_t str_length, GPLocale* locale)
+    GPArray(wchar_t)* wcs, const void*_str, const size_t str_length, const char* locale_code)
 {
-    const char*const locale_code = locale != NULL ? locale->code : "";
+    char code_buf[4] = "";
+    if (locale_code == NULL)
+        locale_code = strncpy(code_buf, setlocale(LC_ALL, NULL), 2);
 
     const uint8_t* str = _str;
     ((GPArrayHeader*)*wcs - 1)->length = 0;
@@ -1234,7 +1258,7 @@ typedef struct gp_narrow_wide
 {
     GPString         narrow;
     GPArray(wchar_t) wide;
-    GPLocale*        locale;
+    GPLocale         locale;
 } GPNarrowWide;
 
 static int gp_wcs_compare(const void*_s1, const void*_s2)
@@ -1255,12 +1279,12 @@ static int gp_wcs_collate(const void*_s1, const void*_s2)
 {
     const GPNarrowWide* s1 = _s1;
     const GPNarrowWide* s2 = _s2;
-    if (s1->locale == NULL)
+    if (s1->locale == (GPLocale)0)
         return wcscoll(s1->wide, s2->wide);
     #if _WIN32
-    return _wcscoll_l(s1->wide, s2->wide, s1->locale->locale);
+    return _wcscoll_l(s1->wide, s2->wide, s1->locale);
     #elif GP_LOCALE_T_AVAILABLE
-    return wcscoll_l(s1->wide, s2->wide, s1->locale->locale);
+    return wcscoll_l(s1->wide, s2->wide, s1->locale);
     #else
     return wcscoll(s1->wide, s2->wide);
     #endif
@@ -1274,7 +1298,7 @@ static int gp_wcs_collate_reverse(const void* s1, const void* s2)
 void gp_str_sort(
     GPArray(GPString)* strs,
     const int flags,
-    GPLocale* locale)
+    const char* locale_code)
 {
     const bool fold    = flags & 0x4;
     const bool collate = flags & 0x1;
@@ -1289,10 +1313,10 @@ void gp_str_sort(
 
     for (size_t i = 0; i < gp_arr_length(*strs); ++i) {
         pairs[i].narrow = (*strs)[i];
-        pairs[i].locale = locale;
+        pairs[i].locale = gp_get_locale(locale_code);
         pairs[i].wide = gp_arr_new((GPAllocator*)scratch, sizeof pairs[i].wide[0], 0);
         if (fold)
-            gp_wcs_fold_utf8(&pairs[i].wide, (*strs)[i], gp_str_length((*strs)[i]), locale);
+            gp_wcs_fold_utf8(&pairs[i].wide, (*strs)[i], gp_str_length((*strs)[i]), locale_code);
         else
             gp_utf8_to_wcs(&pairs[i].wide, (*strs)[i], gp_str_length((*strs)[i]));
     }
@@ -1313,7 +1337,7 @@ int gp_str_compare(
     const void*const s2,
     const size_t s2_length,
     const int flags,
-    GPLocale* locale)
+    const char* locale_code)
 {
     const bool fold    = flags & 0x4;
     const bool collate = flags & 0x1;
@@ -1335,8 +1359,8 @@ int gp_str_compare(
     GPArray(wchar_t) wcs2 = gp_arr_new((GPAllocator*)scratch, sizeof wcs2[0], 0);
 
     if (fold) {
-        gp_wcs_fold_utf8(&wcs1, s1, gp_str_length(s1), locale);
-        gp_wcs_fold_utf8(&wcs2, s2, s2_length,         locale);
+        gp_wcs_fold_utf8(&wcs1, s1, gp_str_length(s1), locale_code);
+        gp_wcs_fold_utf8(&wcs2, s2, s2_length,         locale_code);
     } else {
         gp_utf8_to_wcs(&wcs1, s1, gp_str_length(s1));
         gp_utf8_to_wcs(&wcs2, s2, s2_length);
@@ -1344,15 +1368,15 @@ int gp_str_compare(
 
     int result;
     if (collate) {
-        if (locale == NULL)
+        if (locale_code == NULL)
             result = wcscoll(wcs1, wcs2);
         else
             #if _WIN32
-            result = _wcscoll_l(wcs1, wcs2, locale->locale);
+            result = _wcscoll_l(wcs1, wcs2, gp_get_locale(locale_code));
             #elif GP_LOCALE_T_AVAILABLE
-            result = wcscoll_l(wcs1, wcs2, locale->locale);
+            result = wcscoll_l(wcs1, wcs2, gp_get_locale(locale_code));
             #else
-            result = wcscoll(wcs1, wcs2); (void)locale;
+            result = wcscoll(wcs1, wcs2);
             #endif
     } else {
         result = wcscmp(wcs1, wcs2);
@@ -1369,7 +1393,7 @@ int gp_str_compare(
 // capable. `towupper()` and relevants fail with a large set of codepoints even
 // with /utf-8, /D_UNICODE, and any locale settings. So here we are, reinventing
 // the wheel, once again, although I really don't feel like doing that, so I'll
-// just rip off some Newlib source code.
+// just rip off some Newlib source code. I extended it to handle Unicode 15.1.0.
 
 // https://chromium.googlesource.com/native_client/nacl-newlib/+/refs/heads/main/newlib/libc/ctype
 
@@ -1399,9 +1423,6 @@ int gp_str_compare(
 
 uint32_t gp_u32_to_upper(uint32_t c)
 {
-    #if !defined(NDEBUG) && GP_LOCALE_T_AVAILABLE && WCHAR_MAX >= INT32_MAX
-    return towupper_l(c, gp_default_locale()->locale);
-    #else
     /* Based on and tested against Unicode 5.2 */
     /* Expression used to filter out the characters for the below code:
        awk -F\; '{ if ( $13 != "" ) print $1; }' UnicodeData.txt
@@ -1966,15 +1987,10 @@ uint32_t gp_u32_to_upper(uint32_t c)
         if ((0x1E922 <= c && c <= 0x1E943)) return c - 0x22;
       }
     return c;
-    #endif
 }
 
 uint32_t gp_u32_to_lower(uint32_t c)
 {
-    #if !defined(NDEBUG) && GP_LOCALE_T_AVAILABLE && WCHAR_MAX >= INT32_MAX
-    return towlower_l(c, gp_default_locale()->locale);
-    #else
-
     /* Based on and tested against Unicode 5.2 */
     /* Expression used to filter out the characters for the below code:
        awk -F\; '{ if ( $14 != "" ) print $1; }' UnicodeData.txt
@@ -2508,7 +2524,6 @@ uint32_t gp_u32_to_lower(uint32_t c)
         if ((0x1E900 <= c && c <= 0x1E921)) return c + 0x22;
       }
     return c;
-    #endif
 }
 
 uint32_t gp_u32_to_title(uint32_t c)

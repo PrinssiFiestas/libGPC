@@ -18,7 +18,7 @@ extern inline GPString gp_to_valid_new(
 extern inline size_t gp_find_first99(const GPString haystack, GPStrIn needle, size_t);
 extern inline size_t gp_find_last99(const GPString haystack, GPStrIn needle);
 extern inline bool gp_equal_case99(const GPString a, GPStrIn b);
-extern inline int gp_compare99(GPString, GPStrIn, int, GPLocale*);
+extern inline int gp_compare99(GPString, GPStrIn, int, const char*);
 
 extern inline GPString gp_to_upper99(const size_t a_size, const void* a, const void* b, const char* b_id);
 extern inline GPString gp_to_lower99(const size_t a_size, const void* a, const void* b, const char* b_id);
@@ -122,7 +122,7 @@ GPString gp_to_upper_new(const GPAllocator* alc, GPStrIn str)
     return out;
 }
 
-GPString gp_to_upper_full_new(const GPAllocator* alc, GPStrIn str, GPLocale* locale)
+GPString gp_to_upper_full_new(const GPAllocator* alc, GPStrIn str, const char* locale)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, str.length, "");
     memcpy(out, str.data, str.length);
@@ -140,7 +140,7 @@ GPString gp_to_lower_new(const GPAllocator* alc, GPStrIn str)
     return out;
 }
 
-GPString gp_to_lower_full_new(const GPAllocator* alc, GPStrIn str, GPLocale* locale)
+GPString gp_to_lower_full_new(const GPAllocator* alc, GPStrIn str, const char* locale)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, str.length, "");
     memcpy(out, str.data, str.length);
@@ -164,11 +164,11 @@ GPString gp_capitalize_new(const GPAllocator* alc, GPStrIn str)
     GPString out = gp_str_new(alc, str.length, "");
     memcpy(out, str.data, str.length);
     ((GPStringHeader*)out - 1)->length = str.length;
-    gp_str_capitalize(&out, gp_default_locale());
+    gp_str_capitalize(&out, "");
     return out;
 }
 
-GPString gp_capitalize_locale_new(const GPAllocator* alc, GPStrIn str, GPLocale* locale)
+GPString gp_capitalize_locale_new(const GPAllocator* alc, GPStrIn str, const char* locale)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, str.length, "");
     memcpy(out, str.data, str.length);

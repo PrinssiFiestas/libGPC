@@ -286,7 +286,7 @@ static void* gp_map_get_elem(
     const GPUint128 key,
     const size_t elem_size)
 {
-    const size_t i  = *gp_u128_lo(&key) & (length - 1);
+    const size_t i = *gp_u128_lo(&key) & (length - 1);
 
     if (slots[i].slot == GP_EMPTY)
         return NULL;

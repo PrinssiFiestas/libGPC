@@ -44,8 +44,6 @@
 
 int main(void)
 {
-    gp_assert(gp_default_locale() != NULL);
-
     // Tiny arena to put address sanitizer to work
     GPArena arena = gp_arena_new(1);
     arena.growth_coefficient = 0.0;
@@ -161,7 +159,7 @@ int main(void)
             gp_expect(gp_equal(str4, ""));
         }
 
-        GPLocale* turkish = gp_locale_new("tr_TR");
+        const char* turkish = "tr_TR";
 
         gp_test("To upper, lower, and valid");
         {
@@ -175,18 +173,16 @@ int main(void)
 
             // Pass locale for full language sensitive case mapping.
             gp_copy(&str0, "ﬁre!🔥");
-            gp_to_upper(&str0, gp_default_locale());
+            gp_to_upper(&str0, "");
             gp_expect(gp_equal(str0, "FIRE!🔥"));
-            if (turkish != NULL)
-            {
-                gp_copy(&str0, "iıİI");
-                GPString str3 = gp_to_upper(&arena, str0, turkish);
-                gp_expect(gp_equal(str3, "İIİI"), str3);
-                gp_to_lower(&str3, turkish);
-                gp_expect(gp_equal(str3, "iıiı"));
-                GPString str4 = gp_to_lower(&arena, str0, turkish);
-                gp_expect(gp_equal(str4, "iıiı"));
-            }
+
+            gp_copy(&str0, "iıİI");
+            GPString str3 = gp_to_upper(&arena, str0, turkish);
+            gp_expect(gp_equal(str3, "İIİI"), str3);
+            gp_to_lower(&str3, turkish);
+            gp_expect(gp_equal(str3, "iıiı"));
+            GPString str4 = gp_to_lower(&arena, str0, turkish);
+            gp_expect(gp_equal(str4, "iıiı"));
 
             gp_append(&str2, "\xff\xff\xff");
             GPString str5 = gp_to_valid(&arena, str2, GP_REPLACEMENT_CHARACTER);
@@ -203,8 +199,6 @@ int main(void)
             gp_expect(gp_equal(str1, "Fire!🔥"));
             gp_expect(gp_equal(str2, "İasdf"));
         }
-
-        gp_locale_delete(turkish);
 
         gp_test("Find first");
         {
@@ -244,21 +238,19 @@ int main(void)
         gp_test("Compare");
         {
             GPString str = gp_str(&arena, "chrt");
-            GPLocale* czech = gp_locale_new("cs_CZ");
+            const char* czech = "cs_CZ";
 
             gp_expect(gp_compare(str, "hrnec") < 0);
             gp_expect(gp_compare(str, "HRNEC") > 0);
             gp_expect(gp_compare(str, "HRNEC", GP_CASE_FOLD) < 0);
-            if (czech != NULL)
+            if (gp_get_locale(czech) != (GPLocale)0)
                 gp_expect(gp_compare(str, "hrnec", GP_COLLATE, czech) > 0);
 
             gp_expect(gp_compare(str, gp_str(&arena, "hrnec")) < 0);
             gp_expect(gp_compare(str, gp_str(&arena, "HRNEC")) > 0);
             gp_expect(gp_compare(str, gp_str(&arena, "HRNEC"), GP_CASE_FOLD) < 0);
-            if (czech != NULL)
+            if (gp_get_locale(czech) != (GPLocale)0)
                 gp_expect(gp_compare(str, gp_str(&arena, "hrnec"), GP_COLLATE, czech) > 0);
-
-            gp_locale_delete(czech);
         }
 
         gp_test("Codepoint count");
@@ -303,11 +295,10 @@ int main(void)
             gp_expect(gp_equal(gp_join(&arena, arr), "BLOINKasdfÄLÄSDEEöö"));
             gp_sort(&arr, GP_CASE_FOLD);
             gp_expect(gp_equal(gp_join(&arena, arr), "asdfBLOINKÄLÄSDEEöö"));
-            GPLocale* finnish = gp_locale_new("fi_FI");
-            if (finnish != NULL) {
+            const char* finnish = "fi_FI";
+            if (gp_get_locale(finnish) != (GPLocale)0) {
                 gp_sort(&arr, GP_COLLATE | GP_CASE_FOLD, finnish);
                 gp_expect(gp_equal(gp_join(&arena, arr), "asdfBLOINKÄLÄSDEEöö"), gp_join(&arena, arr));
-                gp_locale_delete(finnish);
             }
         }
 

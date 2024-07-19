@@ -41,36 +41,20 @@ const char* gp_set_utf8_global_locale(int category, const char* locale_code);
 // will use global locale instead. See
 // https://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html
 
-typedef void GPLocale;
-#define gp_default_locale() NULL
-#define gp_locale_new()     NULL
-#define gp_locale_delete() ((void)0)
+typedef void* GPLocale;
+#define gp_get_locale() NULL
 
 #else
 
-#define GP_LOCALE_T_AVAILABLE 1
+#define GP_LOCALE_AVAILABLE 1
 
-typedef const struct gp_locale
-{
-    #if _WIN32
-    _locale_t locale;
-    #else
-    locale_t locale;
-    #endif
-    char     code[];
-} GPLocale;
+#if _WIN32
+typedef _locale_t GPLocale;
+#else
+typedef locale_t GPLocale;
+#endif
 
-// Some UTF-8 locale in category LC_ALL. Passing to gp_locale_delete() is safe
-// but unnecessary.
-GPLocale* gp_default_locale(void) GP_NONNULL_RETURN;
-
-// Creates an UTF-8 locale in category LC_ALL.
-// locale_code should be in form "xx_YY" or an empty string.
-// Returns NULL if creating locale fails. Otherwise, the return value shuold be
-// passed to gp_locale_delete() to free resources.
-GPLocale* gp_locale_new(const char* locale_code) GP_NONNULL_ARGS();
-
-void gp_locale_delete(GPLocale* optional);
+GPLocale gp_get_locale(const char* locale_code);
 
 #endif // !_WIN32 && _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
 
@@ -138,26 +122,26 @@ void gp_wcs_to_utf8(
 // ----------------------------------------------------------------------------
 // Strings
 
-// Full language sensitive Unicode case mapping. Uses global locale if locale is
-// NULL.
+// Full language sensitive Unicode case mapping. Uses global locale if
+// locale_code is NULL.
 GP_NONNULL_ARGS(1)
 void gp_str_to_upper_full(
     GPString*,
-    GPLocale* optional);
+    const char* optional_locale_code);
 
-// Full language sensitive Unicode case mapping. Uses global locale if locale is
-// NULL.
+// Full language sensitive Unicode case mapping. Uses global locale if
+// locale_code is NULL.
 GP_NONNULL_ARGS(1)
 void gp_str_to_lower_full(
     GPString*,
-    GPLocale* optional);
+    const char* optional_locale_code);
 
 // Capitalizes the first character according to full language sensitive Unicode
-// titlecase mapping. Uses global locale if locale is NULL.
+// titlecase mapping. Uses global locale if locale_code is NULL.
 GP_NONNULL_ARGS(1)
 void gp_str_capitalize(
     GPString*,
-    GPLocale* optional);
+    const char* optional_locale_code);
 
 #define GP_CASE_FOLD 'f'
 #define GP_COLLATE   'c'
@@ -167,14 +151,14 @@ void gp_str_capitalize(
 // comparison. 'c' or GP_COLLATE for collation. 'r' or GP_REVERSE to invert
 // result. Separate flags with |. 0 will compare codepoints lexicographically
 // and is the fastest. Locale affects case insensitive comparison and collating.
-// Uses global locale if locale is NULL.
+// Uses global locale if locale_code is NULL.
 GP_NONNULL_ARGS(1, 2)
 int gp_str_compare(
     const GPString s1,
     const void*    s2,
     size_t         s2_length,
     int            flags,
-    GPLocale*      optional);
+    const char*    optional_locale_code);
 
 GP_NONNULL_ARGS()
 GPArray(GPString) gp_str_split(
@@ -193,12 +177,12 @@ void gp_str_join(
 // sorting. 'c' or GP_COLLATE for collation. 'r' or GP_REVERSE to reverse the
 // result order. Separate flags with |. 0 will sort codepoints lexicographically
 // and is the fastest. locale affects case insensitive sorting and collating.
-// Uses global locale if locale is NULL.
+// Uses global locale if locale_code is NULL.
 GP_NONNULL_ARGS()
 void gp_str_sort(
     GPArray(GPString)* strs,
     int                flags,
-    GPLocale*          optional);
+    const char*        optional_locale_code);
 
 
 // ----------------------------------------------------------------------------

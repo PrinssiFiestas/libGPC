@@ -28,10 +28,10 @@ extern "C" {
     GPString gp_to_upper_new(const GPAllocator*, GPStrIn);
     GPString gp_to_lower_new(const GPAllocator*, GPStrIn);
     GPString gp_to_valid_new(const GPAllocator*, GPStrIn, const char*);
-    GPString gp_to_upper_full_new(const GPAllocator*, GPStrIn, GPLocale*);
-    GPString gp_to_lower_full_new(const GPAllocator*, GPStrIn, GPLocale*);
+    GPString gp_to_upper_full_new(const GPAllocator*, GPStrIn, const char*);
+    GPString gp_to_lower_full_new(const GPAllocator*, GPStrIn, const char*);
     GPString gp_capitalize_new(const GPAllocator*, GPStrIn);
-    GPString gp_capitalize_locale_new(const GPAllocator*, GPStrIn, GPLocale*);
+    GPString gp_capitalize_locale_new(const GPAllocator*, GPStrIn, const char*);
     size_t gp_bytes_codepoint_count(const void*, size_t);
     bool gp_bytes_is_valid_utf8(const void*, size_t, size_t*);
     GPString gp_join_new(const GPAllocator*, const GPArray(GPString), const char*);
@@ -344,7 +344,7 @@ static inline void gp_to_upper(GPString* str)
 {
     gp_str_to_upper(str);
 }
-static inline void gp_to_upper(GPString* str, GPLocale* locale)
+static inline void gp_to_upper(GPString* str, const char* locale)
 {
     gp_str_to_upper_full(str, locale);
 }
@@ -357,7 +357,7 @@ static inline GPString gp_to_upper(
 }
 template <typename T_ALLOCATOR, typename T_STRING>
 static inline GPString gp_to_upper(
-    T_ALLOCATOR* allocator, T_STRING str, GPLocale* locale)
+    T_ALLOCATOR* allocator, T_STRING str, const char* locale)
 {
     GPStrIn s = { (uint8_t*)str, gp_str_length_cpp(str) };
     return gp_to_upper_full_new(gp_alc_cpp(allocator), s, locale);
@@ -370,7 +370,7 @@ static inline void gp_to_lower(GPString* str)
 {
     gp_str_to_lower(str);
 }
-static inline void gp_to_lower(GPString* str, GPLocale* locale)
+static inline void gp_to_lower(GPString* str, const char* locale)
 {
     gp_str_to_lower_full(str, locale);
 }
@@ -381,7 +381,7 @@ static inline GPString gp_to_lower(T_ALLOCATOR* allocator, T_STRING str)
     return gp_to_lower_new(gp_alc_cpp(allocator), s);
 }
 template <typename T_ALLOCATOR, typename T_STRING>
-static inline GPString gp_to_lower(T_ALLOCATOR* allocator, T_STRING str, GPLocale* locale)
+static inline GPString gp_to_lower(T_ALLOCATOR* allocator, T_STRING str, const char* locale)
 {
     GPStrIn s = { (uint8_t*)str, gp_str_length_cpp(str) };
     return gp_to_lower_full_new(gp_alc_cpp(allocator), s, locale);
@@ -407,9 +407,9 @@ static inline GPString gp_to_valid(
 
 static inline void gp_capitalize(GPString* str)
 {
-    gp_str_capitalize(str, gp_default_locale());
+    gp_str_capitalize(str, "");
 }
-static inline void gp_capitalize(GPString* str, GPLocale* locale)
+static inline void gp_capitalize(GPString* str, const char* locale)
 {
     gp_str_capitalize(str, locale);
 }
@@ -420,7 +420,7 @@ static inline GPString gp_capitalize(T_ALLOCATOR* allocator, T_STRING str)
     return gp_capitalize_new(gp_alc_cpp(allocator), s);
 }
 template <typename T_ALLOCATOR, typename T_STRING>
-static inline GPString gp_capitalize(T_ALLOCATOR* allocator, T_STRING str, GPLocale* locale)
+static inline GPString gp_capitalize(T_ALLOCATOR* allocator, T_STRING str, const char* locale)
 {
     GPStrIn s = { (uint8_t*)str, gp_str_length_cpp(str) };
     return gp_capitalize_locale_new(gp_alc_cpp(allocator), s, locale);
@@ -516,10 +516,9 @@ static inline bool gp_is_valid(
 // gp_compare()
 
 template <typename T_STRING>
-static inline int gp_compare(GPString s1, T_STRING s2, int flags = 0, GPLocale* locale = (GPLocale*)-1)
+static inline int gp_compare(GPString s1, T_STRING s2, int flags = 0, const char* locale = "")
 {
-    return gp_str_compare(
-        s1, s2, gp_str_length_cpp(s2), flags, locale == (GPLocale*)-1 ? gp_default_locale() : locale);
+    return gp_str_compare(s1, s2, gp_str_length_cpp(s2), flags, locale);
 }
 
 // ----------------------------------------------------------------------------
@@ -548,9 +547,9 @@ static inline GPString gp_join(T_ALLOCATOR allocator, const GPArray(GPString) sr
 // ---------------------------
 // gp_sort()
 
-static inline void gp_sort(GPArray(GPString)* strs, int flags = 0, GPLocale* locale = (GPLocale*)-1)
+static inline void gp_sort(GPArray(GPString)* strs, int flags = 0, const char* locale = "")
 {
-    gp_str_sort(strs, flags, locale == (GPLocale*)-1 ? gp_default_locale() : locale);
+    gp_str_sort(strs, flags, locale);
 }
 
 // ---------------------------
@@ -1579,28 +1578,24 @@ static inline GPString gp_str_trim_new3(const void*const alc, GPStrIn str, const
 #define GP_TRIM4(ALC, STR, CHARS, FLAGS) gp_str_trim_new(GP_ALC(ALC), GP_STR_IN(STR), CHARS, FLAGS)
 #define GP_TRIM11(...) GP_OVERLOAD4(__VA_ARGS__, GP_TRIM4, GP_TRIM11_3, GP_TRIM11_2, GP_TRIM1)(__VA_ARGS__)
 
-#define GP_STR_OR_LOCALE(A) _Generic(A, \
-    GPLocale*:   A, \
-    GPString:    gp_str_in11(GP_STRING,   A, 0), \
-    char*:       gp_str_in11(GP_CHAR_PTR, A, 0), \
-    const char*: gp_str_in11(GP_CHAR_PTR, A, 0))
+#define GP_STR_OR_LOCALE(A, B) _Generic(A, GPString*: B, default: GP_STR_IN(B))
 
 #define GP_TO_UPPER_SELECTION(T) T*: gp_to_upper_new, const T*: gp_to_upper_new
 #define GP_TO_UPPER11_2(A, B) _Generic(A, GPString*: gp_str_to_upper_full, \
     GP_PROCESS_ALL_ARGS(GP_TO_UPPER_SELECTION, GP_COMMA, GP_ALC_TYPES)) \
-    ((void*)(A), GP_STR_OR_LOCALE(B))
+    ((void*)(A), GP_STR_OR_LOCALE(A, B))
 #define GP_TO_UPPER11(...) GP_OVERLOAD3(__VA_ARGS__, GP_TO_UPPER3, GP_TO_UPPER11_2, GP_TO_UPPER1)(__VA_ARGS__)
 
 #define GP_TO_LOWER_SELECTION(T) T*: gp_to_lower_new, const T*: gp_to_lower_new
 #define GP_TO_LOWER11_2(A, B) _Generic(A, GPString*: gp_str_to_lower_full, \
     GP_PROCESS_ALL_ARGS(GP_TO_LOWER_SELECTION, GP_COMMA, GP_ALC_TYPES)) \
-    ((void*)(A), GP_STR_OR_LOCALE(B))
+    ((void*)(A), GP_STR_OR_LOCALE(A, B))
 #define GP_TO_LOWER11(...) GP_OVERLOAD3(__VA_ARGS__, GP_TO_LOWER3, GP_TO_LOWER11_2, GP_TO_LOWER1)(__VA_ARGS__)
 
 #define GP_CAPITALIZE_SELECTION(T) T*: gp_capitalize_new, const T*: gp_capitalize_new
 #define GP_CAPITALIZE11_2(A, B) _Generic(A, GPString*: gp_str_capitalize, \
     GP_PROCESS_ALL_ARGS(GP_CAPITALIZE_SELECTION, GP_COMMA, GP_ALC_TYPES)) \
-    ((void*)(A), GP_STR_OR_LOCALE(B))
+    ((void*)(A), GP_STR_OR_LOCALE(A, B))
 #define GP_CAPITALIZE11(...) GP_OVERLOAD3(__VA_ARGS__, GP_CAPITALIZE3, GP_CAPITALIZE11_2, GP_CAPITALIZE1)(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
@@ -2111,7 +2106,7 @@ GPString gp_trim99(
     GP_OVERLOAD4(__VA_ARGS__, GP_TRIM99_4, GP_TRIM99_3, GP_TRIM99_2, GP_TRIM99_1)(__VA_ARGS__)
 
 GPString gp_to_upper_new(const GPAllocator*, GPStrIn);
-GPString gp_to_upper_full_new(const GPAllocator*, GPStrIn, GPLocale*);
+GPString gp_to_upper_full_new(const GPAllocator*, GPStrIn, const char*);
 inline GPString gp_to_upper99(const size_t a_size, const void* a, const void* b, const char* b_id)
 {
     if (a_size <= sizeof(GPAllocator)) {
@@ -2131,7 +2126,7 @@ inline GPString gp_to_upper99(const size_t a_size, const void* a, const void* b,
 #define GP_TO_UPPER99(...) GP_OVERLOAD3(__VA_ARGS__, GP_TO_UPPER3, GP_TO_UPPER99_2, GP_TO_UPPER1)(__VA_ARGS__)
 
 GPString gp_to_lower_new(const GPAllocator*, GPStrIn);
-GPString gp_to_lower_full_new(const GPAllocator*, GPStrIn, GPLocale*);
+GPString gp_to_lower_full_new(const GPAllocator*, GPStrIn, const char*);
 inline GPString gp_to_lower99(const size_t a_size, const void* a, const void* b, const char* b_id)
 {
     if (a_size <= sizeof(GPAllocator)) {
@@ -2157,7 +2152,7 @@ GPString gp_to_valid_new(
 #define GP_TO_VALID(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_VALID3, GP_TO_VALID2)(A,__VA_ARGS__)
 
 GPString gp_capitalize_new(const GPAllocator*, GPStrIn);
-GPString gp_capitalize_locale_new(const GPAllocator*, GPStrIn, GPLocale*);
+GPString gp_capitalize_locale_new(const GPAllocator*, GPStrIn, const char*);
 inline GPString gp_capitalize99(const size_t a_size, const void* a, const void* b, const char* b_id)
 {
     if (a_size <= sizeof(GPAllocator)) {
@@ -2168,10 +2163,10 @@ inline GPString gp_capitalize99(const size_t a_size, const void* a, const void* 
     GPString out = gp_str_new(a, b_length, "");
     memcpy(out, b, b_length);
     ((GPStringHeader*)out - 1)->length = b_length;
-    gp_str_capitalize(&out, gp_default_locale());
+    gp_str_capitalize(&out, "");
     return out;
 }
-#define GP_CAPITALIZE1(STR)           gp_str_capitalize(STR, gp_default_locale())
+#define GP_CAPITALIZE1(STR)           gp_str_capitalize(STR, "")
 #define GP_CAPITALIZE99_2(A, B)       gp_capitalize99(GP_SIZEOF_TYPEOF(*(A)), A, B, #B)
 #define GP_CAPITALIZE3(ALC, STR, LOC) gp_capitalize_full_new(GP_ALC(ALC), GP_STR_IN(STR), LOC)
 #define GP_CAPITALIZE99(...) GP_OVERLOAD3(__VA_ARGS__, GP_CAPITALIZE3, GP_CAPITALIZE99_2, GP_CAPITALIZE1)(__VA_ARGS__)
@@ -2209,12 +2204,12 @@ inline bool gp_equal_case99(const GPString a, GPStrIn b)
 #define GP_EQUAL_CASE(A,...) \
     GP_OVERLOAD2(__VA_ARGS__, gp_str_equal_case, GP_EQUAL_CASE2)(A, __VA_ARGS__)
 
-inline int gp_compare99(const GPString str1, GPStrIn str2, int flags, GPLocale* locale)
+inline int gp_compare99(const GPString str1, GPStrIn str2, int flags, const char* locale)
 {
     return gp_str_compare(str1, str2.data, str2.length, flags, locale);
 }
-#define GP_COMPARE2(STR1, STR2)                gp_compare99(STR1, GP_STR_IN(STR2), 0, gp_default_locale())
-#define GP_COMPARE3(STR1, STR2, FLAGS)         gp_compare99(STR1, GP_STR_IN(STR2), FLAGS, gp_default_locale())
+#define GP_COMPARE2(STR1, STR2)                gp_compare99(STR1, GP_STR_IN(STR2), 0, "")
+#define GP_COMPARE3(STR1, STR2, FLAGS)         gp_compare99(STR1, GP_STR_IN(STR2), FLAGS, "")
 #define GP_COMPARE4(STR1, STR2, FLAGS, LOCALE) gp_compare99(STR1, GP_STR_IN(STR2), FLAGS, LOCALE)
 #define GP_COMPARE(STR1,...) GP_OVERLOAD3(__VA_ARGS__, GP_COMPARE4, GP_COMPARE3, GP_COMPARE2)(STR1,__VA_ARGS__)
 
@@ -2253,8 +2248,8 @@ inline GPString gp_join99(
 #define GP_JOIN99_3(A, STRS, SEP) gp_join99(GP_SIZEOF_TYPEOF(*(A)), A, STRS, SEP)
 #define GP_JOIN99(A,...) GP_OVERLOAD2(__VA_ARGS__, GP_JOIN99_3, GP_JOIN99_2)(A,__VA_ARGS__)
 
-#define GP_SORT1(STRS)        gp_str_sort(STRS, 0,     gp_default_locale())
-#define GP_SORT2(STRS, FLAGS) gp_str_sort(STRS, FLAGS, gp_default_locale())
+#define GP_SORT1(STRS)        gp_str_sort(STRS, 0,     "")
+#define GP_SORT2(STRS, FLAGS) gp_str_sort(STRS, FLAGS, "")
 #define GP_SORT(...) GP_OVERLOAD3(__VA_ARGS__, gp_str_sort, GP_SORT2, GP_SORT1)(__VA_ARGS__)
 
 #define GP_IS_ALC99(A) (GP_SIZEOF_TYPEOF(*(A)) >= sizeof(GPAllocator))
