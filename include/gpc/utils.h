@@ -31,11 +31,13 @@ struct gp_random_state
     uint64_t inc;
 };
 
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
+
 
 // Aligment of all pointers returned by any valid allocators
 #ifndef GP_MEMORY_INCLUDED
@@ -99,6 +101,7 @@ uint32_t gp_random      (GPRandomState*) GP_NONNULL_ARGS();
 double   gp_frandom     (GPRandomState*) GP_NONNULL_ARGS();
 int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_ARGS();
 
+
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
@@ -106,6 +109,7 @@ int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_AR
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+
 
 inline int                gp_imin(int x, int y)                                 { return x < y ? x : y; }
 inline long               gp_lmin(long x, long y)                               { return x < y ? x : y; }

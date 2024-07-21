@@ -10,7 +10,7 @@ override CFLAGS += -D_GNU_SOURCE # memmem(), stat64(), locale_t
 override CFLAGS += -lm -lpthread
 
 DEBUG_CFLAGS   = -ggdb3 -gdwarf
-RELEASE_CFLAGS = -O3 -DNDEBUG
+RELEASE_CFLAGS = -O3 -DNDEBUG -fno-math-errno
 ifeq ($(CC), clang) # in some systems Clang ignores -lm and crashes with -flto
 	override CFLAGS += -Wno-unused-command-line-argument
 else

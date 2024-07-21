@@ -23,7 +23,11 @@ extern "C" {
 //
 // ----------------------------------------------------------------------------
 
-// This is mostly for completeness
+// This exists mostly for completeness.
+// Like fopen(), but handles mode differently. Checks the first character in
+// mode string: 'r' for read, 'w' for write. Then checks if 'x' exists in mode
+// string for text mode. Default is binary mode. Also checks for '+' for
+// read/write or write/read like fopen().
 FILE* gp_file_open(const char* path, const char* mode);
 
 // To be passed to gp_defer() with correct function type
@@ -82,6 +86,7 @@ inline int gp_stat(GPStat* s, const char* path)
     #endif
 }
 
+
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
@@ -89,6 +94,7 @@ inline int gp_stat(GPStat* s, const char* path)
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+
 
 size_t gp_file_print_internal(
     FILE* file,
