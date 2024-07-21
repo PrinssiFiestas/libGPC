@@ -8,9 +8,9 @@
 // ----------------------------------------------------------------------------
 // Nodiscard
 
-#ifdef __GNUC__
+#if __GNUC__
 #define GP_NODISCARD __attribute__((__warn_unused_result__))
-#elif defined(_MSC_VER)
+#elif _MSC_VER
 #define GP_NODISCARD _Check_return_
 #else
 #define GP_NODISCARD
@@ -78,7 +78,7 @@
 // ----------------------------------------------------------------------------
 // Printf format string type checking
 
-#if defined(__GNUC__)
+#if __GNUC__
 // Type checking for format strings
 #define GP_PRINTF(FORMAT_STRING_INDEX, FIRST_TO_CHECK) \
     __attribute__((format(printf, FORMAT_STRING_INDEX, FIRST_TO_CHECK)))
@@ -89,8 +89,10 @@
 // ----------------------------------------------------------------------------
 // Disable sanitizers
 
-#ifdef __GNUC__
+#if __GNUC__
 #define GP_NO_SANITIZE __attribute__((no_sanitize("address", "leak", "undefined")))
+#elif _MSC_VER
+#define GP_NO_SANITIZE __declspec(no_sanitize_address)
 #else
 #define GP_NO_SANITIZE
 #endif

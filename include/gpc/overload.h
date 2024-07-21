@@ -216,6 +216,7 @@ inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_
 //
 // ----------------------------------------------------------------------------
 
+
 #if __STDC_VERSION__ <= 199901L
 // Unique struct/union name
 #define GP_MAKE_UNIQUE(A, B) A##B
@@ -226,7 +227,7 @@ inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_
 #endif
 
 // ----------------------------------------------------------------------------
-// Gory script generated internals below. You have been warned.
+// Script generated stuff
 
 #define GP_PROCESS_ALL_ARGS(FUNC, SEPARATOR, ...) GP_OVERLOAD64(__VA_ARGS__, 	\
 GP_PROC64, GP_PROC63, GP_PROC62, GP_PROC61, GP_PROC60, GP_PROC59, GP_PROC58, GP_PROC57, \
