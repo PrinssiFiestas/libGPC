@@ -184,9 +184,9 @@ static inline GPUint128 gp_shift_key(const GPUint128 key, const size_t length)
     bitw |= (((uint64_t)length & b[1]) != 0) << 1;
 
     // 128-bit bit shift right
-    GPUint128 new_key = {0};
-    *gp_u128_hi(&new_key) = *gp_u128_hi(&key) >> bitw;
-    *gp_u128_lo(&new_key) =(*gp_u128_lo(&key) >> bitw) | (*gp_u128_hi(&key)<<(64-bitw));
+    GPUint128 new_key = gp_u128(
+        *gp_u128_hi(&key) >> bitw,
+       (*gp_u128_lo(&key) >> bitw) | (*gp_u128_hi(&key)<<(64-bitw)));
 
     return new_key;
     #endif

@@ -57,8 +57,8 @@ GPString gp_replace_new(const GPAllocator* a, GPStrIn b, GPStrIn c, GPStrIn d, c
         ((GPStringHeader*)out - 1)->length = b.length;
     } else {
         memcpy(out, b.data, pos);
-        memcpy(out + pos, d.data, d.length);
-        memcpy(out + pos + d.length, b.data + pos + c.length, b.length - c.length);
+        memcpy(out + pos, d.data, d.length); // asBLAHasdf
+        memcpy(out + pos + d.length, b.data + pos + c.length, b.length - (pos + c.length));
         ((GPStringHeader*)out - 1)->length = b.length + d.length - c.length;
     }
     return out;

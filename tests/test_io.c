@@ -57,6 +57,8 @@ int main(void)
             FILE* f;
             gp_assert(f = tmpfile());
             f_contents = "fooDELIMbarDELIMbloink";
+            gp_file_print(f, f_contents);
+            rewind(f);
             GPString str = gp_str_on_stack(arena, 1, "");
             while (gp_file_read_until(&str, f, "DELIM"))
             {
@@ -76,16 +78,20 @@ int main(void)
             FILE* f;
             gp_assert(f = tmpfile());
             f_contents = "Here\t is some" GP_WHITESPACE "words. Yeah.";
+            gp_file_println(f, f_contents);
+            rewind(f);
             GPString contents = gp_str_new(arena, 1, f_contents);
             GPString str = gp_str_on_stack(arena, 1, "");
             while (gp_file_read_strip(&str, f, NULL)) // NULL defaults to GP_WHITESPACE
             {
                 GPString segment = gp_str_on_stack(NULL, 64, "");
                 size_t pos = gp_str_find_first_of(contents, GP_WHITESPACE, 0);
+                if (pos == GP_NOT_FOUND)
+                    pos = gp_str_length(contents);
                 gp_str_slice(&segment, contents, 0, pos);
                 gp_str_trim(&segment, GP_WHITESPACE, 'l' |'r');
 
-                gp_expect(gp_str_equal(str, segment, gp_str_length(segment)));
+                gp_expect(gp_str_equal(str, segment, gp_str_length(segment)), segment, str);
 
                 gp_str_slice(&contents, NULL, pos, gp_str_length(contents));
                 gp_str_trim(&contents, GP_WHITESPACE, 'l');

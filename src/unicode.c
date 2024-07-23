@@ -20,14 +20,13 @@ static GPMutex gp_locale_table_mutex;
 static void gp_locale_delete(void* locale)
 {
     #if GP_LOCALE_AVAILABLE
-    #if _WIN32
-    if (locale != (GPLocale)0)
-        _free_locale(locale);
-    #else
-    if (locale != (GPLocale)0)
-        freelocale(locale);
+    if ((GPLocale)locale != (GPLocale)0 && (GPLocale)locale != (GPLocale)-1)
+        #if _WIN32
+        _free_locale((GPLocale)locale);
+        #else
+        freelocale((GPLocale)locale);
+        #endif
     #endif
-    #endif // GP_LOCALE_AVAILABLE
     return;
 }
 

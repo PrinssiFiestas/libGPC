@@ -160,8 +160,8 @@ int main(void)
         int* elem_67 = malloc(sizeof(int));
         *elem_25 = 25;
         *elem_67 = 67;
-        GPUint128 key_25 = {0};
-        GPUint128 key_67 = {0};
+        GPUint128 key_25 = gp_u128(0,0);
+        GPUint128 key_67 = gp_u128(0,0);
         *gp_u128_lo(&key_25) = 3;
         *gp_u128_hi(&key_25) = 0;
         *gp_u128_lo(&key_67) = 3;
@@ -185,8 +185,8 @@ int main(void)
             GPMapInitializer init = {.element_size = sizeof(int) };
             GPMap* map = gp_map_new(gp_heap, &init);
 
-            GPUint128 key1 = {0};
-            GPUint128 key2 = {0};
+            GPUint128 key1 = gp_u128(0,0);
+            GPUint128 key2 = gp_u128(0,0);
             *gp_u128_lo(&key1) = 3;
             *gp_u128_hi(&key1) = 0;
             *gp_u128_lo(&key2) = 3;
@@ -207,8 +207,8 @@ int main(void)
             GPMapInitializer init = {.destructor = free };
             GPMap* map = gp_map_new(arena, &init);
 
-            GPUint128 key1 = {0};
-            GPUint128 key2 = {0};
+            GPUint128 key1 = gp_u128(0,0);
+            GPUint128 key2 = gp_u128(0,0);
             *gp_u128_lo(&key1) = 3;
             *gp_u128_hi(&key1) = 0;
             *gp_u128_lo(&key2) = 3;

@@ -89,6 +89,11 @@ bool gp_file_read_strip(
     FILE*       in,
     const char* char_set)
 {
+    if (char_set == NULL)
+        char_set = GP_WHITESPACE;
+
+    ((GPStringHeader*)*out - 1)->length = 0;
+
     while (true) // strip left
     {
         int c = fgetc(in);
@@ -101,8 +106,10 @@ bool gp_file_read_strip(
                 return false;
             codepoint[i] = c;
         }
-        if (strstr(char_set, codepoint) != NULL)
+        if (strstr(char_set, codepoint) == NULL) {
+            gp_str_append(out, codepoint, codepoint_length);
             break;
+        }
     }
     while (true) // write until codepoint found in char set
     {
@@ -116,7 +123,7 @@ bool gp_file_read_strip(
                 return false;
             codepoint[i] = c;
         }
-        if (strstr(char_set, codepoint) == NULL)
+        if (strstr(char_set, codepoint) != NULL)
             break;
         gp_str_append(out, codepoint, codepoint_length);
     }
