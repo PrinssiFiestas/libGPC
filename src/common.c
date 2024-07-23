@@ -73,12 +73,13 @@ size_t gp_bytes_codepoint_count(
     static const size_t valid_leading_nibble[] = {
         1,1,1,1, 1,1,1,1, 0,0,0,0, 1,1,1,1
     };
-    if (n <= 8) { // Not worth optimizing. Also GCC miscompiles on x86_64 Linux.
+    if (n <= 8) // Not worth optimizing. Also GCC miscompiles small string
+    {           // inputs with the optimized code using -O3 in x86_64 Linux.
         for (size_t i = 0; i < n; ++i)
             count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
         return count;
     }
-    // else process in parallel for blazing speed
+    // else process in parallel for blazing speeds
 
     const size_t align_offset = (uintptr_t)str     % 8;
     const size_t remaining    = (n - align_offset) % 8;
