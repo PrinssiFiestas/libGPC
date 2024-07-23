@@ -2,6 +2,8 @@
 # Copyright (c) 2023 Lauri Lorenzo Fiestas
 # https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+GPC_VERSION = 0.2.0
+
 CC = gcc
 override CFLAGS += -Wall -Wextra -Werror
 override CFLAGS += -Wno-comment
@@ -14,7 +16,7 @@ RELEASE_CFLAGS = -O3 -DNDEBUG -fno-math-errno
 ifeq ($(CC), clang) # in some systems Clang ignores -lm and crashes with -flto
 	override CFLAGS += -Wno-unused-command-line-argument
 else
-	RELEASE_CFLAGS += -flto
+	RELEASE_CFLAGS += -flto=auto
 endif
 
 all: release debug build/gprun$(EXE_EXT) single_header
@@ -90,6 +92,8 @@ build/gprun$(EXE_EXT): tools/gprun.c
 
 install: all /etc/gdb/gpstring.py
 install:
+	rm -f /usr/local/lib/libgpc.so
+	rm -f /usr/local/lib/libgpcd.so
 	cp -r include/gpc   /usr/local/include/
 	cp build/gpc.h      /usr/local/include/gpc/
 	cp build/gprun      /usr/local/bin/
@@ -97,6 +101,10 @@ install:
 	cp build/libgpcd.so /usr/local/lib/
 	chmod 0755          /usr/local/lib/libgpc.so
 	chmod 0755          /usr/local/lib/libgpcd.so
+	mv /usr/local/lib/libgpc.so  /usr/local/lib/libgpc.so.$(GPC_VERSION)
+	mv /usr/local/lib/libgpcd.so /usr/local/lib/libgpcd.so.$(GPC_VERSION)
+	ln -s /usr/local/lib/libgpc.so$(GPC_VERSION)  /usr/local/lib/libgpc.so
+	ln -s /usr/local/lib/libgpcd.so$(GPC_VERSION) /usr/local/lib/libgpcd.so
 	ldconfig
 
 build/singleheadergen$(EXE_EXT): tools/singleheadergen.c | build/libgpc.so
@@ -111,7 +119,7 @@ analyze: override CFLAGS += -fanalyzer
 analyze: build_tests
 
 build/libgpc.so: $(OBJS)
-	$(CC) -shared -o $@ $^
+	$(CC) -flto=auto -shared -o $@ $^
 
 build/libgpcd.so: $(DEBUG_OBJS)
 	$(CC) -shared -o $@ $^

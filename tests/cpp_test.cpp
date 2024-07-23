@@ -6,7 +6,8 @@
 #include "../build/gpc.h"
 
 // There is not much C++ specific functionality. Only some macros need to be
-// tested.
+// tested. Also assertions in this file fails on purpose since we are testing
+// that the assertions work.
 
 int main()
 {
