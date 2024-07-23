@@ -23,6 +23,7 @@ static void override_heap_allocator(void)
 
 static bool is_free(void*_ptr)
 {
+    gp_assert(_ptr);
     uint8_t* ptr = _ptr;
     for (size_t i = 0; i < GP_ALLOC_ALIGNMENT; i++) if (ptr[i] != 0xFF)
         return false;

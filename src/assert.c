@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <assert.h>
 
 #ifdef _WIN32
 #include <windows.h> // GetModuleFileNameA()
@@ -264,6 +265,7 @@ void gp_fail_internal(
                 {
                     while (true) {
                         _fmt = strchr(_fmt, '%');
+                        assert(_fmt); // loop should've ended after processing all specs
                         if (_fmt[1] != '%')
                             break;
                     }

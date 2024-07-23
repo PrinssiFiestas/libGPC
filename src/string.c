@@ -725,7 +725,7 @@ int gp_str_file(
             if (f == NULL)
                 return -1;
             if (fwrite(*str, sizeof**str, gp_str_length(*str), f) != gp_str_length(*str))
-                return -1;
+                return fclose(f), -1;
             fclose(f);
         }
     }

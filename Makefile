@@ -46,7 +46,8 @@ TESTS         = $(patsubst tests/test_%.c, build/test_%d$(EXE_EXT), $(TEST_SRCS)
 RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(TEST_SRCS))
 
 .PHONY: all release debug install tests build_tests run_tests release_tests
-.PHONY: build_release_tests run_release_tests cl_tests single_header analyze clean
+.PHONY: build_release_tests run_release_tests cl_tests single_header analyze
+.PHONY: test_all clean
 
 .PRECIOUS: $(TESTS) $(RELEASE_TESTS)
 
@@ -74,6 +75,20 @@ run_cl_tests: $(CL_TESTS)
 	done
 
 cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
+
+test_all: analyze release_tests
+ifeq ($(OS), Windows_NT)
+test_all: cl_tests
+endif
+
+test_clang: CC = clang
+test_clang: tests release_tests
+
+ifneq ($(CC), clang)
+test_all:
+	make clean
+	make test_clang
+endif
 
 single_header: build/singleheadergen$(EXE_EXT)
 	./$< build/gpc.h

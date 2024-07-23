@@ -6,6 +6,7 @@
 #include <gpc/utils.h>
 #include "common.h"
 #include <string.h>
+#include <assert.h>
 
 extern inline void gp_arr_delete(GPArray(void));
 
@@ -86,6 +87,7 @@ GPArray(void) gp_arr_copy(
     const size_t        src_length)
 {
     dest = gp_arr_reserve(element_size, dest, src_length);
+    assert(gp_arr_capacity(dest) >= src_length); // analyzer false positive
     memcpy(dest, src, src_length * element_size);
     ((GPArrayHeader*)dest - 1)->length = src_length;
     return dest;
