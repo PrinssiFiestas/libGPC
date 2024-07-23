@@ -78,19 +78,23 @@ cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
 
 ifeq ($(OS), Windows_NT)
 test_all: # run all tests sequentially to see where breaks
-	make tests
+	make clean
+	make tests CC=clang
+	make release_tests CC=clang
+	make clean
+	make release_tests
 	make cl_tests
 	make analyze
-	make clean
-	make tests CC=clang
-	make release_tests CC=clang
+	make tests
 else
 test_all:
-	make tests
-	make analyze
 	make clean
 	make tests CC=clang
 	make release_tests CC=clang
+	make clean
+	make release_tests
+	make analyze
+	make tests
 endif
 
 single_header: build/singleheadergen$(EXE_EXT)
