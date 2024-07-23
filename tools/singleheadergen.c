@@ -10,7 +10,11 @@
 // Header files have to be written next. Every time an #include directive
 // references a local header file, it has to be inlined recursively. Private
 // headers (headers in src/) has to be in X_IMPLEMENTATION block to hide
-// implementation specific possibly C-only headers from user.
+// implementation specific possibly C-only headers from user. Note that no
+// assumptions can be made about conditional compilation which means that if the
+// first occurrence of #include <mylib/mymodule.h> is in an #if block, it will
+// be inlined in that #if block essentialy removing it if that #if condition
+// evaluates to false!
 //
 // After all header files have been written, write the rest from all of the
 // source files in an #ifdef X_IMPLEMENTATION block. #include directives
@@ -32,7 +36,7 @@
 #endif
 
 static FILE*                   out            = NULL;
-static const char*             out_path       = "build/gpc.h";
+static const char*             out_path       = NULL;
 static GPString                implementation = NULL;
 static GPArena                 garena;
 static const GPAllocator*const gmem           = (GPAllocator*)&garena;
@@ -289,7 +293,7 @@ static void write_sources_until_include(void)
 }
 
 static size_t find_header(
-    const char* name, const size_t name_length, const File* file)
+    const char* name, const size_t name_length, const File* file, const char* include_dir)
 {
     size_t i = 0;
     for (;; i++)
@@ -306,7 +310,7 @@ static size_t find_header(
             gp_file_println(stderr, "File %.*s", name_length, name, "not found.");
             return GP_NOT_FOUND;
         }
-        if (headers[i].include_dir == file->include_dir &&
+        if (headers[i].include_dir == include_dir &&
             headers[i].name_length == name_length &&
             memcmp(name, headers[i].name, name_length) == 0)
             break;
@@ -374,22 +378,36 @@ static size_t find_header_index(
         }
         else if (line[i].c == '"' || line[i].c == '<')
         {
-            if (line[i++].c == '<') {
-                if (file->include_dir == NULL)
+            const char* include_dir = file->include_dir;
+
+            if (line[i++].c == '<')
+            {
+                if (include_dir == NULL) {
                     return find_header_from_include_paths(
                         (char*)line + i,
                         gp_str_find_first_of(line, ">", i) - i,
                         file);
-                else if (memcmp(line + i, file->include_dir, strlen(file->include_dir)) != 0)
-                    return GP_NOT_FOUND;
+                } else {
+                    bool found = false;
+                    size_t j = 0;
+                    for (; j < gp_arr_length(include_paths); ++j) {
+                        found = strncmp(gp_cstr(line) + i, include_paths[j], strlen(include_paths[j])) == 0;
+                        if (found)
+                            break;
+                    }
+                    if ( ! found)
+                        return GP_NOT_FOUND;
+                    include_dir = include_paths[j];
+                }
 
-                i += strlen(file->include_dir);
+                i += strlen(include_dir);
             }
 
             return find_header(
                 (char*)line + i,
                 gp_str_find_first_of(line, "\">", i) - i,
-                file);
+                file,
+                include_dir);
         }
         else {
             i++;
@@ -439,8 +457,15 @@ static void write_files(GPArray(File) files)
         write_file(files, i);
 }
 
-int main(void)
+int main(int argc, char* argv[])
 {
+    if (argc != 2) {
+        gp_file_println(stderr,
+            "singleheadergen: you must provide exactly 1 output file path.");
+        return EXIT_FAILURE;
+    }
+    out_path = argv[1];
+
     init_globals();
     write_license();
     fputs("/*\n"

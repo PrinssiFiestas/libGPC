@@ -16,9 +16,10 @@
 #include <stddef.h>
 
 #ifdef __cplusplus
-#include <printf/printf.h>
 #include <sstream>
 extern "C" {
+GP_NONNULL_ARGS(3) GP_PRINTF(3, 4)
+int pf_snprintf(char*GP_RESTRICT, size_t, const char*GP_RESTRICT, ...);
 #endif
 
 // ----------------------------------------------------------------------------

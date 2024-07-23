@@ -74,7 +74,7 @@ run_cl_tests: $(CL_TESTS)
 cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
 
 single_header: build/singleheadergen$(EXE_EXT)
-	./$<
+	./$< build/gpc.h
 
 build/gprun$(EXE_EXT): tools/gprun.c
 	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) $? -o $@
