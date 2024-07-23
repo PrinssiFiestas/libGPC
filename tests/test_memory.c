@@ -91,14 +91,18 @@ static GPThreadResult test0(void*_)
         {
             GPAllocator* scope = gp_begin(0);
 
+            // Note: using heap memory this way makes no sense, the scope
+            // allocator could be used directly so no deferred free needed. In
+            // fact, it is unsafe to defer free since reallocating p1 or p2
+            // would cause double free. We only use the heap now for unit
+            // testing and demonstration purposes.
+
             void* p1 = gp_mem_alloc(gp_heap, 64);
             gp_scope_defer(scope, deferred_dealloc, p1);
             void* p2 = gp_mem_alloc(gp_heap, 64);
             gp_defer(scope, deferred_dealloc, p2);
             FILE* f = tmpfile();
             #if WARNING
-            // fclose does not type check to void(*)(void*) although safe. Bad!
-            gp_scope_defer(scope, gp_file_close, f);
             // pi does not type check to arg of fclose which would be unsafe. Good!
             int* pi = gp_mem_alloc(gp_heap, sizeof*pi);
             gp_defer(scope, gp_file_close, pi);

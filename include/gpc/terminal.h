@@ -16,9 +16,9 @@
 // Example using string concatenation:
 /*
     printf(
-        GP_RED                "Printing in red! "
+        GP_RED               "Printing in red! "
         GP_WHITE_BG GP_BLACK "Printing in black with white background! "
-        GP_RESET_TERMINAL     "Remember to reset to default color!\n");
+        GP_RESET_TERMINAL    "Remember to reset to default color!\n");
 */
 
 #define GP_RESET_TERMINAL      "\033[0m"

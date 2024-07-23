@@ -82,11 +82,15 @@ GPAllocator* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
 void gp_end(GPAllocator* optional_scope);
 
 // Deferred functions are called in Last In First Out order in gp_end().
+// Deferring should not be used for gp_str_delete() or gp_arr_delete() due
+// to possibility of reallocating which would cause double free. It is not
+// needed either, since using the scope allocator makes freeing redundant.
+// Deferring is meant to clean other than memory resources like file pointers.
 GP_NONNULL_ARGS(1, 2)
 void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
 
-// like scope_defer() but can take also take functions with non-void pointer
-// arguments like fclose. Also argument to f will be type checked.
+// like gp_scope_defer() but with type checking and can also take functions
+// with non-void pointer arguments like gp_file_close().
 #define gp_defer(scope, f, arg) do { \
     if (0) (f)(arg); \
     gp_scope_defer(scope, (void(*)(void*))(f), arg); \
@@ -174,6 +178,7 @@ extern const GPAllocator* gp_heap;
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+
 
 #ifdef __cplusplus
 } // extern "C"

@@ -31,9 +31,10 @@ extern "C" {
 FILE* gp_file_open(const char* path, const char* mode);
 
 // To be passed to gp_defer() with correct function type
-inline void gp_file_close(FILE* file)
+inline void gp_file_close(FILE* optional)
 {
-    fclose(file);
+    if (optional != NULL)
+        fclose(optional);
 }
 
 #define/* size_t */gp_print(...) \
