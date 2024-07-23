@@ -13,11 +13,11 @@ override CFLAGS += -lm -lpthread
 
 DEBUG_CFLAGS   = -ggdb3 -gdwarf
 RELEASE_CFLAGS = -O3 -DNDEBUG -fno-math-errno
-ifeq ($(CC), clang) # in some systems Clang ignores -lm and crashes with -flto
+ifeq ($(CC), clang) # in some systems Clang ignores -lm
 	override CFLAGS += -Wno-unused-command-line-argument
-else
+else ifeq ($(CC), gcc) # faster multithreaded incremental release build
 	RELEASE_CFLAGS += -flto=auto
-endif
+endif # non gcc uses unity build which is more portable than -flto
 
 all: release debug build/gprun$(EXE_EXT) single_header
 
@@ -106,9 +106,10 @@ install:
 	ln -s /usr/local/lib/libgpc.so$(GPC_VERSION)  /usr/local/lib/libgpc.so
 	ln -s /usr/local/lib/libgpcd.so$(GPC_VERSION) /usr/local/lib/libgpcd.so
 	ldconfig
+	@echo Installation succeeded.
 
-build/singleheadergen$(EXE_EXT): tools/singleheadergen.c | build/libgpc.so
-	$(CC) $? build/libgpc.so $(CFLAGS) $(RELEASE_CFLAGS) -o $@
+build/singleheadergen$(EXE_EXT): tools/singleheadergen.c | build/libgpcd.so
+	$(CC) $? build/libgpcd.so $(CFLAGS) $(DEBUG_CFLAGS) -o $@
 
 release: override CFLAGS += $(RELEASE_CFLAGS)
 release: build/libgpc.so
@@ -118,8 +119,14 @@ debug: build/libgpcd.so
 analyze: override CFLAGS += -fanalyzer
 analyze: build_tests
 
+ifeq ($(CC), gcc)
 build/libgpc.so: $(OBJS)
-	$(CC) -flto=auto -shared -o $@ $^
+	$(CC) -shared -O3 -flto=auto -o $@ $^
+else # unity build
+build/libgpc.so: single_header
+build/libgpc.so:
+	$(CC) $(RELEASE_CFLAGS) -xc -fpic src/gpc._c -shared -o $@
+endif
 
 build/libgpcd.so: $(DEBUG_OBJS)
 	$(CC) -shared -o $@ $^

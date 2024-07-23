@@ -1,0 +1,7 @@
+/*
+If not GCC, the release library will be built from this file as an unity build.
+This enables link time optimization, but is more portable than -flto. The funky
+file extension prevents globbing in other builds.
+*/
+#define GPC_IMPLEMENTATION
+#include "../build/gpc.h"
