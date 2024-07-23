@@ -137,6 +137,8 @@ release: override CFLAGS += $(RELEASE_CFLAGS)
 release: build/libgpc.so
 debug: override CFLAGS += $(DEBUG_CFLAGS)
 debug: build/libgpcd.so
+tests: override CFLAGS += $(DEBUG_CFLAGS)
+release_tests: override CFLAGS += $(RELEASE_CFLAGS)
 
 analyze: override CFLAGS += -fanalyzer
 analyze: build_tests

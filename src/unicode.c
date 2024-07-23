@@ -211,7 +211,7 @@ void gp_utf8_to_utf32(
     }
     size_t gp_bytes_codepoint_count(const void*, size_t);
     *u32 = gp_arr_reserve(sizeof(*u32)[0], *u32,
-        gp_arr_length(*u32) + gp_bytes_codepoint_count((uint8_t*)u8 + i, u8_length));
+        gp_arr_length(*u32) + gp_bytes_codepoint_count((uint8_t*)u8 + i, u8_length - i));
 
     for (; i < u8_length; i += codepoint_length)
     {
