@@ -37,6 +37,7 @@
 
 static FILE*                   out            = NULL;
 static const char*             out_path       = NULL;
+static const char*             version_number = NULL;
 static GPString                implementation = NULL;
 static GPArena                 garena;
 static const GPAllocator*const gmem           = (GPAllocator*)&garena;
@@ -459,14 +460,21 @@ static void write_files(GPArray(File) files)
 
 int main(int argc, char* argv[])
 {
-    if (argc != 2) {
+    if (argc != 2 && argc != 3) {
         gp_file_println(stderr,
-            "singleheadergen: you must provide exactly 1 output file path.");
+            "singleheadergen: you must provide exactly 1 output file path and optional version number.");
         return EXIT_FAILURE;
     }
-    out_path = argv[1];
+    out_path       = argv[1];
+    version_number = argv[2];
+    const size_t out_path_slash = gp_bytes_find_last(out_path, strlen(out_path), "/", 1);
+    const char* out_name = out_path;
+    if (out_path_slash != GP_NOT_FOUND)
+        out_name += out_path_slash + strlen("/");
 
     init_globals();
+    if (version_number != NULL)
+        gp_file_println(out, "/*", out_name, version_number, "*/");
     write_license();
     fputs("/*\n"
         " * This file has been generated. The original code may have gone trough heavy\n"

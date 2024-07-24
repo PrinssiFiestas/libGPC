@@ -99,7 +99,7 @@ test_all:
 endif
 
 single_header: build/singleheadergen$(EXE_EXT)
-	./$< build/gpc.h
+	./$< build/gpc.h $(GPC_VERSION)
 
 build/gprun$(EXE_EXT): tools/gprun.c
 	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) $? -o $@
