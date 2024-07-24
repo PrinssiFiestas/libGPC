@@ -17,13 +17,13 @@ class GPStringPrinter():
 
 def gp_str_lookup_function(val):
     if str(val.type) == "GPString":
-        return StringPrinter(val)
+        return GPStringPrinter(val)
     return None
 
 def gp_const_str_lookup_function(val):
     if str(val.type) == "const GPString":
-        return StringPrinter(val)
+        return GPStringPrinter(val)
     return None
 
-gdb.pretty_printers.append(str_lookup_function)
-gdb.pretty_printers.append(const_str_lookup_function)
+gdb.pretty_printers.append(gp_str_lookup_function)
+gdb.pretty_printers.append(gp_const_str_lookup_function)

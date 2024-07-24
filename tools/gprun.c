@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
 
             strcat(strcat(strcpy(cl_cmd, "cl.exe "), argv[1]), cl_flags);
             strcat(strcpy(cc_cmd, compiler), ".exe");
-            for (size_t i = 1; i < cc_argv.argc, ++i)
+            for (size_t i = 1; i < cc_argv.argc; ++i)
                 strcat(strcat(cc_cmd, " "), cc_argv.argv[i]);
 
         } else {

@@ -19,14 +19,13 @@ else ifeq ($(CC), gcc) # faster multithreaded incremental release build
 	RELEASE_CFLAGS += -flto=auto
 endif # non gcc uses unity build which is more portable than -flto
 
-all: release debug build/gprun$(EXE_EXT) single_header
-
 NPROC        = $(shell echo `nproc`)
 THREAD_COUNT = $(if $(NPROC),$(NPROC),4)
 MAKEFLAGS   += -j$(THREAD_COUNT)
 
 ifeq ($(OS), Windows_NT)
 	EXE_EXT = .exe
+	LIB_EXT = .a
 else
 	EXE_EXT =
 	DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
@@ -35,7 +34,10 @@ else
 	else # clang
 		DEBUG_CFLAGS += -static-libsan
 	endif
+	LIB_EXT = .so
 endif
+
+all: release debug build/gprun$(EXE_EXT) single_header
 
 SRCS       = $(wildcard src/*.c)
 OBJS       = $(patsubst src/%.c, build/%.o,  $(wildcard src/*.c))
@@ -98,46 +100,68 @@ test_all:
 	@echo Passed all tests.
 endif
 
+MSYS_VERSION     = $(if $(findstring Msys, $(shell uname -o)),$(word 1, $(subst ., ,$(shell uname -r))),0)
+MSYS_ENVIRONMENT = $(patsubst /%/bin/gcc,%,$(shell which gcc))
+
+ifeq ($(MSYS_VERSION), 0)
+	INSTALL_PATH = /usr/local/
+	GDBINIT_PATH = /etc/gdb/
+	FULL_GDBINIT_PATH = GDBINIT_PATH
+else
+	INSTALL_PATH = /$(MSYS_ENVIRONMENT)/
+	GDBINIT_PATH = /$(MSYS_ENVIRONMENT)/etc/
+	FULL_GDBINIT_PATH = $(shell cygpath -m /)$(MSYS_ENVIRONMENT)/etc/
+endif
+
 single_header: build/singleheadergen$(EXE_EXT)
 	./$< build/gpc.h $(GPC_VERSION)
 
 build/gprun$(EXE_EXT): tools/gprun.c
 	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) $? -o $@
 
-/etc/gdb/gpstring.py:
-	cp tools/gpstring.py /etc/gdb/
-	$(file >> /etc/gdb/gdbinit,source /etc/gdb/gpstring.py)
-	$(file >> /etc/gdb/gdbinit,define gpdebug)
-	$(file >> /etc/gdb/gdbinit,  shell cc -Wall $$arg0 -ggdb3 -fsanitize=address -fsanitize=undefined -lgpcd -lm -lpthread)
-	$(file >> /etc/gdb/gdbinit,  file a.out)
-	$(file >> /etc/gdb/gdbinit,  start)
-	$(file >> /etc/gdb/gdbinit,end)
+$(GDBINIT_PATH)gpstring.py:
+	cp tools/gpstring.py $(GDBINIT_PATH)
+	$(file >> $(GDBINIT_PATH)gdbinit,source $(FULL_GDBINIT_PATH)gpstring.py)
 
-install: all /etc/gdb/gpstring.py
+install: all $(GDBINIT_PATH)gpstring.py
+ifeq ($(OS), Windows_NT)
 install:
-	rm -f /usr/local/lib/libgpc.so
-	rm -f /usr/local/lib/libgpcd.so
-	cp -r include/gpc   /usr/local/include/
-	cp build/gpc.h      /usr/local/include/gpc/
-	cp build/gprun      /usr/local/bin/
-	cp build/libgpc.so  /usr/local/lib/
-	cp build/libgpcd.so /usr/local/lib/
-	chmod 0755          /usr/local/lib/libgpc.so
-	chmod 0755          /usr/local/lib/libgpcd.so
-	mv /usr/local/lib/libgpc.so  /usr/local/lib/libgpc.so.$(GPC_VERSION)
-	mv /usr/local/lib/libgpcd.so /usr/local/lib/libgpcd.so.$(GPC_VERSION)
-	ln -s /usr/local/lib/libgpc.so.$(GPC_VERSION)  /usr/local/lib/libgpc.so
-	ln -s /usr/local/lib/libgpcd.so.$(GPC_VERSION) /usr/local/lib/libgpcd.so
+	rm -f               $(INSTALL_PATH)lib/libgpc$(LIB_EXT)
+	rm -f               $(INSTALL_PATH)lib/libgpcd$(LIB_EXT)
+	cp -r include/gpc   $(INSTALL_PATH)include/
+	cp build/gpc.h      $(INSTALL_PATH)include/gpc/
+	cp build/gprun      $(INSTALL_PATH)bin/
+	cp build/libgpc$(LIB_EXT)  $(INSTALL_PATH)lib/
+	cp build/libgpcd$(LIB_EXT) $(INSTALL_PATH)lib/
+	chmod 0755          $(INSTALL_PATH)lib/libgpc$(LIB_EXT)
+	chmod 0755          $(INSTALL_PATH)lib/libgpcd$(LIB_EXT)
+	@echo Installation succeeded.
+else
+install:
+	rm -f               $(INSTALL_PATH)lib/libgpc$(LIB_EXT)
+	rm -f               $(INSTALL_PATH)lib/libgpcd$(LIB_EXT)
+	cp -r include/gpc   $(INSTALL_PATH)include/
+	cp build/gpc.h      $(INSTALL_PATH)include/gpc/
+	cp build/gprun      $(INSTALL_PATH)bin/
+	cp build/libgpc$(LIB_EXT)  $(INSTALL_PATH)lib/
+	cp build/libgpcd$(LIB_EXT) $(INSTALL_PATH)lib/
+	chmod 0755          $(INSTALL_PATH)lib/libgpc$(LIB_EXT)
+	chmod 0755          $(INSTALL_PATH)lib/libgpcd$(LIB_EXT)
+	mv    $(INSTALL_PATH)lib/libgpc$(LIB_EXT)  $(INSTALL_PATH)lib/libgpc$(LIB_EXT).$(GPC_VERSION)
+	mv    $(INSTALL_PATH)lib/libgpcd$(LIB_EXT) $(INSTALL_PATH)lib/libgpcd$(LIB_EXT).$(GPC_VERSION)
+	ln -s $(INSTALL_PATH)lib/libgpc$(LIB_EXT).$(GPC_VERSION)  $(INSTALL_PATH)lib/libgpc$(LIB_EXT)
+	ln -s $(INSTALL_PATH)lib/libgpcd$(LIB_EXT).$(GPC_VERSION) $(INSTALL_PATH)lib/libgpcd$(LIB_EXT)
 	ldconfig
 	@echo Installation succeeded.
+endif
 
-build/singleheadergen$(EXE_EXT): tools/singleheadergen.c | build/libgpcd.so
-	$(CC) $? build/libgpcd.so $(CFLAGS) $(DEBUG_CFLAGS) -o $@
+build/singleheadergen$(EXE_EXT): tools/singleheadergen.c | build/libgpcd$(LIB_EXT)
+	$(CC) $? build/libgpcd$(LIB_EXT) $(CFLAGS) $(DEBUG_CFLAGS) -o $@
 
 release: override CFLAGS += $(RELEASE_CFLAGS)
-release: build/libgpc.so
+release: build/libgpc$(LIB_EXT)
 debug: override CFLAGS += $(DEBUG_CFLAGS)
-debug: build/libgpcd.so
+debug: build/libgpcd$(LIB_EXT)
 tests: override CFLAGS += $(DEBUG_CFLAGS)
 release_tests: override CFLAGS += $(RELEASE_CFLAGS)
 
@@ -147,17 +171,25 @@ analyze: override CFLAGS += -fanalyzer
 endif
 analyze: build_tests
 
-ifeq ($(CC), gcc)
-build/libgpc.so: $(OBJS)
+ifeq ($(OS), Windows_NT)
+build/libgpc$(LIB_EXT): $(OBJS)
+	ar -crs $@ $^
+else ifeq ($(CC), gcc)
+build/libgpc$(LIB_EXT): $(OBJS)
 	$(CC) -shared -O3 -flto=auto -o $@ $^
 else # unity build
-build/libgpc.so: single_header
-build/libgpc.so:
+build/libgpc$(LIB_EXT): single_header
+build/libgpc$(LIB_EXT):
 	$(CC) $(RELEASE_CFLAGS) -xc -fpic src/gpc._c -shared -o $@
 endif
 
-build/libgpcd.so: $(DEBUG_OBJS)
+ifeq ($(OS), Windows_NT)
+build/libgpcd$(LIB_EXT): $(DEBUG_OBJS)
+	ar -crs $@ $^
+else
+build/libgpcd$(LIB_EXT): $(DEBUG_OBJS)
 	$(CC) -shared -o $@ $^
+endif
 
 $(OBJS): build/%.o : src/%.c
 	mkdir -p build
