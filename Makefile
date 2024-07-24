@@ -86,6 +86,7 @@ test_all: # run all tests sequentially to see where breaks
 	make cl_tests
 	make analyze
 	make tests
+	@echo Passed all tests.
 else
 test_all:
 	make clean
@@ -93,8 +94,8 @@ test_all:
 	make release_tests CC=clang
 	make clean
 	make release_tests
-	make analyze
 	make tests
+	@echo Passed all tests.
 endif
 
 single_header: build/singleheadergen$(EXE_EXT)
@@ -140,7 +141,10 @@ debug: build/libgpcd.so
 tests: override CFLAGS += $(DEBUG_CFLAGS)
 release_tests: override CFLAGS += $(RELEASE_CFLAGS)
 
+STATIC_ANALYZER_AVAILABLE = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 10)
+ifeq ($(STATIC_ANALYZER_AVAILABLE), 1)
 analyze: override CFLAGS += -fanalyzer
+endif
 analyze: build_tests
 
 ifeq ($(CC), gcc)
