@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <stdbool.h>
 #include <errno.h>
 
@@ -36,15 +37,15 @@ void* xmalloc(size_t n)
         return p;
 }
 
-void push(char* arg)
+void push(struct DynamicArgv* argv, char* arg)
 {
-    if (cc_argv.argc == cc_argv.capacity - 1)
-        cc_argv.argv = realloc(cc_argv.argv, (cc_argv.capacity *= 2) * sizeof(char*));
-    if (cc_argv.argv == NULL) {
+    if (argv->argc == argv->capacity - 1)
+        argv->argv = realloc(argv->argv, (argv->capacity *= 2) * sizeof(char*));
+    if (argv->argv == NULL) {
         perror("realloc()");
         exit(EXIT_FAILURE);
     }
-    cc_argv.argv[cc_argv.argc++] = arg;
+    argv->argv[argv->argc++] = arg;
 }
 
 int main(int argc, char* argv[])
@@ -71,6 +72,7 @@ int main(int argc, char* argv[])
     #endif
     char* out_executable = &run_out_executable[strlen("./")];
     bool cleanup_required = true; // remove compiled executable
+    bool optimized = false;
 
     // Parse argv[1] to get args for compiler
     char compiler[8] = "cc";
@@ -79,13 +81,13 @@ int main(int argc, char* argv[])
         cc_argv.argv = xmalloc(init_size * sizeof(char*));
         cc_argv.capacity = init_size;
 
-        push(compiler);
-        push((char[]){"-Wall"});
-        bool optimized = false;
+        push(&cc_argv, compiler);
+        push(&cc_argv, (char[]){"-Wall"});
+        push(&cc_argv, (char[]){"-Iinclude"});
 
         if (argv1 != NULL) for (char* arg = argv1;;)
         {
-            push(arg);
+            push(&cc_argv, arg);
 
             if (memcmp(arg, "-o", 2) == 0)
             {
@@ -104,8 +106,9 @@ int main(int argc, char* argv[])
                 cleanup_required = false;
             }
 
-            if (memcmp(arg, "-O", 2) == 0 && '1' <= arg[2] && arg[2] <= '3')
-                optimized = true;
+            if ((arg[0] == '-' || arg[0] == '/') && arg[1] == 'O')
+                if (arg[2] == ' ' || isdigit(arg[2]))
+                    optimized = true;
 
             do {
                 arg++;
@@ -131,19 +134,19 @@ int main(int argc, char* argv[])
                 break;
         }
         if ( ! optimized) {
-            push((char[]){"-ggdb3"});
-            push((char[]){"-gdwarf"});
+            push(&cc_argv, (char[]){"-ggdb3"});
+            push(&cc_argv, (char[]){"-gdwarf"});
             #if ! _WIN32
-                push((char[]){"-fsanitize=address"});
-                push((char[]){"-fsanitize=undefined"});
-                push((char[]){"-static-libasan"}); // avoid LD_PRELOAD problems
+            push(&cc_argv, (char[]){"-fsanitize=address"});
+            push(&cc_argv, (char[]){"-fsanitize=undefined"});
+            push(&cc_argv, (char[]){"-static-libasan"}); // avoid LD_PRELOAD problems
             #endif
-            push((char[]){"-lgpcd"});
+            push(&cc_argv, (char[]){"-lgpcd"});
         } else {
-            push((char[]){"-lgpc"});
+            push(&cc_argv, (char[]){"-lgpc"});
         }
-        push((char[]){"-lm"});
-        push((char[]){"-lpthread"});
+        push(&cc_argv, (char[]){"-lm"});
+        push(&cc_argv, (char[]){"-lpthread"});
         cc_argv.argv[cc_argv.argc] = NULL;
     }
 
@@ -165,12 +168,22 @@ int main(int argc, char* argv[])
 
         char* cc_cmd;
         char* cl_cmd;
+        char  cl_flags[128] = "/utf-8 /Iinclude";
+        if ( ! optimized)
+            strcat(cl_flags, " /fsanitize=address");
+
         if (argc > 1) {
-            size_t len = sizeof(compiler) + sizeof(".exe -Wall -g3") + strlen(argv[1]);
-            cc_cmd = xmalloc(len * 2 + sizeof('\0'));
-            cl_cmd = cc_cmd + len;
-            strcat(strcat(strcpy(cc_cmd, compiler), ".exe -Wall "), argv[1]);
-            strcat(strcpy(cl_cmd, "cl.exe "), argv[1]);
+            size_t len = sizeof(compiler) + strlen(argv[1]) + strlen(cl_flags);
+            for (size_t i = 1; i < cc_argv.argc; ++i)
+                len += strlen(cc_argv.argv[i]);
+            cc_cmd = xmalloc(len * 4 + sizeof('\0')); // Use same memory block
+            cl_cmd = cc_cmd + 2 * len;                // for both commands.
+
+            strcat(strcat(strcpy(cl_cmd, "cl.exe "), argv[1]), cl_flags);
+            strcat(strcpy(cc_cmd, compiler), ".exe");
+            for (size_t i = 1; i < cc_argv.argc, ++i)
+                strcat(strcat(cc_cmd, " "), cc_argv.argv[i]);
+
         } else {
             cc_cmd = (char[]){"cc.exe"};
             cl_cmd = (char[]){"cl.exe"};

@@ -126,8 +126,8 @@ install:
 	chmod 0755          /usr/local/lib/libgpcd.so
 	mv /usr/local/lib/libgpc.so  /usr/local/lib/libgpc.so.$(GPC_VERSION)
 	mv /usr/local/lib/libgpcd.so /usr/local/lib/libgpcd.so.$(GPC_VERSION)
-	ln -s /usr/local/lib/libgpc.so$(GPC_VERSION)  /usr/local/lib/libgpc.so
-	ln -s /usr/local/lib/libgpcd.so$(GPC_VERSION) /usr/local/lib/libgpcd.so
+	ln -s /usr/local/lib/libgpc.so.$(GPC_VERSION)  /usr/local/lib/libgpc.so
+	ln -s /usr/local/lib/libgpcd.so.$(GPC_VERSION) /usr/local/lib/libgpcd.so
 	ldconfig
 	@echo Installation succeeded.
 
