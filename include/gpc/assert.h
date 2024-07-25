@@ -18,7 +18,6 @@
 #include <stdbool.h>
 
 #ifdef __cplusplus
-#include <gpc/terminal.h>
 extern "C" {
 #define GP_DUMMY_BOOL_ASSIGN
 #else // suppress some warnings
@@ -90,6 +89,7 @@ void gp_fail_internal(
 #ifdef __cplusplus
 } // extern "C"
 
+#define GP_CURSOR_BACK_CPP(N) "\033[" #N "D"
 static inline void gp_fail_internal_cpp(
     const char*const condition,
     const char*const file,
@@ -97,7 +97,7 @@ static inline void gp_fail_internal_cpp(
     const char*const func,
     std::string vars)
 {
-    vars.insert(0, "\"" GP_CURSOR_BACK(1));
+    vars.insert(0, "\"" GP_CURSOR_BACK_CPP(1));
     const char*const cstr = vars.c_str();
     const GPPrintable ps[2] = {{condition, GP_INT}, {cstr, GP_CHAR_PTR}};
     gp_fail_internal(file, line, func, 2, ps, 0, cstr);

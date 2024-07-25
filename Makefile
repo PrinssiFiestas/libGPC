@@ -58,7 +58,7 @@ RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(TEST_SRCS)
 # https://anadoxin.org/blog/bringing-visual-studio-compiler-into-msys2-environment.html/
 
 CL_OBJS   = $(OBJS:.o=.obj)
-CL_CFLAGS = -std:c17 -experimental:c11atomics -Iinclude -utf-8
+CL_CFLAGS = -std:c17 -Iinclude -utf-8
 CL_TESTS  = $(TESTS:d$(EXE_EXT)=cl.exe)
 $(CL_OBJS): $(wildcard src/*.h)
 $(CL_OBJS): $(wildcard include/gpc/*.h)
@@ -123,18 +123,31 @@ $(GDBINIT_PATH)gpstring.py:
 	cp tools/gpstring.py $(GDBINIT_PATH)
 	$(file >> $(GDBINIT_PATH)gdbinit,source $(FULL_GDBINIT_PATH)gpstring.py)
 
+VISUAL_STUDIO_DIR = C:/Program Files/Microsoft Visual Studio
+VISUAL_STUDIO_VERSION = $(lastword $(sort $(shell ls "$(VISUAL_STUDIO_DIR)/")))
+VISUAL_STUDIO_EDITION = $(lastword $(shell ls "$(VISUAL_STUDIO_DIR)/$(VISUAL_STUDIO_VERSION)/"))
+VISUAL_STUDIO_PATH = $(VISUAL_STUDIO_DIR)/$(VISUAL_STUDIO_VERSION)/$(VISUAL_STUDIO_EDITION)
+GPRUN_CL_PATH = $(VISUAL_STUDIO_PATH)/Common7/Tools/
+
 install: all $(GDBINIT_PATH)gpstring.py
 ifeq ($(OS), Windows_NT)
 install:
-	rm -f               $(INSTALL_PATH)lib/libgpc$(LIB_EXT)
-	rm -f               $(INSTALL_PATH)lib/libgpcd$(LIB_EXT)
-	cp -r include/gpc   $(INSTALL_PATH)include/
-	cp build/gpc.h      $(INSTALL_PATH)include/gpc/
-	cp build/gprun      $(INSTALL_PATH)bin/
+	rm -f              $(INSTALL_PATH)lib/libgpc$(LIB_EXT)
+	rm -f              $(INSTALL_PATH)lib/libgpcd$(LIB_EXT)
+	cp -r include/gpc  $(INSTALL_PATH)include/
+	cp build/gpc.h     $(INSTALL_PATH)include/gpc/
+	cp build/gprun.exe $(INSTALL_PATH)bin/
 	cp build/libgpc$(LIB_EXT)  $(INSTALL_PATH)lib/
 	cp build/libgpcd$(LIB_EXT) $(INSTALL_PATH)lib/
-	chmod 0755          $(INSTALL_PATH)lib/libgpc$(LIB_EXT)
-	chmod 0755          $(INSTALL_PATH)lib/libgpcd$(LIB_EXT)
+	chmod 0755 $(INSTALL_PATH)lib/libgpc$(LIB_EXT)
+	chmod 0755 $(INSTALL_PATH)lib/libgpcd$(LIB_EXT)
+	$(if $(VISUAL_STUDIO_VERSION),cp build/gprun.exe "$(GPRUN_CL_PATH)")
+	$(if $(VISUAL_STUDIO_VERSION),mkdir -p "$(GPRUN_CL_PATH)libgpc")
+	$(if $(VISUAL_STUDIO_VERSION),cp -r include/gpc "$(GPRUN_CL_PATH)libgpc")
+	$(if $(VISUAL_STUDIO_VERSION),cp build/gpc.h "$(GPRUN_CL_PATH)libgpc/gpc")
+	$(if $(VISUAL_STUDIO_VERSION),echo -e "#define GPC_IMPLEMENTATION\n#include \"gpc/gpc.h\"\n" > "$(GPRUN_CL_PATH)libgpc/gpc.c")
+	$(if $(VISUAL_STUDIO_VERSION),touch "$(GPRUN_CL_PATH)libgpc/gpc.obj")     # for boostrap
+	$(if $(VISUAL_STUDIO_VERSION),chmod 333 "$(GPRUN_CL_PATH)libgpc/gpc.obj") # without admin
 	@echo Installation succeeded.
 else
 install:

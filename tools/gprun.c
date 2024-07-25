@@ -17,6 +17,8 @@
 #include <stdbool.h>
 #include <errno.h>
 
+#include <sys/stat.h>
+
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
@@ -47,6 +49,60 @@ void push(struct DynamicArgv* argv, char* arg)
     }
     argv->argv[argv->argc++] = arg;
 }
+
+#if _WIN32
+char* bootstrap_libgpc_for_cl(void)
+{
+    static char libgpc_cl_path[MAX_PATH] = "";
+    GetModuleFileNameA(NULL, libgpc_cl_path, MAX_PATH);
+    strcpy(strrchr(libgpc_cl_path, '\\') + 1, "libgpc");
+
+    char obj_path[MAX_PATH] = "";
+    strcat(strcpy(obj_path, libgpc_cl_path), "\\gpc.obj");
+    struct __stat64 obj_stat;
+    if (_stat64(obj_path, &obj_stat) != 0) {
+        perror("Could not bootstrap libGPC!\n_stat64()");
+        exit(EXIT_FAILURE);
+    }
+    if (obj_stat.st_size < 1000) // not compiled, bootstrapping required
+    {
+        puts("libGPC yet to be compiled for gprun, bootstrapping...\n");
+
+        STARTUPINFOA start_info = {.cb = sizeof(start_info) };
+        PROCESS_INFORMATION process_info = {0};
+
+        char* cl_cmd = xmalloc(4 * MAX_PATH);
+        strcat(strcat(strcpy(cl_cmd, "cl.exe \""), libgpc_cl_path), "\\gpc.c\" ");
+        strcat(cl_cmd, "/c /utf-8 /std:c17 ");
+        strcat(strcat(strcat(cl_cmd, "/Fo\""), libgpc_cl_path), "\\gpc.obj\"");
+
+        if ( ! CreateProcessA(NULL,
+            cl_cmd, NULL, NULL, false, 0, NULL, NULL,
+            &start_info,
+            &process_info))
+        {
+            fprintf(stderr, "Could not bootstrap libGPC: Invoking cl.exe failed!");
+            exit(EXIT_FAILURE);
+        }
+        free(cl_cmd);
+        WaitForSingleObject(process_info.hProcess, INFINITE);
+
+        DWORD compiler_exit_code;
+        if (GetExitCodeProcess(process_info.hProcess, &compiler_exit_code) == 0) {
+            fputs("Could not bootstrap libGPC: GetExitCodeProcess() failed!", stderr);
+            exit(EXIT_FAILURE);
+        } else if (compiler_exit_code != 0) {
+            exit(compiler_exit_code);
+        }
+        CloseHandle(process_info.hProcess);
+        CloseHandle(process_info.hThread);
+
+        puts("gprun bootstrapping completed.\n");
+    }
+
+    return libgpc_cl_path;
+}
+#endif // _WIN32
 
 int main(int argc, char* argv[])
 {
@@ -144,6 +200,7 @@ int main(int argc, char* argv[])
             push(&cc_argv, (char[]){"-lgpcd"});
         } else {
             push(&cc_argv, (char[]){"-lgpc"});
+            push(&cc_argv, (char[]){"-DNDEBUG"});
         }
         push(&cc_argv, (char[]){"-lm"});
         push(&cc_argv, (char[]){"-lpthread"});
@@ -168,18 +225,19 @@ int main(int argc, char* argv[])
 
         char* cc_cmd;
         char* cl_cmd;
-        char  cl_flags[128] = "/utf-8 /Iinclude";
+        char  cl_flags[128] = " /utf-8 /Iinclude ";
         if ( ! optimized)
-            strcat(cl_flags, " /fsanitize=address");
+            strcat(cl_flags, " /Z7 /fsanitize=address /link /DEBUG");
+        else
+            strcat(cl_flags, " /DNDEBUG");
 
         if (argc > 1) {
-            size_t len = sizeof(compiler) + strlen(argv[1]) + strlen(cl_flags);
+            size_t len = sizeof(compiler) + strlen(argv[1]) + strlen(cl_flags) + MAX_PATH;
             for (size_t i = 1; i < cc_argv.argc; ++i)
                 len += strlen(cc_argv.argv[i]);
             cc_cmd = xmalloc(len * 4 + sizeof('\0')); // Use same memory block
             cl_cmd = cc_cmd + 2 * len;                // for both commands.
 
-            strcat(strcat(strcpy(cl_cmd, "cl.exe "), argv[1]), cl_flags);
             strcat(strcpy(cc_cmd, compiler), ".exe");
             for (size_t i = 1; i < cc_argv.argc; ++i)
                 strcat(strcat(cc_cmd, " "), cc_argv.argv[i]);
@@ -194,6 +252,11 @@ int main(int argc, char* argv[])
             &start_info,
             &process_info))
         {
+            char* gprun_dir = bootstrap_libgpc_for_cl();
+            strcat(strcat(strcpy(cl_cmd, "cl.exe "), argv[1]), " \"");
+            strcat(strcat(strcat(cl_cmd, gprun_dir), "\\gpc.obj\" /I\""), gprun_dir);
+            strcat(strcat(cl_cmd, "\" "), cl_flags);
+
             if ( ! CreateProcessA(NULL,
                 cl_cmd, NULL, NULL, false, 0, NULL, NULL,
                 &start_info,

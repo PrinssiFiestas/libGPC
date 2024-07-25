@@ -11,7 +11,6 @@
 
 #if __STDC_VERSION__ >= 201112L && !defined(__MINGW32__)
 #include <threads.h>
-#include <stdatomic.h>
 #else
 #include <pthread.h>
 #endif
