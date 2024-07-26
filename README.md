@@ -43,6 +43,8 @@ On the works. Installation instructions below. Effort has been made to make the 
 
 libGPC is regularly tested with MSVC on Windows x64, GCC/Clang on x86_64 Ubuntu, MinGW GCC/Clang on MSYS2 UCRT64, and GCC/Clang on 32-bit ARM Raspbian. Portability has been a key consideration when designing and writing the library, so it is likely that it works in other platforms as well, although this is not regularly tested.
 
+Building the single header library with MSVC requires C11 standard threads, which are only available after Visual Studio 2022 version 17.8 Preview 2. Older versions are not supported.
+
 ### C++
 
 The single header library cannot be compiled with a C++ compiler. However, the headers and the library work fine. The only behavioral difference with C++ is that `gp_assert()`, `gp_expect()`, and `gp_print()` family of macros are not capable of handling format strings and they use `std::ostringstream` internally which unfortunately plummets the performance due to allocations. As an upside though, they are more generic than their C counterparts.
@@ -119,7 +121,7 @@ If you only need the library, the easiest and most portable way is to download t
 #include "gpc.h"
 ```
 
-The `#define` must be before the `#include` to expose the actual code in the header that gets compiled. Note that this file must be compiled as C, not C++. If you are using MSVC, `/utf-8` compiler flag is highly recommended, else you should link with `-lm -lpthread`, but not with `-lgpc` or `-lgpcd` since you are compiling the library as part of your project.
+The `#define` must be before the `#include` to expose the actual code in the header that gets compiled. Note that this file must be compiled as C, not C++. If you are using MSVC, compiler flag `/std:c11` or `/std:c17` is required and `/utf-8` is highly recommended, else you should link with `-lm -lpthread`, but not with `-lgpc` or `-lgpcd` since you are compiling the library as part of your project.
 
 If you install the full library in Unix-like systems, the single header library will be copied to your system headers and can be included with
 
