@@ -68,7 +68,7 @@ $(CL_OBJS): build/%.obj : src/%.c
 	cl.exe $< -c $(CL_CFLAGS) -Fo"$@"
 
 $(CL_TESTS): build/test_%cl.exe : tests/test_%.c $(CL_OBJS)
-	cl.exe $< user32.lib $(CL_CFLAGS) $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.obj,$<)),$(CL_OBJS)) -Fe"$@" -Fo"build/"
+	cl.exe $< $(CL_CFLAGS) $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.obj,$<)),$(CL_OBJS)) -Fe"$@" -Fo"build/"
 
 run_cl_tests: $(CL_TESTS)
 	for test in $(CL_TESTS) ; do \
@@ -78,16 +78,21 @@ run_cl_tests: $(CL_TESTS)
 
 cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
 
+# run all tests sequentially to see where breaks
 ifeq ($(OS), Windows_NT)
-test_all: # run all tests sequentially to see where breaks
+test_all:
+	wsl make test_all
 	make clean
 	make tests CC=clang
 	make release_tests CC=clang
 	make clean
 	make release_tests
 	make cl_tests
-	make analyze
+	make release_tests
+	make analyze # note: this only builds the tests without running
 	make tests
+	gcc -c -Wall -Wextra -Werror tests/singleheadertest.c -lm -lpthread -o build/singleheadertest.o
+	cl -c tests/singleheadertest.c $(CL_CFLAGS) -Fo"build/singleheadertest.obj"
 	@echo Passed all tests.
 else
 test_all:
@@ -96,6 +101,7 @@ test_all:
 	make release_tests CC=clang
 	make clean
 	make release_tests
+	make analyze
 	make tests
 	@echo Passed all tests.
 endif
@@ -178,7 +184,9 @@ debug: build/libgpcd$(LIB_EXT)
 tests: override CFLAGS += $(DEBUG_CFLAGS)
 release_tests: override CFLAGS += $(RELEASE_CFLAGS)
 
-STATIC_ANALYZER_AVAILABLE = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 10)
+# GCC static analyzer has been available since version 10, but the early
+# versions are way too slow with way too much false positives so use v12 or newer.
+STATIC_ANALYZER_AVAILABLE = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 12)
 ifeq ($(STATIC_ANALYZER_AVAILABLE), 1)
 analyze: override CFLAGS += -fanalyzer
 endif
