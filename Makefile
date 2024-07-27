@@ -4,7 +4,6 @@
 
 GPC_VERSION = 0.2.0
 
-CC = gcc
 override CFLAGS += -Wall -Wextra -Werror
 override CFLAGS += -Wno-comment
 override CFLAGS += -Iinclude
@@ -13,6 +12,21 @@ override CFLAGS += -lm -lpthread
 
 DEBUG_CFLAGS   = -ggdb3 -gdwarf
 RELEASE_CFLAGS = -O3 -DNDEBUG -fno-math-errno
+
+MSYS_VERSION = $(if $(findstring Msys, $(shell uname -o)),$(word 1, $(subst ., ,$(shell uname -r))),0)
+ifeq ($(MSYS_VERSION), 0)
+	MSYS_ENVIRONMENT =
+else
+	MSYS_ENVIRONMENT = $(patsubst /%/bin/gcc,%,$(shell which gcc))
+endif
+
+ifeq ($(MSYS_ENVIRONMENT),clang64)
+	CC = clang
+	DEBUG_CFLAGS += -fsanitize=address -fsanitize=undefined
+else
+	CC = gcc
+endif
+
 ifeq ($(CC), clang) # in some systems Clang ignores -lm
 	override CFLAGS += -Wno-unused-command-line-argument
 else ifeq ($(CC), gcc) # faster multithreaded incremental release build
@@ -78,7 +92,8 @@ run_cl_tests: $(CL_TESTS)
 
 cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
 
-# run all tests sequentially to see where breaks
+# Run all tests sequentially to see where breaks. Requires MSYS2 UCRT64, WSL2,
+# and MSVC running in MSYS2 shell as explained above.
 ifeq ($(OS), Windows_NT)
 test_all:
 	wsl make test_all
@@ -89,7 +104,7 @@ test_all:
 	make release_tests
 	make cl_tests
 	make release_tests
-	make analyze # note: this only builds the tests without running
+	make analyze
 	make tests
 	gcc -c -Wall -Wextra -Werror tests/singleheadertest.c -lm -lpthread -o build/singleheadertest.o
 	cl -c tests/singleheadertest.c $(CL_CFLAGS) -Fo"build/singleheadertest.obj"
@@ -105,9 +120,6 @@ test_all:
 	make tests
 	@echo Passed all tests.
 endif
-
-MSYS_VERSION     = $(if $(findstring Msys, $(shell uname -o)),$(word 1, $(subst ., ,$(shell uname -r))),0)
-MSYS_ENVIRONMENT = $(patsubst /%/bin/gcc,%,$(shell which gcc))
 
 ifeq ($(MSYS_VERSION), 0)
 	INSTALL_PATH = /usr/local/
@@ -190,7 +202,7 @@ STATIC_ANALYZER_AVAILABLE = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 12
 ifeq ($(STATIC_ANALYZER_AVAILABLE), 1)
 analyze: override CFLAGS += -fanalyzer
 endif
-analyze: build_tests
+analyze: build_tests # you probably want to run make tests after
 
 ifeq ($(OS), Windows_NT)
 build/libgpc$(LIB_EXT): $(OBJS)
