@@ -15,6 +15,14 @@
 #include <string.h>
 #include <limits.h>
 
+// Disable false UB positive for calling functions trough "incompatible" pointer
+// types.
+#if __clang_major__ > 14
+#define GP_NO_FUNCTION_POINTER_SANITIZE __attribute__((no_sanitize("undefined")))
+#else
+#define GP_NO_FUNCTION_POINTER_SANITIZE
+#endif
+
 inline void gp_arena_dealloc(const GPAllocator*_, void*__)
 {
     (void)_; (void)__;

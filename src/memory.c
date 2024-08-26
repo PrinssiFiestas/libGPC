@@ -275,6 +275,7 @@ typedef struct gp_scope
 static GPThreadKey  gp_scope_factory_key;
 static GPThreadOnce gp_scope_factory_key_once = GP_THREAD_ONCE_INIT;
 
+GP_NO_FUNCTION_POINTER_SANITIZE
 static void gp_end_scopes(GPScope* scope, GPScope*const last_to_be_ended)
 {
     if (scope->defer_stack != NULL) {

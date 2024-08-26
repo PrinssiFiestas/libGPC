@@ -15,7 +15,6 @@
 
 #include <gpc/io.h>
 #include <gpc/assert.h>
-#include <errno.h>
 #include <wchar.h>
 #include <locale.h>
 

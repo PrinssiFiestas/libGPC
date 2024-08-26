@@ -14,23 +14,24 @@ DEBUG_CFLAGS   = -ggdb3 -gdwarf
 RELEASE_CFLAGS = -O3 -DNDEBUG -fno-math-errno
 
 MSYS_VERSION = $(if $(findstring Msys, $(shell uname -o)),$(word 1, $(subst ., ,$(shell uname -r))),0)
+
 ifeq ($(MSYS_VERSION), 0)
-	MSYS_ENVIRONMENT =
+MSYS_ENVIRONMENT =
 else
-	MSYS_ENVIRONMENT = $(patsubst /%/bin/gcc,%,$(shell which gcc))
+MSYS_ENVIRONMENT = $(patsubst /%/bin/gcc,%,$(shell which gcc))
 endif
 
 ifeq ($(MSYS_ENVIRONMENT),clang64)
-	CC = clang
-	DEBUG_CFLAGS += -fsanitize=address -fsanitize=undefined -fsanitize-trap=all
+CC = clang
+DEBUG_CFLAGS += -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all
 else
-	CC = gcc
+CC = gcc
 endif
 
 ifeq ($(CC), clang) # in some systems Clang ignores -lm
-	override CFLAGS += -Wno-unused-command-line-argument
+override CFLAGS += -Wno-unused-command-line-argument
 else ifeq ($(CC), gcc) # faster multithreaded incremental release build
-	RELEASE_CFLAGS += -flto=auto
+RELEASE_CFLAGS += -flto=auto
 endif # non gcc uses unity build which is more portable than -flto
 
 NPROC        = $(shell echo `nproc`)
@@ -38,17 +39,17 @@ THREAD_COUNT = $(if $(NPROC),$(NPROC),4)
 MAKEFLAGS   += -j$(THREAD_COUNT)
 
 ifeq ($(OS), Windows_NT)
-	EXE_EXT = .exe
-	LIB_EXT = .a
+EXE_EXT = .exe
+LIB_EXT = .a
 else
-	EXE_EXT =
-	DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
-	ifeq ($(CC), gcc)
-		DEBUG_CFLAGS += -static-libasan -fno-sanitize-recover=all
-	else # clang
-		DEBUG_CFLAGS += -static-libsan -fsanitize-trap=all
-	endif
-	LIB_EXT = .so
+EXE_EXT =
+DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
+ifeq ($(CC), gcc)
+	DEBUG_CFLAGS += -static-libasan -fno-sanitize-recover=all
+else # clang
+	DEBUG_CFLAGS += -static-libsan -fsanitize-trap=all
+endif
+LIB_EXT = .so
 endif
 
 all: release debug build/gprun$(EXE_EXT) single_header
@@ -122,13 +123,13 @@ test_all:
 endif
 
 ifeq ($(MSYS_VERSION), 0)
-	INSTALL_PATH = /usr/local/
-	GDBINIT_PATH = /etc/gdb/
-	FULL_GDBINIT_PATH = GDBINIT_PATH
+INSTALL_PATH = /usr/local/
+GDBINIT_PATH = /etc/gdb/
+FULL_GDBINIT_PATH = GDBINIT_PATH
 else
-	INSTALL_PATH = /$(MSYS_ENVIRONMENT)/
-	GDBINIT_PATH = /$(MSYS_ENVIRONMENT)/etc/
-	FULL_GDBINIT_PATH = $(shell cygpath -m /)$(MSYS_ENVIRONMENT)/etc/
+INSTALL_PATH = /$(MSYS_ENVIRONMENT)/
+GDBINIT_PATH = /$(MSYS_ENVIRONMENT)/etc/
+FULL_GDBINIT_PATH = $(shell cygpath -m /)$(MSYS_ENVIRONMENT)/etc/
 endif
 
 single_header: build/singleheadergen$(EXE_EXT)
