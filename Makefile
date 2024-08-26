@@ -21,9 +21,13 @@ else
 MSYS_ENVIRONMENT = $(patsubst /%/bin/gcc,%,$(shell which gcc))
 endif
 
+UNAME_S = $(shell uname -s)
+
 ifeq ($(MSYS_ENVIRONMENT),clang64)
 CC = clang
 DEBUG_CFLAGS += -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all
+else ifeq ($(UNAME_S),Darwin)
+CC = clang
 else
 CC = gcc
 endif
@@ -125,7 +129,7 @@ endif
 ifeq ($(MSYS_VERSION), 0)
 INSTALL_PATH = /usr/local/
 GDBINIT_PATH = /etc/gdb/
-FULL_GDBINIT_PATH = GDBINIT_PATH
+FULL_GDBINIT_PATH = $(GDBINIT_PATH)
 else
 INSTALL_PATH = /$(MSYS_ENVIRONMENT)/
 GDBINIT_PATH = /$(MSYS_ENVIRONMENT)/etc/
