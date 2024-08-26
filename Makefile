@@ -22,7 +22,7 @@ endif
 
 ifeq ($(MSYS_ENVIRONMENT),clang64)
 	CC = clang
-	DEBUG_CFLAGS += -fsanitize=address -fsanitize=undefined
+	DEBUG_CFLAGS += -fsanitize=address -fsanitize=undefined -fsanitize-trap=all
 else
 	CC = gcc
 endif
@@ -44,9 +44,9 @@ else
 	EXE_EXT =
 	DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 	ifeq ($(CC), gcc)
-		DEBUG_CFLAGS += -static-libasan
+		DEBUG_CFLAGS += -static-libasan -fno-sanitize-recover=all
 	else # clang
-		DEBUG_CFLAGS += -static-libsan
+		DEBUG_CFLAGS += -static-libsan -fsanitize-trap=all
 	endif
 	LIB_EXT = .so
 endif

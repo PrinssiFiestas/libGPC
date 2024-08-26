@@ -232,7 +232,7 @@ void* gp_mem_realloc(
     size_t new_size)
 {
     GPArena* arena = (GPArena*)allocator;
-    if (allocator->dealloc == gp_arena_dealloc &&
+    if (allocator->dealloc == gp_arena_dealloc && old_block != NULL &&
         (char*)old_block + gp_round_to_aligned(old_size, arena->alignment)
           == (char*)arena->head->position)
     { // extend block instead of reallocating and copying
