@@ -142,7 +142,11 @@ single_header: build/singleheadergen$(EXE_EXT)
 build/gprun$(EXE_EXT): tools/gprun.c
 	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) $? -o $@
 
-$(GDBINIT_PATH)gpstring.py:
+$(GDBINIT_PATH)gdbinit:
+	mkdir -p $(GDBINIT_PATH)
+	touch $(GDBINIT_PATH)gdbinit
+
+$(GDBINIT_PATH)gpstring.py: $(GDBINIT_PATH)gdbinit
 	cp tools/gpstring.py $(GDBINIT_PATH)
 	$(file >> $(GDBINIT_PATH)gdbinit,source $(FULL_GDBINIT_PATH)gpstring.py)
 
