@@ -45,9 +45,9 @@ else
 EXE_EXT =
 DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 ifeq ($(CC), gcc)
-	DEBUG_CFLAGS += -static-libasan -fno-sanitize-recover=all
-else # clang
-	DEBUG_CFLAGS += -static-libsan -fsanitize-trap=all
+DEBUG_CFLAGS += -static-libasan -fno-sanitize-recover=all
+else ifeq ($(CC), clang)
+DEBUG_CFLAGS += -static-libsan -fsanitize-trap=all
 endif
 LIB_EXT = .so
 endif
@@ -187,6 +187,8 @@ install:
 	@echo Installation succeeded.
 endif
 
+# libGPC release build is built from single header library when using Clang.
+# Therefore, singleheadergen must be built using the debug library.
 build/singleheadergen$(EXE_EXT): tools/singleheadergen.c | build/libgpcd$(LIB_EXT)
 	$(CC) $? build/libgpcd$(LIB_EXT) $(CFLAGS) $(DEBUG_CFLAGS) -o $@
 
