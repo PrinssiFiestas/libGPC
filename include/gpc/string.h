@@ -210,20 +210,26 @@ size_t gp_str_replace_all(
 #define GP_RIGHT 'r'
 #define GP_ASCII 'a'
 
-// Flags: 'l' or GP_LEFT, 'r' or GP_RIGHT, 'a' or GP_ASCII for ASCII char set
-// only. Separate flags with |. Trims whitespace if char_set is NULL.
+/** Trim characters.
+ * @p flags: 'l' or GP_LEFT, 'r' or GP_RIGHT, 'a' or GP_ASCII for ASCII char set
+ * only. Separate flags with |. Trims whitespace if @p char_set is NULL.
+ */
 GP_NONNULL_ARGS(1)
 void gp_str_trim(
     GPString*,
     const char* optional_char_set,
     int         flags);
 
-// Only converts Unicode characters with 1:1 mapping.
+/** Simple Unicode upcasing.
+ * Only converts Unicode characters with 1:1 mapping.
+ */
 GP_NONNULL_ARGS()
 void gp_str_to_upper(
     GPString*);
 
-// Only converts Unicode characters with 1:1 mapping.
+/** Simple Unicode downcasing.
+ * Only converts Unicode characters with 1:1 mapping.
+ */
 GP_NONNULL_ARGS()
 void gp_str_to_lower(
     GPString*);
@@ -232,21 +238,26 @@ void gp_str_to_lower(
 // bytes.
 #define GP_REPLACEMENT_CHARACTER "\uFFFD" // �
 
+/** Make string valid UTF-8.
+ * Converts all invalid bytes with @p replacement.
+ */
 GP_NONNULL_ARGS()
 void gp_str_to_valid(
     GPString*   str,
     const char* replacement);
 
-// Opens file in file_path, performs a file operation, and closes it. If
-// operation[0] == 'r', reads the whole file and stores to str. If
-// operation[0] == 'w', writes full contents of str to the file. If
-// operation[0] == 'a', appends fulll contents of str to the file.
-// Files are always opened in binary mode by default. Add "x" or "text" anywhere
-// in operation string to open in text mode. This makes no difference in POSIX,
-// but in Windows adds processing to "\n" which is unnecessary in 2024.
-// Returns  0 on success.
-// Returns -1 if file operations fail. Check errno for the specific error.
-// Returns  1 if file size > SIZE_MAX in 32-bit systems.
+/** Quick file operations.
+ * Opens file in file_path, performs a file operation, and closes it. If
+ * operation[0] == 'r', reads the whole file and stores to str. If
+ * operation[0] == 'w', writes full contents of str to the file. If
+ * operation[0] == 'a', appends fulll contents of str to the file.
+ * Files are always opened in binary mode by default. Add "x" or "text" anywhere
+ * in operation string to open in text mode. This makes no difference in POSIX,
+ * but in Windows adds processing to "\n" which is unnecessary in 2024.
+ * Returns  0 on success.
+ * Returns -1 if file operations fail. Check errno for the specific error.
+ * Returns  1 if file size > SIZE_MAX in 32-bit systems.
+ */
 GP_NONNULL_ARGS() GP_NODISCARD
 int gp_str_file(
     GPString*   src_or_dest,
