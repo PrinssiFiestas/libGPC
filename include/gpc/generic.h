@@ -15,11 +15,119 @@
 #include <gpc/hashmap.h>
 #include <gpc/io.h>
 
+// ----------------------------------------------------------------------------
+// Introduction to Generic Macros
+//
+// Strings, arrays, hash maps, and files have a function API found in their
+// corresponding headers. Funcions in the function API are easier to debug,
+// explicit, and work better with tooling than macros. However, since C doesn't
+// have overloading, optional parameters, or templates, generality is achieved
+// with void* and extra parameters. This is not always type safe and remembering
+// all the parameters brings friction to quick prototyping.
+//
+// To accommodate this, generic macros are provided. Effort has been made to not
+// just have them as syntactic sugar, but actually have some real reason to
+// exist. While they are easier to remember and less verbose than their function
+// counterparts, the real benefit is added type safety, especially with arrays.
+//
+// Great effort has also been made to make the macros hygienic: there is no bugs
+// related to operator precedence, and almost all of them only evaluate their
+// arguments once. The very few ones that might evaluate twice, will at least
+// give some compiler warning when weird things might happen.
+//
+// In C++, these are implemented with overloads, optional parameters, and
+// templates. To see exactly what is provided, you can check below for all the
+// overloads. Find-tool of your text editor will be your friend.
+//
+// There is a huge amount of overloads in total. It is not expected for anybody
+// to remember all of them. To use generic macros effectively, it is only needed
+// to understand conventions and ideas behind them.
+//
+// Naming
+//
+// Functions in the function API are named as follows:
+/*
+    gp_type_func_name()
+*/
+// where "gp_" is the namespace for the whole library, and "type_" is some
+// abbreviation of the class, and "func_name" is the actual name. Generic macros
+// leave "type_" out, so for example, gp_str_trim() becomes gp_trim(), and
+// gp_arr_push() becomes gp_push().
+//
+// Lengths
+//
+// Functions usually take lengths of arguments for generality. The idea is, that
+// you can provide any type of input as an argument, because you provide the
+// length explicitly. For example, for strings these all work:
+/*
+    gp_str_copy(&str, cstr, strlen(cstr)); // char*
+    gp_str_copy(&str, str2, gp_str_length(str2)); // GPString
+    gp_str_copy(&str, other_str.data, other_str.length); //something else
+*/
+// However, string input arguments for generic macros are assumed to be
+// null-terminated char* or GPString, and arrays inputs are assumed to be of
+// type GPArray(T). Therefore the following works:
+/*
+    gp_copy(&str, str2); // GPString
+    gp_copy(&str, "Null terminated string"); // char*
+    gp_copy(&arr, arr2); // GPArrays of same type
+*/
+// Note that only (void* in, size_t in_length) pairs are replaced with generic
+// input arguments. If you see char* arguments in the function API, like
+// gp_str_trim() char_set, they must be null-terminated char* strings even with
+// generic macros!
+//
+// Arrays
+//
+// All array related functions take the size of an element as their first
+// argument. This should always be omitted for type generic macros. Array
+// functions also take destination arrays as arguments and return them to be
+// assigned back to themselves in case of reallocations. Generic array macros
+// are consistent with GPStrings in the sense that they take pointers to
+// destination arrays and return void.
+//
+// Destinations
+//
+// If destination object argument is going to be completely overwritten, it can
+// be replaced with an allocator, which will create and return a new object
+// instead of overwriting and returning void. As an example, here are GPString
+// analogs for strcpy() and strdup():
+/*
+    gp_copy(&dest, "This will overwrite dest.");
+    GPString copy = gp_copy(gp_heap, "This will be duplicated.");
+*/
+// In most other cases, new objects can be created by passing an allocator as an
+// extra argument. This should be the first argument in most of the cases. Note
+// that what was previously an output variable taken as a pointer, is now an
+// input parameter taken by value.
+/*
+    gp_append(&str1, "This will be appended to str1.");
+    GPString str2 = gp_append(gp_heap, str1, "This'll be appended to new str.");
+*/
+// Optional parameters
+//
+// In the function API, an optional parameter is a parameter, usually a pointer,
+// than can have the value NULL or 0. With generic macros, optional parameters
+// can be omitted completely.
+// ----------------------------------------------------------------------------
+
+
+// ----------------------------------------------------------------------------
+//
+//          API REFERENCE
+//
+// ----------------------------------------------------------------------------
+
+
+/** Generic hash map.
+ * Dictionarys are very specific kind of pointers. Use this macro to
+ * differentiate between other pointers.
+ */
 #define GPDictionary(T) T*
 
 #ifdef __cplusplus
 
-#include <array> // PRIVATE HELPERS -------------------------------------------
+#include <array> // PRIVATE HELPERS, IGNORE THESE -----------------------------
 typedef struct gp_str_in { const uint8_t* data; const size_t length; } GPStrIn;
 extern "C" {
     GPString gp_replace_new(const GPAllocator*, GPStrIn, GPStrIn, GPStrIn, size_t);
@@ -54,15 +162,7 @@ static inline void* gp_insert_cpp(const size_t elem_size, void* out, const size_
 }
 // END OF PRIVATE HELPERS -----------------------------------------------------
 
-
-// ----------------------------------------------------------------------------
-//
-//          API REFERENCE
-//
-// ----------------------------------------------------------------------------
-
-
-// C++: Provide overloads for your custom allocators instead of casting.
+// C++: Provide overloads for these for your custom allocators.
 static inline const GPAllocator* gp_alc_cpp(const GPAllocator* alc)
 {
     return (const GPAllocator*)alc;
@@ -85,6 +185,7 @@ static inline const GPAllocator* gp_alc_cpp(const GPArena* alc)
 // ----------------------------------------------------------------------------
 // Builder functions
 
+// Create a new array of type GPArray(T)
 #define/*GPArray(T)*/gp_arr(/*allocator, T, init_elements*/...) \
     GP_ARR_NEW_CPP(__VA_ARGS__)
 
@@ -141,6 +242,7 @@ static inline GPHashMap* gp_hmap(
     return gp_hash_map_new(gp_alc_cpp(allocator), &init);
 }
 
+// Create a new object of type GPDictionary(T)
 #define gp_dict(/*allocator, type, destructor = NULL, capacity = 0*/...) \
     GP_DICT_CPP(__VA_ARGS__)
 
