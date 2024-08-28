@@ -20,13 +20,10 @@
 #ifdef __cplusplus
 extern "C" {
 #define GP_DUMMY_BOOL_ASSIGN
-#else // suppress some warnings
+#else // suppress some warnings allowing things like gp_assert(p = malloc(1))
 #define GP_DUMMY_BOOL_ASSIGN (bool){0} =
 #endif
 
-#ifndef GP_USER_ASSERT_EXIT
-#define GP_USER_ASSERT_EXIT exit
-#endif
 
 // ----------------------------------------------------------------------------
 //
@@ -34,11 +31,50 @@ extern "C" {
 //
 // ----------------------------------------------------------------------------
 
+
+// On failures, gp_assert() and gp_expect() print formatted information about
+// their arguments to standard error. First, the boolean expression passed as
+// first argument is printed with the location of the assertion. Example:
+/*
+    gp_expect(1 + 1 == 3);  // Prints
+                            // Expectation 1 + 1 == 3 FAILED in line xx file yy.
+*/
+// The exact message of the first line might be slightly different, but it will
+// be along those lines.
+// Next, information about additionally passed arguments will be printed in form
+// "argument = evaluated_argument". Example:
+/*
+    gp_expect(false, 1 + 1, my_int_var); // Prints
+                            // Expectation false FAILED in line xx file yy.c.
+                            // 1 + 1 = 2
+                            // my_int_var = -39
+*/
+// If not C++, format strings can be passed for custom formatting. In C99, these
+// are required. A string literal without format specifiers is considered a note
+// and will be printed without additional formatting. Example:
+/*
+    gp_expect(0, "My non-formatted note.", "%x", 127); // Prints
+                            // Expectation 0 FAILED in line xx file yy.c.
+                            // My non-formatted note.
+                            // 127 = 7f
+*/
+// If the format string starts with a opening brace and optionally space, they
+// will be added to the evaluated value as well. This makes printing structs and
+// arrays nicer. Example:
+/*
+    gp_expect(0,
+        "{ %s, %zu }", s.str, s.size,
+        "[%i, %i, %i, %i]", arr[0], arr[1], arr[2], arr[3]); // Prints
+                            // Expectation 0 FAILED in line xx file yy.c.
+                            // { s.str, s.size } = { "blah", 4 }
+                            // [arr[0], arr[1], arr[2], arr[3]] = [2, 7, 9, 4]
+*/
+
 // Returns true if condition is true. If condition is false prints fail message,
 // marks current test and suite (if running tests) as failed, and exits program.
 #define gp_assert(/* bool condition, variables*/...) \
     (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
-        (GP_FAIL(__VA_ARGS__), GP_USER_ASSERT_EXIT(1), false))
+        (GP_FAIL(__VA_ARGS__), exit(1), false))
 
 // Returns true if condition is true. If condition is false prints fail message,
 // marks current test and suite (if running tests) as failed, and returns false.
@@ -56,6 +92,7 @@ void gp_test(const char* name);
 // with NULL when suite is not running does nothing. Also ends last test.
 void gp_suite(const char* name);
 
+
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
@@ -63,6 +100,7 @@ void gp_suite(const char* name);
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+
 
 // Optional explicit end of all testing and report results. If this
 // function is not called explicitly, it will be called when main() returns.
