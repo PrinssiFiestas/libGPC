@@ -2,6 +2,10 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+/**@file array.h
+ * Dynamic array.
+ */
+
 #ifndef GPC_ARRAY_H
 #define GPC_ARRAY_H
 
@@ -13,11 +17,13 @@
 extern "C" {
 #endif
 
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
+
 
 /** Dynamic array of any type.
  * In memory, a dynamic array is GPArrayHeader followed by the elements. An
@@ -42,6 +48,7 @@ typedef struct gp_array_header
 #define GP_ARR_ATTRS(...) \
     GP_NONNULL_RETURN GP_NODISCARD GP_NONNULL_ARGS(__VA_ARGS__)
 
+/** Create a new empty array.*/
 GP_ARR_ATTRS()
 GPArray(void) gp_arr_new(
     const GPAllocator*,

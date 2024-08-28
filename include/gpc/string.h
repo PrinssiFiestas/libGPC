@@ -15,9 +15,12 @@
 #include "overload.h"
 #include <stdbool.h>
 #include <stddef.h>
-#include <limits.h>
 #include <stdint.h>
-#include <wctype.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 // ----------------------------------------------------------------------------
 //
@@ -26,10 +29,28 @@
 // ----------------------------------------------------------------------------
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+/** Distinct character type.
+ * This should not be used directly. This only exist to make _Generic()
+ * selection work in C and overloads in C++. This should only be used to get
+ * byte values from GPString e.g. my_string[i].c.
+ */
+typedef struct gp_char { uint8_t c; } GPChar;
 
+/** Dynamic string.
+ * In memory, a string is GPStringHeader followed by the characters. An object
+ * of type GPString is a pointer to the first element.
+ *
+ * GPStrings are not null-terminated by design to simplify their usage and to
+ * discourage the usage of buggy and slow null-terminated strings. However,
+ * null-terminated strings are ubiquitous, so conversion functions are provided.
+ */
+typedef GPChar* GPString;
+
+/** String meta-data.
+ * You can edit the fields directly with ((GPStringHeader)my_string - 1)->field.
+ * This might be useful for micro-optimizations, but it is mostly recommended to
+ * use the provided functions instead.
+ */
 typedef struct gp_string_header
 {
     size_t length;
@@ -37,17 +58,20 @@ typedef struct gp_string_header
     const GPAllocator* allocator;
     void* allocation; // pointer to self or NULL if on stack
 } GPStringHeader;
-typedef struct gp_char { uint8_t c; } GPChar;
 
-typedef GPChar* GPString;
-
+/** Create and initialize a new string.*/
 GP_NONNULL_ARGS_AND_RETURN
 GPString gp_str_new(
     const       GPAllocator*,
     size_t      capacity,
     const char* init);
 
-// Not available in C++
+/** Create a new dynamic string on stack.
+ * @p allocator_ptr determines how the string will be reallocated if length
+ * exceeds capacity. If it is known that length will not exceed capacity,
+ * @p allocator_ptr can be left NULL.
+ * Not available in C++.
+ */
 #define/* GPString */gp_str_on_stack( \
     optional_allocator_ptr, \
     size_t_capacity, \
@@ -56,46 +80,64 @@ GPString gp_str_new(
     GP_STR_ON_STACK(optional_allocator_ptr, size_t_capacity,__VA_ARGS__)
 
 // If not zeroing memory for performance is desirable and/or macro magic is
-// undesirable, arrays can be created on stack manually. Capacity should be
-// initialized to be actual capacity -1 for null termination.
+// undesirable, strings can be created on stack manually. This is required in
+// C++ which does not have gp_str_on_stack(). Capacity should be initialized to
+// be actual capacity - 1 for null-termination.
 /*
     struct optional_name{GPStringHeader header; GPChar data[2048];} my_str_mem;
-    my_str_mem.header = (GPStringHeader) {.capacity = 2048 - sizeof""};
+    memset(&my_str_mem.header, 0, sizeof my_str_mem.header);
+    my_str_mem.header.capacity = 2048 - sizeof"";
     GPString my_string = my_str_mem.data;
 */
 
+/** Getters */
 size_t             gp_str_length    (GPString) GP_NONNULL_ARGS();
 size_t             gp_str_capacity  (GPString) GP_NONNULL_ARGS();
 const GPAllocator* gp_str_allocator (GPString) GP_NONNULL_ARGS();
 void*              gp_str_allocation(GPString) GP_NONNULL_ARGS();
 
-// Passing strings on stack is safe too.
+/** Free string memory.
+ * Passing strings on stack is safe too.
+ */
 inline void gp_str_delete(GPString optional)
 {
     if (optional != NULL && gp_str_allocation(optional) != NULL)
         gp_mem_dealloc(gp_str_allocator(optional), gp_str_allocation(optional));
 }
 
-// This should be used as destructor for GPDictionary(GPString) if needed.
+/** Free string memory trough pointer.
+ * This should be used as destructor for GPDictionary(GPString) if needed.
+ */
 inline void gp_str_ptr_delete(GPString* optional)
 {
     if (optional != NULL)
         gp_str_delete(*optional);
 }
 
+/** Convert to null-terminated string.
+ * Adds null-terminator at the end of the string without allocating.
+ */
 const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
+/** Reserve capacity.
+ * If @p capacity > gp_str_capacity(@p *str), reallocates, does nothing
+ * otherwise.
+ */
 GP_NONNULL_ARGS()
 void gp_str_reserve(
-    GPString*,
-    size_t capacity);
+    GPString* str,
+    size_t    capacity);
 
+/** Copy source string to destination.*/
 GP_NONNULL_ARGS()
 void gp_str_copy(
     GPString*              dest,
     const void*GP_RESTRICT src,
     size_t                 src_size);
 
+/** Copy source string to destination many times.
+ * Copies @p src to @p dest and appends @p src to it count - 1 times.
+ */
 GP_NONNULL_ARGS()
 void gp_str_repeat(
     GPString*              dest,
@@ -103,19 +145,29 @@ void gp_str_repeat(
     const void*GP_RESTRICT src,
     size_t                 src_length);
 
+/** Copy or remove characters.
+ * Copies characters from @p src starting from @p start_index to @p end_index
+ * excluding @p end_index. If @p src is NULL, characters from @p str outside
+ * @p start_index and @p end_index are removed and the remaining characters are
+ * moved over.
+ */
 GP_NONNULL_ARGS(1)
 void gp_str_slice(
-    GPString*              dest,
-    const void*GP_RESTRICT optional_src, // mutates dest if NULL
+    GPString*              str,
+    const void*GP_RESTRICT optional_src,
     size_t                 start,
     size_t                 end);
 
+/** Add characters to the end.*/
 GP_NONNULL_ARGS()
 void gp_str_append(
     GPString*              dest,
     const void*GP_RESTRICT src,
     size_t                 src_size);
 
+/** Add characters to specified position.
+ * Moves rest of the characters over to make room for added characters.
+ */
 GP_NONNULL_ARGS()
 void gp_str_insert(
     GPString*              dest,
@@ -123,7 +175,11 @@ void gp_str_insert(
     const void*GP_RESTRICT src,
     size_t                 src_size);
 
-// Returns index to the first occurrence of needle in haystack.
+/** Replace substring with other string.
+ * Find the first occurrence of @p needle in @p haystack starting from @p start
+ * and replace it with @p replacement.
+ * @return index to the first occurrence of needle in haystack.
+ */
 GP_NONNULL_ARGS()
 size_t gp_str_replace(
     GPString*              haystack,
@@ -133,7 +189,11 @@ size_t gp_str_replace(
     size_t                 replacement_length,
     size_t                 start);
 
-// Returns number of replacements made.
+/** Replace all substrings with other string.
+ * Find the all occurrences of @p needle in @p haystack and replace them with
+ * @p replacement. .
+ * @return number of replacements made.
+ */
 GP_NONNULL_ARGS()
 size_t gp_str_replace_all(
     GPString*              haystack,
@@ -141,18 +201,6 @@ size_t gp_str_replace_all(
     size_t                 needle_length,
     const void*GP_RESTRICT replacement,
     size_t                 replacement_length);
-
-#define/* size_t */gp_str_print(str_ptr_out, ...) \
-    GP_STR_PRINT(str_ptr_out, __VA_ARGS__)
-
-#define/* size_t */gp_str_n_print(str_ptr_out, n, ...) \
-    GP_STR_N_PRINT(str_ptr_out, n, __VA_ARGS__)
-
-#define/* size_t */gp_str_println(str_ptr_out, ...) \
-    GP_STR_PRINTLN(str_ptr_out, __VA_ARGS__)
-
-#define/* size_t */gp_str_n_println(str_ptr_out, n, ...) \
-    GP_STR_N_PRINTLN(str_ptr_out, n, __VA_ARGS__)
 
 #define GP_WHITESPACE  " \t\n\v\f\r" \
     "\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006" \
@@ -206,10 +254,41 @@ int gp_str_file(
     const char* operation);
 
 // ----------------------------------------------------------------------------
+// String formatting
+
+// Strings can be formatted without format specifiers with gp_str_print()
+// family of macros if C11 or higher or C++. If not C++ format specifiers can be
+// added optionally for more control. C99 requires format strings. There can be
+// multiple format strings with an arbitrary amount of format specifiers.
+// Silly example:
+/*
+    gp_str_print(&my_str, 1, 2, "%u%u", 3u, 4u, "%x", 5); // copies "12345"
+ */
+// See the tests for more detailed examples.
+
+/** Copy formatted string allocating as needed.*/
+#define/* size_t */gp_str_print(str_ptr_out, ...) \
+    GP_STR_PRINT(str_ptr_out, __VA_ARGS__)
+
+/** Copy max n formatted characters allocating max 1 times.*/
+#define/* size_t */gp_str_n_print(str_ptr_out, n, ...) \
+    GP_STR_N_PRINT(str_ptr_out, n, __VA_ARGS__)
+
+/** Like gp_str_print() but add spaces between args and add newline.*/
+#define/* size_t */gp_str_println(str_ptr_out, ...) \
+    GP_STR_PRINTLN(str_ptr_out, __VA_ARGS__)
+
+/** Like gp_str_n_print() but add spaces between args and add newline.*/
+#define/* size_t */gp_str_n_println(str_ptr_out, n, ...) \
+    GP_STR_N_PRINTLN(str_ptr_out, n, __VA_ARGS__)
+
+// ----------------------------------------------------------------------------
 // String examination
 
-// Functions that return indices return GP_NOT_FOUND if not found.
-
+/** Find substring.
+ * @return index to the first occurrence of @p needle in @p haystack starting
+ * from @p start or GP_NOT_FOUND if not found.
+ */
 GP_NONNULL_ARGS()
 size_t gp_str_find_first(
     GPString    haystack,
@@ -217,50 +296,73 @@ size_t gp_str_find_first(
     size_t      needle_size,
     size_t      start);
 
+/** Find substring from right.
+ * @return index to the last occurrence of @p needle in @p haystack or
+ * GP_NOT_FOUND if not found.
+ */
 GP_NONNULL_ARGS()
 size_t gp_str_find_last(
     GPString    haystack,
     const void* needle,
     size_t      needle_size);
 
+/** Find codepoints.
+ * @return index to the first occurrence of any codepoints in @p utf8_char_set
+ * starting from @p start or GP_NOT_FOUND if not found.
+ */
 GP_NONNULL_ARGS()
 size_t gp_str_find_first_of(
     GPString    haystack,
     const char* utf8_char_set,
     size_t      start);
 
+/** Find codepoints exclusive.
+ * @return index to the first occurrence of any codepoints not in
+ * @p utf8_char_set starting from @p start or GP_NOT_FOUND if not found.
+ */
 GP_NONNULL_ARGS()
 size_t gp_str_find_first_not_of(
     GPString    haystack,
     const char* utf8_char_set,
     size_t      start);
 
+/** Count substrings.
+ * @return the number of @p needles found in @p haystack.
+ */
 GP_NONNULL_ARGS()
 size_t gp_str_count(
     GPString    haystack,
     const void* needle,
     size_t      needle_size);
 
+/** Compare strings.*/
 GP_NONNULL_ARGS()
 bool gp_str_equal(
     GPString    s1,
     const void* s2,
     size_t      s2_size);
 
+/** Case insensitive string comparison.
+ * Compare strings according to Unicode simple case folding rules.
+ */
 GP_NONNULL_ARGS()
 bool gp_str_equal_case(
     GPString    s1,
     const void* s2,
     size_t      s2_size);
 
+/** Count Unicode code points.*/
 GP_NONNULL_ARGS()
 size_t gp_str_codepoint_count(
     GPString str);
 
+/** Check if string is valid UTF-8.*/
 GP_NONNULL_ARGS(1)
 bool gp_str_is_valid(
     GPString str,
     size_t*  optional_out_invalid_position);
+
+// More string functions in unicode.h
 
 
 // ----------------------------------------------------------------------------

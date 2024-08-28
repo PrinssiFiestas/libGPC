@@ -3,8 +3,8 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 /**
- * @file string.h
- * @brief General purpose utilities
+ * @file utils.h
+ * @brief Misc utilities
  */
 
 #ifndef GP_UTILS_INCLUDED
@@ -15,7 +15,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <signal.h>
 
 #ifdef _WIN32
 #include <intrin.h>

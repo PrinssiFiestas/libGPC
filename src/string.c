@@ -13,10 +13,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
-#include <wctype.h>
 #include <locale.h>
 #include <printf/printf.h>
-#include "pfstring.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 
