@@ -62,7 +62,7 @@ bool gp_file_read_until(
     (*out)[0].c = c;
     ((GPStringHeader*)*out - 1)->length = 1;
 
-    const char* match = delimiter;
+    const char* match = delimiter + (delimiter[0] == c);
     while (true)
     {
         while (gp_str_length(*out) < gp_str_capacity(*out))

@@ -56,7 +56,7 @@ int main(void)
         {
             FILE* f;
             gp_assert(f = tmpfile());
-            f_contents = "fooDELIMbarDELIMbloink";
+            f_contents = "DELIMfooDELIMbarDELIMbloDELink";
             gp_file_print(f, f_contents);
             rewind(f);
             GPString str = gp_str_on_stack(arena, 1, "");

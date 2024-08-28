@@ -78,7 +78,7 @@ bool gp_file_read_line(
 
 /** Reads segment from file.
  * Overwrites any contents in @p dest. Reads until @p delimiter is found in
- * file. @p delimiter will not be stored in @p dest. The file pointer will point
+ * file. @p delimiter will be included in @p dest. The file pointer will point
  * past the occurrence of @p delimiter.
  * @return `false` when no more bytes to be read from @p in.
  */
