@@ -23,19 +23,15 @@ extern "C" {
 //
 // ----------------------------------------------------------------------------
 
-// This exists mostly for completeness.
-// Like fopen(), but handles mode differently. Checks the first character in
-// mode string: 'r' for read, 'w' for write. Then checks if 'x' exists in mode
-// string for text mode. Default is binary mode. Also checks for '+' for
-// read/write or write/read like fopen().
-FILE* gp_file_open(const char* path, const char* mode);
-
-// To be passed to gp_defer() with correct function type
-inline void gp_file_close(FILE* optional)
-{
-    if (optional != NULL)
-        fclose(optional);
-}
+// Outputs can be formatted without format specifiers with gp_print()
+// family of macros if C11 or higher or C++. If not C++ format specifiers can be
+// added optionally for more control. C99 requires format strings. There can be
+// multiple format strings with an arbitrary amount of format specifiers.
+// Silly example:
+/*
+    gp_print(&my_str, 1, 2, "%u%u", 3u, 4u, "%x", 5); // prints "12345"
+ */
+// See the tests for more detailed examples.
 
 #define/* size_t */gp_print(...) \
     GP_FILE_PRINT(stdout, __VA_ARGS__)
@@ -49,23 +45,62 @@ inline void gp_file_close(FILE* optional)
 #define/* size_t */gp_file_println(FILE_ptr, ...) \
     GP_FILE_PRINTLN(FILE_ptr, __VA_ARGS__)
 
+// ----------------------------------------------------------------------------
+
+/** Opens file.
+ * This exists mostly for completeness.
+ * Like fopen(), but handles mode differently. Checks the first character in
+ * mode string: 'r' for read, 'w' for write. Then checks if 'x' exists in mode
+ * string for text mode. Default is binary mode. Also checks for '+' for
+ * read/write or write/read like fopen().
+ */
+GP_NONNULL_ARGS()
+FILE* gp_file_open(const char* path, const char* mode);
+
+/** To be passed to gp_defer() with correct function type.*/
+inline void gp_file_close(FILE* optional)
+{
+    if (optional != NULL)
+        fclose(optional);
+}
+
 typedef struct gp_char* GPString;
 
+/** Reads line from file.
+ * Overwrites any contents in @p dest. Newline will be included in the resultant
+ * string.
+ * @return `false` when no more bytes to be read from @p in.
+ */
+GP_NONNULL_ARGS()
 bool gp_file_read_line(
     GPString* dest,
-    FILE*     in) GP_NONNULL_ARGS();
+    FILE*     in);
 
+/** Reads segment from file.
+ * Overwrites any contents in @p dest. Reads until @p delimiter is found in
+ * file. @p delimiter will not be stored in @p dest. The file pointer will point
+ * past the occurrence of @p delimiter.
+ * @return `false` when no more bytes to be read from @p in.
+ */
+GP_NONNULL_ARGS()
 bool gp_file_read_until(
     GPString*   dest,
     FILE*       in,
-    const char* delimiter) GP_NONNULL_ARGS();
+    const char* delimiter);
 
+/** Reads segment from file.
+ * Overwrites any contents in @p dest. Skips all codepoints in @p in that are in
+ * @p char_set. Then, reads until a codepoint found from @p char_set in @p in.
+ * No codepoints in @p char_set are stored in @p dest.
+ * @return `false` when no more bytes to be read from @p in.
+ */
+GP_NONNULL_ARGS(1, 2)
 bool gp_file_read_strip(
     GPString*   dest,
     FILE*       in,
-    const char* optional_utf8_char_set) GP_NONNULL_ARGS(1, 2);
+    const char* optional_utf8_char_set);
 
-// Portability wrappers for stat
+// Portability wrappers for stat. Check the man-pages.
 
 #if _WIN32
 typedef struct __stat64 GPStat;

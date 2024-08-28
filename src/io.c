@@ -74,7 +74,7 @@ bool gp_file_read_until(
                 goto end;
             (*out)[((GPStringHeader*)*out - 1)->length++].c = c;
             if (c == *match)
-                match++;
+                ++match;
             else
                 match = delimiter;
         }
