@@ -53,7 +53,7 @@ The other difference is that `gp_str_on_stack()` and `gp_arr_on_stack()` macros 
 
 ## Installation and Usage
 
-You can either install the full library from source (easy and recommended) or just use the single header library.
+You can either install the full library from source (easy and recommended) or use the single header library without installing.
 
 ### Windows Installation
 
@@ -62,6 +62,12 @@ You need the [MSYS2](https://www.msys2.org/) building platform. Once MSYS2 is in
 ```
 pacman -S mingw-w64-ucrt-x86_64-gcc
 pacman -S make
+```
+
+and optionally install GDB with
+
+```
+pacman -S mingw-w64-ucrt-x86_64-gdb
 ```
 
 Then run the following commands:
@@ -74,7 +80,7 @@ make install
 
 ### Others Installation
 
-Install GCC and Make using your package manager, if not already installed. Then run
+Install GCC, Make, and optionally GDB using your package manager, if not already installed. Then run
 
 ```
 git clone https://github.com/PrinssiFiestas/libGPC.git --depth 1
@@ -82,7 +88,12 @@ cd libGPC
 sudo make install
 ```
 
-where `sudo` may or may not be needed depending on your system.
+If sanitizers with GCC give linking errors, install Clang and try
+
+```
+sudo make clean
+sudo make install CC=clang
+```
 
 ### Linking
 
