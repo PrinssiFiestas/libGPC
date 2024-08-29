@@ -112,8 +112,9 @@ test_all:
 	make analyze
 	make tests
 	gcc -c -Wall -Wextra -Werror tests/singleheadertest.c -lm -lpthread -o build/singleheadertest.o
-	cl -c tests/singleheadertest.c $(CL_CFLAGS) -Fo"build/singleheadertest.obj"
-	@echo Passed all tests.
+	cl tests/singleheadertest.c $(CL_CFLAGS) -Fo"build/" -Fe"build/singleheadertest.exe"
+	./build/singleheadertest.exe
+	@echo -e "\e[92m\nPassed all tests.\e[0m"
 else
 test_all:
 	make clean

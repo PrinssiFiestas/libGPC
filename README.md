@@ -4,7 +4,7 @@ General purpose library for modern C programming with focus on safety, performan
 
 ## What is Included
 
-Dynamic UTF-8 encoded strings with localization, reentrant ASCII byte arrays, type generic dynamic arrays, hash maps, unit testing, polymorphic memory allocators, arena allocators, automatic memory management with the scope allocator, and more. 
+Dynamic UTF-8 encoded strings with localization, reentrant ASCII byte arrays, type generic dynamic arrays, hash maps, unit testing, polymorphic memory allocators, arena allocators, automatic memory management with the scope allocator, and more.
 
 ## Why libGPC
 
@@ -49,7 +49,7 @@ libGPC is regularly tested with MSVC on Windows x64, GCC/Clang on x86_64 Ubuntu,
 
 Building the single header library with MSVC requires C11 standard threads, which are only available after Visual Studio 2022 version 17.8 Preview 2. Older versions are not supported.
 
-C++ is supported with minor differences, although the library must be compiled with a C compiler. 
+C++ is supported with minor differences, although the library must be compiled with a C compiler.
 
 ## Installation and Usage
 
@@ -95,9 +95,11 @@ sudo make clean
 sudo make install CC=clang
 ```
 
-### Linking
+### Usage
 
 Once installed, with GCC you link with `-lgpc -lm -lpthread` or optionally `-lgpcd -lm -lpthread` for debug builds.`-lm` is optional with Clang. With `-lgpcd` you also might need `-fsanitize=address -fsanitize=undefined` depending on your system. Using sanitizers is massively encouraged anyway. If sanitizers give you problems with LD_PRELOAD, try `-static-libasan`.
+
+If `-Wpedantic` is used, `-DGP_PEDANTIC` can be used to disable compiler specific C language extensions.
 
 ### What is being installed
 

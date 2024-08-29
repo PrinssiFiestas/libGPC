@@ -356,7 +356,7 @@ static void private_delete_test_allocator(TestAllocator* allocator)
     free((void*)allocator);
 }
 
-void delete_test_allocator()
+void delete_test_allocator(void)
 {
     private_delete_test_allocator((TestAllocator*)gp_heap);
 }

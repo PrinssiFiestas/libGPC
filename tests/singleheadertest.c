@@ -8,3 +8,8 @@
 
 #define GPC_IMPLEMENTATION
 #include "../build/gpc.h"
+
+int main(void)
+{
+    gp_println("Passed single header test.");
+}

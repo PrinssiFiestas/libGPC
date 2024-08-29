@@ -58,8 +58,7 @@ GPArray(void) gp_arr_new(
 /** Create a new dynamic array on stack.
  * @p allocator determines how the array will be reallocated if length exceeds
  * capacity. If it is known that length will not exceed capacity, @p allocator
- * can be left NULL. Note that @p init_values must have at least one element if
- * compiling with -Wpedantic.
+ * can be left NULL.
  * Not available in C++.
  */
 #define/* GPArray(T) */gp_arr_on_stack( \
