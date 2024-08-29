@@ -2,12 +2,12 @@
 # Copyright (c) 2023 Lauri Lorenzo Fiestas
 # https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-GPC_VERSION = 0.2.0
+GPC_VERSION = 0.2.1
 
-override CFLAGS += -Wall -Wextra -Werror
-override CFLAGS += -Wno-comment
-override CFLAGS += -Iinclude
+override CFLAGS += -Wall -Wextra -Werror -Wpedantic
+override CFLAGS += -DGP_PEDANTIC
 override CFLAGS += -D_GNU_SOURCE # memmem(), stat64(), locale_t
+override CFLAGS += -Iinclude
 override CFLAGS += -lm -lpthread
 
 DEBUG_CFLAGS   = -ggdb3 -gdwarf

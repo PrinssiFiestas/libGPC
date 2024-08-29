@@ -536,7 +536,7 @@ static size_t gp_utf8_find_first_of(
 {
     for (size_t cplen, i = start; i < haystack_length; i += cplen) {
         cplen = gp_utf8_codepoint_length(haystack, i);
-        if (strstr(char_set, memcpy((char[8]){}, (uint8_t*)haystack + i, cplen)) != NULL)
+        if (strstr(char_set, memcpy((char[8]){""}, (uint8_t*)haystack + i, cplen)) != NULL)
             return i;
     }
     return GP_NOT_FOUND;
@@ -550,7 +550,7 @@ static size_t gp_utf8_find_first_not_of(
 {
     for (size_t cplen, i = start; i < haystack_length; i += cplen) {
         cplen = gp_utf8_codepoint_length(haystack, i);
-        if (strstr(char_set, memcpy((char[8]){}, (uint8_t*)haystack + i, cplen)) == NULL)
+        if (strstr(char_set, memcpy((char[8]){""}, (uint8_t*)haystack + i, cplen)) == NULL)
             return i;
     }
     return GP_NOT_FOUND;

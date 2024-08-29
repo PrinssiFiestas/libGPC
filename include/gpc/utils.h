@@ -126,6 +126,9 @@ inline long long          gp_llmin(long long x, long long y)                    
 inline unsigned           gp_umin(unsigned x, unsigned y)                       { return x < y ? x : y; }
 inline unsigned long      gp_lumin(unsigned long x, unsigned long y)            { return x < y ? x : y; }
 inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y) { return x < y ? x : y; }
+inline float              gp_fminf(float x, float y)                            { return x < y ? x : y; }
+inline double             gp_fmin(double x, double y)                           { return x < y ? x : y; }
+inline long double        gp_fminl(long double x, long double y)                { return x < y ? x : y; }
 
 inline int                gp_imax(int x, int y)                                 { return x > y ? x : y; }
 inline long               gp_lmax(long x, long y)                               { return x > y ? x : y; }
@@ -133,9 +136,12 @@ inline long long          gp_llmax(long long x, long long y)                    
 inline unsigned           gp_umax(unsigned x, unsigned y)                       { return x > y ? x : y; }
 inline unsigned long      gp_lumax(unsigned long x, unsigned long y)            { return x > y ? x : y; }
 inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y) { return x > y ? x : y; }
+inline float              gp_fmaxf(float x, float y)                            { return x > y ? x : y; }
+inline double             gp_fmax(double x, double y)                           { return x > y ? x : y; }
+inline long double        gp_fmaxl(long double x, long double y)                { return x > y ? x : y; }
 
 // gp_min() and gp_max() implementations
-#if __GNUC__
+#if __GNUC__ && !defined(GP_PEDANTIC)
 #define gp_generic_min(X, Y) ({ \
     typeof(X) _gp_min_X = (X); typeof(Y) _gp_min_Y = (Y); \
     _gp_min_X < _gp_min_Y ? _gp_min_X : _gp_min_Y; \

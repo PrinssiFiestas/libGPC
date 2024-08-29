@@ -53,6 +53,7 @@ int main(void)
 #define GP_COMMA(...) ,
 #define GP_DUMP(...)
 #define GP_EVAL(...) __VA_ARGS__
+#define GP_EVAL1(A) A
 
 // Arguments list can be processed with GP_PROCESS_ALL_ARGS() macro. The first
 // argument is a function or a macro that takes a single argument. This function
@@ -104,6 +105,9 @@ int main(void)
 #define GP_TYPEOF(...) typeof(__VA_ARGS__)
 #elif defined(_MSC_VER)
 #define GP_TYPEOF(X) __typeof__(X)
+#endif
+#if defined(GP_PEDANTIC)
+#undef GP_TYPEOF
 #endif
 
 // Use in variadic function arguments with GP_TYPE() macro
@@ -216,6 +220,10 @@ inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_
 //
 // ----------------------------------------------------------------------------
 
+
+#if __clang__ && defined(GP_PEDANTIC)
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#endif
 
 #if __STDC_VERSION__ <= 199901L
 // Unique struct/union name

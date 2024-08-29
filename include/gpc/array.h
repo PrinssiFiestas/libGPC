@@ -56,18 +56,19 @@ GPArray(void) gp_arr_new(
     size_t element_count);
 
 /** Create a new dynamic array on stack.
- * @p allocator_ptr determines how the array will be reallocated if length
- * exceeds capacity. If it is known that length will not exceed capacity,
- * @p allocator_ptr can be left NULL.
+ * @p allocator determines how the array will be reallocated if length exceeds
+ * capacity. If it is known that length will not exceed capacity, @p allocator
+ * can be left NULL. Note that @p init_values must have at least one element if
+ * compiling with -Wpedantic.
  * Not available in C++.
  */
 #define/* GPArray(T) */gp_arr_on_stack( \
-    optional_allocator_ptr, \
+    optional_allocator, \
     size_t_capacity, \
     T/*type*/, \
     /*init_values*/...) \
     \
-    GP_ARR_ON_STACK(optional_allocator_ptr, size_t_capacity, T,__VA_ARGS__)
+    GP_ARR_ON_STACK(optional_allocator, size_t_capacity, T,__VA_ARGS__)
 
 // If not zeroing memory for performance is desirable and/or macro magic is
 // undesirable, arrays can be created on stack manually. This is required in C++
@@ -274,6 +275,7 @@ GPArray(void) gp_arr_filter(
 
 #ifndef __cplusplus
 
+#ifndef GP_PEDANTIC
 #define/* GPArray(T) */GP_ARR_ON_STACK( \
     optional_allocator_ptr, \
     size_t_capacity, \
@@ -286,6 +288,24 @@ GPArray(void) gp_arr_filter(
     .allocator  = optional_allocator_ptr, \
     .allocation = NULL \
 }, {__VA_ARGS__} }.data
+#else
+#include <string.h>
+#define/* GPArray(T) */GP_ARR_ON_STACK( \
+    optional_allocator_ptr, \
+    size_t_capacity, \
+    T, ...) \
+memcpy( \
+    (struct GP_C99_UNIQUE_STRUCT(__LINE__) \
+    { GPArrayHeader header; T data[size_t_capacity]; }) { \
+    { \
+        .length     = sizeof((T[]){(T){0},__VA_ARGS__}) / sizeof(T) - 1, \
+        .capacity   = size_t_capacity, \
+        .allocator  = optional_allocator_ptr, \
+        .allocation = NULL \
+    }, {0} }.data, \
+    (T[]){(T){0},__VA_ARGS__} + 1, \
+    sizeof((T[]){(T){0},__VA_ARGS__}) - sizeof(T))
+#endif // GP_PEDANTIC
 
 #else // __cplusplus
 } // extern "C"

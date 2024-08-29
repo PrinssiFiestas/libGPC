@@ -572,7 +572,7 @@ pf_d2fixed_buffered_n(
 
     bool is_zero = true; // for now
 
-    uint32_t all_digits[256] = {}; // significant digits without trailing zeroes
+    uint32_t all_digits[256] = {0}; // significant digits without trailing zeroes
     size_t digits_length = 0;
     size_t integer_part_end = 0; // place for decimal point
 
@@ -943,7 +943,7 @@ pf_d2exp_buffered_n(
     uint32_t availableDigits = 0;
     int32_t exp = 0;
 
-    uint32_t all_digits[256] = {}; // significant digits without trailing zeroes
+    uint32_t all_digits[256] = {0}; // significant digits without trailing zeroes
     size_t digits_length = 0;
     uint32_t first_available_digits = 0;
 

@@ -428,14 +428,14 @@ size_t gp_str_n_println_internal(
     .capacity   = size_t_capacity, \
     .allocator  = optional_allocator_ptr, \
     .allocation = NULL \
-}, {__VA_ARGS__} }.data
+}, {""__VA_ARGS__} }.data
 
 #define GP_STR_PRINT(OUT, ...) \
     gp_str_print_internal( \
         OUT, \
         GP_COUNT_ARGS(__VA_ARGS__), \
         (GPPrintable[]) \
-            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+            { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 
 #define GP_STR_N_PRINT(OUT, N, ...) \
@@ -444,7 +444,7 @@ size_t gp_str_n_println_internal(
         N, \
         GP_COUNT_ARGS(__VA_ARGS__), \
         (GPPrintable[]) \
-            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+            { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 
 #define GP_STR_PRINTLN(OUT, ...) \
@@ -452,7 +452,7 @@ size_t gp_str_n_println_internal(
         OUT, \
         GP_COUNT_ARGS(__VA_ARGS__), \
         (GPPrintable[]) \
-            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+            { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 
 #define GP_STR_N_PRINTLN(OUT, N, ...) \
@@ -461,7 +461,7 @@ size_t gp_str_n_println_internal(
         N, \
         GP_COUNT_ARGS(__VA_ARGS__), \
         (GPPrintable[]) \
-            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+            { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 
 #else // __cplusplus

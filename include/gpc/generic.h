@@ -2038,7 +2038,7 @@ static inline GPString gp_file_to_new_str11(const void* alc, const char*const pa
 //
 //
 
-#ifdef __GNUC__
+#if __GNUC__ && !defined(GP_PEDANTIC)
 // Suppress suspicious usage of sizeof warning.
 #define GP_SIZEOF_TYPEOF(...) sizeof(typeof(__VA_ARGS__))
 #else
@@ -2063,7 +2063,7 @@ inline GPArray(void) gp_arr99(const GPAllocator* alc,
     (TYPE[]){(TYPE){0},__VA_ARGS__} + 1, \
     sizeof((TYPE[]){(TYPE){0},__VA_ARGS__}) / sizeof(TYPE) - 1)
 
-#if __GNUC__
+#if __GNUC__ && !defined(GP_PEDANTIC)
 #define GP_ARR_READ_ONLY(T, ...) (T const *)({ \
     static const struct GP_C99_UNIQUE_STRUCT(__LINE__) { \
         GPArrayHeader header; T data[GP_COUNT_ARGS(__VA_ARGS__)]; \
@@ -2424,7 +2424,7 @@ inline void* gp_push99(const size_t elem_size, void*_parr)
 #define GP_PUSH(ARR, ELEM) \
     (*(GP_TYPEOF(*(ARR)))gp_push99(sizeof(**(ARR) = (ELEM)), (ARR)) = (ELEM))
 #else
-#define GP_PUSH(ARR, ELEM) ( \
+#define GP_PUSH(ARR, ELEM) \
     (gp_push99(sizeof**(ARR), (ARR)), (*(ARR))[gp_length(*(ARR)) - 1] = (ELEM))
 #endif
 
@@ -2455,9 +2455,12 @@ GPArray(void) gp_map99(size_t a_size, const void* a,
     (GP_TYPEOF(ACC))(uintptr_t)gp_arr_fold (sizeof*((F)(ACC,ARR),(ARR)),ARR,(void*)(ACC),(void*)(F))
 #define GP_FOLDR(ARR, ACC, F) \
     (GP_TYPEOF(ACC))(uintptr_t)gp_arr_foldr(sizeof*((F)(ACC,ARR),(ARR)),ARR,(void*)(ACC),(void*)(F))
-#else
+#elif !defined(GP_PEDANTIC)
 #define GP_FOLD(ARR, ACC, F)  gp_arr_fold (sizeof*((F)(ACC,ARR),(ARR)),ARR,(void*)(ACC),(void*)(F))
 #define GP_FOLDR(ARR, ACC, F) gp_arr_foldr(sizeof*((F)(ACC,ARR),(ARR)),ARR,(void*)(ACC),(void*)(F))
+#else
+#define GP_FOLD(ARR, ACC, F)  gp_arr_fold (sizeof*((F)(ACC,ARR),(ARR)),ARR,(void*)(ACC),(void*(*)(void*,const void*))(F))
+#define GP_FOLDR(ARR, ACC, F) gp_arr_foldr(sizeof*((F)(ACC,ARR),(ARR)),ARR,(void*)(ACC),(void*(*)(void*,const void*))(F))
 #endif
 
 GPArray(void) gp_filter99(size_t a_size, const void* a,
@@ -2475,11 +2478,11 @@ GPArray(void) gp_filter99(size_t a_size, const void* a,
 // ----------------------------------------------------------------------------
 // Dictionarys
 
-#ifdef GP_TYPEOF
 inline void* gp_put99(GPHashMap* dict, GPStrIn key)
 {
     return gp_hash_map_put(dict, key.data, key.length, NULL);
 }
+#ifdef GP_TYPEOF
 #define GP_PUT_ELEM(DICT, ELEM, ...) ( \
     *(GP_TYPEOF(*(DICT)))(gp_put99((GPHashMap*)*(DICT), GP_STR_IN99(__VA_ARGS__))) = (ELEM))
 #else

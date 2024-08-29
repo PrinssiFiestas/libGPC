@@ -19,25 +19,11 @@
 #include <locale.h>
 
 #define arr_assert_eq(ARR, CARR, CARR_LENGTH) do { \
-    GP_TYPEOF(ARR  )  _gp_arr1 = (ARR);  \
-    GP_TYPEOF(*CARR)* _gp_arr2 = (CARR); \
-    const size_t _gp_arr2_length = CARR_LENGTH; \
-    gp_expect(gp_arr_length(_gp_arr1) == _gp_arr2_length, \
-        gp_arr_length(_gp_arr1), _gp_arr2_length); \
-    for (size_t _gp_i = 0; _gp_i < _gp_arr2_length; _gp_i++) { \
-        if ( ! gp_expect(_gp_arr1[_gp_i] == _gp_arr2[_gp_i], \
-            _gp_arr1[_gp_i], _gp_arr2[_gp_i], _gp_i)) { \
-            gp_print("arr1 = { "); \
-            for (size_t _gp_j = 0; _gp_j < _gp_arr2_length; _gp_j++) \
-                gp_print(_gp_arr1[_gp_j], ", "); \
-            gp_print("}\narr2 = { "); \
-            for (size_t _gp_j = 0; _gp_j < _gp_arr2_length; _gp_j++) \
-                gp_print(_gp_arr2[_gp_j], ", "); \
-            gp_println("}"); \
-            break;\
-        } \
-    } \
-} while(0)
+    gp_expect(gp_arr_length(ARR) == (CARR_LENGTH)); \
+    for (size_t _gp_i = 0; _gp_i < (CARR_LENGTH); ++_gp_i) \
+        if (!gp_expect((ARR)[_gp_i] == (CARR)[_gp_i])) \
+            printf("i = %zu\n", _gp_i); \
+} while (0)
 
 #define CARR_LEN(CARR) (sizeof(CARR) / sizeof*(CARR))
 
@@ -195,8 +181,8 @@ int main(void)
             GPString str2 = gp_str(&arena, "iasdf");
             gp_capitalize(&str1);
             gp_capitalize(&str2, turkish);
-            gp_expect(gp_equal(str1, "Fire!🔥"));
-            gp_expect(gp_equal(str2, "İasdf"));
+            gp_expect(gp_equal(str1, "Fire!🔥"), str1);
+            gp_expect(gp_equal(str2, "İasdf"), str2);
         }
 
         gp_test("Find first");
@@ -480,7 +466,12 @@ int main(void)
             // The return value and accumulator y MUST be a pointer or a pointer
             // sized integer and in must be a const pointer.
             intptr_t sum(intptr_t accumulator, const int* in);
+            void*   psum(void*    accumulator, const int* in);
+            #if defined(GP_TYPEOF) && !defined(GP_PEDANTIC)
             gp_expect(gp_fold(gp_arr_ro(int, 1, 2, 3, 4, 5), 0, sum) == 15);
+            #else // cast required
+            gp_expect((intptr_t)gp_fold(gp_arr_ro(int, 1, 2, 3, 4, 5), 0, psum) == 15);
+            #endif
 
             GPArray(const char*) cstrs = gp_arr(scope, const char*, "one", "two", "three");
             char* append(char* result, const char**_element);
@@ -652,6 +643,7 @@ void int_destructor(int*_) { (void)_; }
 
 void increment(int* out, const int* in) { *out = *in + 1; }
 intptr_t sum(intptr_t y, const int* x)  { return y + *x; }
+void*   psum(void*    y, const int* x)  { return (void*)((intptr_t)y + *x); }
 char* append(char* result, const char**_element)
 {
     const char* element = *_element;

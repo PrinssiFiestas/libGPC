@@ -7,25 +7,11 @@
 #include "../src/array.c"
 
 #define arr_assert_eq(ARR, CARR, CARR_LENGTH) do { \
-    GP_TYPEOF(ARR  )  _gp_arr1 = (ARR);  \
-    GP_TYPEOF(*CARR)* _gp_arr2 = (CARR); \
-    const size_t _gp_arr2_length = CARR_LENGTH; \
-    gp_expect(gp_arr_length(_gp_arr1) == _gp_arr2_length, \
-        gp_arr_length(_gp_arr1), _gp_arr2_length); \
-    for (size_t _gp_i = 0; _gp_i < _gp_arr2_length; _gp_i++) { \
-        if ( ! gp_expect(_gp_arr1[_gp_i] == _gp_arr2[_gp_i], \
-            _gp_arr1[_gp_i], _gp_arr2[_gp_i], _gp_i)) { \
-            gp_print("arr1 = { "); \
-            for (size_t _gp_j = 0; _gp_j < _gp_arr2_length; _gp_j++) \
-                gp_print(_gp_arr1[_gp_j], ", "); \
-            gp_print("}\narr2 = { "); \
-            for (size_t _gp_j = 0; _gp_j < _gp_arr2_length; _gp_j++) \
-                gp_print(_gp_arr2[_gp_j], ", "); \
-            gp_println("}"); \
-            break;\
-        } \
-    } \
-} while(0)
+    gp_expect(gp_arr_length(ARR) == (CARR_LENGTH)); \
+    for (size_t _gp_i = 0; _gp_i < (CARR_LENGTH); ++_gp_i) \
+        if (!gp_expect((ARR)[_gp_i] == (CARR)[_gp_i])) \
+            printf("i = %zu\n", _gp_i); \
+} while (0)
 
 #define CARR_LEN(CARR) (sizeof(CARR) / sizeof*(CARR))
 

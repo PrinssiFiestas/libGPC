@@ -113,7 +113,7 @@ void gp_end_testing(void);
         __func__, \
         GP_COUNT_ARGS(__VA_ARGS__), \
         (GPPrintable[]) \
-            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+            { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 //
 void gp_fail_internal(

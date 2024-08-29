@@ -451,7 +451,7 @@ int pf_vsnprintf_consuming(
         format = fmt.string + fmt.string_length;
 
         unsigned written_by_conversion = 0;
-        struct pf_misc_data misc = {};
+        struct pf_misc_data misc = {0};
 
         switch (fmt.conversion_format)
         {

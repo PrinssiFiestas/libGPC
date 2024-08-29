@@ -151,7 +151,7 @@ size_t gp_file_println_internal(
         OUT, \
         GP_COUNT_ARGS(__VA_ARGS__), \
         (GPPrintable[]) \
-            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+            { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 
 #define GP_FILE_PRINTLN(OUT, ...) \
@@ -159,7 +159,7 @@ size_t gp_file_println_internal(
         OUT, \
         GP_COUNT_ARGS(__VA_ARGS__), \
         (GPPrintable[]) \
-            { GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) }, \
+            { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 
 #else // __cplusplus
