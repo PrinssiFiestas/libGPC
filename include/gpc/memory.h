@@ -117,7 +117,8 @@ void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
  */
 GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
 
-// Feel free to define your own values for these.
+// Feel free to define your own values for these. Check below for the meaning of
+// these.
 #ifndef GP_SCOPE_DEFAULT_INIT_SIZE
 #define GP_SCOPE_DEFAULT_INIT_SIZE 256
 #endif
@@ -131,39 +132,78 @@ GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
 // ----------------------------------------------------------------------------
 // Arena allocator
 
-// Arena that does not run out of memory. A new arena is created when old gets
-// full.
+/** Arena that does not run out of memory.
+ * If arena gets full, a new one is created in a linked list.
+ */
 typedef struct gp_arena
 {
+    /** @private */
     GPAllocator allocator;
+
+    /** Determine how new arenas grow.
+     * Use this to determine the size of new arena node when old gets full. A
+     * value larger than 1.0 is useful for arenas that have small initial size.
+     * This allows the arena to estimate an optimal size for itself during
+     * runtime. A value smaller than 1.0 is useful for arenas that start out
+     * huge to not waste memory.
+     */
     double growth_coefficient;
+
+    /** Limit the arena size.
+     * Arenas will not grow past this value. Useful when
+     * growth_coefficient > 1.0.
+     */
     size_t max_size;
+
+    /** Alignment requirement returned memory blocks.
+     * Default is GP_ALLOC_ALIGNMENT. A larger requirement should be used if
+     * arena is used for SIMD vectors. A smaller requirement can be used to save
+     * memory and limit fragmentation if it is known that the arena is only used
+     * to allocate objects with smaller alignment requirement e.g. strings.
+     * However, note that GPString and GPArray assumes an alignment of
+     * GP_ALLOC_ALIGNMENT, so it is recommended to not use GPString and GPArray
+     * when alignment is not GP_ALLOC_ALIGNMENT.
+     */
     size_t alignment;
-    struct gp_arena_node* head; // private
+
+    /** @private */
+    struct gp_arena_node* head;
 } GPArena;
 
-// Basic fast arena
+/** Basic fast arena.*/
 GPArena gp_arena_new(size_t capacity) GP_NODISCARD;
 
-// Arena with mutex alloc(). dealloc() is also thread safe, but delete() and
-// rewind() is not!
+/** Mutex protected arena.
+ * Arena with mutex alloc(). dealloc() is also thread safe, but delete() and
+ * rewind() is not!
+ */
 GPArena* gp_arena_new_shared(size_t capacity) GP_NODISCARD;
 
-// Use this to free everything after to_this_position including
-// to_this_position. Pass the first allocated object to clear the whole arena.
+/** Deallocate some memory.
+ * Use this to free everything after to_this_position including
+ * to_this_position. Pass the first allocated object to clear the whole arena.
+ */
 void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 
+/** Deallocate all arena memory including the arena itself.*/
 void gp_arena_delete(GPArena* optional);
 
 // ----------------------------------------------------------------------------
 // Thread local scratch arena
 
-// Use this for temporary memory. Rewind when you are done, but do NOT delete
-// the arena. Scratch arenas get deleted automatically when threads exit.
+/** Arena allocator for temporary memory.
+ * Unlike the scope allocator, which creates a new arena for each scope, there
+ * is only one scratch arena per thread. This is almost as fast as using stack
+ * memory, but the downside is that you can not safely use this for objects that
+ * may reallocate.
+ *     Rewind when you are done, but do NOT delete the arena. Scratch arenas get
+ * deleted automatically when threads exit.
+ */
 GPArena* gp_scratch_arena(void) GP_NODISCARD;
 
 // Feel free to define your own values for these. 256 is extremely conservative,
-// you probably want much larger scratch arenas.
+// you probably want much larger scratch arenas. Check above for the meanings of
+// these.
 #ifndef GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE
 #define GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE 256
 #endif
@@ -178,10 +218,10 @@ GPArena* gp_scratch_arena(void) GP_NODISCARD;
 // Heap allocator
 
 #ifdef NDEBUG
-/** malloc() based allocator. */
+/** malloc() based allocator.*/
 extern const GPAllocator*const gp_heap;
 #else // heap allocator can be overridden for debugging
-/** malloc() based allocator. */
+/** malloc() based allocator.*/
 extern const GPAllocator* gp_heap;
 #endif
 
