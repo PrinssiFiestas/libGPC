@@ -24,6 +24,7 @@
 extern "C" {
 #endif
 
+/** @private */
 struct gp_random_state
 {
     uint64_t state;
@@ -73,26 +74,35 @@ inline uintptr_t gp_round_to_aligned(const uintptr_t x,const uintptr_t boundary)
     return x + (boundary - 1) - ((x - 1) & (boundary - 1));
 }
 
-#if !__cplusplus
+#if !__cplusplus // C++ uses templates instead of macros.
 #define gp_min(x, y) gp_generic_min(x, y)
 #define gp_max(x, y) gp_generic_max(x, y)
 #endif
 
-inline bool gp_fapproxf(float x, float y, float max_relative_diff) {
-    return fabsf(x - y) <= max_relative_diff * fmaxf(x, y);
-}
+/** Try to set breakpoint.*/
+#define GP_BREAKPOINT GP_BREAKPOINT_INTERNAL
+
+/** Float comparison.
+ * Use this instead of == to accommodate for floating point precision issues.
+ */
 inline bool gp_fapprox(double x, double y, double max_relative_diff) {
     return fabs(x - y) <= max_relative_diff * fmax(x, y);
+}
+inline bool gp_fapproxf(float x, float y, float max_relative_diff) {
+    return fabsf(x - y) <= max_relative_diff * fmaxf(x, y);
 }
 inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff){
     return fabsl(x - y) <= max_rel_diff * fmaxl(x, y);
 }
 
-#define GP_BREAKPOINT GP_BREAKPOINT_INTERNAL
-
 // ----------------------------------------------------------------------------
-// Random functions
+// Random number generator
+// https://www.pcg-random.org/
 
+/** PCG based random number generator.
+ * Create a RNG object with gp_new_random_state() which you can use to generate
+ * high quality random numbers with great performance.
+ */
 typedef struct gp_random_state GPRandomState;
 
 GPRandomState gp_new_random_state(uint64_t seed);
