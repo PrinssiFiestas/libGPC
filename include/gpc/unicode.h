@@ -28,8 +28,9 @@ extern "C" {
 // ----------------------------------------------------------------------------
 // Locales
 
-// Portably sets global locale to UTF-8.
-// locale_code should be in form "xx_YY", or "xxx_YY", or an empty string.
+/** Portably sets global locale to UTF-8.
+ *locale_code should be in form "xx_YY", or "xxx_YY", or an empty string.
+ */
 GP_NONNULL_ARGS()
 const char* gp_set_utf8_global_locale(int category, const char* locale_code);
 
@@ -54,21 +55,21 @@ typedef _locale_t GPLocale;
 typedef locale_t GPLocale;
 #endif
 
-// Creates or fetches already created locale which can be used with _xxx_l()
-// family of functions in Microsoft UCRT library or with xxx_l() family of
-// functions in the GNU C Library. libGPC uses this internally when collating in
-// gp_str_compare() and gp_str_sort().
-//
-// locale_code should be in form "xx_YY", or "xxx_YY", or an empty string.
-// The created locale will be UTF-8 in category LC_ALL.
-//
-// Creating a locale is extremely expensive: glibc allocates over 200 times
-// internally. However, once created, they take very little space and there only
-// exists a limited set of locale codes. Due to these considerations, adding
-// thread safety and performance, libGPC does not provide a way of freeing the
-// created locales and you should NOT use native cleanup routines either. Any
-// subsequent calls with same locale_code will return a already created locale
-// without mutex locks.
+/** Create or fetch locale.
+ * Creates or fetches already created locale which can be used with _xxx_l()
+ * family of functions in Microsoft UCRT library or with xxx_l() family of
+ * functions in the GNU C Library. libGPC uses this internally when collating in
+ * gp_str_compare() and gp_str_sort().
+ *     locale_code should be in form "xx_YY", or "xxx_YY", or an empty string.
+ * The created locale will be UTF-8 in category LC_ALL.
+ *     Creating a locale is extremely expensive: glibc allocates over 200 times
+ * internally. However, once created, they take very little space and there only
+ * exists a limited set of locale codes. Due to these considerations, adding
+ * thread safety and performance, libGPC does not provide a way of freeing the
+ * created locales and you should NOT use native cleanup routines either. Any
+ * subsequent calls with same locale_code will return a already created locale
+ * without mutex locks.
+ */
 GPLocale gp_locale(const char* optional_locale_code);
 
 #endif // !_WIN32 && _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
@@ -76,26 +77,38 @@ GPLocale gp_locale(const char* optional_locale_code);
 // ----------------------------------------------------------------------------
 // Unicode
 
-// Only reads the first byte at str + i
+/** Codepoint size in bytes.
+ * Only reads one byte at the specified index.
+ */
 GP_NONNULL_ARGS()
 size_t gp_utf8_codepoint_length(
     const void* str,
     size_t      i);
 
-// Never reads past buffer if u8 points to a valid UTF-8 string. Stores encoded
-// codepoint to encoding and returns number of bytes read from utf8.
+/** Encode UTF-8 codepoint to UTF-32.
+ * Encodes codepoint from @p utf8 at @p utf8_index and stores it to @p encoding.
+ * Never reads past buffer if @p utf8 points to a valid UTF-8 string. Stores
+ * @return amount of bytes read from @p utf8.
+ */
 GP_NONNULL_ARGS()
 size_t gp_utf8_encode(
     uint32_t*    encoding,
     const void*  utf8,
     size_t       utf8_index);
 
-// Writes decoded codepoint to decoding and returns bytes written which is less
-// than or equal to 4.
+/** Decode UTF-32 codepoint to UTF-8.
+ * Writes decoded codepoint to @p decoding. The decoded codepoint will take
+ * anywhere from 1 to 4 bytes, so @p decoding should be able to hold at least
+ * that many bytes.
+ * @return decoded UTF-8 codepoint length in bytes.
+ */
 GP_NONNULL_ARGS()
 size_t gp_utf8_decode(
     void*    decoding,
     uint32_t encoding);
+
+// ----------------------------------------------------------------------------
+// Full string encoding conversions
 
 GP_NONNULL_ARGS()
 void gp_utf8_to_utf32(
@@ -137,22 +150,26 @@ void gp_wcs_to_utf8(
 // ----------------------------------------------------------------------------
 // Strings
 
-// Full language sensitive Unicode case mapping. Uses global locale if
-// locale_code is NULL.
+/** Full language sensitive Unicode case mapping.
+ * Uses global locale if @p locale_code is NULL.
+ */
 GP_NONNULL_ARGS(1)
 void gp_str_to_upper_full(
     GPString*,
     const char* optional_locale_code);
 
-// Full language sensitive Unicode case mapping. Uses global locale if
-// locale_code is NULL.
+/** Full language sensitive Unicode case mapping.
+ * Uses global locale if @p locale_code is NULL.
+ */
 GP_NONNULL_ARGS(1)
 void gp_str_to_lower_full(
     GPString*,
     const char* optional_locale_code);
 
-// Capitalizes the first character according to full language sensitive Unicode
-// titlecase mapping. Uses global locale if locale_code is NULL.
+/** Capitalizes first character.
+ * Capitalizes according to full language sensitive Unicode titlecase mapping.
+ * Uses global locale if @p locale_code is NULL.
+ */
 GP_NONNULL_ARGS(1)
 void gp_str_capitalize(
     GPString*,
@@ -162,11 +179,13 @@ void gp_str_capitalize(
 #define GP_COLLATE   'c'
 #define GP_REVERSE   'r'
 
-// Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
-// comparison. 'c' or GP_COLLATE for collation. 'r' or GP_REVERSE to invert
-// result. Separate flags with |. 0 will compare codepoints lexicographically
-// and is the fastest. Locale affects case insensitive comparison and collating.
-// Uses global locale if locale_code is NULL.
+/** Advanced string comparison.
+ * Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
+ * comparison. 'c' or GP_COLLATE for collation. 'r' or GP_REVERSE to invert
+ * result. Separate flags with |. 0 will compare codepoints lexicographically
+ * and is the fastest. Locale affects case insensitive comparison and collating.
+ * Uses global locale if @p locale_code is NULL.
+ */
 GP_NONNULL_ARGS(1, 2)
 int gp_str_compare(
     const GPString s1,
@@ -175,24 +194,28 @@ int gp_str_compare(
     int            flags,
     const char*    optional_locale_code);
 
+/** Create array of substrings.*/
 GP_NONNULL_ARGS()
 GPArray(GPString) gp_str_split(
     const GPAllocator*,
     const void* str,
     size_t      str_length,
-    const char* separator_char_set);
+    const char* utf8_separator_char_set);
 
+/** Merge array of strings.*/
 GP_NONNULL_ARGS()
 void gp_str_join(
     GPString*               dest,
     const GPArray(GPString) srcs,
     const char*             separator);
 
-// Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
-// sorting. 'c' or GP_COLLATE for collation. 'r' or GP_REVERSE to reverse the
-// result order. Separate flags with |. 0 will sort codepoints lexicographically
-// and is the fastest. locale affects case insensitive sorting and collating.
-// Uses global locale if locale_code is NULL.
+/** Advanced string sorting.
+ * Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
+ * sorting. 'c' or GP_COLLATE for collation. 'r' or GP_REVERSE to reverse the
+ * result order. Separate flags with |. 0 will sort codepoints lexicographically
+ * and is the fastest. locale affects case insensitive sorting and collating.
+ * Uses global locale if @p locale_code is NULL.
+ */
 GP_NONNULL_ARGS()
 void gp_str_sort(
     GPArray(GPString)* strs,

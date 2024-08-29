@@ -5,11 +5,13 @@
 #ifndef GP_TERMINAL_INCLUDED
 #define GP_TERMINAL_INCLUDED
 
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
+
 
 // Use these macros to print coloured output to terminals that support ANSI
 // escape codes. Printing any of these strings changes the output color.

@@ -39,9 +39,8 @@ typedef struct gp_char { uint8_t c; } GPChar;
 /** Dynamic string.
  * In memory, a string is GPStringHeader followed by the characters. An object
  * of type GPString is a pointer to the first element.
- *
- * GPStrings are not null-terminated by design to simplify their usage and to
- * discourage the usage of buggy and slow null-terminated strings. However,
+ *     GPStrings are not null-terminated by design to simplify their usage and
+ * to discourage the usage of buggy and slow null-terminated strings. However,
  * null-terminated strings are ubiquitous, so conversion functions are provided.
  */
 typedef GPChar* GPString;

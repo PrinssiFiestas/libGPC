@@ -24,24 +24,20 @@
 // have overloading, optional parameters, or templates, generality is achieved
 // with void* and extra parameters. This is not always type safe and remembering
 // all the parameters brings friction to quick prototyping.
-//
-// To accommodate this, generic macros are provided. Effort has been made to not
-// just have them as syntactic sugar, but actually have some real reason to
+//     To accommodate this, generic macros are provided. Effort has been made to
+// not just have them as syntactic sugar, but actually have some real reason to
 // exist. While they are easier to remember and less verbose than their function
 // counterparts, the real benefit is added type safety, especially with arrays.
-//
-// Great effort has also been made to make the macros hygienic: there is no bugs
-// related to operator precedence, and almost all of them only evaluate their
-// arguments once. The very few ones that might evaluate twice, will at least
-// give some compiler warning when weird things might happen.
-//
-// In C++, these are implemented with overloads, optional parameters, and
+//     Great effort has also been made to make the macros hygienic: there is no
+// bugs related to operator precedence, and almost all of them only evaluate
+// their arguments once. The very few ones that might evaluate twice, will at
+// least give some compiler warning when weird things might happen.
+//     In C++, these are implemented with overloads, optional parameters, and
 // templates. To see exactly what is provided, you can check below for all the
 // overloads. Find-tool of your text editor will be your friend.
-//
-// There is a huge amount of overloads in total. It is not expected for anybody
-// to remember all of them. To use generic macros effectively, it is only needed
-// to understand conventions and ideas behind them.
+//     There is a huge amount of overloads in total. It is not expected for
+// anybody to remember all of them. To use generic macros effectively, it is
+// only needed to understand conventions and ideas behind them.
 //
 // Naming
 //
@@ -49,7 +45,7 @@
 /*
     gp_type_func_name()
 */
-// where "gp_" is the namespace for the whole library, and "type_" is some
+//     where "gp_" is the namespace for the whole library, and "type_" is some
 // abbreviation of the class, and "func_name" is the actual name. Generic macros
 // leave "type_" out, so for example, gp_str_trim() becomes gp_trim(), and
 // gp_arr_push() becomes gp_push().
@@ -64,7 +60,7 @@
     gp_str_copy(&str, str2, gp_str_length(str2)); // GPString
     gp_str_copy(&str, other_str.data, other_str.length); //something else
 */
-// However, string input arguments for generic macros are assumed to be
+//     However, string input arguments for generic macros are assumed to be
 // null-terminated char* or GPString, and arrays inputs are assumed to be of
 // type GPArray(T). Therefore the following works:
 /*
@@ -72,8 +68,8 @@
     gp_copy(&str, "Null terminated string"); // char*
     gp_copy(&arr, arr2); // GPArrays of same type
 */
-// Note that only (void* in, size_t in_length) pairs are replaced with generic
-// input arguments. If you see char* arguments in the function API, like
+//     Note that only (void* in, size_t in_length) pairs are replaced with
+// generic input arguments. If you see char* arguments in the function API, like
 // gp_str_trim() char_set, they must be null-terminated char* strings even with
 // generic macros!
 //
@@ -96,10 +92,10 @@
     gp_copy(&dest, "This will overwrite dest.");
     GPString copy = gp_copy(gp_heap, "This will be duplicated.");
 */
-// In most other cases, new objects can be created by passing an allocator as an
-// extra argument. This should be the first argument in most of the cases. Note
-// that what was previously an output variable taken as a pointer, is now an
-// input parameter taken by value.
+//     In most other cases, new objects can be created by passing an allocator
+// as an extra argument. This should be the first argument in most of the cases.
+// Note that what was previously an output variable taken as a pointer, is now
+// an input parameter taken by value.
 /*
     gp_append(&str1, "This will be appended to str1.");
     GPString str2 = gp_append(gp_heap, str1, "This'll be appended to new str.");
