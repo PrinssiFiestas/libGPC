@@ -1,23 +1,29 @@
 # libGPC General Purpose C
 
-General purpose library to make C programming easier, safer, and more performant.
-
-Safety and performance are achieved by integrating allocators everywhere where dynamic memory is needed. No ghost allocations, crazy global state, null terminated strings, or other stupidity. There are additional type safe generic macros, but most functionality can be accessed with just regular C functions with zero macro magic.
-
-All functions (apart from non-essential `gp_set_utf8_global_locale()`) are thread safe and a big portion of them are reentrant. There are no internal heap allocations other than the ones required by `locale_t` and allocator initialization. Even using the scratch allocator and allocators provided by the user is kept minimal internally for predictable and fast performance.
+General purpose library for modern C programming with focus on safety, performance, and developer experience.
 
 ## What is Included
 
-Dynamic UTF-8 encoded strings with localization, reentrant and `malloc()` free ASCII byte arrays, type generic dynamic arrays, hash maps, unit testing, polymorphic memory allocators, arena allocators, automatic memory management with the scope allocator, and more. Check the header files to see everything provided.
+Dynamic UTF-8 encoded strings with localization, reentrant ASCII byte arrays, type generic dynamic arrays, hash maps, unit testing, polymorphic memory allocators, arena allocators, automatic memory management with the scope allocator, and more. 
+
+## Why libGPC
+
+Unlike many other libraries, libGPC integrates polymorphic allocators throughout its components. This makes memory management trivial while also providing performance improvements and reduced memory fragmentation.
+
+libGPC offers a wide range of utilities while being lightweight and easy to integrate into existing projects. You can just use the single header library and you're good to go.
+
+All functions (apart from non-essential `gp_set_utf8_global_locale()`) are thread safe and a big portion of them are reentrant. There are no internal heap allocations other than the ones required by `locale_t` and allocator initialization. Even using the scratch allocator and allocators provided by the user is kept minimal internally for predictable and fast performance.
 
 ### Example
+
+The code example below is, of course, silly and not as concise as it could be, but it demonstrates the flexibility of different memory usage strategies.
 
 ```c
 #include <gpc/gpc.h>
 
 GPString i_am_the_prince(GPAllocator* out_lifetime) {
     GPAllocator* scope = gp_begin(0); // 0 for default scope arena size.
-    const size_t init_capacity = 4; // too small, but GPString just grows if necessary.
+    const size_t init_capacity = 4; // too small, but GPString grows if necessary.
     GPString out = gp_str_new(out_lifetime, init_capacity, "");
     GPString s1  = gp_str_new(scope, init_capacity, "I am ");
     GPString s2  = gp_str_on_stack(scope, 16, "the Prince");
@@ -29,15 +35,13 @@ GPString i_am_the_prince(GPAllocator* out_lifetime) {
 }
 ```
 
-The code example above is, of course, silly and not as concise as it could be, but it demonstrates the flexibility of different memory usage strategies.
-
 Only one macro was used: `gp_str_on_stack()`, which allows creating a string on stack that reallocates elsewhere, if needed, providing seamless way to use stack memory safely, even for dynamic data.
 
 The scope allocator is arena based which limits heap allocations, and thus is much faster than traditional `malloc()` `free()` pairs. It can also handle forgotten `gp_end()`call or misplaced return statement so memory leaks are practically impossible.
 
 ## Documentation
 
-On the works. Installation instructions below. Effort has been made to make the unit tests well documenting so check the tests directory for detailed code examples.
+Library installation and usage instructions below. API reference can be found in header files in `include/gpc/`. Code examples can be found in unit tests in `tests/` directory.
 
 ## Platform Support
 
@@ -45,11 +49,7 @@ libGPC is regularly tested with MSVC on Windows x64, GCC/Clang on x86_64 Ubuntu,
 
 Building the single header library with MSVC requires C11 standard threads, which are only available after Visual Studio 2022 version 17.8 Preview 2. Older versions are not supported.
 
-### C++
-
-The single header library cannot be compiled with a C++ compiler. However, the headers and the library work fine. The only behavioral difference with C++ is that `gp_assert()`, `gp_expect()`, and `gp_print()` family of macros are not capable of handling format strings and they use `std::ostringstream` internally which unfortunately plummets the performance due to allocations. As an upside though, they are more generic than their C counterparts.
-
-The other difference is that `gp_str_on_stack()` and `gp_arr_on_stack()` macros are unfortunately impossible to implement in C++, at least as far as the authors have tried. Please, leave a PR if you figure something out. Fortunately, their functionality can be replicated manually with the only cost being verbosity. Check `string.h` and `array.h` for details.
+C++ is supported with minor differences, although the library must be compiled with a C compiler. 
 
 ## Installation and Usage
 
