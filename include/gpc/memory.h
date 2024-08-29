@@ -2,9 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-/**
- * @file memory.h
- * @brief Memory management and allocators
+/**@file memory.h
+ * Memory management and allocators
  */
 
 #ifndef GP_MEMORY_INCLUDED
@@ -33,7 +32,7 @@ extern "C" {
 #endif
 #endif
 
-//
+/** Polymorphic allocator.*/
 typedef struct gp_allocator
 {
     void* (*alloc)  (const struct gp_allocator*, size_t block_size);
@@ -75,34 +74,50 @@ void* gp_mem_realloc(
 // ----------------------------------------------------------------------------
 // Scope allocator
 
-// Create thread local scope.
+// The scope allocator is an allocator designed to make lifetimes trivial. Use
+// gp_begin() to create a new arena based allocator. You can then encapsulate
+// the allocator in GPString, GPArray, or manually allocate memory. When the
+// allocator is passed to gp_end(), all memory is freed at once. This is much
+// simpler and more performant than using malloc()-free() pairs. It can also
+// handle mismatched gp_begin()-gp_end() pairs: if a scope misses it's gp_end()
+// call, the next call to gp_end() will end all unended scopes making memory
+// leaks and other memory bugs practically impossible.
+
+/** Create scope arena.*/
 GPAllocator* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
 
-// End scope and any inner scopes that have not been ended.
+/** Free scope arena.
+ * Also frees any inner scopes in the current thread that have not been ended.
+ * Calls deferred functions.
+ */
 void gp_end(GPAllocator* optional_scope);
 
-// Deferred functions are called in Last In First Out order in gp_end().
-// Deferring should not be used for gp_str_delete() or gp_arr_delete() due
-// to possibility of reallocating which would cause double free. It is not
-// needed either, since using the scope allocator makes freeing redundant.
-// Deferring is meant to clean other than memory resources like file pointers.
+/** Set cleanup routines to be executed when scope ends.
+ * Deferred functions are called in Last In First Out order in gp_end().
+ * Deferring should not be used for gp_str_delete() or gp_arr_delete() due
+ * to possibility of reallocating which would cause double free. It is not
+ * needed either, since using the scope allocator makes freeing redundant.
+ * Deferring is meant to clean other than memory resources like file pointers.
+ */
 GP_NONNULL_ARGS(1, 2)
 void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
 
-// like gp_scope_defer() but with type checking and can also take functions
-// with non-void pointer arguments like gp_file_close().
+/** Set cleanup routines to be executed when scope ends.
+ * like gp_scope_defer() but with type checking and can also take functions
+ * with non-void pointer arguments like gp_file_close().
+ */
 #define gp_defer(scope, f, arg) do { \
     if (0) (f)(arg); \
     gp_scope_defer(scope, (void(*)(void*))(f), arg); \
 } while(0)
 
-// Get lastly created scope in callbacks. You should prefer to just pass scopes
-// as arguments when possible.
+/** Get lastly created scope in the current thread.
+ * You should prefer to just pass scopes as arguments when possible. This exists
+ * only to be able to access the current scope allocator in callbacks.
+ */
 GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
 
-// Feel free to define your own values for these. If C11 atomics are available,
-// the scope allocator estimates optimal init size during runtime. This init
-// size determines minimum arena size.
+// Feel free to define your own values for these.
 #ifndef GP_SCOPE_DEFAULT_INIT_SIZE
 #define GP_SCOPE_DEFAULT_INIT_SIZE 256
 #endif

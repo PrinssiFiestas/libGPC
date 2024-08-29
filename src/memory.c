@@ -69,7 +69,7 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
         const size_t new_cap = gp_round_to_aligned(
             arena->growth_coefficient * arena->head->capacity, arena->alignment);
         GPArenaNode* new_node = gp_mem_alloc(gp_heap,
-            sizeof(GPArenaNode) + gp_max(new_cap, size));
+            sizeof(GPArenaNode) + gp_min(gp_max(new_cap, size), arena->max_size));
         new_node->tail     = head;
         new_node->capacity = new_cap;
 

@@ -57,7 +57,7 @@ static GPThreadResult test0(void*_)
                 {
                     GPAllocator* scope = gp_begin(1);
                     ps[2] = gp_mem_alloc(scope, 64);
-                    // whoops, forgot to end_scope()
+                    // whoops, forgot to end(scope)
                 }
                 {
                     GPAllocator* scope = gp_begin(1);
@@ -73,9 +73,9 @@ static GPThreadResult test0(void*_)
                     gp_expect( ! is_free(ps[2]));
                     gp_expect(   is_free(ps[3]));
                     gp_expect( ! is_free(ps[4]));
-                    // whoops, forgot to end_scope()
+                    // whoops, forgot to end(scope)
                 }
-                gp_end(scope); // this also ends the forgotten inner scopes.
+                gp_end(scope); // this also ends the "forgotten" inner scopes.
             }
             // We can allocate as much as we like, gp_end(scope) will free all.
             ps[5] = gp_mem_alloc(scope, 64);
