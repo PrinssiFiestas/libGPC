@@ -5,7 +5,7 @@
 #ifndef GP_IO_INCLUDED
 #define GP_IO_INCLUDED
 
-#include "bytes.h"
+#include <gpc/string.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -63,8 +63,6 @@ inline void gp_file_close(FILE* optional)
     if (optional != NULL)
         fclose(optional);
 }
-
-typedef struct gp_char* GPString;
 
 /** Reads line from file.
  * Overwrites any contents in @p dest. Newline will be included in the resultant

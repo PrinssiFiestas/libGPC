@@ -117,18 +117,6 @@ void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
  */
 GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
 
-// Feel free to define your own values for these. Check below for the meaning of
-// these.
-#ifndef GP_SCOPE_DEFAULT_INIT_SIZE
-#define GP_SCOPE_DEFAULT_INIT_SIZE 256
-#endif
-#ifndef GP_SCOPE_DEFAULT_MAX_SIZE
-#define GP_SCOPE_DEFAULT_MAX_SIZE (1 << 15) // 32 KB
-#endif
-#ifndef GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT
-#define GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT 2.0
-#endif
-
 // ----------------------------------------------------------------------------
 // Arena allocator
 
@@ -180,8 +168,8 @@ GPArena gp_arena_new(size_t capacity) GP_NODISCARD;
 GPArena* gp_arena_new_shared(size_t capacity) GP_NODISCARD;
 
 /** Deallocate some memory.
- * Use this to free everything after to_this_position including
- * to_this_position. Pass the first allocated object to clear the whole arena.
+ * Use this to free everything allocated after @p to_this_position including
+ * @p to_this_position. Pass the first allocated object to clear the arena.
  */
 void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 
@@ -194,7 +182,7 @@ void gp_arena_delete(GPArena* optional);
 /** Arena allocator for temporary memory.
  * Unlike the scope allocator, which creates a new arena for each scope, there
  * is only one scratch arena per thread. This is almost as fast as using stack
- * memory, but the downside is that you can not safely use this for objects that
+ * memory, but the downside is that you cannot safely use this for objects that
  * may reallocate.
  *     Rewind when you are done, but do NOT delete the arena. Scratch arenas get
  * deleted automatically when threads exit.

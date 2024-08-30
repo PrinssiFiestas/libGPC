@@ -204,7 +204,7 @@ static GPArena* gp_new_scratch_arena(void)
     GPArena* arena = gp_mem_alloc(gp_heap, sizeof*arena);
     *arena = _arena;
     #else
-    gp_scratch_allocator = gp_arena_new(GP_SCOPE_DEFAULT_INIT_SIZE);
+    gp_scratch_allocator = gp_arena_new(GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE);
     GPArena* arena       = &gp_scratch_allocator;
     #endif
     arena->max_size           = GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE;
@@ -251,6 +251,16 @@ void* gp_mem_realloc(
 
 // ----------------------------------------------------------------------------
 // Scope allocator
+
+#ifndef GP_SCOPE_DEFAULT_INIT_SIZE
+#define GP_SCOPE_DEFAULT_INIT_SIZE 256
+#endif
+#ifndef GP_SCOPE_DEFAULT_MAX_SIZE
+#define GP_SCOPE_DEFAULT_MAX_SIZE (1 << 15) // 32 KB
+#endif
+#ifndef GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT
+#define GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT 2.0
+#endif
 
 typedef struct gp_defer
 {
@@ -329,27 +339,9 @@ static void gp_make_scope_factory_key(void)
     gp_thread_key_create(&gp_scope_factory_key, gp_delete_scope_factory);
 }
 
-#if __STDC_VERSION__ >= 201112L  && \
-    !defined(__STDC_NO_ATOMICS__) && \
-    ATOMIC_LLONG_LOCK_FREE == 2 // always lock-free
-// Keeping track of average scope size allows scope allocator to estimate
-// optimal scope arena size when creating scopes.
-static _Atomic uint64_t gp_total_scope_sizes = 0;
-static _Atomic size_t   gp_total_scope_count = 0;
-#define GP_ATOMIC_OP(OP) OP
-#else
-#define GP_ATOMIC_OP(OP)
-#endif
-
-static size_t gp_scope_average_memory_usage(void)
-{
-    return GP_ATOMIC_OP(gp_total_scope_sizes/gp_total_scope_count) - 0;
-}
-
 static void* gp_scope_alloc(const GPAllocator* scope, size_t _size)
 {
     const size_t size = gp_round_to_aligned(_size, ((GPScope*)scope)->arena.alignment);
-    GP_ATOMIC_OP(gp_total_scope_sizes += size);
     return gp_arena_alloc(scope, size);
 }
 
@@ -380,9 +372,8 @@ GPAllocator* gp_begin(const size_t _size)
     if (GP_UNLIKELY(scope_factory == NULL)) // initialize scope factory
         scope_factory = gp_new_scope_factory();
 
-    GP_ATOMIC_OP(gp_total_scope_count++);
     const size_t size = _size == 0 ?
-        gp_max(2 * gp_scope_average_memory_usage(), (size_t)GP_SCOPE_DEFAULT_INIT_SIZE)
+        (size_t)GP_SCOPE_DEFAULT_INIT_SIZE
       : _size;
 
     GPScope* previous = gp_last_scope_of(scope_factory);
