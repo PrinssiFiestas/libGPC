@@ -111,7 +111,8 @@ test_all:
 	make release_tests
 	make analyze
 	make tests
-	clang -c -Wall -Wextra -Werror tests/singleheadertest.c -lm -lpthread -o build/singleheadertest.o
+	clang -Wall -Wextra -Werror tests/singleheadertest.c -o build/singleheadertest.exe
+	./build/singleheadertest.exe
 	cl tests/singleheadertest.c $(CL_CFLAGS) -Fo"build/" -Fe"build/singleheadertest.exe"
 	./build/singleheadertest.exe
 	@echo -e "\e[92m\nPassed ALL tests!\e[0m"
