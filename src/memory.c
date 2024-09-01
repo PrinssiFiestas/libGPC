@@ -13,9 +13,11 @@
 #include <gpc/assert.h>
 #endif
 
-extern inline void* gp_mem_alloc       (const GPAllocator*,size_t);
-extern inline void* gp_mem_alloc_zeroes(const GPAllocator*,size_t);
-extern inline void  gp_mem_dealloc     (const GPAllocator*,void*);
+#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
+extern inline void* gp_mem_alloc       (const GPAllocator*, size_t);
+extern inline void* gp_mem_alloc_zeroes(const GPAllocator*, size_t);
+extern inline void  gp_mem_dealloc     (const GPAllocator*, void*);
+#endif
 
 static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size)
 {

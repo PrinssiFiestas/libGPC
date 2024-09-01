@@ -23,10 +23,14 @@
 #define GP_NO_FUNCTION_POINTER_SANITIZE
 #endif
 
+#ifndef __COMPCERT__
 inline void gp_arena_dealloc(const GPAllocator*_, void*__)
 {
     (void)_; (void)__;
 }
+#else // define in common.c so the linker can find it
+void gp_arena_dealloc(const GPAllocator*, void*);
+#endif
 
 inline size_t gp_max_digits_in(const GPType T)
 {

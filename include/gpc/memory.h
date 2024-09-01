@@ -17,15 +17,17 @@
 extern "C" {
 #endif
 
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
 
+
 // Aligment of all pointers returned by any valid allocators
 #ifndef GP_UTILS_INCLUDED
-#if __STDC_VERSION__ >= 201112L && !defined(_MSC_VER)
+#if (__STDC_VERSION__ >= 201112L && !defined(_MSC_VER)) || defined(__COMPCERT__)
 #define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
 #else
 #define GP_ALLOC_ALIGNMENT (sizeof(long double))

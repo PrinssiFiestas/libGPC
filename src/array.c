@@ -8,7 +8,9 @@
 #include <string.h>
 #include <assert.h>
 
+#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
 extern inline void gp_arr_delete(GPArray(void));
+#endif
 
 size_t gp_arr_length(const void* arr)
 {

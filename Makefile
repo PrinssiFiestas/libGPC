@@ -98,7 +98,8 @@ run_cl_tests: $(CL_TESTS)
 cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
 
 # Run all tests sequentially to see where breaks. Requires MSYS2 UCRT64, WSL2,
-# and MSVC running in MSYS2 shell as explained above.
+# and MSVC running in MSYS2 shell as explained above. Also requires CompCert on
+# Linux.
 ifeq ($(OS), Windows_NT)
 test_all:
 	wsl make test_all
@@ -120,6 +121,8 @@ else
 test_all:
 	make clean
 	make tests CC=clang
+	ccomp -o build/singleheadertest -Wall -Wno-c11-extensions -Werror -fstruct-passing -lm -lpthread tests/singleheadertest.c
+	./build/singleheadertest
 	gcc -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 -DGP_PEDANTIC tests/singleheadertest.c -lm -lpthread
 	./build/singleheadertest
 	make release_tests CC=clang

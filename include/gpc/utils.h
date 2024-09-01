@@ -41,7 +41,7 @@ struct gp_random_state
 
 // Aligment of all pointers returned by any valid allocators
 #ifndef GP_MEMORY_INCLUDED
-#if __STDC_VERSION__ >= 201112L && !defined(_MSC_VER)
+#if (__STDC_VERSION__ >= 201112L && !defined(_MSC_VER)) || defined(__COMPCERT__)
 #define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
 #else
 #define GP_ALLOC_ALIGNMENT (sizeof(long double))
@@ -91,9 +91,11 @@ inline bool gp_fapprox(double x, double y, double max_relative_diff) {
 inline bool gp_fapproxf(float x, float y, float max_relative_diff) {
     return fabsf(x - y) <= max_relative_diff * fmaxf(x, y);
 }
+#ifndef __COMPCERT__
 inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff){
     return fabsl(x - y) <= max_rel_diff * fmaxl(x, y);
 }
+#endif
 
 // ----------------------------------------------------------------------------
 // Random number generator
@@ -128,7 +130,9 @@ inline unsigned long      gp_lumin(unsigned long x, unsigned long y)            
 inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y) { return x < y ? x : y; }
 inline float              gp_fminf(float x, float y)                            { return x < y ? x : y; }
 inline double             gp_fmin(double x, double y)                           { return x < y ? x : y; }
+#ifndef __COMPCERT__
 inline long double        gp_fminl(long double x, long double y)                { return x < y ? x : y; }
+#endif
 
 inline int                gp_imax(int x, int y)                                 { return x > y ? x : y; }
 inline long               gp_lmax(long x, long y)                               { return x > y ? x : y; }
@@ -138,7 +142,9 @@ inline unsigned long      gp_lumax(unsigned long x, unsigned long y)            
 inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y) { return x > y ? x : y; }
 inline float              gp_fmaxf(float x, float y)                            { return x > y ? x : y; }
 inline double             gp_fmax(double x, double y)                           { return x > y ? x : y; }
+#ifndef __COMPCERT__
 inline long double        gp_fmaxl(long double x, long double y)                { return x > y ? x : y; }
+#endif
 
 // gp_min() and gp_max() implementations
 #if __GNUC__ && !defined(GP_PEDANTIC)
@@ -173,6 +179,27 @@ _Generic(X, \
     float:              gp_fmaxf (X, Y), \
     double:             gp_fmax  (X, Y), \
     long double:        gp_fmaxl (X, Y))
+#elif defined(__COMPCERT__) // long double not supported
+#define gp_generic_min(X, Y) \
+_Generic(X, \
+    int:                gp_imin  (X, Y), \
+    long:               gp_lmin  (X, Y), \
+    long long:          gp_llmin (X, Y), \
+    unsigned:           gp_umin  (X, Y), \
+    unsigned long:      gp_lumin (X, Y), \
+    unsigned long long: gp_llumin(X, Y), \
+    float:              gp_fminf (X, Y), \
+    double:             gp_fmin  (X, Y))
+#define gp_generic_max(X, Y) \
+_Generic(X, \
+    int:                gp_imax  (X, Y), \
+    long:               gp_lmax  (X, Y), \
+    long long:          gp_llmax (X, Y), \
+    unsigned:           gp_umax  (X, Y), \
+    unsigned long:      gp_lumax (X, Y), \
+    unsigned long long: gp_llumax(X, Y), \
+    float:              gp_fmaxf (X, Y), \
+    double:             gp_fmax  (X, Y))
 #else // Non-GNU C99
 // Not ideal but does the job
 #define gp_generic_min(X, Y) ((X) < (Y) ? (X) : (Y))

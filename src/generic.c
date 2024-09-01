@@ -6,6 +6,7 @@
 #include <gpc/utils.h>
 #include "common.h"
 
+#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
 extern inline GPArray(void) gp_arr99(const GPAllocator* alc,
     const size_t elem_size, const void*const init, const size_t init_length);
 
@@ -34,6 +35,7 @@ extern inline void* gp_get99(void* map, GPStrIn key);
 extern inline bool gp_remove99(GPHashMap* dict, GPStrIn key);
 
 extern inline GPString gp_file99(size_t a_size, void* a, const char* path, const char* mode);
+#endif // CompCert stuff
 
 // ----------------------------------------------------------------------------
 // String

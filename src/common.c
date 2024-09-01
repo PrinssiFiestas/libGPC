@@ -11,9 +11,17 @@
 #include <stdint.h>
 #include <wchar.h>
 
-extern inline void   gp_arena_dealloc(const GPAllocator*, void*);
+#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
 extern inline size_t gp_max_digits_in  (const GPType T);
 extern inline size_t gp_count_fmt_specs(const char* fmt);
+#endif
+
+#ifndef __COMPCERT__
+extern inline void gp_arena_dealloc(const GPAllocator*, void*);
+#else // CompCert ignored this, so linker can't find it.
+void gp_arena_dealloc(const GPAllocator*_,void*__) { (void)_;(void)__; }
+#endif
+
 
 // https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
 bool gp_valid_codepoint(

@@ -1061,7 +1061,8 @@ void gp_str_capitalize(
         ((GPStringHeader*)*str - 1)->length -= second_length;
     }
 
-    GPArray(uint32_t) u32 = gp_arr_on_stack(NULL, 4, uint32_t,);
+    struct { GPArrayHeader h; uint32_t arr[4]; } u32_mem = {{.capacity = 4}, {0}};
+    GPArray(uint32_t) u32 = u32_mem.arr;
     size_t required_capacity = 0; // this gets incremented by GP_u32_APPEND()
 
     switch (first) {

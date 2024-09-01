@@ -367,6 +367,31 @@ static unsigned pf_write_p(
     return out->length - original_length;
 }
 
+#ifdef __COMPCERT__ // math functions missing, have to implement our own.
+static inline int pf_fpclassify(double x) // only nan and inf handled here
+{
+	union { double f; uint64_t u; } punner = {.f = x };
+	uint32_t exp = (uint32_t)((punner.u & 0x7fffffffffffffffULL) >> 52);
+	if (exp == 0x7ff) {
+		if (punner.u & 0x000fffffffffffffULL)
+			return FP_NAN;
+		return FP_INFINITE;
+	}
+	return FP_NORMAL;
+}
+static inline int pf_signbit(double x)
+{
+    union { double f; uint64_t u; } punner = {.f = x };
+    return punner.u >> 63;
+}
+#define pf_isnan(x) (pf_fpclassify(x) == FP_NAN)
+#define pf_isinf(x) (pf_fpclassify(x) == FP_INFINITE)
+#else
+#define pf_signbit(x) signbit(x)
+#define pf_isnan(x)   isnan(x)
+#define pf_isinf(x)   isinf(x)
+#endif // __COMPCERT__
+
 static unsigned pf_write_f(
     struct pf_string* out,
     struct pf_misc_data* md,
@@ -378,8 +403,9 @@ static unsigned pf_write_f(
         out->data + out->length, out->capacity, fmt, f);
     out->length += written_by_conversion;
 
-    md->has_sign = signbit(f) || fmt.flag.plus || fmt.flag.space;
-    md->is_nan_or_inf = isnan(f) || isinf(f);
+
+    md->has_sign = pf_signbit(f) || fmt.flag.plus || fmt.flag.space;
+    md->is_nan_or_inf = pf_isnan(f) || pf_isinf(f);
 
     return written_by_conversion;
 }

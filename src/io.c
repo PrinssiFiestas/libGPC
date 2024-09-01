@@ -10,6 +10,11 @@
 #include <printf/format_scanning.h>
 #include "common.h"
 
+#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
+extern inline void gp_file_close(FILE*);
+extern inline int  gp_stat(GPStat*, const char* path);
+#endif
+
 FILE* gp_file_open(const char* path, const char* mode)
 {
     size_t len = 0;
@@ -20,9 +25,6 @@ FILE* gp_file_open(const char* path, const char* mode)
         mode_buf[len++] = '+';
     return fopen(path, mode_buf);
 }
-
-extern inline void gp_file_close(FILE*);
-extern inline int  gp_stat(GPStat*, const char* path);
 
 bool gp_file_read_line(GPString* out, FILE* in)
 {

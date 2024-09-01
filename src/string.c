@@ -18,8 +18,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
 extern inline void gp_str_delete(GPString);
 extern inline void gp_str_ptr_delete(GPString*);
+#endif
 
 GPString gp_str_new(
     const GPAllocator*const allocator,
