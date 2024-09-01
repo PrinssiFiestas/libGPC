@@ -45,11 +45,11 @@ Library installation and usage instructions below. API reference can be found in
 
 ## Platform Support
 
-libGPC is regularly tested with MSVC on Windows x64, GCC/Clang on x86_64 Ubuntu, MinGW GCC/Clang on MSYS2 UCRT64, and GCC/Clang on 32-bit ARM Raspbian. Portability has been a key consideration when designing and writing the library, so it is likely that it works in other platforms as well, although this is not regularly tested.
+libGPC is regularly tested with MSVC on Windows x64, GCC/Clang on x86_64 Ubuntu, MinGW GCC/Clang on MSYS2 UCRT64, and GCC/Clang on 32-bit ARM Raspbian. Some testing is also done with CompCert on x86_64 Ubuntu.
+
+Full features are enabled with GNU C11. Standard C99 is supported with almost full features if not using MSVC. C++ is supported with minor differences, although the library must be compiled with a C compiler.
 
 Building the single header library with MSVC requires C11 standard threads, which are only available after Visual Studio 2022 version 17.8 Preview 2. Older versions are not supported.
-
-C++ is supported with minor differences, although the library must be compiled with a C compiler.
 
 ## Installation and Usage
 
@@ -99,7 +99,9 @@ sudo make install CC=clang
 
 Once installed, with GCC you link with `-lgpc -lm -lpthread` or optionally `-lgpcd -lm -lpthread` for debug builds.`-lm` is optional with Clang. With `-lgpcd` you also might need `-fsanitize=address -fsanitize=undefined` depending on your system. Using sanitizers is massively encouraged anyway. If sanitizers give you problems with `LD_PRELOAD`, try `-static-libasan`.
 
-If `-Wpedantic` or `-std=cXX` is used, `-DGP_PEDANTIC` can be used to disable compiler specific C language extensions. To enable localization for some UTF-8 string functions, use `-D_GNU_SOURCE`.
+If `-Wpedantic` or `-std=cXX` is used, `-DGP_PEDANTIC` can be used to disable compiler specific features. This is only required if not using GCC or MSVC. With Clang, it is also possible to use [-isystem](https://clangd.llvm.org/guides/system-headers) to enable full features.
+
+To enable localization for some UTF-8 string functions, use `-D_GNU_SOURCE`.
 
 ### What is being installed
 
@@ -134,7 +136,7 @@ If you only need the library, the easiest and most portable way is to download t
 #include "gpc.h"
 ```
 
-The `#define` must be before the `#include` to expose the actual code in the header that gets compiled. Note that this file must be compiled as C, not C++. If you are using MSVC, compiler flag `/std:c11` or `/std:c17` is required and `/utf-8` is highly recommended, else you should link with `-lm -lpthread`, but not with `-lgpc` or `-lgpcd` since you are compiling the library as part of your project.
+The `#define` must be before the `#include` to expose the actual code in the header that gets compiled. Note that this file must be compiled as C, not C++. If you are using MSVC, compiler flag `/std:c11` or `/std:c17` is required and `/utf-8` is highly recommended, else you should link with `-lm -lpthread`.
 
 If you install the full library in Unix-like systems, the single header library will be copied to your system headers and can be included with
 

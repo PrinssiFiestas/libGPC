@@ -59,10 +59,11 @@ GPArray(void) gp_arr_new(
  * @p allocator determines how the array will be reallocated if length exceeds
  * capacity. If it is known that length will not exceed capacity, @p allocator
  * can be left NULL.
- *     Note that if you compile with GCC or Clang without GNU C extensions (with
+ *     Note that if you compile with Clang without GNU C extensions (with
  * `-std=cXX` or `-Wpedantic`), @p init_values must have at least one argument.
  * This means that to create an empty array, a trailing comma must be used in
  * the argument list.
+ *     CompCert will not allow empty arrays, even with trailing comma.
  */
 #define/* GPArray(T) */gp_arr_on_stack( \
     optional_allocator, \
@@ -74,12 +75,18 @@ GPArray(void) gp_arr_new(
 
 // If not zeroing memory for performance is desirable and/or macro magic is
 // undesirable, arrays can be created on stack manually. This is required in C++
-// which does not have gp_arr_on_stack(). Example with int:
+// which does not have gp_arr_on_stack(). Example with int using memset():
 /*
     struct optional_name { GPArrayHeader header; int data[2048]; } my_array_mem;
     memset(&my_array_mem.header, 0, sizeof my_array_mem.header);
     my_array_mem.header.capacity = 2048;
     GPArray(int) my_array = my_array_mem.data;
+*/
+// or more concisely: (C only)
+/*
+    struct { GPArrayHeader h; int data[2048];} arr_mem;
+    arr_mem.h = (GPArrayHeader){.capacity = 2048 };
+    GPArray(int) arr = arr_mem.data;
 */
 
 /** Getters */

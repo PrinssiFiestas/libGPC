@@ -81,12 +81,18 @@ GPString gp_str_new(
 // If not zeroing memory for performance is desirable and/or macro magic is
 // undesirable, strings can be created on stack manually. This is required in
 // C++ which does not have gp_str_on_stack(). Capacity should be initialized to
-// be actual capacity - 1 for null-termination.
+// be actual capacity - 1 for null-termination. Example using memset():
 /*
     struct optional_name{GPStringHeader header; GPChar data[2048];} my_str_mem;
     memset(&my_str_mem.header, 0, sizeof my_str_mem.header);
     my_str_mem.header.capacity = 2048 - sizeof"";
     GPString my_string = my_str_mem.data;
+*/
+// or more concisely: (C only)
+/*
+    struct { GPStringHeader h; GPChar data[2048];} str_mem;
+    str_mem.h = (GPStringHeader){.capacity = 2048 };
+    GPString str = str_mem.data;
 */
 
 /** Getters */

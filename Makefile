@@ -2,7 +2,7 @@
 # Copyright (c) 2023 Lauri Lorenzo Fiestas
 # https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-GPC_VERSION = 0.2.1
+GPC_VERSION = 0.2.2
 
 override CFLAGS += -Wall -Wextra -Werror -Wpedantic
 override CFLAGS += -DGP_PEDANTIC
@@ -123,7 +123,9 @@ test_all:
 	make tests CC=clang
 	ccomp -o build/singleheadertest -Wall -Wno-c11-extensions -Werror -fstruct-passing -lm -lpthread tests/singleheadertest.c
 	./build/singleheadertest
-	gcc -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 -DGP_PEDANTIC tests/singleheadertest.c -lm -lpthread
+	gcc -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 tests/singleheadertest.c -lm -lpthread
+	./build/singleheadertest
+	clang -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 -isystem build -lm tests/singleheadertest.c
 	./build/singleheadertest
 	make release_tests CC=clang
 	make clean

@@ -147,7 +147,7 @@ inline long double        gp_fmaxl(long double x, long double y)                
 #endif
 
 // gp_min() and gp_max() implementations
-#if __GNUC__ && !defined(GP_PEDANTIC)
+#if __GNUC__ && !defined(GP_PEDANTIC) && !defined(GPC_IMPLEMENTATION)
 #define gp_generic_min(X, Y) ({ \
     typeof(X) _gp_min_X = (X); typeof(Y) _gp_min_Y = (Y); \
     _gp_min_X < _gp_min_Y ? _gp_min_X : _gp_min_Y; \

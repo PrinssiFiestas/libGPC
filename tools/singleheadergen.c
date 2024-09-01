@@ -479,7 +479,11 @@ int main(int argc, char* argv[])
     fputs("/*\n"
         " * This file has been generated. The original code may have gone trough heavy\n"
         " * restructuring, so some parts of this file might be confusing to read.\n"
-        " */\n\n",
+        " */\n"
+        "\n"
+        "#if __GNUC__ && !__clang__\n"
+        "#pragma GCC system_header\n"
+        "#endif\n\n",
         out);
     write_sources_until_include();
     write_files(headers);
