@@ -111,25 +111,23 @@ test_all:
 	make release_tests
 	make analyze
 	make tests
+	clang -c -Wall -Wextra -Werror tests/singleheadertest.c -lm -lpthread -o build/singleheadertest.o
 	cl tests/singleheadertest.c $(CL_CFLAGS) -Fo"build/" -Fe"build/singleheadertest.exe"
 	./build/singleheadertest.exe
-	@echo -e "\e[92m\nPassed all tests.\e[0m"
+	@echo -e "\e[92m\nPassed ALL tests!\e[0m"
 else
 test_all:
 	make clean
 	make tests CC=clang
-	clang -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 -DGP_PEDANTIC tests/singleheadertest.c -lm -lpthread
+	gcc -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 -DGP_PEDANTIC tests/singleheadertest.c -lm -lpthread
 	./build/singleheadertest
 	make release_tests CC=clang
 	make clean
 	make release_tests
 	make analyze
 	make tests
-	@echo Passed all tests.
+	@echo "\e[92m\nPassed all tests.\e[0m"
 endif
-
-test_asdf:
-	gcc -Wall -Wextra -Werror -Wpedantic -std=c99 -DGP_PEDANTIC tests/singleheadertest.c -lm -lpthread
 
 ifeq ($(MSYS_VERSION), 0)
 INSTALL_PATH = /usr/local/

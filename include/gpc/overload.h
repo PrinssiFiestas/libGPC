@@ -12,32 +12,39 @@
 extern "C" {
 #endif
 
+
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
 
-// Keep things sane
-#define GP_MAX_ARGUMENTS 64
 
+// Macros in this file assume at most 64 arguments.
+
+
+// Overloading by argument count
+//
 // Overloading functions and macro functions by the number of arguments can be
-// done with OVERLOADN() macros. First arg to OVERLOADN() is always __VA_ARGS__
-// which is followed by names of functions/macros to be overloaded in ascending
-// order. The actual arguments also has to be given after OVERLOADN(). Zero
-// arguments is not possible.
-// Example for max 3 args below:
+// done with OVERLOAD[N]() macros. First arg to OVERLOAD[N]() is always
+// __VA_ARGS__ which is followed by names of functions/macros to be overloaded
+// in descending order. Some compiler settings may also require trailing comma
+// after the names.
+//     The actual arguments also has to be given after OVERLOAD[N](). Zero
+// arguments is not possible using these. If zero arguments is necessary, check
+// this: https://github.com/jason-deng/C99FunctionOverload.
+//
+// Example for max 3 args:
 /*
 void func1(int arg1);
 #define MACRO2(arg1, arg2) somefunc(arg1, arg2)
 int func3(char arg1, void* arg2, const char* arg3);
 
-// Note 3 in the name of the macro.
-#define func(...) OVERLOAD3(__VA_ARGS__, func3, MACRO2, func1)(__VA_ARGS__)
+// Note 3 in the name of the macro and the trailing comma.
+#define func(...) OVERLOAD3(__VA_ARGS__, func3, MACRO2, func1,)(__VA_ARGS__)
 
 int main(void)
 {
-    // now func() can be called with 1-3 args.
     func(1);
     func(1, 2);
     func('1', (void*)2, "3");
@@ -55,6 +62,8 @@ int main(void)
 #define GP_EVAL(...) __VA_ARGS__
 #define GP_EVAL1(A) A
 
+// Processing variadic arguments
+//
 // Arguments list can be processed with GP_PROCESS_ALL_ARGS() macro. The first
 // argument is a function or a macro that takes a single argument. This function
 // processes the variadic argument list. The second argument determines a
@@ -101,13 +110,12 @@ int main(void)
 // typeof() operator. GNUC and MSVC already covers mostly used compilers, but
 // not all compilers are supported.
 
-#if __STDC_VERSION__ >= 202311L || defined(__GNUC__) || defined(__TINYC__)
+#if __STDC_VERSION__ >= 202311L
+#define GP_TYPEOF(...) typeof(__VA_ARGS__)
+#elif (defined(__GNUC__) || defined(__TINYC__)) && !defined(GP_PEDANTIC)
 #define GP_TYPEOF(...) typeof(__VA_ARGS__)
 #elif defined(_MSC_VER)
 #define GP_TYPEOF(X) __typeof__(X)
-#endif
-#if defined(GP_PEDANTIC)
-#undef GP_TYPEOF
 #endif
 
 // Use in variadic function arguments with GP_TYPE() macro
@@ -209,7 +217,7 @@ inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_
 #define GP_COUNT_ARGS(...) GP_OVERLOAD64(__VA_ARGS__, 64, 63, 62, 61, 60, 59, 58, 57, 56,\
 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34,  \
 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12,  \
-11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,)
 
 
 // ----------------------------------------------------------------------------
@@ -221,7 +229,7 @@ inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_
 // ----------------------------------------------------------------------------
 
 
-#if __clang__ && defined(GP_PEDANTIC)
+#if __clang__
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #endif
 
@@ -245,7 +253,7 @@ GP_PROC40, GP_PROC39, GP_PROC38, GP_PROC37, GP_PROC36, GP_PROC35, GP_PROC34, GP_
 GP_PROC32, GP_PROC31, GP_PROC30, GP_PROC29, GP_PROC28, GP_PROC27, GP_PROC26, GP_PROC25, \
 GP_PROC24, GP_PROC23, GP_PROC22, GP_PROC21, GP_PROC20, GP_PROC19, GP_PROC18, GP_PROC17, \
 GP_PROC16, GP_PROC15, GP_PROC14, GP_PROC13, GP_PROC12, GP_PROC11, GP_PROC10, GP_PROC9, 	\
-GP_PROC8, GP_PROC7, GP_PROC6, GP_PROC5, GP_PROC4, GP_PROC3, GP_PROC2, GP_PROC1)	\
+GP_PROC8, GP_PROC7, GP_PROC6, GP_PROC5, GP_PROC4, GP_PROC3, GP_PROC2, GP_PROC1,)	\
 (FUNC, SEPARATOR, __VA_ARGS__)
 
 #define GP_PROCESS_ALL_BUT_1ST(FUNC, SEPARATOR, ...) GP_OVERLOAD64(__VA_ARGS__, 	\
@@ -258,7 +266,7 @@ GP_PROC29_1, GP_PROC28_1, GP_PROC27_1, GP_PROC26_1, GP_PROC25_1, GP_PROC24_1, GP
 GP_PROC22_1, GP_PROC21_1, GP_PROC20_1, GP_PROC19_1, GP_PROC18_1, GP_PROC17_1, GP_PROC16_1, \
 GP_PROC15_1, GP_PROC14_1, GP_PROC13_1, GP_PROC12_1, GP_PROC11_1, GP_PROC10_1, GP_PROC9_1, \
 GP_PROC8_1, GP_PROC7_1, GP_PROC6_1, GP_PROC5_1, GP_PROC4_1, GP_PROC3_1, GP_PROC2_1, 	\
-GP_PROC1_1)(FUNC, SEPARATOR, __VA_ARGS__)
+GP_PROC1_1,)(FUNC, SEPARATOR, __VA_ARGS__)
 
 #define GP_PROC1(F, SEP, A) F(A)
 #define GP_PROC2(F, SEP, A, ...) F(A) SEP(A) GP_PROC1(F, SEP, __VA_ARGS__)
