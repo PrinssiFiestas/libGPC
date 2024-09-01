@@ -41,8 +41,8 @@ extern "C" {
 */
 // The exact message of the first line might be slightly different, but it will
 // be along those lines.
-// Next, information about additionally passed arguments will be printed in form
-// "argument = evaluated_argument". Example:
+//     Next, information about additionally passed arguments will be printed in
+// form "argument = evaluated_argument". Example:
 /*
     gp_expect(false, 1 + 1, my_int_var); // Prints
                             // Expectation false FAILED in line xx file yy.c.

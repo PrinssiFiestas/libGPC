@@ -70,11 +70,6 @@ static inline bool gp_mutex_lock(GPMutex* mutex)
 {
     return mtx_lock(mutex) == thrd_success;
 }
-static inline bool gp_mutex_timed_lock(
-    GPMutex*restrict mutex, const struct timespec*restrict time_point)
-{
-    return mtx_timedlock(mutex, time_point) == thrd_success;
-}
 static inline bool gp_mutex_unlock(GPMutex* mutex)
 {
     return mtx_unlock(mutex) == thrd_success;
@@ -133,11 +128,6 @@ static inline bool gp_mutex_init(GPMutex* mutex)
 static inline bool gp_mutex_lock(GPMutex* mutex)
 {
     return pthread_mutex_lock(mutex) == 0;
-}
-static inline bool gp_mutex_timed_lock(
-    GPMutex*restrict mutex, const struct timespec*restrict time_point)
-{
-    return pthread_mutex_timedlock(mutex, time_point) == 0;
 }
 static inline bool gp_mutex_unlock(GPMutex* mutex)
 {

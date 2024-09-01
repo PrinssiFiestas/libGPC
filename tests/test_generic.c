@@ -159,11 +159,11 @@ int main(void)
             // Pass locale for full language sensitive case mapping.
             gp_copy(&str0, "ﬁre!🔥");
             gp_to_upper(&str0, "");
-            gp_expect(gp_equal(str0, "FIRE!🔥"));
+            gp_expect(gp_equal(str0, "FIRE!🔥"), str0);
 
             gp_copy(&str0, "iıİI");
             GPString str3 = gp_to_upper(&arena, str0, turkish);
-            gp_expect(gp_equal(str3, "İIİI"), str3);
+            gp_expect(gp_equal(str3, "İIİI"));
             gp_to_lower(&str3, turkish);
             gp_expect(gp_equal(str3, "iıiı"));
             GPString str4 = gp_to_lower(&arena, str0, turkish);

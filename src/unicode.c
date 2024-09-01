@@ -26,6 +26,8 @@ static void gp_locale_delete(void* locale)
         #else
         freelocale((GPLocale)locale);
         #endif
+    #else
+    (void)locale;
     #endif
     return;
 }
@@ -101,7 +103,7 @@ GPLocale gp_locale(const char* locale_code)
 
         #if _WIN32
         locale = _create_locale(LC_ALL, full_locale_code);
-        #else
+        #elif GP_LOCALE_AVAILABLE
         locale = newlocale(LC_ALL_MASK, full_locale_code, (GPLocale)0);
         #endif
         if (locale == (GPLocale)0) // mark the locale as unavailable
@@ -680,17 +682,22 @@ static bool gp_is_diatrical(const uint32_t encoding)
         (0xFE20 <= encoding && encoding <= 0xFE2F);
 }
 
-// Helpers for to_upper_full(), to_lower_full(). Don't use these for anything else!
-#define GP_SEMICOLON(...) ;
-#define GP_u32_APPEND1(CODEPOINT) \
-    u32[((GPArrayHeader*)u32 - 1)->length++] = (CODEPOINT); \
-    required_capacity += gp_utf32_to_utf8_byte_length(CODEPOINT)
-#define GP_u32_APPEND(...) do \
-{ \
-    if (GP_COUNT_ARGS(__VA_ARGS__) > 1) \
-        u32 = gp_arr_reserve(sizeof u32[0], u32, u32_capacity += GP_COUNT_ARGS(__VA_ARGS__) - 1); \
-    GP_PROCESS_ALL_ARGS(GP_u32_APPEND1, GP_SEMICOLON, __VA_ARGS__); \
-} while(0)
+GP_NONNULL_ARGS()
+static size_t gp_u32_append(
+    GPArray(uint32_t)restrict*restrict u32, uint32_t*restrict codepoints, size_t codepoints_length)
+{
+    *u32 = gp_arr_reserve(sizeof (*u32)[0], *u32, gp_arr_capacity(*u32) + codepoints_length - 1);
+    size_t utf8_length = 0;
+    for (size_t i = 0; i < codepoints_length; ++i) {
+        (*u32)[gp_arr_length(*u32) + i] = codepoints[i];
+        utf8_length += gp_utf32_to_utf8_byte_length(codepoints[i]);
+    }
+    ((GPArrayHeader*)*u32 - 1)->length += codepoints_length;
+    return utf8_length;
+}
+
+#define GP_u32_APPEND(...) required_capacity += gp_u32_append( \
+    &u32, (uint32_t[]){__VA_ARGS__}, sizeof(uint32_t[]){__VA_ARGS__} / sizeof(uint32_t))
 
 uint32_t gp_u32_to_upper(uint32_t);
 void gp_str_to_upper_full(
@@ -1054,8 +1061,7 @@ void gp_str_capitalize(
         ((GPStringHeader*)*str - 1)->length -= second_length;
     }
 
-    size_t u32_capacity = 0; // dummy for GP_u32_APPEND()
-    GPArray(uint32_t) u32 = gp_arr_on_stack(NULL, 4, uint32_t);
+    GPArray(uint32_t) u32 = gp_arr_on_stack(NULL, 4, uint32_t,);
     size_t required_capacity = 0; // this gets incremented by GP_u32_APPEND()
 
     switch (first) {
@@ -1135,14 +1141,18 @@ void gp_str_capitalize(
     ((GPStringHeader*)*str - 1)->length += required_capacity - first_length;
 }
 
-#define GP_wcs_APPEND1(CODEPOINT) \
-    (*wcs)[((GPArrayHeader*)*wcs - 1)->length++] = (CODEPOINT)
-#define GP_wcs_APPEND(...) do \
-{ \
-    if (GP_COUNT_ARGS(__VA_ARGS__) > 1) \
-        *(wcs) = gp_arr_reserve(sizeof (*wcs)[0], *wcs, wcs_capacity += GP_COUNT_ARGS(__VA_ARGS__) - 1); \
-    GP_PROCESS_ALL_ARGS(GP_wcs_APPEND1, GP_SEMICOLON, __VA_ARGS__); \
-} while(0)
+GP_NONNULL_ARGS()
+static void gp_wcs_append(
+    GPArray(wchar_t)restrict*restrict wcs, wchar_t*restrict codepoints, size_t codepoints_length)
+{
+    *wcs = gp_arr_reserve(sizeof (*wcs)[0], *wcs, gp_arr_capacity(*wcs) + codepoints_length - 1);
+    for (size_t i = 0; i < codepoints_length; ++i)
+        (*wcs)[gp_arr_length(*wcs) + i] = codepoints[i];
+    ((GPArrayHeader*)*wcs - 1)->length += codepoints_length;
+}
+
+#define GP_wcs_APPEND(...) gp_wcs_append( \
+    wcs, (wchar_t[]){__VA_ARGS__}, sizeof(wchar_t[]){__VA_ARGS__} / sizeof(wchar_t))
 
 void gp_wcs_fold_utf8(
     GPArray(wchar_t)* wcs, const void*_str, const size_t str_length, const char* locale_code)

@@ -119,6 +119,7 @@ else
 test_all:
 	make clean
 	make tests CC=clang
+	gcc -c -Wall -Wextra -Werror -Wpedantic -std=c99 -DGP_PEDANTIC tests/singleheadertest.c -lm -lpthread -o build/singleheadertest.o
 	make release_tests CC=clang
 	make clean
 	make release_tests

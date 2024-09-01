@@ -55,11 +55,14 @@ GPArray(void) gp_arr_new(
     size_t element_size,
     size_t element_count);
 
-/** Create a new dynamic array on stack.
+/** Create a new dynamic array on stack. Not available in C++.
  * @p allocator determines how the array will be reallocated if length exceeds
  * capacity. If it is known that length will not exceed capacity, @p allocator
  * can be left NULL.
- * Not available in C++.
+ *     Note that if you compile with GCC or Clang without GNU C extensions (with
+ * `-std=cXX` or `-Wpedantic`), @p init_values must have at least one argument.
+ * This means that to create an empty array, a trailing comma must be used in
+ * the argument list.
  */
 #define/* GPArray(T) */gp_arr_on_stack( \
     optional_allocator, \
