@@ -97,9 +97,19 @@ run_cl_tests: $(CL_TESTS)
 
 cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
 
+ifneq ($(OS), Windows_NT)
+ifeq (,$(shell which ccomp))
+$(warning Consider installing CompCert for more comprehensive C99 tests.)
+CCOMP = echo
+CCOMP_SINGLEHEADERTEST =
+else
+CCOMP = ccomp
+CCOMP_SINGLEHEADERTEST = ./build/singleheadertest
+endif
+endif
+
 # Run all tests sequentially to see where breaks. Requires MSYS2 UCRT64, WSL2,
-# and MSVC running in MSYS2 shell as explained above. Also requires CompCert on
-# Linux.
+# and MSVC running in MSYS2 shell as explained above.
 ifeq ($(OS), Windows_NT)
 test_all:
 	wsl make test_all
@@ -124,8 +134,8 @@ else
 test_all:
 	make clean
 	make tests CC=clang
-	ccomp -o build/singleheadertest -Wall -Wno-c11-extensions -Werror -fstruct-passing -lm -lpthread tests/singleheadertest.c
-	./build/singleheadertest
+	$(CCOMP) -o build/singleheadertest -Wall -Wno-c11-extensions -Werror -fstruct-passing -lm -lpthread tests/singleheadertest.c
+	$(CCOMP_SINGLEHEADERTEST)
 	gcc -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 tests/singleheadertest.c -lm -lpthread
 	./build/singleheadertest
 	clang -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 -isystem build -lm tests/singleheadertest.c
