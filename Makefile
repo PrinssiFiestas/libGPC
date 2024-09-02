@@ -138,7 +138,7 @@ test_all:
 	$(CCOMP_SINGLEHEADERTEST)
 	gcc -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 tests/singleheadertest.c -lm -lpthread
 	./build/singleheadertest
-	clang -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 -isystem build -lm tests/singleheadertest.c
+	clang -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 -isystem build -lm -lpthread tests/singleheadertest.c
 	./build/singleheadertest
 	make release_tests CC=clang
 	make clean
