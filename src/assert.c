@@ -125,7 +125,7 @@ void gp_test(const char* name)
     if (name != NULL) {
         // No starting message cluttering output
         gp_current_test = name;
-        gp_test_failed = false;
+        gp_test_failed  = false;
         gp_test_count++;
     }
 }
@@ -153,7 +153,7 @@ void gp_suite(const char* name)
         pf_printf("Starting suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n", name);
 
         gp_current_suite = name;
-        gp_suite_failed = false;
+        gp_suite_failed  = false;
         gp_suite_count++;
     }
 }
@@ -306,6 +306,7 @@ void gp_fail_internal(
             if (printed + required_capacity > 120)
                 pf_fprintf(stderr, "\n\t");
 
+            assert(buf);
             pf_vsnprintf_consuming(buf, buf_capacity, fmt, &args);
             pf_fprintf(stderr, "%s", buf);
 

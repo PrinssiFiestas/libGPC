@@ -2,9 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-/**
- * @file utils.h
- * @brief Misc utilities
+/**@file utils.h
+ * Misc utilities
  */
 
 #ifndef GP_UTILS_INCLUDED
