@@ -110,6 +110,9 @@ test_all:
 	make release_tests
 	make cl_tests
 	make release_tests
+	cp build/conversions.o     build/conversionsd.o     # These are well
+	cp build/format_scanning.o build/format_scanningd.o # tested, skip slow
+	cp build/printf.o          build/printfd.o          # static analysis.
 	make analyze
 	make tests
 	clang -Wall -Wextra -Werror tests/singleheadertest.c -o build/singleheadertest.exe
@@ -130,6 +133,9 @@ test_all:
 	make release_tests CC=clang
 	make clean
 	make release_tests
+	cp build/conversions.o     build/conversionsd.o     # These are well
+	cp build/format_scanning.o build/format_scanningd.o # tested, skip slow
+	cp build/printf.o          build/printfd.o          # static analysis.
 	make analyze
 	make tests
 	@echo "\e[92m\nPassed all tests.\e[0m"
@@ -220,7 +226,7 @@ release_tests: override CFLAGS += $(RELEASE_CFLAGS)
 # versions are way too slow with way too much false positives so use v12 or newer.
 STATIC_ANALYZER_AVAILABLE = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 12)
 ifeq ($(STATIC_ANALYZER_AVAILABLE), 1)
-analyze: override CFLAGS += -fanalyzer
+analyze: override CFLAGS += -fanalyzer -DGP_STATIC_ANALYSIS
 endif
 analyze: build_tests # you probably want to run make tests after
 
