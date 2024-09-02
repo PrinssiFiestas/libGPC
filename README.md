@@ -97,7 +97,7 @@ sudo make install CC=clang
 
 ### Usage
 
-Once installed, with GCC you link with `-lgpc -lm -lpthread` or optionally `-lgpcd -lm -lpthread` for debug builds.`-lm` is optional with Clang. With `-lgpcd` you also might need `-fsanitize=address -fsanitize=undefined` depending on your system. Using sanitizers is massively encouraged anyway. If sanitizers give you problems with `LD_PRELOAD`, try `-static-libasan`.
+Once installed, with GCC you link with `-lgpc -lm -lpthread` or optionally `-lgpcd -lm -lpthread` for debug builds. With `-lgpcd` you also might need `-fsanitize=address -fsanitize=undefined` depending on your system. Using sanitizers is massively encouraged anyway. If sanitizers give you problems with `LD_PRELOAD`, try `-static-libasan`.
 
 If `-Wpedantic` or `-std=cXX` is used, `-DGP_PEDANTIC` can be used to disable compiler specific features. This is only required if not using GCC or MSVC. With Clang, it is also possible to use [-isystem](https://clangd.llvm.org/guides/system-headers) to enable full features.
 
