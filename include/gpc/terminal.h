@@ -2,6 +2,10 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+/**@file terminal.h
+ * ANSI escape sequences.
+ */
+
 #ifndef GP_TERMINAL_INCLUDED
 #define GP_TERMINAL_INCLUDED
 
@@ -12,6 +16,9 @@
 //
 // ----------------------------------------------------------------------------
 
+
+/** Relevant for Windows only.*/
+void gp_enable_terminal_colors(void);
 
 // Use these macros to print coloured output to terminals that support ANSI
 // escape codes. Printing any of these strings changes the output color.

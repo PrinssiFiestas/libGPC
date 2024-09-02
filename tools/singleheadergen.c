@@ -465,6 +465,8 @@ int main(int argc, char* argv[])
             "singleheadergen: you must provide exactly 1 output file path and optional version number.");
         return EXIT_FAILURE;
     }
+    gp_enable_terminal_colors();
+
     out_path       = argv[1];
     version_number = argv[2];
     const size_t out_path_slash = gp_bytes_find_last(out_path, strlen(out_path), "/", 1);

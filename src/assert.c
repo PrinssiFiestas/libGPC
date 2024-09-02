@@ -17,7 +17,7 @@
 #include <assert.h>
 
 #ifdef _WIN32
-#include <windows.h> // GetModuleFileNameA()
+#include <windows.h> // GetModuleFileNameA(), SetConsoleMode()
 #endif
 
 static GP_MAYBE_THREAD_LOCAL const char* gp_current_test  = NULL;
@@ -28,7 +28,8 @@ static GP_MAYBE_ATOMIC uint32_t gp_test_count    = 0;
 static GP_MAYBE_ATOMIC uint32_t gp_suite_count   = 0;
 static GP_MAYBE_ATOMIC uint32_t gp_tests_failed  = 0;
 static GP_MAYBE_ATOMIC uint32_t gp_suites_failed = 0;
-static GP_MAYBE_ATOMIC uint32_t gp_initialized_testing = false;
+static GP_MAYBE_ATOMIC uint32_t gp_initialized_testing = false; // TODO thread once
+static GPThreadOnce gp_colors_once = GP_THREAD_ONCE_INIT;
 #define GP_FAILED_STR GP_RED          "[FAILED]" GP_RESET_TERMINAL
 #define GP_PASSED_STR GP_BRIGHT_GREEN "[PASSED]" GP_RESET_TERMINAL
 static const char* prog_name = "";
@@ -67,10 +68,25 @@ void gp_end_testing(void)
     gp_initialized_testing = false;
 }
 
+void gp_enable_terminal_colors(void)
+{
+    // ASNI escape sequences may not be enabled by default.
+    #if _WIN32
+    HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode = 0;
+    GetConsoleMode(console, &mode);
+    SetConsoleMode(console, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+    #endif
+}
+
+// TODO use thread once
 static void gp_init_testing(void)
 {
     if ( ! gp_initialized_testing)
     {
+        #if _WIN32
+        gp_thread_once(&gp_colors_once, gp_enable_terminal_colors);
+        #endif
         gp_initialized_testing = true;
 
         #if (__GNUC__ && __linux__) || BSD
@@ -165,18 +181,18 @@ void gp_fail_internal(
     const GPPrintable* objs,
     ...)
 {
+    gp_thread_once(&gp_colors_once, gp_enable_terminal_colors);
+
     va_list _args;
     va_start(_args, objs);
     pf_va_list args;
     va_copy(args.list, _args);
 
-    if (gp_current_test != NULL)
-    {
+    if (gp_current_test != NULL) {
         gp_test_failed = true;
         func = gp_current_test;
     }
-    if (gp_current_suite != NULL)
-    {
+    if (gp_current_suite != NULL) {
         gp_suite_failed = true;
         if (gp_current_test == NULL)
             func = gp_current_suite;
