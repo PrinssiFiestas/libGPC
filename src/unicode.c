@@ -79,7 +79,7 @@ GPLocale gp_locale(const char* locale_code)
         return gp_default_locale;
 
     GPUint128 key = gp_u128(0, gp_bytes_hash64(locale_code, strlen(locale_code)));
-    volatile GPLocale locale = (GPLocale)gp_map_get(gp_locale_table, key);
+    GPLocale locale = (GPLocale)gp_map_get(gp_locale_table, key);
 
     if (locale == (GPLocale)0) // Race condition might happen here.
     {
