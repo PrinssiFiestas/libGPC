@@ -79,14 +79,14 @@ GPLocale gp_locale(const char* locale_code)
         return gp_default_locale;
 
     GPUint128 key = gp_u128(0, gp_bytes_hash64(locale_code, strlen(locale_code)));
-    GPLocale locale = (GPLocale)gp_map_get(gp_locale_table, key);
+    GP_MAYBE_ATOMIC GPLocale locale = (GPLocale)gp_map_get(gp_locale_table, key);
 
-    if (locale == (GPLocale)0) // Race condition might happen here.
+    if (locale == (GPLocale)0)
     {
         gp_mutex_lock(&gp_locale_table_mutex);
 
-        // Handle the race condition mentioned above.
-        if ((locale = (GPLocale)gp_map_get(gp_locale_table, key)) != (GPLocale)0)
+        locale = (GPLocale)gp_map_get(gp_locale_table, key);
+        if (locale != (GPLocale)0)
         {
             gp_mutex_unlock(&gp_locale_table_mutex);
             return locale != (GPLocale)-1 ? locale : (GPLocale)0;
