@@ -528,7 +528,7 @@ static inline GPString gp_capitalize(T_ALLOCATOR* allocator, T_STRING str, const
 // gp_find_first()
 
 template <typename T_STRING>
-size_t gp_find_first(
+static inline size_t gp_find_first(
     const GPString haystack, T_STRING needle, const size_t start = 0)
 {
     return gp_str_find_first(haystack, needle, gp_str_length_cpp(needle), start);
@@ -537,11 +537,11 @@ size_t gp_find_first(
 // gp_find_last()
 
 template <typename T_STRING>
-size_t gp_find_last(const GPString haystack, T_STRING needle)
+static inline size_t gp_find_last(const GPString haystack, T_STRING needle)
 {
     return gp_str_find_last(haystack, needle, gp_str_length_cpp(needle));
 }
-size_t gp_find_last(
+static inline size_t gp_find_last(
     const GPString haystack, const void*const needle, const size_t needle_length)
 {
     return gp_str_find_last(haystack, needle, needle_length);
