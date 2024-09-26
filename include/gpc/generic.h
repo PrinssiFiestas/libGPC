@@ -2450,7 +2450,7 @@ GPArray(void) gp_map99(size_t a_size, const void* a,
 #define GP_MAP99(A, ...) \
     GP_OVERLOAD3(__VA_ARGS__, GP_MAP99_4, GP_MAP99_3, GP_MAP99_2)(A,__VA_ARGS__)
 
-#ifdef GP_TYPEOF // better type safety and allow using integer accumulator
+#if defined(GP_TYPEOF) && !defined(GP_PEDANTIC) // better type safety and allow using integer accumulator
 #define GP_FOLD(ARR, ACC, F) \
     (GP_TYPEOF(ACC))(uintptr_t)gp_arr_fold (sizeof*((F)(ACC,ARR),(ARR)),ARR,(void*)(ACC),(void*)(F))
 #define GP_FOLDR(ARR, ACC, F) \
