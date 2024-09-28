@@ -84,15 +84,18 @@ inline uintptr_t gp_round_to_aligned(const uintptr_t x,const uintptr_t boundary)
 /** Float comparison.
  * Use this instead of == to accommodate for floating point precision issues.
  */
-inline bool gp_fapprox(double x, double y, double max_relative_diff) {
-    return fabs(x - y) <= max_relative_diff * fmax(x, y);
+inline bool gp_approx(double a, double b, double max_relative_diff) {
+    a = fabs(a); b = fabs(b);
+    return fabs(a - b) <= max_relative_diff * fmax(a, b);
 }
-inline bool gp_fapproxf(float x, float y, float max_relative_diff) {
-    return fabsf(x - y) <= max_relative_diff * fmaxf(x, y);
+inline bool gp_approxf(float a, float b, float max_relative_diff) {
+    a = fabsf(a); b = fabsf(b);
+    return fabsf(a - b) <= max_relative_diff * fmaxf(a, b);
 }
 #ifndef __COMPCERT__
-inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff){
-    return fabsl(x - y) <= max_rel_diff * fmaxl(x, y);
+inline bool gp_approxl(long double a, long double b, long double max_rel_diff){
+    a = fabsl(a); b = fabsl(b);
+    return fabsl(a - b) <= max_rel_diff * fmaxl(a, b);
 }
 #endif
 

@@ -10,10 +10,10 @@
 
 #if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
 extern inline uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary);
-extern inline bool gp_fapproxf(float x, float y, float max_relative_diff);
-extern inline bool gp_fapprox(double x, double y, double max_relative_diff);
+extern inline bool gp_approxf(float x, float y, float max_relative_diff);
+extern inline bool gp_approx(double x, double y, double max_relative_diff);
 #ifndef __COMPCERT__
-extern inline bool gp_fapproxl(long double x, long double y, long double max_rel_diff);
+extern inline bool gp_approxl(long double x, long double y, long double max_rel_diff);
 #endif
 
 extern inline int                gp_imin(int x, int y);
