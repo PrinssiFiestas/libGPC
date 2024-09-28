@@ -24,8 +24,8 @@ static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size)
     (void)unused;
     void* mem = malloc(block_size);
     if (mem == NULL) {
-        GP_BREAKPOINT;
         perror("malloc() failed");
+        GP_BREAKPOINT;
         abort();
     }
     return mem;

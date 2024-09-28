@@ -2,7 +2,7 @@
 # Copyright (c) 2023 Lauri Lorenzo Fiestas
 # https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-GPC_VERSION = 0.2.2
+GPC_VERSION = 0.2.3
 
 override CFLAGS += -Wall -Wextra -Werror -Wpedantic
 override CFLAGS += -DGP_PEDANTIC
