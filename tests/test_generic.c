@@ -261,6 +261,16 @@ int main(void)
 
     gp_suite("Arrays and strings");
     {
+        gp_test("Reserve");
+        {
+            GPString str = gp_str(&arena, "");
+            GPArray(int) arr = gp_arr(&arena, int);
+            gp_reserve(&str, 4);
+            gp_reserve(&arr, 4);
+            memset(str, 0, 4);
+            memset(arr, 0, 4 * sizeof arr[0]);
+        }
+
         gp_test("Split and join");
         {
             GPString str1 = gp_str(&arena, "blah blah blah");

@@ -1713,8 +1713,14 @@ static inline void gp_str_reserve11(const size_t unused, GPString* str, const si
     (void)unused;
     gp_str_reserve(str, size);
 }
+GP_NONNULL_ARGS()
+static inline void gp_arr_reserve11(const size_t elem_size, void*_arr, const size_t size)
+{
+    void** arr = (void**)_arr;
+    *arr = gp_arr_reserve(elem_size, *arr, size);
+}
 #define GP_RESERVE11(A, SIZE) _Generic(A, \
-    GPString: gp_str_reserve11, default: gp_arr_reserve)(sizeof**(A), A, SIZE)
+    GPString*: gp_str_reserve11, default: gp_arr_reserve11)(sizeof**(A), A, SIZE)
 
 typedef GPStrIn GPArrIn;
 #define GP_ARR_T(A) _Generic(A, \
