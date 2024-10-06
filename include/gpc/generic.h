@@ -2428,7 +2428,7 @@ inline void* gp_push99(const size_t elem_size, void*_parr)
 }
 #ifdef GP_TYPEOF
 #define GP_PUSH(ARR, ELEM) \
-    (*(GP_TYPEOF(*(ARR)))gp_push99(sizeof(**(ARR) = (ELEM)), (ARR)) = (ELEM))
+    (*(GP_TYPEOF(*(ARR)))gp_push99(GP_SIZEOF_TYPEOF(**(ARR) = (ELEM)), (ARR)) = (ELEM))
 #else
 #define GP_PUSH(ARR, ELEM) \
     (gp_push99(sizeof**(ARR), (ARR)), (*(ARR))[gp_length(*(ARR)) - 1] = (ELEM))
