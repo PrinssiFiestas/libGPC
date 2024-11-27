@@ -232,7 +232,7 @@ void gp_str_append(
     size_t src_length)
 {
     gp_str_reserve(dest, gp_str_length(*dest) + src_length);
-    memcpy(*dest + gp_str_length(*dest), src, src_length + sizeof"");
+    memcpy(*dest + gp_str_length(*dest), src, src_length);
     gp_str_header(*dest)->length += src_length;
 }
 
