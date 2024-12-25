@@ -9,8 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef GP_TESTS
-#include <gpc/assert.h>
+#ifdef __SANITIZE_ADDRESS__
+#include <sanitizer/asan_interface.h>
 #endif
 
 #if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
@@ -64,19 +64,26 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
     void* block = head->position;
     if ((uint8_t*)block + size > (uint8_t*)(head + 1) + arena->head->capacity)
     { // out of memory, create new arena
-        const size_t new_cap = gp_round_to_aligned(
+        size_t new_cap = gp_round_to_aligned(
             arena->growth_coefficient * arena->head->capacity, arena->alignment);
+        new_cap = gp_min(new_cap, arena->max_size);
         GPArenaNode* new_node = gp_mem_alloc(gp_heap,
-            sizeof(GPArenaNode) + gp_min(gp_max(new_cap, size), arena->max_size));
+            sizeof(GPArenaNode) + gp_max(new_cap, size));
         new_node->tail     = head;
         new_node->capacity = new_cap;
 
         block = new_node->position = new_node + 1;
         new_node->position = (uint8_t*)(new_node->position) + size;
         arena->head = new_node;
+        #if __SANITIZE_ADDRESS__
+        if (new_node->capacity > size)
+            ASAN_POISON_MEMORY_REGION(new_node->position, new_node->capacity - size);
+        #endif
     }
-    else
-    {
+    else {
+        #ifdef __SANITIZE_ADDRESS__
+        ASAN_UNPOISON_MEMORY_REGION(block, size);
+        #endif
         head->position = (uint8_t*)block + size;
     }
     return block;
@@ -99,6 +106,9 @@ GPArena gp_arena_new(const size_t capacity)
     node->position = node + 1;
     node->tail     = NULL;
     node->capacity = cap;
+    #ifdef __SANITIZE_ADDRESS__
+    ASAN_POISON_MEMORY_REGION(node->position, node->capacity);
+    #endif
     return (GPArena) {
         .allocator          = { gp_arena_alloc, gp_arena_dealloc },
         .growth_coefficient = 2.,
