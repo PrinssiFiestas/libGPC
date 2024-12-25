@@ -150,8 +150,9 @@ void gp_arena_rewind(GPArena* arena, void* new_pos)
         gp_arena_node_delete(arena);
     arena->head->position = new_pos;
     #ifdef __SANITIZE_ADDRESS__
-    ASAN_POISON_MEMORY_REGION(new_pos,
-        (uint8_t*)arena->head->position + arena->head->capacity - (uint8_t*)new_pos);
+    if ((uint8_t*)new_pos < (uint8_t*)arena->head->position + arena->head->capacity)
+        ASAN_POISON_MEMORY_REGION(new_pos,
+            (uint8_t*)(arena->head + 1) + arena->head->capacity - (uint8_t*)new_pos);
     #endif
 }
 
@@ -295,48 +296,44 @@ typedef struct gp_scope
     GPDeferStack*    defer_stack;
 } GPScope;
 
+typedef struct gp_scope_factory
+{
+    GPArena arena;
+    struct gp_scope* last_scope;
+} GPScopeFactory;
+
 static GPThreadKey  gp_scope_factory_key;
 static GPThreadOnce gp_scope_factory_key_once = GP_THREAD_ONCE_INIT;
 
 GP_NO_FUNCTION_POINTER_SANITIZE
 static void gp_end_scopes(GPScope* scope, GPScope*const last_to_be_ended)
 {
+    if (scope == NULL)
+        return;
     if (scope->defer_stack != NULL) {
-        for (size_t i = scope->defer_stack->length - 1; i != (size_t)-1; i--) {
+        for (size_t i = scope->defer_stack->length - 1; i != (size_t)-1; --i) {
             scope->defer_stack->stack[i].f(scope->defer_stack->stack[i].arg);
         }
     }
     GPScope* previous = scope->parent;
-    gp_arena_delete((GPArena*)scope);
-    if (previous != NULL && scope != last_to_be_ended)
+    gp_arena_delete(&scope->arena);
+    if (scope != last_to_be_ended)
         gp_end_scopes(previous, last_to_be_ended);
-}
-
-// scope_factory lives in it's own arena so returns &scope_factory if there is
-// no scopes.
-static GPScope* gp_last_scope_of(GPArena* scope_factory)
-{
-    return (GPScope*) ((uint8_t*)(scope_factory->head->position) -
-       gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT));
 }
 
 GPAllocator* gp_last_scope(const GPAllocator* fallback)
 {
-    GPArena* factory = gp_thread_local_get(gp_scope_factory_key);
-    GPScope* scope = NULL;
-    if (factory == NULL || (scope = gp_last_scope_of(factory)) == (GPScope*)factory)
+    GPScopeFactory* factory = gp_thread_local_get(gp_scope_factory_key);
+    if (factory == NULL || factory->last_scope == NULL)
         return (GPAllocator*)fallback;
-    return (GPAllocator*)scope;
+    return (GPAllocator*)factory->last_scope;
 }
 
 static void gp_delete_scope_factory(void*_factory)
 {
-    GPArena* factory = _factory;
-    GPScope* remaining = gp_last_scope_of(factory);
-    if (remaining != (GPScope*)factory)
-        gp_end_scopes(remaining, NULL);
-
-    gp_mem_dealloc(gp_heap, factory->head);
+    GPScopeFactory* factory = _factory;
+    gp_end_scopes(factory->last_scope, NULL);
+    gp_mem_dealloc(gp_heap, factory->arena.head);
 }
 
 // Make Valgrind shut up.
@@ -358,18 +355,18 @@ static void* gp_scope_alloc(const GPAllocator* scope, size_t _size)
     return gp_arena_alloc(scope, size);
 }
 
-GPArena* gp_new_scope_factory(void)
+GPScopeFactory* gp_new_scope_factory(void)
 {
     const size_t nested_scopes = 64; // before reallocation
     GPArena scope_factory_arena = gp_arena_new(
         (nested_scopes + 1/*self*/) * gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT));
 
     // Extend lifetime
-    GPArena* scope_factory = gp_arena_alloc(
+    GPScopeFactory* scope_factory = gp_arena_alloc(
         (GPAllocator*)&scope_factory_arena,
-        sizeof(GPScope)); // gets rounded in gp_arena_alloc()
+        sizeof*scope_factory);
     memset(scope_factory, 0, sizeof*scope_factory);
-    memcpy(scope_factory, &scope_factory_arena, sizeof*scope_factory);
+    scope_factory->arena = scope_factory_arena;
 
     gp_thread_local_set(gp_scope_factory_key, scope_factory);
     return scope_factory;
@@ -379,27 +376,21 @@ GPAllocator* gp_begin(const size_t _size)
 {
     gp_thread_once(&gp_scope_factory_key_once, gp_make_scope_factory_key);
 
-    // scope_factory should only allocate gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT)
-    // sized objects for consistent pointer arithmetic.
-    GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    if (GP_UNLIKELY(scope_factory == NULL)) // initialize scope factory
+    GPScopeFactory* scope_factory = gp_thread_local_get(gp_scope_factory_key);
+    if (GP_UNLIKELY(scope_factory == NULL))
         scope_factory = gp_new_scope_factory();
 
     const size_t size = _size == 0 ?
         (size_t)GP_SCOPE_DEFAULT_INIT_SIZE
       : _size;
-
-    GPScope* previous = gp_last_scope_of(scope_factory);
-    if (previous == (GPScope*)scope_factory)
-        previous = NULL;
-
     GPScope* scope = gp_arena_alloc((GPAllocator*)scope_factory, sizeof*scope);
-    *(GPArena*)scope = gp_arena_new(size);
+    scope->arena = gp_arena_new(size);
     scope->arena.allocator.alloc    = gp_scope_alloc;
     scope->arena.max_size           = GP_SCOPE_DEFAULT_MAX_SIZE;
     scope->arena.growth_coefficient = GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT;
-    scope->parent = previous;
+    scope->parent = scope_factory->last_scope;
     scope->defer_stack = NULL;
+    scope_factory->last_scope = scope;
 
     return (GPAllocator*)scope;
 }
@@ -409,12 +400,12 @@ void gp_end(GPAllocator*_scope)
     if (_scope == NULL)
         return;
     GPScope* scope = (GPScope*)_scope;
-    GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    gp_end_scopes(gp_last_scope_of(scope_factory), scope);
-    gp_arena_rewind(scope_factory, scope);
-    #ifdef __SANITIZE_ADDRESS__ // TODO I guess this is the time to refactor scope factory, this is getting ridiculous
-    ASAN_UNPOISON_MEMORY_REGION(scope_factory->head->position, scope_factory->head->capacity);
-    #endif
+
+    GPScope* previous = scope->parent;
+    GPScopeFactory* scope_factory = gp_thread_local_get(gp_scope_factory_key);
+    gp_end_scopes(scope_factory->last_scope, scope);
+    scope_factory->last_scope = previous;
+    gp_arena_rewind(&scope_factory->arena, scope);
 }
 
 void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)

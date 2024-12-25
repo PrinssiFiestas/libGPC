@@ -334,18 +334,17 @@ static void test_dealloc(const GPAllocator* allocator, void*_block)
     size_t block_size;
     #ifdef __SANITIZE_ADDRESS__ // arenas poison free memory, unpoison for testing
     ASAN_UNPOISON_MEMORY_REGION(block - GP_ALLOC_ALIGNMENT, GP_ALLOC_ALIGNMENT);
-    #endif // TODO get rid of aligning for readability, GP_ALLOC_ALIGNMENT is bigger, we know
-    memcpy(&block_size, block - gp_round_to_aligned(sizeof block_size, GP_ALLOC_ALIGNMENT), sizeof block_size);
+    #endif
+    memcpy(&block_size, block - GP_ALLOC_ALIGNMENT, sizeof block_size);
     #ifdef __SANITIZE_ADDRESS__
     ASAN_UNPOISON_MEMORY_REGION(block, block_size);
     #endif
 
     // Mark the block as free.
     memset(
-        block - gp_round_to_aligned(sizeof block_size, GP_ALLOC_ALIGNMENT),
+        block - GP_ALLOC_ALIGNMENT,
         0xFF,
-        gp_round_to_aligned(sizeof block_size, GP_ALLOC_ALIGNMENT)
-          + gp_round_to_aligned(block_size, GP_ALLOC_ALIGNMENT));
+        GP_ALLOC_ALIGNMENT + gp_round_to_aligned(block_size, GP_ALLOC_ALIGNMENT));
 
     gp_mutex_unlock(&test_allocator_mutex);
 }
