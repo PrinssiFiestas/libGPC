@@ -18,7 +18,7 @@ static bool is_free(void*_ptr)
     uint8_t* ptr = _ptr;
     #ifdef __SANITIZE_ADDRESS__
     ASAN_UNPOISON_MEMORY_REGION(ptr, GP_ALLOC_ALIGNMENT);
-    #endif // TODO should I repoison after check?
+    #endif
     for (size_t i = 0; i < GP_ALLOC_ALIGNMENT; i++) if (ptr[i] != 0xFF)
         return false;
     return true;

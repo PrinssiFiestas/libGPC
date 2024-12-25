@@ -11,6 +11,9 @@
 #include <string.h>
 #ifdef __SANITIZE_ADDRESS__
 #include <sanitizer/asan_interface.h>
+#else
+#define ASAN_POISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
+#define ASAN_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
 #endif
 
 #if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
@@ -75,15 +78,11 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t _size)
         block = new_node->position = new_node + 1;
         new_node->position = (uint8_t*)(new_node->position) + size;
         arena->head = new_node;
-        #if __SANITIZE_ADDRESS__
         if (new_node->capacity > size)
             ASAN_POISON_MEMORY_REGION(new_node->position, new_node->capacity - size);
-        #endif
     }
     else {
-        #ifdef __SANITIZE_ADDRESS__
         ASAN_UNPOISON_MEMORY_REGION(block, size);
-        #endif
         head->position = (uint8_t*)block + size;
     }
     return block;
@@ -106,9 +105,7 @@ GPArena gp_arena_new(const size_t capacity)
     node->position = node + 1;
     node->tail     = NULL;
     node->capacity = cap;
-    #ifdef __SANITIZE_ADDRESS__
     ASAN_POISON_MEMORY_REGION(node->position, node->capacity);
-    #endif
     return (GPArena) {
         .allocator          = { gp_arena_alloc, gp_arena_dealloc },
         .growth_coefficient = 2.,
@@ -149,11 +146,9 @@ void gp_arena_rewind(GPArena* arena, void* new_pos)
     while ( ! gp_in_this_node(arena->head, new_pos))
         gp_arena_node_delete(arena);
     arena->head->position = new_pos;
-    #ifdef __SANITIZE_ADDRESS__
     if ((uint8_t*)new_pos < (uint8_t*)arena->head->position + arena->head->capacity)
         ASAN_POISON_MEMORY_REGION(new_pos,
             (uint8_t*)(arena->head + 1) + arena->head->capacity - (uint8_t*)new_pos);
-    #endif
 }
 
 // With -03 GCC inlined bunch of functions and ignored the last if statement in
