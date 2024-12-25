@@ -3,11 +3,11 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 /**@file terminal.h
- * ANSI escape sequences.
+ * ANSI escape sequences
  */
 
 #ifndef GP_TERMINAL_INCLUDED
-#define GP_TERMINAL_INCLUDED
+#define GP_TERMINAL_INCLUDED 1
 
 
 // ----------------------------------------------------------------------------

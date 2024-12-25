@@ -2,6 +2,10 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+/**@file overload.h
+ * Overloading macros
+ */
+
 #ifndef GP_OVERLOAD_INCLUDED
 #define GP_OVERLOAD_INCLUDED 1
 

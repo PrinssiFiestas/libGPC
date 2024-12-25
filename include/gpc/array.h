@@ -3,11 +3,11 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 /**@file array.h
- * Dynamic array.
+ * Dynamic array
  */
 
-#ifndef GPC_ARRAY_H
-#define GPC_ARRAY_H
+#ifndef GP_ARRAY_INCLUDED
+#define GP_ARRAY_INCLUDED 1
 
 #include "memory.h"
 #include "attributes.h"
@@ -320,4 +320,4 @@ memcpy( \
 } // extern "C"
 #endif
 
-#endif // GPC_ARRAY_H
+#endif // GP_ARRAY_INCLUDED

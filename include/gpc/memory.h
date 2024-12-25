@@ -7,7 +7,7 @@
  */
 
 #ifndef GP_MEMORY_INCLUDED
-#define GP_MEMORY_INCLUDED
+#define GP_MEMORY_INCLUDED 1
 
 #include <gpc/attributes.h>
 #include <stddef.h>

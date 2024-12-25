@@ -7,7 +7,7 @@
  */
 
 #ifndef GP_BYTES_INCLUDED
-#define GP_BYTES_INCLUDED
+#define GP_BYTES_INCLUDED 1
 
 #include "attributes.h"
 #include "overload.h"

@@ -3,11 +3,11 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 /**@file unicode.h
- * Unicode handling and extended string functionality.
+ * Unicode handling and extended string functionality
  */
 
 #ifndef GP_UNICODE_INCLUDED
-#define GP_UNICODE_INCLUDED
+#define GP_UNICODE_INCLUDED 1
 
 #include <gpc/string.h>
 #include <gpc/array.h>

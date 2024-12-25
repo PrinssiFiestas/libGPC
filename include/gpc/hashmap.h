@@ -7,7 +7,7 @@
  */
 
 #ifndef GPC_HASHMAP_INCLUDED
-#define GPC_HASHMAP_INCLUDED
+#define GPC_HASHMAP_INCLUDED 1
 
 #include "memory.h"
 #include "attributes.h"

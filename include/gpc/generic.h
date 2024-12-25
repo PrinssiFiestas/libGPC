@@ -7,7 +7,7 @@
  */
 
 #ifndef GP_GENERIC_INCLUDED
-#define GP_GENERIC_INCLUDED
+#define GP_GENERIC_INCLUDED 1
 
 #include <gpc/array.h>
 #include <gpc/string.h>

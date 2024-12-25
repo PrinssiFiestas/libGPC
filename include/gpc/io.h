@@ -2,8 +2,12 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+/**@file io.h
+ * Input/output
+ */
+
 #ifndef GP_IO_INCLUDED
-#define GP_IO_INCLUDED
+#define GP_IO_INCLUDED 1
 
 #include <gpc/string.h>
 #include <stdio.h>

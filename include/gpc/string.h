@@ -3,11 +3,11 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 /**@file string.h
- * String data type.
+ * String data type
  */
 
 #ifndef GP_STRING_INCLUDED
-#define GP_STRING_INCLUDED
+#define GP_STRING_INCLUDED 1
 
 #include "memory.h"
 #include "bytes.h"

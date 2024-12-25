@@ -3,7 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #ifndef GP_ATTRIBUTES_INCLUDED
-#define GP_ATTRIBUTES_INCLUDED
+#define GP_ATTRIBUTES_INCLUDED 1
 
 // ----------------------------------------------------------------------------
 // Nodiscard
