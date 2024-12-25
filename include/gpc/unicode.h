@@ -34,18 +34,12 @@ extern "C" {
 GP_NONNULL_ARGS()
 const char* gp_set_utf8_global_locale(int category, const char* locale_code);
 
-#if !_WIN32 && _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
-
 // By default locale_t is available in GNU C Library if using GCC compatible
 // compiler. However, with -std=c99 feature test macros must be used to enable
 // local locales. Functions that take GPLocale* as argument will work, but they
 // will use global locale instead. See
 // https://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html
-
-typedef void* GPLocale;
-#define gp_get_locale() ((GPLocale)0)
-
-#else
+#if _WIN32 || _XOPEN_SOURCE >= 700 || defined(_GNU_SOURCE) || defined(_DEFAULT_SOURCE)
 
 #define GP_LOCALE_AVAILABLE 1
 
@@ -72,7 +66,12 @@ typedef locale_t GPLocale;
  */
 GPLocale gp_locale(const char* optional_locale_code);
 
-#endif // !_WIN32 && _XOPEN_SOURCE < 700 && !_GNU_SOURCE && !_DEFAULT_SOURCE
+#else // only global locale available
+
+typedef void* GPLocale;
+#define gp_get_locale() ((GPLocale)0)
+
+#endif // _WIN32 || _XOPEN_SOURCE >= 700 || defined(_GNU_SOURCE) || defined(_DEFAULT_SOURCE)
 
 // ----------------------------------------------------------------------------
 // Unicode
@@ -87,7 +86,7 @@ size_t gp_utf8_codepoint_length(
 
 /** Encode UTF-8 codepoint to UTF-32.
  * Encodes codepoint from @p utf8 at @p utf8_index and stores it to @p encoding.
- * Never reads past buffer if @p utf8 points to a valid UTF-8 string. Stores
+ * Never reads past buffer if @p utf8 points to a valid UTF-8 string.
  * @return amount of bytes read from @p utf8.
  */
 GP_NONNULL_ARGS()
