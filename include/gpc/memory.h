@@ -123,7 +123,8 @@ GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
 // Arena allocator
 
 /** Arena that does not run out of memory.
- * If arena gets full, a new one is created in a linked list.
+ * If arena gets full, a new one is created in a linked list. If address
+ * sanitizer is used, arena memory gets poisoned.
  */
 typedef struct gp_arena
 {

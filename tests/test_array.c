@@ -193,7 +193,7 @@ void* sum(void* y, const void* x) { *(int*)y += *(int*)x; return y; }
 void* append(void* result, const void*_element)
 {
     const char* element = *(const char**)_element;
-    const size_t length = result && strlen(result);
+    const size_t length = result != NULL ? strlen(result) : 0;
     result = gp_mem_realloc(
         gp_last_scope(NULL), result, length, length + strlen(element) + sizeof" ");
     if (length == 0)
