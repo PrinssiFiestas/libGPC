@@ -41,11 +41,7 @@ static const GPAllocator gp_mallocator = {
     .alloc   = gp_heap_alloc,
     .dealloc = gp_heap_dealloc
 };
-#ifdef NDEBUG
-const GPAllocator*const gp_heap = &gp_mallocator;
-#else
-const GPAllocator*      gp_heap = &gp_mallocator;
-#endif
+const GPAllocator* gp_heap = &gp_mallocator;
 
 // ----------------------------------------------------------------------------
 

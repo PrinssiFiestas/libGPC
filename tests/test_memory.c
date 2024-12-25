@@ -7,19 +7,10 @@
 #include "../src/memory.c"
 #include "../src/thread.h"
 
-#if NDEBUG // Memory tests require functionality only available in debug mode
-int main(void) { return 0; }
-#else
-
 // Testing allocator. Does not free but marks memory as freed instead.
 // Check below main() for definitions and how to write custom allocators.
 const GPAllocator* new_test_allocator(void);
 void delete_test_allocator(void);
-
-static void override_heap_allocator(void)
-{ // gp_heap can only be overridden if NDEBUG is not defined
-    gp_heap = new_test_allocator();
-}
 
 static bool is_free(void*_ptr)
 {
@@ -218,7 +209,7 @@ static GPThreadResult test_scratch(void*_)
 
 int main(void)
 {
-    override_heap_allocator();
+    gp_heap = new_test_allocator();
 
     GPThread tests[3];
     gp_thread_create(&tests[0], test0, NULL);
@@ -360,6 +351,3 @@ void delete_test_allocator(void)
 {
     private_delete_test_allocator((TestAllocator*)gp_heap);
 }
-
-#endif // NDEBUG
-

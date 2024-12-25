@@ -207,13 +207,8 @@ GPArena* gp_scratch_arena(void) GP_NODISCARD;
 // ----------------------------------------------------------------------------
 // Heap allocator
 
-#ifdef NDEBUG
-/** malloc() based allocator.*/
-extern const GPAllocator*const gp_heap;
-#else // heap allocator can be overridden for debugging
 /** malloc() based allocator.*/
 extern const GPAllocator* gp_heap;
-#endif
 
 
 // ----------------------------------------------------------------------------
