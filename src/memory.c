@@ -145,9 +145,14 @@ static void gp_arena_node_delete(GPArena* arena)
 
 void gp_arena_rewind(GPArena* arena, void* new_pos)
 {
+    new_pos = (void*)gp_round_to_aligned((uintptr_t)new_pos, arena->alignment);
     while ( ! gp_in_this_node(arena->head, new_pos))
         gp_arena_node_delete(arena);
     arena->head->position = new_pos;
+    #ifdef __SANITIZE_ADDRESS__
+    ASAN_POISON_MEMORY_REGION(new_pos,
+        (uint8_t*)arena->head->position + arena->head->capacity - (uint8_t*)new_pos);
+    #endif
 }
 
 // With -03 GCC inlined bunch of functions and ignored the last if statement in
