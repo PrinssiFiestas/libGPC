@@ -116,7 +116,8 @@ inline void gp_arr_ptr_delete(void* optional)
 
 /** Reserve capacity.
  * If @p capacity > gp_arr_capacity(@p arr), reallocates, does nothing
- * otherwise.
+ * otherwise. In case of reallocation, capacity will be rounded up to the next
+ * power of two.
  * @return possibly reallocated @p arr which should be assigned to @p arr.
  */
 GP_ARR_ATTRS()

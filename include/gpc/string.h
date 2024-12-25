@@ -126,7 +126,8 @@ const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
 /** Reserve capacity.
  * If @p capacity > gp_str_capacity(@p *str), reallocates, does nothing
- * otherwise.
+ * otherwise. In case of reallocation, capacity will be rounded up to the next
+ * power of two.
  */
 GP_NONNULL_ARGS()
 void gp_str_reserve(
