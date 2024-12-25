@@ -16,6 +16,9 @@ static bool is_free(void*_ptr)
 {
     gp_assert(_ptr);
     uint8_t* ptr = _ptr;
+    #ifdef __SANITIZE_ADDRESS__
+    ASAN_UNPOISON_MEMORY_REGION(ptr, GP_ALLOC_ALIGNMENT);
+    #endif // TODO should I repoison after check?
     for (size_t i = 0; i < GP_ALLOC_ALIGNMENT; i++) if (ptr[i] != 0xFF)
         return false;
     return true;
@@ -329,8 +332,11 @@ static void test_dealloc(const GPAllocator* allocator, void*_block)
     uint8_t* block = _block;
 
     size_t block_size;
-    memcpy(&block_size, block - gp_round_to_aligned(sizeof block_size, GP_ALLOC_ALIGNMENT), sizeof block_size);
     #ifdef __SANITIZE_ADDRESS__ // arenas poison free memory, unpoison for testing
+    ASAN_UNPOISON_MEMORY_REGION(block - GP_ALLOC_ALIGNMENT, GP_ALLOC_ALIGNMENT);
+    #endif // TODO get rid of aligning for readability, GP_ALLOC_ALIGNMENT is bigger, we know
+    memcpy(&block_size, block - gp_round_to_aligned(sizeof block_size, GP_ALLOC_ALIGNMENT), sizeof block_size);
+    #ifdef __SANITIZE_ADDRESS__
     ASAN_UNPOISON_MEMORY_REGION(block, block_size);
     #endif
 

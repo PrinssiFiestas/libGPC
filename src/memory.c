@@ -412,6 +412,9 @@ void gp_end(GPAllocator*_scope)
     GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
     gp_end_scopes(gp_last_scope_of(scope_factory), scope);
     gp_arena_rewind(scope_factory, scope);
+    #ifdef __SANITIZE_ADDRESS__ // TODO I guess this is the time to refactor scope factory, this is getting ridiculous
+    ASAN_UNPOISON_MEMORY_REGION(scope_factory->head->position, scope_factory->head->capacity);
+    #endif
 }
 
 void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
