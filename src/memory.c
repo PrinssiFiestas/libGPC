@@ -26,11 +26,9 @@ static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size)
 {
     (void)unused;
     void* mem = malloc(block_size);
-    if (mem == NULL) {
-        perror("malloc() failed");
-        GP_BREAKPOINT;
-        abort();
-    }
+    if (mem == NULL) { // Don't try to be a hero, don't try to 'handle' this,
+        abort();       // something has gone horribly wrong, protect the user!
+    }                  // Prevent further damage! Sanitizers handle bad inputs.
     return mem;
 }
 
