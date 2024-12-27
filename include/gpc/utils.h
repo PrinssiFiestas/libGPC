@@ -38,15 +38,6 @@ struct gp_random_state
 // ----------------------------------------------------------------------------
 
 
-// Aligment of all pointers returned by any valid allocators
-#ifndef GP_MEMORY_INCLUDED
-#if (__STDC_VERSION__ >= 201112L && !defined(_MSC_VER)) || defined(__COMPCERT__)
-#define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
-#else
-#define GP_ALLOC_ALIGNMENT (sizeof(long double))
-#endif
-#endif
-
 /** Check and limit upper and lower bounds at once.
  * @p end will be limited to @p limit and @p start will be limited to @p end and
  * @p limit.

@@ -6,6 +6,19 @@
 #define GP_ATTRIBUTES_INCLUDED 1
 
 // ----------------------------------------------------------------------------
+// Alignment
+
+// Aligment of all pointers returned by any valid allocators. Can be globally
+// overridden.
+#ifndef GP_ALLOC_ALIGNMENT
+#if (__STDC_VERSION__ >= 201112L && !defined(_MSC_VER)) || defined(__COMPCERT__)
+#define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
+#else
+#define GP_ALLOC_ALIGNMENT (sizeof(long double))
+#endif
+#endif
+
+// ----------------------------------------------------------------------------
 // Nodiscard
 
 #if __GNUC__

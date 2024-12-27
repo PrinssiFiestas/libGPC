@@ -25,15 +25,6 @@ extern "C" {
 // ----------------------------------------------------------------------------
 
 
-// Aligment of all pointers returned by any valid allocators
-#ifndef GP_UTILS_INCLUDED
-#if (__STDC_VERSION__ >= 201112L && !defined(_MSC_VER)) || defined(__COMPCERT__)
-#define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
-#else
-#define GP_ALLOC_ALIGNMENT (sizeof(long double))
-#endif
-#endif
-
 /** Polymorphic allocator.*/
 typedef struct gp_allocator
 {
@@ -124,7 +115,7 @@ GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
 
 /** Arena that does not run out of memory.
  * If arena gets full, a new one is created in a linked list. If address
- * sanitizer is used, arena memory gets poisoned.
+ * sanitizer is used, unused and freed arena memory are poisoned.
  */
 typedef struct gp_arena
 {

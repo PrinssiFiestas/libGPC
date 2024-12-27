@@ -9,12 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef __SANITIZE_ADDRESS__
-#include <sanitizer/asan_interface.h>
-#else
-#define ASAN_POISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
-#define ASAN_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
-#endif
 
 #if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
 extern inline void* gp_mem_alloc       (const GPAllocator*, size_t);
@@ -245,8 +239,10 @@ void* gp_mem_realloc(
     { // extend block instead of reallocating and copying
         arena->head->position = old_block;
         void* new_block = gp_arena_alloc(allocator, new_size);
-        if (new_block != old_block) // arena ran out of space and reallocated
+        if (new_block != old_block) { // arena ran out of space and reallocated
             memcpy(new_block, old_block, old_size);
+            ASAN_POISON_MEMORY_REGION(old_block, old_size);
+        }
         return new_block;
     }
     void* new_block = gp_mem_alloc(allocator, new_size);

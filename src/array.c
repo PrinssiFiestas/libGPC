@@ -37,7 +37,8 @@ GPArray(void) gp_arr_new(
     const size_t element_size,
     const size_t element_count)
 {
-    const size_t size = gp_round_to_aligned(element_size * element_count, GP_ALLOC_ALIGNMENT);
+    const size_t size = gp_round_to_aligned(element_size * element_count,
+        allocator->dealloc == gp_arena_dealloc ? ((GPArena*)allocator)->alignment : GP_ALLOC_ALIGNMENT);
     GPArrayHeader* me = gp_mem_alloc(allocator, sizeof(*me) + size);
     *me = (GPArrayHeader) { 0, size / element_size, allocator, me };
     return me + 1;

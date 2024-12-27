@@ -14,6 +14,12 @@
 #include <stddef.h>
 #include <string.h>
 #include <limits.h>
+#ifdef __SANITIZE_ADDRESS__
+#include <sanitizer/asan_interface.h>
+#else
+#define ASAN_POISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
+#define ASAN_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
+#endif
 
 // Disable false UB positive for calling functions trough "incompatible" pointer
 // types.
@@ -24,9 +30,9 @@
 #endif
 
 #ifndef __COMPCERT__
-inline void gp_arena_dealloc(const GPAllocator*_, void*__)
+inline void gp_arena_dealloc(const GPAllocator* arena, void* mem)
 {
-    (void)_; (void)__;
+    ASAN_POISON_MEMORY_REGION(mem, ((GPArena*)arena)->alignment);
 }
 #else // define in common.c so the linker can find it
 void gp_arena_dealloc(const GPAllocator*, void*);
