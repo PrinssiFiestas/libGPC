@@ -135,7 +135,7 @@ void gp_str_reserve(
     size_t    capacity);
 
 /** Copy source string to destination.*/
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() // TODO use nonnull_if_nonzero where applicable
 void gp_str_copy(
     GPString*              dest,
     const void*GP_RESTRICT src,

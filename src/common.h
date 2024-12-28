@@ -32,7 +32,8 @@
 #ifndef __COMPCERT__
 inline void gp_arena_dealloc(const GPAllocator* arena, void* mem)
 {
-    ASAN_POISON_MEMORY_REGION(mem, ((GPArena*)arena)->alignment);
+    (void)arena;
+    ASAN_POISON_MEMORY_REGION(mem, sizeof(void*));
 }
 #else // define in common.c so the linker can find it
 void gp_arena_dealloc(const GPAllocator*, void*);

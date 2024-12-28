@@ -14,7 +14,8 @@
 int main(void)
 {
     // Tiny arena to put address sanitizer to work
-    GPArena _arena = gp_arena_new(1);
+    GPArena _arena = {0};
+    gp_arena_init(&_arena, 1);
     _arena.growth_coefficient = 0.0;
     GPAllocator* arena = (GPAllocator*)&_arena;
 

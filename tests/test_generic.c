@@ -30,7 +30,8 @@
 int main(void)
 {
     // Tiny arena to put address sanitizer to work
-    GPArena arena = gp_arena_new(1);
+    GPArena arena = {0};
+    gp_arena_init(&arena, 1);
     arena.growth_coefficient = 0.0;
 
     gp_suite("Bytes and strings");
@@ -657,11 +658,10 @@ void*   psum(void*    y, const int* x)  { return (void*)((intptr_t)y + *x); }
 char* append(char* result, const char**_element)
 {
     const char* element = *_element;
-    const size_t length = result && strlen(result);
+    const size_t length = result != NULL ? strlen(result) : 0;
     result = (char*)gp_mem_realloc(
         gp_last_scope(NULL), result, length, length + strlen(element) + sizeof" ");
-    if (length == 0)
-        ((char*)result)[0] = '\0';
+    ((char*)result)[length] = '\0';
     return strcat(strcat(result, element), " ");
 }
 bool even(const int* element)               { return !(*element  % 2); }

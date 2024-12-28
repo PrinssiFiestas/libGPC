@@ -2,6 +2,10 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#ifdef __SANITIZE_ADDRESS__
+#undef __SANITIZE_ADDRESS__
+#endif
+
 #include <gpc/assert.h>
 #include <gpc/io.h>
 #include "../src/memory.c"
@@ -146,7 +150,8 @@ static GPThreadResult test2(void*_)
             // Using a tiny arena forces it to allocate each objects separately.
             // This allows the testing allocator to mark freed objects on
             // rewind.
-            GPArena arena = gp_arena_new(1);
+            GPArena arena = {0};
+            gp_arena_init(&arena, 1);
             arena.growth_coefficient = 1.;
             void* ps[4] = {0};
             for (size_t i = 0; i < 4; i++) {
@@ -229,12 +234,13 @@ int main(void)
             gp_expect(is_free(test1_ps[i]));
     }
 
-    GPArena* shared_arena = gp_arena_new_shared(0);
+    GPArena shared_arena = {.is_shared = (void*)1 };
+    gp_arena_init(&shared_arena, 0);
     for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
-        gp_thread_create(&tests[i], test_shared, shared_arena);
+        gp_thread_create(&tests[i], test_shared, &shared_arena);
     for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
         gp_thread_join(tests[i], NULL);
-    gp_arena_delete(shared_arena);
+    gp_arena_delete(&shared_arena);
 
     for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
         gp_thread_create(&tests[i], test_scratch, NULL);
@@ -253,7 +259,7 @@ int main(void)
 // seem like a big limitation, but it makes reasoning about NULL massively
 // simpler. All pointers returned by alloc() also MUST be aligned to
 // GP_ALLOC_ALIGNMENT boundary. dealloc() is REQUIRED to handle NULL arguments.
-static void* test_alloc(const GPAllocator*, size_t) GP_NONNULL_ARGS_AND_RETURN;
+static void* test_alloc(const GPAllocator*, size_t, size_t) GP_NONNULL_ARGS_AND_RETURN;
 static void  test_dealloc(const GPAllocator* optional, void* optional_block);
 
 // While struct gp_allocator could be used by itself, your allocator probably
@@ -297,28 +303,28 @@ const GPAllocator* new_test_allocator(void)
 // the scope allocator does this by creating new arenas where the size is
 // guranteed to fit the size argument of alloc(). Here we will keep things
 // simple for testing purposes and omit handling out of memory case.
-static void* test_alloc(const GPAllocator*_allocator, size_t size)
+static void* test_alloc(const GPAllocator*_allocator, size_t size, size_t alignment)
 {
     gp_mutex_lock(&test_allocator_mutex);
 
     // Downcast to orignial type
     TestAllocator* allocator = (TestAllocator*)_allocator;
 
-    void* block = allocator->free_block;
+    void* block =
+        (uint8_t*)gp_round_to_aligned((uintptr_t)allocator->free_block, alignment)
+        + alignment
+        - sizeof size;
 
     // Store the block size to itself so the block can be later marked as free.
     memcpy(block, &size, sizeof size);
 
-    // Remember aligment!
-    allocator->free_block = (uint8_t*)block
-      + gp_round_to_aligned(sizeof size, GP_ALLOC_ALIGNMENT)
-      + gp_round_to_aligned(size,        GP_ALLOC_ALIGNMENT);
+    allocator->free_block = (uint8_t*)block + sizeof size + size;
 
     gp_mutex_unlock(&test_allocator_mutex);
 
     // block points to its size. We don't want to return that but return the
     // memory right next to it instead.
-    return (uint8_t*)block + gp_round_to_aligned(sizeof size, GP_ALLOC_ALIGNMENT);
+    return (uint8_t*)block + sizeof size;
 }
 
 // Not actually deallocates, but marks pointer as free for testing purposes.
@@ -333,18 +339,18 @@ static void test_dealloc(const GPAllocator* allocator, void*_block)
 
     size_t block_size;
     #ifdef __SANITIZE_ADDRESS__ // arenas poison free memory, unpoison for testing
-    ASAN_UNPOISON_MEMORY_REGION(block - GP_ALLOC_ALIGNMENT, GP_ALLOC_ALIGNMENT);
+    ASAN_UNPOISON_MEMORY_REGION(block - sizeof block_size, sizeof block_size);
     #endif
-    memcpy(&block_size, block - GP_ALLOC_ALIGNMENT, sizeof block_size);
+    memcpy(&block_size, block - sizeof block_size, sizeof block_size);
     #ifdef __SANITIZE_ADDRESS__
     ASAN_UNPOISON_MEMORY_REGION(block, block_size);
     #endif
 
     // Mark the block as free.
     memset(
-        block - GP_ALLOC_ALIGNMENT,
+        block - sizeof block_size,
         0xFF,
-        GP_ALLOC_ALIGNMENT + gp_round_to_aligned(block_size, GP_ALLOC_ALIGNMENT));
+        sizeof block_size + block_size);
 
     gp_mutex_unlock(&test_allocator_mutex);
 }

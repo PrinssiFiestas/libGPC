@@ -69,7 +69,7 @@ do { \
 
 static void init_globals(void)
 {
-    garena = gp_arena_new(1 << 30);
+    gp_arena_init(&garena, 1 << 30);
     garena.growth_coefficient = .25;
 
     gp_assert(out = fopen(out_path, "wb"), strerror(errno));

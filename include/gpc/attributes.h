@@ -9,7 +9,7 @@
 // Alignment
 
 // Aligment of all pointers returned by any valid allocators. Can be globally
-// overridden.
+// overridden to a power of 2 larger or equal to 8.
 #ifndef GP_ALLOC_ALIGNMENT
 #if (__STDC_VERSION__ >= 201112L && !defined(_MSC_VER)) || defined(__COMPCERT__)
 #define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
