@@ -21,13 +21,17 @@ static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size, size_t 
 {
     (void)unused;
     // TODO assert that alignment is a power of 2.
-    #if __STDC_VERSION__ >= 201112L
-    void* mem = aligned_alloc(alignment, gp_round_to_aligned(block_size, alignment));
-    #elif _WIN32
+    #if _WIN32
     void* mem = _aligned_malloc(gp_round_to_aligned(block_size, alignment), alignment);
-    #else
+    #elif __STDC_VERSION__ >= 201112L
+    void* mem = aligned_alloc(alignment, gp_round_to_aligned(block_size, alignment));
+    #elif _POSIX_C_SOURCE >= 200112L
     void* mem = NULL;
     posix_memalign(&mem, alignment, gp_round_to_aligned(block_size, aligment));
+    #else
+    void* mem_start = malloc(block_size + 2 * alignment);
+    void* mem = (uint8_t*)gp_round_to_aligned((uintptr_t)mem_start, alignment) + alignment;
+    memcpy((void**)mem - 1, &mem_start, sizeof mem_start);
     #endif
     if (mem == NULL) // Inputs should be validated by the user, so this
         abort();     // indicates something critical, don't try to 'handle' this!
@@ -37,9 +41,12 @@ static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size, size_t 
 static void gp_heap_dealloc(const GPAllocator* unused, void* block)
 {
     (void)unused;
-    #if __STDC_VERSION__ < 201112L && _WIN32
+    #if _WIN32
     _aligned_free(block);
+    #elif __STDC_VERSION__ >= 201112L || _POSIX_C_SOURCE >= 200112L
+    free(block);
     #else
+    memcpy(&block, (void**)block - 1, sizeof block);
     free(block);
     #endif
 }
