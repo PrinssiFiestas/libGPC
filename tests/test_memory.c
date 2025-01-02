@@ -247,6 +247,20 @@ int main(void)
     for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
         gp_thread_join(tests[i], NULL);
 
+    gp_suite("Other stuff");
+    {
+        gp_test("Arena reset");
+        {
+            GPArena arena = {0};
+            gp_arena_init(&arena, 8);
+            void* arena_start = gp_mem_alloc((GPAllocator*)&arena, 0);
+            for (size_t i = 0; i < 32; ++i)
+                (void*){0} = gp_mem_alloc((GPAllocator*)&arena, 32);
+            gp_arena_reset(&arena);
+            gp_assert(arena_start == gp_mem_alloc((GPAllocator*)&arena, 0));
+        }
+    }
+
     // Make Valgrind shut up.
     delete_test_allocator();
 }

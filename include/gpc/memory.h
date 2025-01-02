@@ -189,9 +189,14 @@ void gp_arena_init(GPArena*, size_t capacity) GP_NONNULL_ARGS();
 
 /** Deallocate some memory.
  * Use this to free everything allocated after @p to_this_position including
- * @p to_this_position. Pass the first allocated object to clear the arena.
+ * @p to_this_position.
  */
 void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
+
+/** Deallocate all memory excluding the arena itself.
+ * Fully rewinds the arena pointer to the beginning of the arena.
+ */
+void gp_arena_reset(GPArena*) GP_NONNULL_ARGS();
 
 /** Deallocate all arena memory including the arena itself.*/
 void gp_arena_delete(GPArena* optional);

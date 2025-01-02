@@ -159,17 +159,13 @@ void gp_arena_rewind(GPArena* arena, void* new_pos)
             (uint8_t*)(arena->head + 1) + arena->head->capacity - (uint8_t*)new_pos);
 }
 
-// TODO remove this!
-// // With -03 GCC inlined bunch of functions and ignored the last if statement in
-// // gp_arena_delete() giving a false positive for -Wfree-nonheap-object and
-// // refusing to compile with -Werror so this pointless wrapper is needed.
-// #if __GNUC__ && ! __clang__
-// __attribute__((noinline))
-// #endif
-// static void gp_arena_shared_heap_dealloc(GPArena* arena)
-// {
-//     gp_mem_dealloc(gp_heap, arena);
-// }
+void gp_arena_reset(GPArena* arena)
+{
+    while (arena->head->tail != NULL)
+        gp_arena_node_delete(arena);
+    arena->head->position = arena->head + 1;
+    ASAN_POISON_MEMORY_REGION(arena->head->position, arena->head->capacity);
+}
 
 void gp_arena_delete(GPArena* arena)
 {
