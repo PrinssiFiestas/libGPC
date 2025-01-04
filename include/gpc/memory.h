@@ -81,6 +81,7 @@ inline void gp_mem_dealloc(
  * If @p new_size <= @p old_size, no reallocation happens. Also, if @p allocator
  * is a GPArena, the arena extends @p old_block without reallocating if
  * @p old_block is the last object allocated by the arena.
+ * @p old_block may be NULL if @p old_size is zero.
  */
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
 void* gp_mem_realloc(
