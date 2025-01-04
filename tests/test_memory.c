@@ -2,10 +2,6 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#ifdef __SANITIZE_ADDRESS__
-#undef __SANITIZE_ADDRESS__
-#endif
-
 #include <gpc/assert.h>
 #include <gpc/io.h>
 #include "../src/memory.c"
@@ -20,9 +16,7 @@ static bool is_free(void*_ptr)
 {
     gp_assert(_ptr);
     uint8_t* ptr = _ptr;
-    #ifdef __SANITIZE_ADDRESS__
     ASAN_UNPOISON_MEMORY_REGION(ptr, GP_ALLOC_ALIGNMENT);
-    #endif
     for (size_t i = 0; i < GP_ALLOC_ALIGNMENT; i++) if (ptr[i] != 0xFF)
         return false;
     return true;
@@ -352,13 +346,9 @@ static void test_dealloc(const GPAllocator* allocator, void*_block)
     uint8_t* block = _block;
 
     size_t block_size;
-    #ifdef __SANITIZE_ADDRESS__ // arenas poison free memory, unpoison for testing
     ASAN_UNPOISON_MEMORY_REGION(block - sizeof block_size, sizeof block_size);
-    #endif
     memcpy(&block_size, block - sizeof block_size, sizeof block_size);
-    #ifdef __SANITIZE_ADDRESS__
     ASAN_UNPOISON_MEMORY_REGION(block, block_size);
-    #endif
 
     // Mark the block as free.
     memset(

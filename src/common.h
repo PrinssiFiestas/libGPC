@@ -14,8 +14,16 @@
 #include <stddef.h>
 #include <string.h>
 #include <limits.h>
-#ifdef __SANITIZE_ADDRESS__
+
+#ifdef __SANITIZE_ADDRESS__ // GCC and MSVC defines this with -fsanitize=address
 #include <sanitizer/asan_interface.h>
+#elif defined(__has_feature) // Clang defines this
+    #if __has_feature(address_sanitizer)
+    #include <sanitizer/asan_interface.h>
+    #else
+    #define ASAN_POISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
+    #define ASAN_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
+    #endif
 #else
 #define ASAN_POISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
 #define ASAN_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
