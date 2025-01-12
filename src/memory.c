@@ -22,15 +22,18 @@ static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size, size_t 
     (void)unused;
     // TODO assert that alignment is a power of 2.
     #if _WIN32
-    void* mem = _aligned_malloc(gp_round_to_aligned(block_size, alignment), alignment);
+    void* mem = _aligned_malloc(block_size, alignment);
     #elif __STDC_VERSION__ >= 201112L
+    // Size has to be a multiple of alignment, which is wasteful, so we only round here.
     void* mem = aligned_alloc(alignment, gp_round_to_aligned(block_size, alignment));
     #elif _POSIX_C_SOURCE >= 200112L
     void* mem = NULL;
-    posix_memalign(&mem, alignment, gp_round_to_aligned(block_size, aligment));
+    posix_memalign(&mem, alignment, block_size);
     #else
-    void* mem_start = malloc(block_size + 2 * alignment); // TODO we don't need 2*alignment, but it's safe. Optimize later
-    void* mem = (uint8_t*)gp_round_to_aligned((uintptr_t)mem_start, alignment) + alignment;
+    void* mem_start = malloc(block_size + gp_round_to_aligned(sizeof(void*), alignment));
+    if (mem_start == NULL)
+        abort();
+    void* mem = (uint8_t*)gp_round_to_aligned((uintptr_t)((void**)mem_start + 1), alignment);
     memcpy((void**)mem - 1, &mem_start, sizeof mem_start);
     #endif
     if (mem == NULL) // Inputs should be validated by the user, so this
