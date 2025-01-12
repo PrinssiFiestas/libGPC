@@ -29,7 +29,7 @@ static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size, size_t 
     void* mem = NULL;
     posix_memalign(&mem, alignment, gp_round_to_aligned(block_size, aligment));
     #else
-    void* mem_start = malloc(block_size + 2 * alignment);
+    void* mem_start = malloc(block_size + 2 * alignment); // TODO we don't need 2*alignment, but it's safe. Optimize later
     void* mem = (uint8_t*)gp_round_to_aligned((uintptr_t)mem_start, alignment) + alignment;
     memcpy((void**)mem - 1, &mem_start, sizeof mem_start);
     #endif
@@ -90,8 +90,8 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t size, con
         arena->head = new_node;
         if (new_node->capacity > size)
             ASAN_POISON_MEMORY_REGION(new_node->position, new_node->capacity - size);
-        if (alignment > sizeof(GPArenaNode))
-            ASAN_POISON_MEMORY_REGION(new_node + 1, alignment - sizeof(GPArenaNode));
+        ASAN_POISON_MEMORY_REGION(new_node + 1,
+            gp_round_to_aligned((uintptr_t)(new_node + 1), alignment) - (uintptr_t)(new_node + 1));
     }
     else {
         ASAN_UNPOISON_MEMORY_REGION(block, size);
@@ -177,7 +177,7 @@ void gp_arena_delete(GPArena* arena)
         gp_mem_dealloc(arena->allocator, old_head);
     }
     if (arena->is_shared)
-        gp_mem_dealloc(arena->allocator, arena->is_shared);
+        gp_mem_dealloc(arena->allocator, (GPMutex*)arena->is_shared);
 }
 
 // ----------------------------------------------------------------------------

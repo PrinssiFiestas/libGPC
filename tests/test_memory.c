@@ -10,7 +10,7 @@
 // Testing allocator. Does not free but marks memory as freed instead.
 // Check below main() for definitions and how to write custom allocators.
 const GPAllocator* new_test_allocator(void);
-void delete_test_allocator(void);
+void delete_test_allocator(const GPAllocator*);
 
 static bool is_free(void*_ptr)
 {
@@ -211,7 +211,9 @@ static GPThreadResult test_scratch(void*_)
 
 int main(void)
 {
-    gp_heap = new_test_allocator();
+    const GPAllocator* original_heap = gp_heap;
+    const GPAllocator* test_allocator = new_test_allocator();
+    gp_heap = test_allocator;
 
     GPThread tests[3];
     gp_thread_create(&tests[0], test0, NULL);
@@ -241,6 +243,8 @@ int main(void)
     for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
         gp_thread_join(tests[i], NULL);
 
+    gp_heap = original_heap; // put sanitizers back to work
+
     gp_suite("Other stuff");
     {
         gp_test("Arena reset");
@@ -252,11 +256,36 @@ int main(void)
                 (void*){0} = gp_mem_alloc((GPAllocator*)&arena, 32);
             gp_arena_reset(&arena);
             gp_assert(arena_start == gp_mem_alloc((GPAllocator*)&arena, 0));
+            gp_arena_delete(&arena);
+        }
+
+        gp_test("Alignment");
+        {
+            #define ALIGNMENT 256 // must be a power of 2!
+            typedef struct aligned_data {
+                #if __STDC_VERSION__ >= 201112L
+                _Alignas(ALIGNMENT)
+                #endif
+                uint8_t data[ALIGNMENT];
+            } AlignedData;
+
+            AlignedData* data = gp_mem_alloc_aligned(gp_heap, sizeof*data, sizeof*data);
+            memset(data, 0, sizeof*data);
+            gp_mem_dealloc(gp_heap, data);
+
+            GPArena arena = {.max_size = 1};
+            gp_arena_init(&arena, 1);
+            data = gp_mem_alloc_aligned((GPAllocator*)&arena, sizeof*data, sizeof*data);
+            gp_expect((uintptr_t)data == gp_round_to_aligned((uintptr_t)data, sizeof*data));
+            gp_expect((uintptr_t)data == gp_round_to_aligned((uintptr_t)(arena.head + 1), sizeof*data));
+            gp_expect((uintptr_t)(arena.head + 1) < gp_round_to_aligned((uintptr_t)(arena.head + 1), sizeof*data));
+            gp_expect((uintptr_t)data % ALIGNMENT == 0);
+            memset(data, 0, sizeof*data);
+            gp_arena_delete(&arena);
         }
     }
 
-    // Make Valgrind shut up.
-    delete_test_allocator();
+    delete_test_allocator(test_allocator);
 }
 
 // ----------------------------------------------------------------------------
@@ -365,7 +394,7 @@ static void private_delete_test_allocator(TestAllocator* allocator)
     free((void*)allocator);
 }
 
-void delete_test_allocator(void)
+void delete_test_allocator(const GPAllocator* allocator)
 {
-    private_delete_test_allocator((TestAllocator*)gp_heap);
+    private_delete_test_allocator((TestAllocator*)allocator);
 }
