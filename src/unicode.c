@@ -170,8 +170,8 @@ size_t gp_utf8_decode(
     if (encoding > 0x7F)
     {
         if (encoding < 0x800) {
-            decoding[0] = ((encoding & 0x000FC0) >> 6) | 0xC0;
-            decoding[1] = ((encoding & 0x00003F) >> 0) | 0x80;
+            decoding[0] = ((encoding & 0x000FC0) >>  6) | 0xC0;
+            decoding[1] = ((encoding & 0x00003F) >>  0) | 0x80;
             return 2;
         } else if (encoding < 0x10000) {
             decoding[0] = ((encoding & 0x03F000) >> 12) | 0xE0;
@@ -261,8 +261,8 @@ void gp_utf32_to_utf8(
         if (u32[i] > 0x7F)
         {
             if (u32[i] < 0x800) {
-                (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x000FC0) >> 6) | 0xC0;
-                (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x00003F) >> 0) | 0x80;
+                (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x000FC0) >>  6) | 0xC0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x00003F) >>  0) | 0x80;
                 ((GPStringHeader*)*u8 - 1)->length += 2;
             } else if (u32[i] < 0x10000) {
                 (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x03F000) >> 12) | 0xE0;
@@ -408,8 +408,8 @@ void gp_utf16_to_utf8(
         if (u16[i] > 0x7F)
         {
             if (u16[i] < 0x800) {
-                (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x000FC0) >> 6) | 0xC0;
-                (*u8)[gp_str_length(*u8) + 1].c = ((u16[i] & 0x00003F) >> 0) | 0x80;
+                (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x000FC0) >>  6) | 0xC0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u16[i] & 0x00003F) >>  0) | 0x80;
                 ((GPStringHeader*)*u8 - 1)->length += 2;
             } else if (u16[i] <= 0xD7FF || 0xE000 <= u16[i]) {
                 (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x03F000) >> 12) | 0xE0;
@@ -454,8 +454,8 @@ void gp_utf16_to_utf8(
         if (u16[i] > 0x7F)
         {
             if (u16[i] < 0x800) {
-                (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x000FC0) >> 6) | 0xC0;
-                (*u8)[gp_str_length(*u8) + 1].c = ((u16[i] & 0x00003F) >> 0) | 0x80;
+                (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x000FC0) >>  6) | 0xC0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u16[i] & 0x00003F) >>  0) | 0x80;
                 ((GPStringHeader*)*u8 - 1)->length += 2;
             } else if (u16[i] <= 0xD7FF || 0xE000 <= u16[i]) {
                 (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x03F000) >> 12) | 0xE0;
@@ -569,7 +569,7 @@ GPArray(GPString) gp_str_split(
         size_t start, end;
     } indices[256];
 
-    while (true)
+    while (i != GP_NOT_FOUND)
     {
         for (indices_length = 0;
             indices_length < sizeof indices / sizeof indices[0];
@@ -615,10 +615,6 @@ GPArray(GPString) gp_str_split(
                 gp_str_length(substrs[gp_arr_length(substrs) + j]));
         }
         ((GPArrayHeader*)substrs - 1)->length += indices_length;
-
-        if (i == GP_NOT_FOUND)
-            break;
-
     }
     return substrs;
 }
