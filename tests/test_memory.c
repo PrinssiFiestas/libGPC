@@ -238,15 +238,19 @@ int main(void)
         gp_thread_join(tests[i], NULL);
     gp_arena_delete(&shared_arena);
 
-    for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
-        gp_thread_create(&tests[i], test_scratch, NULL);
-    for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
-        gp_thread_join(tests[i], NULL);
 
     gp_heap = original_heap; // put sanitizers back to work
 
     gp_suite("Other stuff");
     {
+        gp_test("Scratch allocator");
+        {
+            for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
+                gp_thread_create(&tests[i], test_scratch, NULL);
+            for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
+                gp_thread_join(tests[i], NULL);
+        }
+
         gp_test("Arena reset");
         {
             GPArena arena = {0};
