@@ -47,6 +47,7 @@ size_t pf_utoa(const size_t n, char* out, unsigned long long x)
     {
         const uint32_t olength = decimalLength9(x);
         pf_append_n_digits(olength, x, out);
+        out[olength] = '\0';
         return olength;
     }
 
