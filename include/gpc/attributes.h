@@ -48,6 +48,15 @@
 #endif
 
 // ----------------------------------------------------------------------------
+// Require initialized memory
+
+#if __GNUC__ && !__clang__
+#define GP_INOUT(...) __attribute__((access(read_write, __VA_ARGS__)))
+#else
+#define GP_INOUT(...)
+#endif
+
+// ----------------------------------------------------------------------------
 // Malloc-like functions
 
 // https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html

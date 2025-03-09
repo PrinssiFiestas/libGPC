@@ -176,14 +176,11 @@ typedef struct gp_arena
 } GPArena;
 
 /** Allocate and initialize.
- * Replaces zeroed fields in arena with default values. Arenas must be
- * zero-initialized before calling this and this must be called before calling
+ * Replaces zeroed fields in arena with default values. GPArena must be
+ * initialized before calling this and this must be called before calling
  * any other arena function.
  */
-#if __GNUC__ && !__clang__ // make GCC check for uninitialized arena
-__attribute__((access(read_write, 1)))
-#endif
-void gp_arena_init(GPArena*, size_t capacity) GP_NONNULL_ARGS();
+void gp_arena_init(GPArena*, size_t capacity) GP_INOUT(1) GP_NONNULL_ARGS();
 
 /** Deallocate some memory.
  * Use this to free everything allocated after @p to_this_position including
