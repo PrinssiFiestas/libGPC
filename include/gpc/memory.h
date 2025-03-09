@@ -40,7 +40,7 @@ typedef struct gp_allocator
     void  (*dealloc)(const struct gp_allocator*, void*  block);
 } GPAllocator;
 
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_MALLOC_SIZE(2)
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ALLOC_SIZE(2)
 inline void* gp_mem_alloc(
     const GPAllocator* allocator,
     size_t size)
@@ -48,10 +48,7 @@ inline void* gp_mem_alloc(
     return allocator->alloc(allocator, size, GP_ALLOC_ALIGNMENT);
 }
 
-#ifdef __GNUC__
-__attribute__((alloc_align(2)))
-#endif
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_MALLOC_SIZE(2)
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ALLOC_SIZE(2) GP_ALLOC_ALIGN(3)
 inline void* gp_mem_alloc_aligned(
     const GPAllocator* allocator,
     size_t size,
@@ -60,7 +57,7 @@ inline void* gp_mem_alloc_aligned(
     return allocator->alloc(allocator, size, alignment);
 }
 
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_MALLOC_SIZE(2)
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ALLOC_SIZE(2)
 inline void* gp_mem_alloc_zeroes(
     const GPAllocator* allocator,
     size_t size)
