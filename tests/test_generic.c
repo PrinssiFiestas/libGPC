@@ -355,6 +355,9 @@ int main(void)
             GPArray(int) arr2 = gp_slice(&arena, arr1, 1, 3);
             arr_assert_eq(arr2, gp_arr_ro(int, 4, 5), 2);
 
+            gp_clear(&arr2);
+            gp_assert(gp_length(arr2) == 0);
+
             #if TYPE_CHECK
             gp_slice(&str1, arr1, 1, 2); // not okay, wrong type
             gp_slice(str1, "still not okay, taking str1 by value!", 1, 2);
@@ -599,17 +602,17 @@ int main(void)
         gp_test("Types");
         {
             #ifndef __cplusplus
-            int* pint     = gp_alloc_type(&arena, int);
-            int* parr     = gp_alloc_type(&arena, int[4]);
-            int* pcnt     = gp_alloc_type(&arena, int, 4);
-            int* pname    = gp_alloc_type(&arena, pname);
-            int* pnamearr = gp_alloc_type(&arena, pnamearr, 4);
+            int* pint     = gp_new(&arena, int);
+            int* parr     = gp_new(&arena, int[4]);
+            int* pcnt     = gp_new(&arena, int, 4);
+            int* pname    = gp_new(&arena, pname);
+            int* pnamearr = gp_new(&arena, pnamearr, 4);
             #else // casts required
-            int* pint     = (int*)gp_alloc_type(&arena, int);
-            int* parr     = (int*)gp_alloc_type(&arena, int[4]);
-            int* pcnt     = (int*)gp_alloc_type(&arena, int, 4);
-            int* pname    = (int*)gp_alloc_type(&arena, pname);
-            int* pnamearr = (int*)gp_alloc_type(&arena, pnamearr, 4);
+            int* pint     = (int*)gp_new(&arena, int);
+            int* parr     = (int*)gp_new(&arena, int[4]);
+            int* pcnt     = (int*)gp_new(&arena, int, 4);
+            int* pname    = (int*)gp_new(&arena, pname);
+            int* pnamearr = (int*)gp_new(&arena, pnamearr, 4);
             #endif
 
             gp_dealloc(&arena, pint    );

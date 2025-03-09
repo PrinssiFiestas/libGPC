@@ -115,6 +115,8 @@ int main(void)
             arr = gp_arr_slice(sizeof*arr, arr, carr, 1, 6);
             const int carr2[] = { 1, 2, 3, 4, 5 };
             arr_assert_eq(arr, carr2, CARR_LEN(carr2));
+            arr = gp_arr_clear(arr);
+            gp_assert(gp_arr_length(arr) == 0);
         }
 
         gp_test("Mutating slice");

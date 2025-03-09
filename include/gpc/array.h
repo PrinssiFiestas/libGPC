@@ -114,6 +114,9 @@ inline void gp_arr_ptr_delete(void* optional)
         gp_arr_delete(*(GPArray(void)*)optional);
 }
 
+/** Set length to 0 without changing capacity. */
+GPArray(void) gp_arr_clear(GPArray(void)) GP_NONNULL_ARGS();
+
 /** Reserve capacity.
  * If @p capacity > gp_arr_capacity(@p arr), reallocates, does nothing
  * otherwise. In case of reallocation, capacity will be rounded up to the next

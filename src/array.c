@@ -32,6 +32,12 @@ const GPAllocator* gp_arr_allocator(const void* arr)
     return ((GPArrayHeader*)arr - 1)->allocator;
 }
 
+GPArray(void) gp_arr_clear(GPArray(void) arr)
+{
+    ((GPArrayHeader*)arr - 1)->length = 0;
+    return arr;
+}
+
 GPArray(void) gp_arr_new(
     const GPAllocator* allocator,
     const size_t element_size,

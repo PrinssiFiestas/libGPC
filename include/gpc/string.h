@@ -124,6 +124,9 @@ inline void gp_str_ptr_delete(GPString* optional)
  */
 const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
 
+/** Set length to 0 without changing capacity. */
+void gp_str_clear(GPString*) GP_NONNULL_ARGS();
+
 /** Reserve capacity.
  * If @p capacity > gp_str_capacity(@p *str), reallocates, does nothing
  * otherwise. In case of reallocation, capacity will be rounded up to the next

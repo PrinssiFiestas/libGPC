@@ -167,6 +167,8 @@ int main(void)
             GPString str = gp_str_on_stack(NULL, 20, "Some_string_to slice");
             gp_str_slice(&str, NULL, 5, 11);
             gp_expect(gp_str_equal(str, "string", strlen("string")));
+            gp_str_clear(&str);
+            gp_expect(gp_str_length(str) == 0);
         }
 
         gp_test("Substr");

@@ -175,6 +175,11 @@ const char* gp_cstr(GPString str)
     return (const char*)str;
 }
 
+void gp_str_clear(GPString* str)
+{
+    ((GPStringHeader*)*str - 1)->length = 0;
+}
+
 void gp_str_reserve(
     GPString* pstr,
     size_t capacity)

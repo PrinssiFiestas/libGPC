@@ -659,6 +659,19 @@ static inline void gp_sort(GPArray(GPString)* strs, int flags = 0, const char* l
 #define gp_allocator(GPARRAY_OR_GPSTRING)  gp_arr_allocator(GPARRAY_OR_GPSTRING)
 
 // ---------------------------
+// gp_clear()
+
+static inline void gp_clear(GPString* str)
+{
+    gp_str_clear(str);
+}
+template <typename T>
+static inline void gp_clear(GPArray(T)* parr)
+{
+    gp_arr_clear(*parr);
+}
+
+// ---------------------------
 // gp_reserve()
 
 static inline void gp_reserve(GPString* str, const size_t capacity)
@@ -1292,9 +1305,9 @@ static inline void* gp_alloc_zeroes(T_ALLOCATOR* allocator, const size_t size)
 }
 
 // ---------------------------
-// gp_alloc_type()
+// gp_new()
 
-#define gp_alloc_type(/*allocator, type, count = 1*/...) \
+#define gp_new(/*allocator, type, count = 1*/...) \
     GP_ALLOC_TYPE_CPP(__VA_ARGS__)
 
 // ---------------------------
@@ -1433,6 +1446,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_capacity(...)            gp_arr_capacity(__VA_ARGS__)
 #define gp_allocation(...)          gp_arr_allocation(__VA_ARGS__)
 #define gp_allocator(...)           gp_arr_allocator(__VA_ARGS__)
+#define gp_clear(...)               GP_CLEAR(__VA_ARGS__)
 #define gp_reserve(...)             GP_RESERVE11(__VA_ARGS__)
 #define gp_copy(...)                GP_COPY11(__VA_ARGS__)
 #define gp_slice(...)               GP_SLICE11(__VA_ARGS__)
@@ -1455,7 +1469,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 
 // Memory
 #define gp_alloc(...)               GP_ALLOC(__VA_ARGS__)
-#define gp_alloc_type(...)          GP_ALLOC_TYPE(__VA_ARGS__)
+#define gp_new(...)                 GP_ALLOC_TYPE(__VA_ARGS__)
 #define gp_alloc_zeroes(...)        GP_ALLOC_ZEROES(__VA_ARGS__)
 #define gp_dealloc(...)             GP_DEALLOC(__VA_ARGS__)
 #define gp_realloc(...)             GP_REALLOC(__VA_ARGS__)
@@ -1505,7 +1519,9 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_length(...)              gp_arr_length(__VA_ARGS__)
 #define gp_capacity(...)            gp_arr_capacity(__VA_ARGS__)
 #define gp_allocation(...)          gp_arr_allocation(__VA_ARGS__)
+#define gp_clear(...)               GP_CLEAR(__VA_ARGS__)
 #define gp_allocator(...)           gp_arr_allocator(__VA_ARGS__)
+#define gp_clear(...)               GP_CLEAR(__VA_ARGS__)
 #define gp_reserve(...)             GP_RESERVE99(__VA_ARGS__)
 #define gp_copy(...)                GP_COPY99(__VA_ARGS__)
 #define gp_slice(...)               GP_SLICE99(__VA_ARGS__)
@@ -1528,7 +1544,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 
 // Memory
 #define gp_alloc(...)               GP_ALLOC(__VA_ARGS__)
-#define gp_alloc_type(...)          GP_ALLOC_TYPE(__VA_ARGS__)
+#define gp_new(...)                 GP_ALLOC_TYPE(__VA_ARGS__)
 #define gp_alloc_zeroes(...)        GP_ALLOC_ZEROES(__VA_ARGS__)
 #define gp_dealloc(...)             GP_DEALLOC(__VA_ARGS__)
 #define gp_realloc(...)             GP_REALLOC(__VA_ARGS__)
@@ -2357,6 +2373,8 @@ inline GPString gp_join99(
 #define GP_SORT(...) GP_OVERLOAD3(__VA_ARGS__, gp_str_sort, GP_SORT2, GP_SORT1)(__VA_ARGS__)
 
 #define GP_IS_ALC99(A) (GP_SIZEOF_TYPEOF(*(A)) >= sizeof(GPAllocator))
+
+#define GP_CLEAR(A) gp_arr_clear(*(A))
 
 void gp_reserve99(size_t elem_size, void* px, const size_t capacity);
 #define GP_RESERVE99(A, CAPACITY) gp_reserve99(sizeof**(A), A, CAPACITY)
