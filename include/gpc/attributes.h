@@ -121,4 +121,15 @@
 #define GP_NO_SANITIZE
 #endif
 
+// ----------------------------------------------------------------------------
+// Unreachable
+
+#if __GNUC__
+#define GP_UNREACHABLE __builtin_unreachable()
+#elif
+#define GP_UNREACHABLE __assume(0)
+#else
+#define GP_UNREACHABLE ((void)0)
+#endif
+
 #endif // GP_ATTRIBUTES_INCLUDED
