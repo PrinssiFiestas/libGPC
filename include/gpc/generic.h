@@ -14,6 +14,7 @@
 #include <gpc/unicode.h>
 #include <gpc/hashmap.h>
 #include <gpc/io.h>
+#include <assert.h>
 
 // ----------------------------------------------------------------------------
 // Introduction to Generic Macros
@@ -653,6 +654,8 @@ static inline void gp_sort(GPArray(GPString)* strs, int flags = 0, const char* l
 // ---------------------------
 // Getters
 
+#define gp_at(GPARRAY_OR_GPSTRING, I) \
+    (GPARRAY_OR_GPSTRING)[assert((I) < gp_arr_length(GPARRAY_OR_GPSTRING)), I]
 #define gp_length(GPARRAY_OR_GPSTRING)     gp_arr_length(GPARRAY_OR_GPSTRING)
 #define gp_capacity(GPARRAY_OR_GPSTRING)   gp_arr_capacity(GPARRAY_OR_GPSTRING)
 #define gp_allocation(GPARRAY_OR_GPSTRING) gp_arr_allocation(GPARRAY_OR_GPSTRING)
@@ -1442,6 +1445,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_split(...)               GP_SPLIT(__VA_ARGS__)
 #define gp_join(...)                GP_JOIN11(__VA_ARGS__)
 #define gp_sort(...)                GP_SORT(__VA_ARGS__)
+#define gp_at(...)                  GP_AT(__VA_ARGS__)
 #define gp_length(...)              gp_arr_length(__VA_ARGS__)
 #define gp_capacity(...)            gp_arr_capacity(__VA_ARGS__)
 #define gp_allocation(...)          gp_arr_allocation(__VA_ARGS__)
@@ -1516,6 +1520,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_split(...)               GP_SPLIT(__VA_ARGS__)
 #define gp_join(...)                GP_JOIN99(__VA_ARGS__)
 #define gp_sort(...)                GP_SORT(__VA_ARGS__)
+#define gp_at(...)                  GP_AT(__VA_ARGS__)
 #define gp_length(...)              gp_arr_length(__VA_ARGS__)
 #define gp_capacity(...)            gp_arr_capacity(__VA_ARGS__)
 #define gp_allocation(...)          gp_arr_allocation(__VA_ARGS__)
@@ -2371,6 +2376,8 @@ inline GPString gp_join99(
 #define GP_SORT1(STRS)        gp_str_sort(STRS, 0,     "")
 #define GP_SORT2(STRS, FLAGS) gp_str_sort(STRS, FLAGS, "")
 #define GP_SORT(...) GP_OVERLOAD3(__VA_ARGS__, gp_str_sort, GP_SORT2, GP_SORT1)(__VA_ARGS__)
+
+#define GP_AT(ARR, I) (ARR)[assert((I) < gp_arr_length(ARR)), I]
 
 #define GP_IS_ALC99(A) (GP_SIZEOF_TYPEOF(*(A)) >= sizeof(GPAllocator))
 

@@ -262,6 +262,21 @@ int main(void)
 
     gp_suite("Arrays and strings");
     {
+        gp_test("Access with bounds checking");
+        {
+            GPString str = gp_str(&arena, "yeeh");
+            GPArray(uint8_t) arr = gp_arr(&arena, uint8_t, 'a', 's', 'd', 'f');
+            gp_at((GPArray(uint8_t))str, 2) = gp_at(arr, 0);
+            gp_expect(gp_equal(str, "yeah"));
+            #if OUT_OF_BOUNDS
+            gp_at(str, 4).c = 'X'; // aborts, whatever the capacity is!
+            #endif
+            #if NDEBUG // bounds check disabled for performance
+            gp_clear(&str);
+            gp_at(str, 2).c = 'X'; // doesn't crash, but don't do this!
+            #endif
+        }
+
         gp_test("Reserve");
         {
             GPString str = gp_str(&arena, "");
