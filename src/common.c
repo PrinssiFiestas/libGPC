@@ -89,8 +89,8 @@ size_t gp_bytes_codepoint_count(
     }
     // else process in parallel for blazing speeds
 
-    const size_t align_offset = (uintptr_t)str     % 8;
-    const size_t remaining    = (n - align_offset) % 8;
+    const size_t align_offset = (uintptr_t)str     & 7;
+    const size_t remaining    = (n - align_offset) & 7;
     size_t i = 0;
 
     for (size_t len = gp_min(align_offset, n); i < len; ++i)
