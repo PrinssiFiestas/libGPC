@@ -71,7 +71,7 @@ typedef union gp_uint128
 } GPUint128;
 
 /** Create 128-bit unsigned integer.*/
-inline GPUint128 gp_u128(const uint64_t hi_bits, const uint64_t lo_bits)
+static inline GPUint128 gp_u128(const uint64_t hi_bits, const uint64_t lo_bits)
 {
     GPUint128 u128;
     if (GP_INTEGER.endianness.is_big) {
@@ -88,7 +88,7 @@ inline GPUint128 gp_u128(const uint64_t hi_bits, const uint64_t lo_bits)
  * @return pointer to low bits.
  */
 GP_NONNULL_ARGS_AND_RETURN
-inline uint64_t* gp_u128_lo(const GPUint128* u)
+static inline uint64_t* gp_u128_lo(const GPUint128* u)
 {
     return (uint64_t*)(GP_INTEGER.endianness.is_little ?
         &u->little_endian.lo : &u->big_endian.lo);
@@ -98,7 +98,7 @@ inline uint64_t* gp_u128_lo(const GPUint128* u)
  * @return pointer to high bits.
  */
 GP_NONNULL_ARGS_AND_RETURN
-inline uint64_t* gp_u128_hi(const GPUint128* u)
+static inline uint64_t* gp_u128_hi(const GPUint128* u)
 {
     return (uint64_t*)(GP_INTEGER.endianness.is_little ?
         &u->little_endian.hi : &u->big_endian.hi);

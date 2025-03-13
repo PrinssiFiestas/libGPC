@@ -126,7 +126,7 @@
 
 #if __GNUC__
 #define GP_UNREACHABLE __builtin_unreachable()
-#elif
+#elif _MSC_VER
 #define GP_UNREACHABLE __assume(0)
 #else
 #define GP_UNREACHABLE ((void)0)

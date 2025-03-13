@@ -144,7 +144,7 @@ typedef enum gp_type
     GP_PTR,
 } GPType;
 
-inline size_t gp_sizeof(const GPType T) {
+static inline size_t gp_sizeof(const GPType T) {
     switch (T) {
         case GP_CHAR: case GP_SIGNED_CHAR: case GP_UNSIGNED_CHAR:
             return sizeof(char);
@@ -212,10 +212,10 @@ _Generic(VAR,                                     \
     default:               GP_PTR)
 #endif
 
-inline bool gp_is_unsigned(const GPType T) { return T <= GP_UNSIGNED_LONG_LONG; }
-inline bool gp_is_integer (const GPType T) { return T <= GP_LONG_LONG; }
-inline bool gp_is_floating(const GPType T) { return GP_FLOAT <= T && T <= GP_DOUBLE; }
-inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_PTR; }
+static inline bool gp_is_unsigned(const GPType T) { return T <= GP_UNSIGNED_LONG_LONG; }
+static inline bool gp_is_integer (const GPType T) { return T <= GP_LONG_LONG; }
+static inline bool gp_is_floating(const GPType T) { return GP_FLOAT <= T && T <= GP_DOUBLE; }
+static inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_PTR; }
 
 // Returns the number of arguments passed.
 #define GP_COUNT_ARGS(...) GP_OVERLOAD64(__VA_ARGS__, 64, 63, 62, 61, 60, 59, 58, 57, 56,\

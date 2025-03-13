@@ -12,7 +12,6 @@
 #include <wchar.h>
 
 #if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
-extern inline size_t gp_max_digits_in  (const GPType T);
 extern inline size_t gp_count_fmt_specs(const char* fmt);
 #endif
 

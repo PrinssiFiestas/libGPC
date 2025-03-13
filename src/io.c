@@ -12,7 +12,6 @@
 
 #if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
 extern inline void gp_file_close(FILE*);
-extern inline int  gp_stat(GPStat*, const char* path);
 #endif
 
 FILE* gp_file_open(const char* path, const char* mode)

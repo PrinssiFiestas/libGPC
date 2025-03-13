@@ -6,37 +6,6 @@
 #include <gpc/utils.h>
 #include "common.h"
 
-#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
-extern inline GPArray(void) gp_arr99(const GPAllocator* alc,
-    const size_t elem_size, const void*const init, const size_t init_length);
-
-extern inline GPStrIn gp_str_in99(const void* data, const size_t length);
-extern inline bool gp_equal99(const GPString a, GPStrIn b);
-extern inline size_t gp_count99(GPStrIn haystack, GPStrIn needle);
-extern inline GPString gp_repeat99(size_t a_size, const void* a, size_t count, GPStrIn in);
-extern inline GPString gp_to_valid_new(
-    const GPAllocator* alc, GPStrIn str, const char*const replacement);
-extern inline size_t gp_find_first99(const GPString haystack, GPStrIn needle, size_t);
-extern inline size_t gp_find_last99(const GPString haystack, GPStrIn needle);
-extern inline bool gp_equal_case99(const GPString a, GPStrIn b);
-extern inline int gp_compare99(GPString, GPStrIn, int, const char*);
-
-extern inline GPString gp_to_upper99(const size_t a_size, const void* a, const void* b, const char* b_id);
-extern inline GPString gp_to_lower99(const size_t a_size, const void* a, const void* b, const char* b_id);
-extern inline GPString gp_capitalize99(const size_t a_size, const void* a, const void* b, const char* b_id);
-
-extern inline GPArray(GPString) gp_split99(const GPAllocator*, GPStrIn, const char*);
-extern inline GPString gp_join99(size_t a_size, const void* a, const GPArray(GPString) srcs, const char* separator);
-
-extern inline void* gp_push99(const size_t elem_size, void*_parr);
-
-extern inline void* gp_put99(GPHashMap* dict, GPStrIn key);
-extern inline void* gp_get99(void* map, GPStrIn key);
-extern inline bool gp_remove99(GPHashMap* dict, GPStrIn key);
-
-extern inline GPString gp_file99(size_t a_size, void* a, const char* path, const char* mode);
-#endif // CompCert stuff
-
 // ----------------------------------------------------------------------------
 // String
 

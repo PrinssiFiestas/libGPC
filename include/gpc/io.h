@@ -113,7 +113,7 @@ typedef struct stat GPStat;
 #endif
 
 GP_NONNULL_ARGS() GP_NODISCARD
-inline int gp_stat(GPStat* s, const char* path)
+static inline int gp_stat(GPStat* s, const char* path)
 {
     #if _WIN32
     return _stat64(path, s);

@@ -47,7 +47,7 @@ inline void gp_arena_dealloc(const GPAllocator* arena, void* mem)
 void gp_arena_dealloc(const GPAllocator*, void*);
 #endif
 
-inline size_t gp_max_digits_in(const GPType T)
+static inline size_t gp_max_digits_in(const GPType T)
 {
     switch (T)
     {
