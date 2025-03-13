@@ -76,29 +76,31 @@ static void* gp_arena_alloc(const GPAllocator* allocator, const size_t size, con
 {
     GPArena* arena = (GPArena*)allocator;
     GPArenaNode* head = arena->head;
+    const size_t size_with_poison = size + 8*GP_HAS_SANITIZER;
 
     void* block = head->position = (void*)gp_round_to_aligned((uintptr_t)head->position, alignment);
-    if ((uint8_t*)block + size > (uint8_t*)(head + 1) + arena->head->capacity)
+    if ((uint8_t*)block + size_with_poison > (uint8_t*)(head + 1) + arena->head->capacity)
     { // out of memory, create new arena
         size_t new_cap = arena->growth_coefficient * arena->head->capacity;
         new_cap = gp_min(new_cap, arena->max_size);
         GPArenaNode* new_node = gp_mem_alloc(arena->allocator,
-            gp_round_to_aligned(sizeof(GPArenaNode), alignment) + gp_max(new_cap, size));
+            gp_round_to_aligned(sizeof(GPArenaNode), alignment) + gp_max(new_cap, size_with_poison));
         new_node->tail     = head;
         new_node->capacity = new_cap;
 
         block = new_node->position = (void*)gp_round_to_aligned(
             (uintptr_t)(new_node + 1), alignment);
-        new_node->position = (uint8_t*)(new_node->position) + size;
+        new_node->position = (uint8_t*)(new_node->position) + size_with_poison;
         arena->head = new_node;
-        if (new_node->capacity > size)
-            ASAN_POISON_MEMORY_REGION(new_node->position, new_node->capacity - size);
+        if (new_node->capacity > size) // -8 for poison boundary
+            ASAN_POISON_MEMORY_REGION((uint8_t*)new_node->position - 8, new_node->capacity - size);
+        // Poison padding possibly caused by large alginments
         ASAN_POISON_MEMORY_REGION(new_node + 1,
             gp_round_to_aligned((uintptr_t)(new_node + 1), alignment) - (uintptr_t)(new_node + 1));
     }
     else {
         ASAN_UNPOISON_MEMORY_REGION(block, size);
-        head->position = (uint8_t*)block + size;
+        head->position = (uint8_t*)block + size_with_poison;
     }
     return block;
 }
@@ -250,7 +252,7 @@ void* gp_mem_realloc(
         return old_block;
     GPArena* arena = (GPArena*)allocator;
     if (allocator->dealloc == gp_arena_dealloc && old_block != NULL &&
-        (char*)old_block + old_size == (char*)arena->head->position)
+        (char*)old_block + old_size + 8*GP_HAS_SANITIZER == (char*)arena->head->position)
     { // extend block instead of reallocating and copying
         arena->head->position = old_block;
         void* new_block = gp_arena_alloc(allocator, new_size, GP_ALLOC_ALIGNMENT);

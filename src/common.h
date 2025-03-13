@@ -17,16 +17,20 @@
 
 #ifdef __SANITIZE_ADDRESS__ // GCC and MSVC defines this with -fsanitize=address
 #include <sanitizer/asan_interface.h>
+#define GP_HAS_SANITIZER 1
 #elif defined(__has_feature) // Clang defines this
     #if __has_feature(address_sanitizer)
     #include <sanitizer/asan_interface.h>
+    #define GP_HAS_SANITIZER 1
     #else
     #define ASAN_POISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
     #define ASAN_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
+    #define GP_HAS_SANITIZER 0
     #endif
 #else
 #define ASAN_POISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
 #define ASAN_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
+#define GP_HAS_SANITIZER 0
 #endif
 
 // Disable false UB positive for calling functions trough "incompatible" pointer

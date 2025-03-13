@@ -137,7 +137,8 @@ GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
 // Arena allocator
 
 /** Arena that does not run out of memory.
- * If address sanitizer is used, unused and freed arena memory are poisoned.
+ * If address sanitizer is used, unused memory, freed memory, and allocation
+ * boundaries are poisoned.
  */
 typedef struct gp_arena
 {

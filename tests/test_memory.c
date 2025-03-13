@@ -141,15 +141,16 @@ static GPThreadResult test2(void*_)
     {
         gp_test("Basic usage");
         {
+            const size_t block_size = 64;
             // Using a tiny arena forces it to allocate each objects separately.
             // This allows the testing allocator to mark freed objects on
             // rewind.
             GPArena arena = {0};
             gp_arena_init(&arena, 1);
             arena.growth_coefficient = 1.;
-            void* ps[4] = {0};
+            char* ps[4] = {0};
             for (size_t i = 0; i < 4; i++) {
-                ps[i] = gp_mem_alloc((GPAllocator*)&arena, 64);
+                ps[i] = gp_mem_alloc((GPAllocator*)&arena, block_size);
                 strcpy(ps[i], &"abcd"[i]);
             }
             // Sanity test
