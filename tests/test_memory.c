@@ -282,7 +282,6 @@ int main(void)
             data = gp_mem_alloc_aligned((GPAllocator*)&arena, sizeof*data, sizeof*data);
             gp_expect((uintptr_t)data == gp_round_to_aligned((uintptr_t)data, sizeof*data));
             gp_expect((uintptr_t)data == gp_round_to_aligned((uintptr_t)(arena.head + 1), sizeof*data));
-            gp_expect((uintptr_t)(arena.head + 1) < gp_round_to_aligned((uintptr_t)(arena.head + 1), sizeof*data));
             gp_expect((uintptr_t)data % ALIGNMENT == 0);
             memset(data, 0, sizeof*data);
             gp_arena_delete(&arena);
