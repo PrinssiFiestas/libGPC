@@ -181,7 +181,7 @@ void gp_str_capitalize(
 /** Advanced string comparison.
  * Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
  * comparison. 'c' or GP_COLLATE for collation. 'r' or GP_REVERSE to invert
- * result. Separate flags with |. 0 will compare codepoints lexicographically
+ * result. Combine flags with |. 0 will compare codepoints lexicographically
  * and is the fastest. Locale affects case insensitive comparison and collating.
  * Uses global locale if @p locale_code is NULL.
  */
@@ -211,7 +211,7 @@ void gp_str_join(
 /** Advanced string sorting.
  * Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive
  * sorting. 'c' or GP_COLLATE for collation. 'r' or GP_REVERSE to reverse the
- * result order. Separate flags with |. 0 will sort codepoints lexicographically
+ * result order. Combine flags with |. 0 will sort codepoints lexicographically
  * and is the fastest. locale affects case insensitive sorting and collating.
  * Uses global locale if @p locale_code is NULL.
  */

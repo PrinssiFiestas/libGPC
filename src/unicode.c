@@ -1385,8 +1385,8 @@ int gp_str_compare(
     const int flags,
     const char* locale_code)
 {
-    const bool fold    = flags & 0x4;
-    const bool collate = flags & 0x1;
+    const bool fold    = flags & 0x04;
+    const bool collate = flags & 0x01;
     const bool reverse = flags & 0x10;
     if ( ! (fold || collate))
     {
@@ -1405,11 +1405,11 @@ int gp_str_compare(
     GPArray(wchar_t) wcs1 = gp_arr_new(
         (GPAllocator*)scratch,
         sizeof wcs1[0],
-        gp_bytes_codepoint_count(s1, gp_str_length(s1) + sizeof""));
+        gp_bytes_codepoint_count(s1, gp_str_length(s1)) + sizeof"");
     GPArray(wchar_t) wcs2 = gp_arr_new(
         (GPAllocator*)scratch,
         sizeof wcs2[0],
-        gp_bytes_codepoint_count(s2, s2_length + sizeof""));
+        gp_bytes_codepoint_count(s2, s2_length) + sizeof"");
 
     if (fold) {
         gp_wcs_fold_utf8(&wcs1, s1, gp_str_length(s1), locale_code);
