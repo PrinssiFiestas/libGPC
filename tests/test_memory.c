@@ -332,6 +332,7 @@ const GPAllocator* new_test_allocator(void)
 {
     gp_mutex_init(&test_allocator_mutex);
     TestAllocator* allocator = malloc(1000 * (1 << 10));
+    memset(allocator, 0xBE, 1000 * (1 << 10)); // magic byte 0xBE for debugging
     gp_assert(allocator != NULL);
     *allocator = (TestAllocator) {
         .allocator  = {.alloc = test_alloc, .dealloc = test_dealloc },

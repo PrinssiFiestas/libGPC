@@ -288,7 +288,7 @@ tests:
 	make run_tests
 	make single_header
 
-build_release_tests: override CFLAGS += -DGP_TESTS $(RELEASE_CFLAGS)
+build_release_tests: override CFLAGS += -DGP_TESTS $(RELEASE_CFLAGS) -ggdb3
 build_release_tests: $(RELEASE_TESTS)
 
 $(RELEASE_TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(OBJS)
