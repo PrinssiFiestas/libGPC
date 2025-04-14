@@ -229,6 +229,8 @@ GPArena* gp_scratch_arena(void) GP_NODISCARD;
 /** malloc() based allocator.*/
 extern const GPAllocator* gp_heap;
 
+/** Allocation count to help optimizations.*/
+size_t gp_heap_alloc_count(void);
 
 // ----------------------------------------------------------------------------
 //

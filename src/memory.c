@@ -17,9 +17,18 @@ extern inline void* gp_mem_alloc_zeroes (const GPAllocator*, size_t);
 extern inline void  gp_mem_dealloc      (const GPAllocator*, void*);
 #endif
 
+static GP_MAYBE_ATOMIC size_t gp_heap_allocation_count = 0;
+
+size_t gp_heap_alloc_count(void)
+{
+    return gp_heap_allocation_count;
+}
+
 static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size, size_t alignment)
 {
     (void)unused;
+    ++gp_heap_allocation_count;
+
     // TODO assert that alignment is a power of 2.
     #if _WIN32
     void* mem = _aligned_malloc(block_size, alignment);
