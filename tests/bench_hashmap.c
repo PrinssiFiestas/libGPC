@@ -2,7 +2,9 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// TODO reference keys are 64 bits, our's are 128 bits, try 64 as well.
+// TODO reference keys are 64 bits, our's are 128 bits, implement and try 64 as well.
+
+// TODO get rid of hashing, why would we measure that?
 
 #define GPC_IMPLEMENTATION
 #include "../build/gpc.h"
@@ -60,6 +62,9 @@ int main(int argc, char** argv)
     HASHMAP(char, uint32_t) dict_reference;
     hashmap_init(&dict_reference, hash, strcmp);
 
+    // ------------------------------------------------------------------------
+    // Measurements and validation
+
     T gp_put_time = 0;
     MEASURE(gp_put_time,
         for (size_t i = 0; i < elements_length; ++i) // TODO C11 gp_put
@@ -82,9 +87,12 @@ int main(int argc, char** argv)
         MEASURE(reference_get_time,
             reference_value = *hashmap_get(&dict_reference, keys + i * KEY_SIZE));
 
-        // VALIDATION
+        // Use fetched values to validate and to prevent compiler from optimizing out
         gp_assert(gp_value == reference_value);
     }
+
+    // ------------------------------------------------------------------------
+    // Results
 
     double put_ratio = (double)gp_put_time/reference_put_time;
     double get_ratio = (double)gp_get_time/reference_get_time;
