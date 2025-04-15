@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 
     GPRandomState rs = gp_new_random_state(seed);
     char* keys = gp_alloc(gp_scratch_arena(), (KEY_SIZE + 1) * elements_length); // +1 just in case
-    uint32_t values = gp_new(gp_scratch_arena(), uint32_t, elements_length);
+    uint32_t* values = gp_new(gp_scratch_arena(), uint32_t, elements_length);
     for (size_t i = 0; i < elements_length * KEY_SIZE / sizeof(uint32_t); ++i)
         ((uint32_t*)keys)[i] = gp_random(&rs);
     for (size_t i = 0; i < elements_length + 1; ++i)
