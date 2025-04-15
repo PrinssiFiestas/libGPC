@@ -602,7 +602,9 @@ int main(void)
 
         gp_test("Destructors");
         {
-            GPDictionary(int*) dict = gp_dict(gp_heap, int*, free);
+            void ptr_destructor(int**);
+
+            GPDictionary(int*) dict = gp_dict(gp_heap, int*, ptr_destructor);
             int* ptr1 = malloc(sizeof*ptr1);
             int* ptr2 = malloc(sizeof*ptr2);
             gp_put(&dict, "first", ptr1);
@@ -679,6 +681,7 @@ int main(void)
 }
 
 void int_destructor(int*_) { (void)_; }
+void ptr_destructor(int**p){ free(*p); }
 
 void increment(int* out, const int* in) { *out = *in + 1; }
 intptr_t sum(intptr_t y, const int* x)  { return y + *x; }
