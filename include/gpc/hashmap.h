@@ -194,7 +194,7 @@ GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
 void* gp_map_put(
     GPMap*,
     GPUint128   key,
-    const void* optional_value);
+    const void* value);
 
 /** Find element.
  * @return pointer to element if found, NULL otherwise.
