@@ -499,4 +499,5 @@ int main(int argc, char* argv[])
         " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */\n");
     write_files(sources);
     gp_file_println(out, "\n#endif /*", implementation, "*/\n\n");
+    fflush(out);
 }
