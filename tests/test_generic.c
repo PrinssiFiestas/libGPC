@@ -599,6 +599,16 @@ int main(void)
             strs = gp_dict(&arena, GPString, gp_str_ptr_delete); // ok
             #endif
         }
+
+        gp_test("Destructors");
+        {
+            GPDictionary(int*) dict = gp_dict(gp_heap, int*, free);
+            int* ptr1 = malloc(sizeof*ptr1);
+            int* ptr2 = malloc(sizeof*ptr2);
+            gp_put(&dict, "first", ptr1);
+            gp_put(&dict, gp_str(&arena, "second"), ptr2);
+            gp_dict_delete(dict);
+        }
     }
 
     gp_suite("Allocators");

@@ -243,6 +243,9 @@ static inline GPHashMap* gp_hmap(
 #define gp_dict(/*allocator, type, destructor = NULL, capacity = 0*/...) \
     GP_DICT_CPP(__VA_ARGS__)
 
+// Deallocate resources
+#define gp_dict_delete(DICT) gp_map_delete((GPMap*)(DICT))
+
 // ----------------------------------------------------------------------------
 // Bytes and strings
 
@@ -1470,6 +1473,8 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_get(...)                 GP_GET(__VA_ARGS__)
 #define gp_put(...)                 GP_PUT(__VA_ARGS__)
 #define gp_remove(...)              GP_REMOVE(__VA_ARGS__)
+#define gp_dict_delete(DICT)        gp_map_delete((GPMap*)(DICT))
+
 
 // Memory
 #define gp_alloc(...)               GP_ALLOC(__VA_ARGS__)
@@ -1546,6 +1551,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_get(...)                 GP_GET(__VA_ARGS__)
 #define gp_put(...)                 GP_PUT(__VA_ARGS__)
 #define gp_remove(...)              GP_REMOVE(__VA_ARGS__)
+#define gp_dict_delete(DICT)        gp_map_delete((GPMap*)(DICT))
 
 // Memory
 #define gp_alloc(...)               GP_ALLOC(__VA_ARGS__)
@@ -2515,7 +2521,7 @@ static inline void* gp_put99(GPHashMap* dict, GPStrIn key)
 }
 #ifdef GP_TYPEOF
 #define GP_PUT_ELEM(DICT, ELEM, ...) ( \
-    *(GP_TYPEOF(*(DICT)))(gp_put99((GPHashMap*)*(DICT), GP_STR_IN99(__VA_ARGS__))) = (ELEM))
+    *(GP_TYPEOF(*(DICT)))(gp_put99((GPHashMap*)*(DICT), GP_STR_IN(__VA_ARGS__))) = (ELEM))
 #else
 #define GP_PUT_ELEM(DICT, ELEM, ...) do \
 { \
@@ -2537,7 +2543,7 @@ static inline void* gp_get99(void* map, GPStrIn key)
 }
 
 #ifdef GP_TYPEOF
-#define GP_GET(DICT, ...) ((GP_TYPEOF(DICT))gp_get99(DICT, GP_STR_IN99(__VA_ARGS__)))
+#define GP_GET(DICT, ...) ((GP_TYPEOF(DICT))gp_get99(DICT, GP_STR_IN(__VA_ARGS__)))
 #else
 #define GP_GET(DICT, ...) gp_get99(DICT, GP_STR_IN99(__VA_ARGS__))
 #endif
@@ -2546,7 +2552,7 @@ static inline bool gp_remove99(GPHashMap* dict, GPStrIn key)
 {
     return gp_hash_map_remove(dict, key.data, key.length);
 }
-#define GP_REMOVE(DICT, ...) gp_remove99((GPHashMap*)*(DICT), GP_STR_IN99(__VA_ARGS__))
+#define GP_REMOVE(DICT, ...) gp_remove99((GPHashMap*)*(DICT), GP_STR_IN(__VA_ARGS__))
 
 // ----------------------------------------------------------------------------
 // Allocators
