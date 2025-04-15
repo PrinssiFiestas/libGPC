@@ -2,14 +2,19 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// TODO reference keys are 64 bits, our's are 128 bits, implement and try 64 as well.
+// This file is supposed to benchmark accesses to GPMap against David Leeds's
+// https://github.com/DavidLeeds/hashmap/ hashmap. The chosen reference hash map
+// is arbitrary. We don't really care about the hashing, both will just use FNV,
+// however without hashing the compiler went too crazy with the optimizations,
+// so we'll keep hashing for now.
 
-// TODO get rid of hashing, why would we measure that?
+// TODO reference keys are 64 bits, our's are 128 bits, implement and try 64 as well.
 
 #define GPC_IMPLEMENTATION
 #include "../build/gpc.h"
 #include <x86intrin.h>
 #include "reference_hashmap.h"
+#include "reference_hashmap.c"
 
 #define MEASURE(RESULT, FUNC) do { \
     T t_rdtsc = __rdtsc(); \
@@ -112,5 +117,3 @@ int main(int argc, char** argv)
     hashmap_cleanup(&dict_reference);
     gp_dict_delete(dict_gp);
 }
-
-#include "reference_hashmap.c"
