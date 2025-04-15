@@ -4,7 +4,7 @@
 
 // TODO reference keys are 64 bits, our's are 128 bits, implement and try 64 as well.
 
-// TODO get rid of hashing, why would we measure that? Implement other TODOs first though.
+// TODO get rid of hashing, why would we measure that?
 
 #define GPC_IMPLEMENTATION
 #include "../build/gpc.h"
