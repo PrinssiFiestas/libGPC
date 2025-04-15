@@ -22,7 +22,6 @@
 
 typedef volatile uint64_t T;
 
-// TODO implement generic hash macros
 size_t hash(const char* key)
 {
     if (sizeof(size_t) == sizeof(uint64_t))

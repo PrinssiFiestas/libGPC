@@ -611,6 +611,20 @@ int main(void)
             gp_put(&dict, gp_str(&arena, "second"), ptr2);
             gp_dict_delete(dict);
         }
+
+        gp_test("Hash functions");
+        {
+            // just checking if compiles
+            uint32_t  i32  = gp_hash32("yees");                  (void)i32;
+            uint32_t  j32  = gp_hash32(gp_str(&arena, "yees"));  (void)j32;
+            uint32_t  k32  = gp_hash32("yees", 4);               (void)k32;
+            uint64_t  i64  = gp_hash64("yees");                  (void)i64;
+            uint64_t  j64  = gp_hash64(gp_str(&arena, "yees"));  (void)j64;
+            uint64_t  k64  = gp_hash64("yees", 4);               (void)k64;
+            GPUint128 i128 = gp_hash128("yees");                 (void)i128;
+            GPUint128 j128 = gp_hash128(gp_str(&arena, "yees")); (void)j128;
+            GPUint128 k128 = gp_hash128("yees", 4);              (void)k128;
+        }
     }
 
     gp_suite("Allocators");

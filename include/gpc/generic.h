@@ -1412,6 +1412,9 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 
 #else // __cplusplus, C below -------------------------------------------------
 
+// TODO put docs here too, we want docs to be discoverable using LSP.
+// Also, get rid of unnecessary wrapping in case of simple dispathing.
+
 #ifdef GP_GENERIC_AVAILABLE // C11 or CompCert --------------------------------
 
 // Constructors
@@ -1474,7 +1477,9 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_put(...)                 GP_PUT(__VA_ARGS__)
 #define gp_remove(...)              GP_REMOVE(__VA_ARGS__)
 #define gp_dict_delete(DICT)        gp_map_delete((GPMap*)(DICT))
-
+#define gp_hash32(...)              GP_HASH32(__VA_ARGS__)
+#define gp_hash64(...)              GP_HASH64(__VA_ARGS__)
+#define gp_hash128(...)             GP_HASH128(__VA_ARGS__)
 
 // Memory
 #define gp_alloc(...)               GP_ALLOC(__VA_ARGS__)
@@ -1552,6 +1557,9 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_put(...)                 GP_PUT(__VA_ARGS__)
 #define gp_remove(...)              GP_REMOVE(__VA_ARGS__)
 #define gp_dict_delete(DICT)        gp_map_delete((GPMap*)(DICT))
+#define gp_hash32(...)              GP_HASH32(__VA_ARGS__)
+#define gp_hash64(...)              GP_HASH64(__VA_ARGS__)
+#define gp_hash128(...)             GP_HASH128(__VA_ARGS__)
 
 // Memory
 #define gp_alloc(...)               GP_ALLOC(__VA_ARGS__)
@@ -2553,6 +2561,23 @@ static inline bool gp_remove99(GPHashMap* dict, GPStrIn key)
     return gp_hash_map_remove(dict, key.data, key.length);
 }
 #define GP_REMOVE(DICT, ...) gp_remove99((GPHashMap*)*(DICT), GP_STR_IN(__VA_ARGS__))
+
+static inline uint32_t gp_hash32_99(GPStrIn key)
+{
+    return gp_bytes_hash32(key.data, key.length);
+}
+static inline uint64_t gp_hash64_99(GPStrIn key)
+{
+    return gp_bytes_hash64(key.data, key.length);
+}
+static inline GPUint128 gp_hash128_99(GPStrIn key)
+{
+    return gp_bytes_hash128(key.data, key.length);
+}
+
+#define GP_HASH32(...)  gp_hash32_99(GP_STR_IN(__VA_ARGS__))
+#define GP_HASH64(...)  gp_hash64_99(GP_STR_IN(__VA_ARGS__))
+#define GP_HASH128(...) gp_hash128_99(GP_STR_IN(__VA_ARGS__))
 
 // ----------------------------------------------------------------------------
 // Allocators
