@@ -76,7 +76,7 @@ void gp_enable_terminal_colors(void);
 #define GP_BRIGHT_CYAN_BG      "\033[106m"
 #define GP_BRIGHT_WHITE_BG     "\033[107m"
 
-#define GP_RGB_BG(R, G, B)     "\033[38;2;" #R ";" #G ";" #B "m"
+#define GP_RGB_BG(R, G, B)     "\033[48;2;" #R ";" #G ";" #B "m"
 
 // Swap foreground and background colors.
 #define GP_INVERT_COLORS       "\033[7m"
