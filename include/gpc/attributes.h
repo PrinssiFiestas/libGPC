@@ -91,7 +91,7 @@
     !defined(__cplusplus) && \
     !defined(__COMPCERT__)
 // Use to specify an array argument with at least some number of valid elements,
-// e.g. "void foo(int arr[GPC_STATIC 10];". This can be used for optimizations
+// e.g. "void foo(int arr[GP_STATIC 10];". This can be used for optimizations
 // and some compilers may also emit warnings if they can detect that the array
 // passed is too small or NULL.
 #define GP_STATIC static
