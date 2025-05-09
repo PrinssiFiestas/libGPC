@@ -106,7 +106,7 @@ bool gp_file_read_strip(
 
 #if _WIN32
 typedef struct __stat64 GPStat;
-#elif _GNU_SOURCE
+#elif defined(_GNU_SOURCE)
 typedef struct stat64 GPStat;
 #else // 64-bit in 64-bit Linux
 typedef struct stat GPStat;
@@ -117,7 +117,7 @@ static inline int gp_stat(GPStat* s, const char* path)
 {
     #if _WIN32
     return _stat64(path, s);
-    #elif _GNU_SOURCE
+    #elif defined(_GNU_SOURCE)
     return stat64(path, s);
     #else
     return stat(path, s);
