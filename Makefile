@@ -8,7 +8,8 @@ override CFLAGS += -Wall -Wextra -Werror -Wpedantic
 override CFLAGS += -DGP_PEDANTIC
 override CFLAGS += -D_GNU_SOURCE # memmem(), stat64(), locale_t
 override CFLAGS += -Iinclude
-override CFLAGS += -lm -lpthread
+
+LFLAGS = -lm -lpthread
 
 DEBUG_CFLAGS   = -ggdb3 -gdwarf
 RELEASE_CFLAGS = -O3 -DNDEBUG -fno-math-errno
@@ -26,15 +27,14 @@ UNAME_S = $(shell uname -s)
 ifeq ($(MSYS_ENVIRONMENT),clang64)
 CC = clang
 DEBUG_CFLAGS += -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all
+LFLAGS += -fsanitize=address -fsanitize=undefined
 else ifeq ($(UNAME_S),Darwin)
 CC = clang
 else
 CC = gcc
 endif
 
-ifeq ($(CC), clang) # in some systems Clang ignores -lm
-override CFLAGS += -Wno-unused-command-line-argument
-else ifeq ($(CC), gcc) # faster multithreaded incremental release build
+ifeq ($(CC), gcc) # faster multithreaded incremental release build
 RELEASE_CFLAGS += -flto=auto
 endif # non gcc uses unity build which is more portable than -flto
 
@@ -48,6 +48,7 @@ LIB_EXT = .a
 else
 EXE_EXT =
 DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
+LFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 ifeq ($(CC), gcc)
 DEBUG_CFLAGS += -static-libasan -fno-sanitize-recover=all
 else ifeq ($(CC), clang)
@@ -99,7 +100,7 @@ cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
 
 ifneq ($(OS), Windows_NT)
 ifeq (,$(shell which ccomp))
-$(warning Consider installing CompCert for more comprehensive C99 tests.)
+$(warning Contributors: please install CompCert for more comprehensive C99 tests.)
 CCOMP = echo
 CCOMP_SINGLEHEADERTEST =
 else
@@ -165,7 +166,7 @@ single_header: build/singleheadergen$(EXE_EXT)
 	./$< build/gpc.h $(GPC_VERSION)
 
 build/gprun$(EXE_EXT): tools/gprun.c
-	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) $? -o $@
+	$(CC) $(CFLAGS) $(LFLAGS) $(DEBUG_CFLAGS) $? -o $@
 
 $(GDBINIT_PATH)gdbinit:
 	mkdir -p $(GDBINIT_PATH)
@@ -223,7 +224,7 @@ endif
 # libGPC release build is built from single header library when using Clang.
 # Therefore, singleheadergen must be built using the debug library.
 build/singleheadergen$(EXE_EXT): tools/singleheadergen.c | build/libgpcd$(LIB_EXT)
-	$(CC) $? build/libgpcd$(LIB_EXT) $(CFLAGS) $(DEBUG_CFLAGS) -o $@
+	$(CC) $? build/libgpcd$(LIB_EXT) $(CFLAGS) $(LFLAGS) $(DEBUG_CFLAGS) -o $@
 
 release: override CFLAGS += $(RELEASE_CFLAGS)
 release: build/libgpc$(LIB_EXT)
@@ -275,7 +276,7 @@ build_tests: override CFLAGS += -DGP_TESTS $(DEBUG_CFLAGS)
 build_tests: $(TESTS)
 
 $(TESTS): build/test_%d$(EXE_EXT) : tests/test_%.c $(DEBUG_OBJS)
-	$(CC) $(CFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%d.o,$<)),$(DEBUG_OBJS)) -o $@
+	$(CC) $(CFLAGS) $(LFLAGS) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%d.o,$<)),$(DEBUG_OBJS)) -o $@
 
 run_tests:
 	for test in $(TESTS) ; do \
@@ -292,7 +293,7 @@ build_release_tests: override CFLAGS += -DGP_TESTS $(RELEASE_CFLAGS) -ggdb3
 build_release_tests: $(RELEASE_TESTS)
 
 $(RELEASE_TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(OBJS)
-	$(CC) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@ $(CFLAGS)
+	$(CC) $< $(filter-out build/$(notdir $(patsubst tests/test_%.c,%.o,$<)),$(OBJS)) -o $@ $(CFLAGS) $(LFLAGS)
 
 run_release_tests:
 	for test in $(RELEASE_TESTS) ; do \
