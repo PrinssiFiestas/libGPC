@@ -22,18 +22,20 @@
 #endif
 
 // Use this only when thread local storage is desirable but not necessary.
+// Note: GCC thread locals are broken (thread 1 frees, thread 2 uses, use after
+// free, boom), so they are disabled.
 #ifdef _MSC_VER
 #define GP_MAYBE_THREAD_LOCAL __declspec(thread)
-#elif __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+#elif __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__) && !defined(_WIN32)
 #define GP_MAYBE_THREAD_LOCAL _Thread_local
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) && !defined(_WIN32)
 #define GP_MAYBE_THREAD_LOCAL __thread
 #else
 #define GP_MAYBE_THREAD_LOCAL
 #define GP_NO_THREAD_LOCALS
 #endif
 
-// Use this only when atomis are desirable but not necessary.
+// Use this only when atomics are desirable but not necessary.
 #if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
 #define GP_MAYBE_ATOMIC _Atomic
 #else

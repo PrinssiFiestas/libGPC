@@ -185,11 +185,9 @@ void gp_arena_delete(GPArena* arena)
 {
     if (arena == NULL)
         return;
-    while (arena->head != NULL) {
-        GPArenaNode* old_head = arena->head;
-        arena->head = arena->head->tail;
-        gp_mem_dealloc(arena->allocator, old_head);
-    }
+    while (arena->head != NULL)
+        gp_arena_node_delete(arena);
+
     if (arena->is_shared)
         gp_mem_dealloc(arena->allocator, (GPMutex*)arena->is_shared);
 }
