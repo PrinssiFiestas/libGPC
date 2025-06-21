@@ -35,7 +35,8 @@ GPString gp_str_new(
         .length     = init_length,
         .capacity   = capacity,
         .allocator  = allocator,
-        .allocation = me };
+        .allocation = me
+    };
     return memcpy(me + 1, init, init_length);
 }
 

@@ -39,10 +39,10 @@ extern "C" {
  */
 typedef struct gp_array_header
 {
-    size_t length;
     size_t capacity;
-    const GPAllocator* allocator;
     void* allocation; // pointer to self or NULL if on stack
+    const GPAllocator* allocator;
+    size_t length;
 } GPArrayHeader;
 
 #define GP_ARR_ATTRS(...) \
