@@ -238,6 +238,10 @@ void gp_fail_internal(
             }
             else if (fmt_spec_count == 1 && asterisk_count == 0)
             {
+                // Static analyzer false positive for buffer overflow
+                if (i + 1 >= arg_count)
+                    GP_UNREACHABLE;
+
                 pf_fprintf(stderr,
                     GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ",
                     objs[i + 1/*0 is fmt so next one*/].identifier);
