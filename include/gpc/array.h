@@ -12,6 +12,7 @@
 #include "memory.h"
 #include "attributes.h"
 #include "overload.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,10 +40,10 @@ extern "C" {
  */
 typedef struct gp_array_header
 {
-    size_t capacity;
-    void* allocation; // pointer to self or NULL if on stack
+    uintptr_t          capacity;
+    void*              allocation; // pointer to self or NULL if on stack
     const GPAllocator* allocator;
-    size_t length;
+    uintptr_t          length;
 } GPArrayHeader;
 
 #define GP_ARR_ATTRS(...) \

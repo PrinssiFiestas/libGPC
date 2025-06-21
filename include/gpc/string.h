@@ -52,10 +52,10 @@ typedef GPChar* GPString;
  */
 typedef struct gp_string_header
 {
-    size_t capacity;
-    void* allocation; // pointer to self or NULL if on stack
+    uintptr_t          capacity;
+    void*              allocation; // pointer to self or NULL if on stack
     const GPAllocator* allocator;
-    size_t length;
+    uintptr_t          length;
 } GPStringHeader;
 
 /** Create and initialize a new string.*/
