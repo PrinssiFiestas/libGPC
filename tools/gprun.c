@@ -196,6 +196,7 @@ int main(int argc, char* argv[])
             push(&cc_argv, (char[]){"-fsanitize=address"});
             push(&cc_argv, (char[]){"-fsanitize=undefined"});
             push(&cc_argv, (char[]){"-static-libasan"}); // avoid LD_PRELOAD problems
+            push(&cc_argv, (char[]){"-no-pie"}); // prevent sanitizers crashing
             #endif
             push(&cc_argv, (char[]){"-lgpcd"});
         } else {
