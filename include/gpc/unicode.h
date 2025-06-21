@@ -76,6 +76,8 @@ typedef void* GPLocale;
 // ----------------------------------------------------------------------------
 // Unicode
 
+// TODO UNICODE VALIDATION FOR SINGLE CHARACTER
+
 /** Codepoint size in bytes.
  * Only reads one byte at the specified index.
  */
@@ -98,7 +100,7 @@ size_t gp_utf8_encode(
 /** Decode UTF-32 codepoint to UTF-8.
  * Writes decoded codepoint to @p decoding. The decoded codepoint will take
  * anywhere from 1 to 4 bytes, so @p decoding should be able to hold at least
- * that many bytes.
+ * that many bytes. The result will NOT be null-terminated.
  * @return decoded UTF-8 codepoint length in bytes.
  */
 GP_NONNULL_ARGS()

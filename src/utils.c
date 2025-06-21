@@ -55,7 +55,7 @@ bool gp_check_bounds(size_t* start, size_t* end, size_t limit)
 
 //static pcg32_random_t pcg32_global = PCG32_INITIALIZER;
 
-GPRandomState gp_new_random_state(uint64_t seed)
+GPRandomState gp_random_state(uint64_t seed)
 {
     GPRandomState state;
     pcg32_srandom_r((pcg32_random_t*)&state, seed, 0xf35d3918378e53c4ULL);

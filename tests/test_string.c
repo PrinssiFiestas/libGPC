@@ -555,7 +555,7 @@ int main(void)
         {
             #define BUF_LEN (1024)
             GPString str = gp_str_on_stack(NULL, BUF_LEN, "");
-            GPRandomState rs = gp_new_random_state((uintptr_t)str);
+            GPRandomState rs = gp_random_state((uintptr_t)str);
             for (size_t j = 0; j < BUF_LEN ; j += sizeof(uint32_t)) {
                 uint32_t u = gp_random(&rs);
                 memcpy(str + j, &u, sizeof u);

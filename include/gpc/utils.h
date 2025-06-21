@@ -96,12 +96,12 @@ static inline bool gp_approxl(long double a, long double b, long double max_rel_
 // https://www.pcg-random.org/
 
 /** PCG based random number generator.
- * Create a RNG object with gp_new_random_state() which you can use to generate
+ * Create a RNG object with gp_random_state() which you can use to generate
  * high quality random numbers with great performance.
  */
 typedef struct gp_random_state GPRandomState;
 
-GPRandomState gp_new_random_state(uint64_t seed);
+GPRandomState gp_random_state(uint64_t seed);
 uint32_t gp_random      (GPRandomState*) GP_NONNULL_ARGS();
 double   gp_frandom     (GPRandomState*) GP_NONNULL_ARGS();
 int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_ARGS();

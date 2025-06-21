@@ -110,7 +110,7 @@ static inline uint64_t* gp_u128_hi(const GPUint128* u)
  * is created and the last slot is set to point to the new array. Then the next
  * lowest n - 1 bits from the key are used to index to the new array.
  */
-typedef struct gp_map      GPMap;
+typedef struct gp_map GPMap;
 
 /** Hash map using any bytes as keys.
  * Internally based on GPMap.

@@ -27,7 +27,6 @@ UNAME_S = $(shell uname -s)
 ifeq ($(MSYS_ENVIRONMENT),clang64)
 CC = clang
 DEBUG_CFLAGS += -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all
-LFLAGS += -fsanitize=address -fsanitize=undefined
 else ifeq ($(UNAME_S),Darwin)
 CC = clang
 else
@@ -48,7 +47,6 @@ LIB_EXT = .a
 else
 EXE_EXT =
 DEBUG_CFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
-LFLAGS += -fsanitize=address -fsanitize=leak -fsanitize=undefined
 ifeq ($(CC), gcc)
 DEBUG_CFLAGS += -static-libasan -fno-sanitize-recover=all
 else ifeq ($(CC), clang)
@@ -111,21 +109,22 @@ endif
 
 # Run all tests sequentially to see where breaks. Requires MSYS2 UCRT64, WSL2,
 # and MSVC running in MSYS2 shell as explained above.
+test_all: MAKEFLAGS= # prevent jobserver issues
 ifeq ($(OS), Windows_NT)
 test_all:
 	wsl make test_all
-	make clean
-	make tests CC=clang
-	make release_tests CC=clang
-	make clean
-	make release_tests
-	make cl_tests
-	make release_tests
+	$(MAKE) clean
+	$(MAKE) tests CC=clang
+	$(MAKE) release_tests CC=clang
+	$(MAKE) clean
+	$(MAKE) release_tests
+	$(MAKE) cl_tests
+	$(MAKE) release_tests
 	cp build/conversions.o     build/conversionsd.o     # These are well
 	cp build/format_scanning.o build/format_scanningd.o # tested, skip slow
 	cp build/printf.o          build/printfd.o          # static analysis.
-	make analyze
-	make tests
+	$(MAKE) analyze
+	$(MAKE) tests
 	clang -Wall -Wextra -Werror tests/singleheadertest.c -o build/singleheadertest.exe
 	./build/singleheadertest.exe
 	cl tests/singleheadertest.c $(CL_CFLAGS) -Fo"build/" -Fe"build/singleheadertest.exe"
@@ -133,22 +132,22 @@ test_all:
 	@echo -e "\e[92m\nPassed ALL tests!\e[0m"
 else
 test_all:
-	make clean
-	make tests CC=clang
+	$(MAKE) clean
+	$(MAKE) tests CC=clang
 	$(CCOMP) -o build/singleheadertest -Wall -Wno-c11-extensions -Werror -fstruct-passing -lm -lpthread tests/singleheadertest.c
 	$(CCOMP_SINGLEHEADERTEST)
 	gcc -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 tests/singleheadertest.c -lm -lpthread
 	./build/singleheadertest
 	clang -o build/singleheadertest -Wall -Wextra -Werror -Wpedantic -std=c99 -isystem build -lm -lpthread tests/singleheadertest.c
 	./build/singleheadertest
-	make release_tests CC=clang
-	make clean
-	make release_tests
+	$(MAKE) release_tests CC=clang
+	$(MAKE) clean
+	$(MAKE) release_tests
 	cp build/conversions.o     build/conversionsd.o     # These are well
 	cp build/format_scanning.o build/format_scanningd.o # tested, skip slow
 	cp build/printf.o          build/printfd.o          # static analysis.
-	make analyze
-	make tests
+	$(MAKE) analyze
+	$(MAKE) tests
 	@echo "\e[92m\nPassed all tests.\e[0m"
 endif
 
@@ -224,7 +223,7 @@ endif
 # libGPC release build is built from single header library when using Clang.
 # Therefore, singleheadergen must be built using the debug library.
 build/singleheadergen$(EXE_EXT): tools/singleheadergen.c | build/libgpcd$(LIB_EXT)
-	$(CC) $? build/libgpcd$(LIB_EXT) $(CFLAGS) $(LFLAGS) $(DEBUG_CFLAGS) -o $@
+	$(CC) $? build/libgpcd$(LIB_EXT) $(CFLAGS) $(LFLAGS) $(DEBUG_CFLAGS) -no-pie -o $@
 
 release: override CFLAGS += $(RELEASE_CFLAGS)
 release: build/libgpc$(LIB_EXT)
@@ -262,17 +261,17 @@ build/libgpcd$(LIB_EXT): $(DEBUG_OBJS)
 endif
 
 $(OBJS): build/%.o : src/%.c
-	mkdir -p build
+	@mkdir -p build
 	$(CC) -MMD -MP -c -fpic $(CFLAGS) $< -o $@
 
 $(DEBUG_OBJS): build/%d.o : src/%.c
-	mkdir -p build
+	@mkdir -p build
 	$(CC) -MMD -MP -c -fpic $(CFLAGS) $< -o $@
 
 -include $(OBJS:.o=.d)
 -include $(DEBUG_OBJS:.o=.d)
 
-build_tests: override CFLAGS += -DGP_TESTS $(DEBUG_CFLAGS)
+build_tests: override CFLAGS += -DGP_TESTS $(DEBUG_CFLAGS) -no-pie # -no-pie prevents sanitizers from crashing
 build_tests: $(TESTS)
 
 $(TESTS): build/test_%d$(EXE_EXT) : tests/test_%.c $(DEBUG_OBJS)
@@ -284,10 +283,11 @@ run_tests:
 		echo ; \
 	done
 
+tests: MAKEFLAGS=
 tests:
-	make build_tests
-	make run_tests
-	make single_header
+	$(MAKE) build_tests
+	$(MAKE) run_tests
+	$(MAKE) single_header
 
 build_release_tests: override CFLAGS += -DGP_TESTS $(RELEASE_CFLAGS) -ggdb3
 build_release_tests: $(RELEASE_TESTS)
@@ -301,10 +301,11 @@ run_release_tests:
 		echo ; \
 	done
 
+release_tests: MAKEFLAGS=
 release_tests:
-	make build_release_tests
-	make run_release_tests
-	make single_header
+	$(MAKE) build_release_tests
+	$(MAKE) run_release_tests
+	$(MAKE) single_header
 
 clean:
 	rm -rf build

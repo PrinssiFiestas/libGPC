@@ -70,7 +70,7 @@ int main(void)
 
     gp_suite("random nummber generation");
     {
-        GPRandomState s = gp_new_random_state((uint64_t)time(NULL));
+        GPRandomState s = gp_random_state((uint64_t)time(NULL));
         gp_test("range");
         {
             for (int i = 0; i < 32; i++)
