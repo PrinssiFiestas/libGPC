@@ -275,6 +275,8 @@ int main(void)
             } AlignedData;
 
             AlignedData* data = gp_mem_alloc_aligned(gp_heap, sizeof*data, sizeof*data);
+            gp_expect((uintptr_t)data == gp_round_to_aligned((uintptr_t)data, sizeof*data));
+            gp_expect((uintptr_t)data % ALIGNMENT == 0);
             memset(data, 0, sizeof*data);
             gp_mem_dealloc(gp_heap, data);
 
