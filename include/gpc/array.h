@@ -208,6 +208,16 @@ GPArray(void) gp_arr_erase(
     size_t        pos,
     size_t        count);
 
+/** Null terminate.
+ * Reserve memory for an extra element and zero the reserved memory. This does
+ * not change arr_length().
+ * @return @p arr
+ */
+GP_ARR_ATTRS()
+GPArray(void) gp_arr_null_terminate(
+    size_t        element_size,
+    GPArray(void) arr);
+
 /** Apply function to elements.
  * Calls @f for all elements in source array. @p in will point to the element
  * in the source array and @p out will point to the corresponding element at

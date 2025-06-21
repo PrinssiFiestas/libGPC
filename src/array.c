@@ -189,6 +189,15 @@ GPArray(void) gp_arr_erase(
     return arr;
 }
 
+GPArray(void) gp_arr_null_terminate(
+    size_t        elem_size,
+    GPArray(void) arr)
+{
+    arr = gp_arr_reserve(elem_size, arr, gp_arr_length(arr) + 1);
+    memset((uint8_t*)arr + elem_size*gp_arr_length(arr), 0, elem_size);
+    return arr;
+}
+
 GP_NO_FUNCTION_POINTER_SANITIZE
 GPArray(void) gp_arr_map(
     const size_t elem_size,

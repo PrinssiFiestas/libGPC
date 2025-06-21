@@ -156,6 +156,16 @@ int main(void)
             arr_assert_eq(arr, ((int[]){1,2,3,4,5,6}), 6);
         }
 
+        gp_test("Null termination");
+        {
+            GPArray(char*) arr = gp_arr_new(scope, sizeof arr[0], 8);
+            for (size_t i = 0; i < 8; ++i)
+                arr = gp_arr_push(sizeof arr[0], arr, &"dummy string");
+            arr = gp_arr_null_terminate(sizeof arr[0], arr);
+            gp_expect(gp_arr_length(arr) == 8, "Null termination shouldn't change array length");
+            gp_expect(arr[gp_arr_length(arr)] == NULL);
+        }
+
         gp_test("Map, fold, foldr, filter");
         {
             void increment(void* out, const void* in);

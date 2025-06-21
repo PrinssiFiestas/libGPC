@@ -1130,6 +1130,16 @@ static inline void gp_erase(
 }
 
 // ---------------------------
+// gp_null_terminate()
+
+template <typename T>
+static inline T* gp_null_terminate(GPArray(T)* parr)
+{
+    *parr = (GPArray(T))gp_arr_null_terminate(sizeof(*parr)[0], *parr);
+    return *parr;
+}
+
+// ---------------------------
 // gp_map()
 
 template <typename T>
@@ -1467,6 +1477,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_push(...)                GP_PUSH(__VA_ARGS__)
 #define gp_pop(...)                 GP_POP(__VA_ARGS__)
 #define gp_erase(...)               GP_ERASE(__VA_ARGS__)
+#define gp_null_terminate(...)      GP_NULL_TERMINATE(__VA_ARGS__)
 #define gp_map(...)                 GP_MAP11(__VA_ARGS__)
 #define gp_fold(...)                GP_FOLD(__VA_ARGS__)
 #define gp_foldr(...)               GP_FOLDR(__VA_ARGS__)
@@ -1547,6 +1558,7 @@ static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& in
 #define gp_push(...)                GP_PUSH(__VA_ARGS__)
 #define gp_pop(...)                 GP_POP(__VA_ARGS__)
 #define gp_erase(...)               GP_ERASE(__VA_ARGS__)
+#define gp_null_terminate(...)      GP_NULL_TERMINATE(__VA_ARGS__)
 #define gp_map(...)                 GP_MAP99(__VA_ARGS__)
 #define gp_fold(...)                GP_FOLD(__VA_ARGS__)
 #define gp_foldr(...)               GP_FOLDR(__VA_ARGS__)
@@ -2482,6 +2494,9 @@ static inline void* gp_push99(const size_t elem_size, void*_parr)
 #define GP_ERASE2(ARR, POS)        ((void*){0} = gp_arr_erase(sizeof**(ARR), *(ARR), POS, 1))
 #define GP_ERASE3(ARR, POS, COUNT) ((void*){0} = gp_arr_erase(sizeof**(ARR), *(ARR), POS, COUNT))
 #define GP_ERASE(A,...) GP_OVERLOAD2(__VA_ARGS__, GP_ERASE3, GP_ERASE2)(A,__VA_ARGS__)
+
+#define GP_NULL_TERMINATE(PARR) \
+    (*(PARR) = gp_arr_null_terminate(sizeof(*(PARR)[0]), *(PARR)))
 
 GPArray(void) gp_map99(size_t a_size, const void* a,
     const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,

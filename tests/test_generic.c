@@ -464,6 +464,14 @@ int main(void)
             gp_expect(gp_length(arr) == 0);
         }
 
+        gp_test("Null termination");
+        {
+            GPArray(const char*) arr = gp_arr(scope, const char*, "dummy", "dummy", "dummy", "dummy");
+            gp_null_terminate(&arr);
+            gp_assert(gp_length(arr) == 4, "Null termination shouldn't change array length");
+            gp_assert(arr[gp_length(arr)] == NULL);
+        }
+
         gp_test("Map");
         {
             // Arguments do not need to be of type void* as long as they are
