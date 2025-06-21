@@ -128,9 +128,9 @@ static void* gp_arena_shared_alloc(
 
 void gp_arena_init(GPArena* arena, const size_t capacity)
 {
-    const size_t cap  = capacity != 0 ?
+    const size_t cap = (capacity != 0 ?
         gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT)
-      : 256;
+      : 256) + 8*GP_HAS_SANITIZER;
     if (arena->allocator == NULL)
         arena->allocator = gp_heap;
     GPArenaNode* node = gp_mem_alloc(arena->allocator, sizeof(GPArenaNode) + cap);

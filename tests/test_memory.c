@@ -166,7 +166,7 @@ static GPThreadResult test2(void*_)
             void* overwriting_pointer = gp_mem_alloc((GPAllocator*)&arena, 4);
             strcpy(overwriting_pointer, "XXX");
             gp_assert(strcmp(ps[2], "XXX") == 0,
-                "ps[2] should be considered as freed dispite not freed from the "
+                "ps[2] should be considered as freed despite not freed from the "
                 "heap! Here it got overwritten since the arena reused it's "
                 "memory.", (char*)ps[2]);
 

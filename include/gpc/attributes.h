@@ -50,7 +50,7 @@
 // ----------------------------------------------------------------------------
 // Require initialized memory
 
-#if __GNUC__ && !__clang__
+#if __GNUC__ >= 11 && !__clang__
 #define GP_INOUT(...) __attribute__((access(read_write, __VA_ARGS__)))
 #else
 #define GP_INOUT(...)
