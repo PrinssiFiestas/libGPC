@@ -59,7 +59,7 @@ typedef struct gp_string_header
 } GPStringHeader;
 
 /** Create and initialize a new string.*/
-GP_NONNULL_ARGS_AND_RETURN
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 GPString gp_str_new(
     const       GPAllocator*,
     size_t      capacity,
@@ -96,10 +96,10 @@ GPString gp_str_new(
 */
 
 /** Getters */
-size_t             gp_str_length    (GPString) GP_NONNULL_ARGS();
-size_t             gp_str_capacity  (GPString) GP_NONNULL_ARGS();
-const GPAllocator* gp_str_allocator (GPString) GP_NONNULL_ARGS();
-void*              gp_str_allocation(GPString) GP_NONNULL_ARGS();
+size_t             gp_str_length    (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
+size_t             gp_str_capacity  (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
+const GPAllocator* gp_str_allocator (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
+void*              gp_str_allocation(GPString) GP_NONNULL_ARGS() GP_NODISCARD;
 
 /** Free string memory.
  * Passing strings on stack is safe too.
@@ -309,7 +309,7 @@ int gp_str_file(
  * @return index to the first occurrence of @p needle in @p haystack starting
  * from @p start or GP_NOT_FOUND if not found.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_str_find_first(
     GPString    haystack,
     const void* needle,
@@ -320,7 +320,7 @@ size_t gp_str_find_first(
  * @return index to the last occurrence of @p needle in @p haystack or
  * GP_NOT_FOUND if not found.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_str_find_last(
     GPString    haystack,
     const void* needle,
@@ -330,7 +330,7 @@ size_t gp_str_find_last(
  * @return index to the first occurrence of any codepoints in @p utf8_char_set
  * starting from @p start or GP_NOT_FOUND if not found.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_str_find_first_of(
     GPString    haystack,
     const char* utf8_char_set,
@@ -340,7 +340,7 @@ size_t gp_str_find_first_of(
  * @return index to the first occurrence of any codepoints not in
  * @p utf8_char_set starting from @p start or GP_NOT_FOUND if not found.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_str_find_first_not_of(
     GPString    haystack,
     const char* utf8_char_set,
@@ -349,14 +349,14 @@ size_t gp_str_find_first_not_of(
 /** Count substrings.
  * @return the number of @p needles found in @p haystack.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_str_count(
     GPString    haystack,
     const void* needle,
     size_t      needle_size);
 
 /** Compare strings.*/
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 bool gp_str_equal(
     GPString    s1,
     const void* s2,
@@ -365,19 +365,19 @@ bool gp_str_equal(
 /** Case insensitive string comparison.
  * Compare strings according to Unicode simple case folding rules.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 bool gp_str_equal_case(
     GPString    s1,
     const void* s2,
     size_t      s2_size);
 
 /** Count Unicode code points.*/
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_str_codepoint_count(
     GPString str);
 
 /** Check if string is valid UTF-8.*/
-GP_NONNULL_ARGS(1)
+GP_NONNULL_ARGS(1) GP_NODISCARD
 bool gp_str_is_valid(
     GPString str,
     size_t*  optional_out_invalid_position);

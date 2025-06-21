@@ -131,6 +131,7 @@ void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
  * You should prefer to just pass scopes as arguments when possible. This exists
  * only to be able to access the current scope allocator in callbacks.
  */
+GP_NODISCARD
 GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
 
 // ----------------------------------------------------------------------------
@@ -230,7 +231,9 @@ GPArena* gp_scratch_arena(void) GP_NODISCARD;
 extern const GPAllocator* gp_heap;
 
 /** Allocation count to help optimizations.*/
+GP_NODISCARD
 size_t gp_heap_alloc_count(void);
+
 
 // ----------------------------------------------------------------------------
 //

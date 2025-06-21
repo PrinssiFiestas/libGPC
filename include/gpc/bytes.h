@@ -197,7 +197,7 @@ size_t gp_bytes_to_valid(
  * @return index to the first occurrence of @p needle in @p haystack starting
  * from @p start or GP_NOT_FOUND if not found.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_bytes_find_first(
     const void* haystack,
     size_t      haystack_size,
@@ -209,7 +209,7 @@ size_t gp_bytes_find_first(
  * @return index to the last occurrence of @p needle in @p haystack or
  * GP_NOT_FOUND if not found.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_bytes_find_last(
     const void* haystack,
     size_t      haystack_size,
@@ -220,7 +220,7 @@ size_t gp_bytes_find_last(
  * @return index to the first occurrence of any characters in @p char_set
  * starting from @p start or GP_NOT_FOUND if not found.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_bytes_find_first_of(
     const void* haystack,
     size_t      haystack_size,
@@ -231,7 +231,7 @@ size_t gp_bytes_find_first_of(
  * @return index to the first occurrence of any characters not in
  * @p char_set starting from @p start or GP_NOT_FOUND if not found.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_bytes_find_first_not_of(
     const void* haystack,
     size_t      haystack_size,
@@ -241,7 +241,7 @@ size_t gp_bytes_find_first_not_of(
 /** Count substrings.
  * @return the number of @p needles found in @p haystack.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_bytes_count(
     const void* haystack,
     size_t      haystack_size,
@@ -249,7 +249,7 @@ size_t gp_bytes_count(
     size_t      needle_size);
 
 /** Compare strings.*/
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 bool gp_bytes_equal(
     const void* s1,
     size_t      s1_size,
@@ -257,7 +257,7 @@ bool gp_bytes_equal(
     size_t      s2_size);
 
 /** Case insensitive ASCII string comparison.*/
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 bool gp_bytes_equal_case(
     const void* s1,
     size_t      s1_size,
@@ -265,7 +265,7 @@ bool gp_bytes_equal_case(
     size_t      s2_size);
 
 /** Check if string is valid ASCII.*/
-GP_NONNULL_ARGS(1)
+GP_NONNULL_ARGS(1) GP_NODISCARD
 bool gp_bytes_is_valid(
     const void* bytes,
     size_t      bytes_size,

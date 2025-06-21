@@ -30,6 +30,8 @@ extern "C" {
 
 /** Portably sets global locale to UTF-8.
  *locale_code should be in form "xx_YY", or "xxx_YY", or an empty string.
+ * @return string that can be used to restore locale by passing it to
+ * setlocale() with it's associated category, or NULL if arguments are invalid.
  */
 GP_NONNULL_ARGS()
 const char* gp_set_utf8_global_locale(int category, const char* locale_code);
@@ -64,6 +66,7 @@ typedef locale_t GPLocale;
  * subsequent calls with same locale_code will return a already created locale
  * without mutex locks.
  */
+GP_NODISCARD
 GPLocale gp_locale(const char* optional_locale_code);
 
 #else // only global locale available
@@ -81,7 +84,7 @@ typedef void* GPLocale;
 /** Codepoint size in bytes.
  * Only reads one byte at the specified index.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 size_t gp_utf8_codepoint_length(
     const void* str,
     size_t      i);
@@ -187,7 +190,7 @@ void gp_str_capitalize(
  * and is the fastest. Locale affects case insensitive comparison and collating.
  * Uses global locale if @p locale_code is NULL.
  */
-GP_NONNULL_ARGS(1, 2)
+GP_NONNULL_ARGS(1, 2) GP_NODISCARD
 int gp_str_compare(
     const GPString s1,
     const void*    s2,
@@ -196,7 +199,7 @@ int gp_str_compare(
     const char*    optional_locale_code);
 
 /** Create array of substrings.*/
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 GPArray(GPString) gp_str_split(
     const GPAllocator*,
     const void* str,

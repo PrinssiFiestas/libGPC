@@ -51,15 +51,15 @@ bool gp_check_bounds(
 /** Round number up to the next power of 2.
  * Always rounds up so gp_next_power_of_2(1 << n) == 1 << (n + 1).
  */
-size_t   gp_next_power_of_2   (size_t);
-uint32_t gp_next_power_of_2_32(uint32_t);
-uint64_t gp_next_power_of_2_64(uint64_t);
+size_t   gp_next_power_of_2   (size_t)   GP_NODISCARD;
+uint32_t gp_next_power_of_2_32(uint32_t) GP_NODISCARD;
+uint64_t gp_next_power_of_2_64(uint64_t) GP_NODISCARD;
 
 /** Round number up to alignment boundary.
  * @p boundary must be a power of 2.
  * @return @p x if already aligned.
  */
-static inline
+GP_NODISCARD static inline
 uintptr_t gp_round_to_aligned(const uintptr_t x, const uintptr_t boundary)
 {
     return x + (boundary - 1) - ((x - 1) & (boundary - 1));
@@ -70,21 +70,24 @@ uintptr_t gp_round_to_aligned(const uintptr_t x, const uintptr_t boundary)
 #define gp_max(x, y) gp_generic_max(x, y)
 #endif
 
-/** Try to set breakpoint.*/
+/** Set breakpoint on supported systems.*/
 #define GP_BREAKPOINT GP_BREAKPOINT_INTERNAL
 
 /** Float comparison.
  * Use this instead of == to accommodate for floating point precision issues.
  */
+GP_NODISCARD
 static inline bool gp_approx(double a, double b, double max_relative_diff) {
     a = fabs(a); b = fabs(b);
     return fabs(a - b) <= max_relative_diff * fmax(a, b);
 }
+GP_NODISCARD
 static inline bool gp_approxf(float a, float b, float max_relative_diff) {
     a = fabsf(a); b = fabsf(b);
     return fabsf(a - b) <= max_relative_diff * fmaxf(a, b);
 }
 #ifndef __COMPCERT__
+GP_NODISCARD
 static inline bool gp_approxl(long double a, long double b, long double max_rel_diff){
     a = fabsl(a); b = fabsl(b);
     return fabsl(a - b) <= max_rel_diff * fmaxl(a, b);
@@ -101,10 +104,10 @@ static inline bool gp_approxl(long double a, long double b, long double max_rel_
  */
 typedef struct gp_random_state GPRandomState;
 
-GPRandomState gp_random_state(uint64_t seed);
-uint32_t gp_random      (GPRandomState*) GP_NONNULL_ARGS();
-double   gp_frandom     (GPRandomState*) GP_NONNULL_ARGS();
-int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_ARGS();
+GPRandomState gp_random_state(uint64_t seed) GP_NODISCARD;
+uint32_t gp_random      (GPRandomState*) GP_NONNULL_ARGS() GP_NODISCARD;
+double   gp_frandom     (GPRandomState*) GP_NONNULL_ARGS() GP_NODISCARD;
+int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_ARGS() GP_NODISCARD;
 
 
 // ----------------------------------------------------------------------------
@@ -116,28 +119,28 @@ int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_AR
 // ----------------------------------------------------------------------------
 
 
-static inline int                gp_imin(int x, int y)                                 { return x < y ? x : y; }
-static inline long               gp_lmin(long x, long y)                               { return x < y ? x : y; }
-static inline long long          gp_llmin(long long x, long long y)                    { return x < y ? x : y; }
-static inline unsigned           gp_umin(unsigned x, unsigned y)                       { return x < y ? x : y; }
-static inline unsigned long      gp_lumin(unsigned long x, unsigned long y)            { return x < y ? x : y; }
-static inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y) { return x < y ? x : y; }
-static inline float              gp_fminf(float x, float y)                            { return x < y ? x : y; }
-static inline double             gp_fmin(double x, double y)                           { return x < y ? x : y; }
+GP_NODISCARD static inline int                gp_imin(int x, int y)                                 { return x < y ? x : y; }
+GP_NODISCARD static inline long               gp_lmin(long x, long y)                               { return x < y ? x : y; }
+GP_NODISCARD static inline long long          gp_llmin(long long x, long long y)                    { return x < y ? x : y; }
+GP_NODISCARD static inline unsigned           gp_umin(unsigned x, unsigned y)                       { return x < y ? x : y; }
+GP_NODISCARD static inline unsigned long      gp_lumin(unsigned long x, unsigned long y)            { return x < y ? x : y; }
+GP_NODISCARD static inline unsigned long long gp_llumin(unsigned long long x, unsigned long long y) { return x < y ? x : y; }
+GP_NODISCARD static inline float              gp_fminf(float x, float y)                            { return x < y ? x : y; }
+GP_NODISCARD static inline double             gp_fmin(double x, double y)                           { return x < y ? x : y; }
 #ifndef __COMPCERT__
-static inline long double        gp_fminl(long double x, long double y)                { return x < y ? x : y; }
+GP_NODISCARD static inline long double        gp_fminl(long double x, long double y)                { return x < y ? x : y; }
 #endif
-
-static inline int                gp_imax(int x, int y)                                 { return x > y ? x : y; }
-static inline long               gp_lmax(long x, long y)                               { return x > y ? x : y; }
-static inline long long          gp_llmax(long long x, long long y)                    { return x > y ? x : y; }
-static inline unsigned           gp_umax(unsigned x, unsigned y)                       { return x > y ? x : y; }
-static inline unsigned long      gp_lumax(unsigned long x, unsigned long y)            { return x > y ? x : y; }
-static inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y) { return x > y ? x : y; }
-static inline float              gp_fmaxf(float x, float y)                            { return x > y ? x : y; }
-static inline double             gp_fmax(double x, double y)                           { return x > y ? x : y; }
+GP_NODISCARD
+GP_NODISCARD static inline int                gp_imax(int x, int y)                                 { return x > y ? x : y; }
+GP_NODISCARD static inline long               gp_lmax(long x, long y)                               { return x > y ? x : y; }
+GP_NODISCARD static inline long long          gp_llmax(long long x, long long y)                    { return x > y ? x : y; }
+GP_NODISCARD static inline unsigned           gp_umax(unsigned x, unsigned y)                       { return x > y ? x : y; }
+GP_NODISCARD static inline unsigned long      gp_lumax(unsigned long x, unsigned long y)            { return x > y ? x : y; }
+GP_NODISCARD static inline unsigned long long gp_llumax(unsigned long long x, unsigned long long y) { return x > y ? x : y; }
+GP_NODISCARD static inline float              gp_fmaxf(float x, float y)                            { return x > y ? x : y; }
+GP_NODISCARD static inline double             gp_fmax(double x, double y)                           { return x > y ? x : y; }
 #ifndef __COMPCERT__
-static inline long double        gp_fmaxl(long double x, long double y)                { return x > y ? x : y; }
+GP_NODISCARD static inline long double        gp_fmaxl(long double x, long double y)                { return x > y ? x : y; }
 #endif
 
 // gp_min() and gp_max() implementations
@@ -195,7 +198,7 @@ _Generic(X, \
     float:              gp_fmaxf (X, Y), \
     double:             gp_fmax  (X, Y))
 #else // Non-GNU C99
-// Not ideal but does the job
+// Not ideal (multiple evaluations), but does the job
 #define gp_generic_min(X, Y) ((X) < (Y) ? (X) : (Y))
 #define gp_generic_max(X, Y) ((X) > (Y) ? (X) : (Y))
 #endif // gp_min() and gp_max() implementations

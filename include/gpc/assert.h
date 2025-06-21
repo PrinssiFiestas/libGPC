@@ -70,26 +70,34 @@ extern "C" {
                             // [arr[0], arr[1], arr[2], arr[3]] = [2, 7, 9, 4]
 */
 
-// Returns true if condition is true. If condition is false prints fail message,
-// marks current test and suite (if running tests) as failed, and exits program.
+/** Fatal assertion.
+ * @return true if condition is true. If condition is false prints fail message,
+ * marks current test and suite (if running tests) as failed, and exits program.
+ */
 #define gp_assert(/* bool condition, variables*/...) \
     (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
         (GP_FAIL(__VA_ARGS__), exit(1), false))
 
-// Returns true if condition is true. If condition is false prints fail message,
-// marks current test and suite (if running tests) as failed, and returns false.
+/** Non-fatal assertion.
+ * @return true if condition is true. If condition is false prints fail message,
+ * marks current test and suite (if running tests) as failed, and returns false.
+ */
 #define gp_expect(/* bool condition, variables*/...) \
     (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
         (GP_FAIL(__VA_ARGS__), false))
 
-// Starts test. Subsequent calls starts a new test ending the last one. If name
-// is NULL last test will be ended without starting a new test. Calling with
-// NULL when test is not running does nothing.
+/** Start test.
+ * Subsequent calls starts a new test ending the last one. If name
+ * is NULL last test will be ended without starting a new test. Calling with
+ * NULL when test is not running does nothing.
+ */
 void gp_test(const char* name);
 
-// Starts suite. Subsequent calls starts a new suite ending the last one. If
-// name is NULL last suite will be ended without starting a new suite. Calling
-// with NULL when suite is not running does nothing. Also ends last test.
+/** Start suite.
+ * Subsequent calls starts a new suite ending the last one. If
+ * name is NULL last suite will be ended without starting a new suite. Calling
+ * with NULL when suite is not running does nothing. Also ends last test.
+ */
 void gp_suite(const char* name);
 
 

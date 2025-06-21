@@ -58,7 +58,7 @@ extern "C" {
  * string for text mode. Default is binary mode. Also checks for '+' for
  * read/write or write/read like fopen().
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 FILE* gp_file_open(const char* path, const char* mode);
 
 /** To be passed to gp_defer() with correct function type.*/

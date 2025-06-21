@@ -68,6 +68,7 @@ typedef union gp_uint128
 } GPUint128;
 
 /** Create 128-bit unsigned integer.*/
+GP_NODISCARD
 static inline GPUint128 gp_u128(const uint64_t hi_bits, const uint64_t lo_bits)
 {
     GPUint128 u128;
@@ -84,7 +85,7 @@ static inline GPUint128 gp_u128(const uint64_t hi_bits, const uint64_t lo_bits)
 /** Access low bits of 128-bit unsigned integer.
  * @return pointer to low bits.
  */
-GP_NONNULL_ARGS_AND_RETURN
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 static inline uint64_t* gp_u128_lo(const GPUint128* u)
 {
     return (uint64_t*)(GP_INTEGER.endianness.is_little ?
@@ -94,7 +95,7 @@ static inline uint64_t* gp_u128_lo(const GPUint128* u)
 /** Access high bits of 128-bit unsigned integer.
  * @return pointer to high bits.
  */
-GP_NONNULL_ARGS_AND_RETURN
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 static inline uint64_t* gp_u128_hi(const GPUint128* u)
 {
     return (uint64_t*)(GP_INTEGER.endianness.is_little ?
@@ -139,7 +140,7 @@ typedef struct gp_map_initializer
 } GPMapInitializer;
 
 /** Create hash map that takes any bytes as keys.*/
-GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
 GPHashMap* gp_hash_map_new(
     const GPAllocator*,
     const GPMapInitializer* optional);
@@ -160,7 +161,7 @@ void* gp_hash_map_put(
 /** Find element.
  * @return pointer to element if found, NULL otherwise.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 void* gp_hash_map_get(
     GPHashMap*,
     const void* key,
@@ -179,7 +180,7 @@ bool gp_hash_map_remove(
 // Non-hashed map
 
 /** Create hash map that takes 128-bit keys.*/
-GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
 GPMap* gp_map_new(
     const GPAllocator*,
     const GPMapInitializer* optional);
@@ -199,7 +200,7 @@ void* gp_map_put(
 /** Find element.
  * @return pointer to element if found, NULL otherwise.
  */
-GP_NONNULL_ARGS()
+GP_NONNULL_ARGS() GP_NODISCARD
 void* gp_map_get(
     GPMap*,
     GPUint128 key);
@@ -216,9 +217,9 @@ bool gp_map_remove(
 // Hashing
 
 /** Hashing functions based on non-cryptographic FNV function.*/
-uint32_t  gp_bytes_hash32 (const void* key, size_t key_size) GP_NONNULL_ARGS();
-uint64_t  gp_bytes_hash64 (const void* key, size_t key_size) GP_NONNULL_ARGS();
-GPUint128 gp_bytes_hash128(const void* key, size_t key_size) GP_NONNULL_ARGS();
+uint32_t  gp_bytes_hash32 (const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
+uint64_t  gp_bytes_hash64 (const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
+GPUint128 gp_bytes_hash128(const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
 
 
 // ----------------------------------------------------------------------------
