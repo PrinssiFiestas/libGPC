@@ -86,6 +86,28 @@ extern "C" {
     (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
         (GP_FAIL(__VA_ARGS__), false))
 
+#ifndef NDEBUG
+/** Fatal assertion that can be disabled.
+ * @return true if condition is true. If condition is false prints fail message,
+ * marks current test and suite (if running tests) as failed, and exits program.
+ */
+#define gp_db_assert(/* bool condition, variables*/...) \
+    (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
+        (GP_FAIL(__VA_ARGS__), exit(1), false))
+
+/** Non-fatal assertion that can be disabled.
+ * @return true if condition is true. If condition is false prints fail message,
+ * marks current test and suite (if running tests) as failed, and returns false.
+ */
+#define gp_db_expect(/* bool condition, variables*/...) \
+    (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
+        (GP_FAIL(__VA_ARGS__), false))
+
+#else
+#define gp_db_assert(...) true
+#define gp_db_expect(...) true
+#endif
+
 /** Start test.
  * Subsequent calls starts a new test ending the last one. If name
  * is NULL last test will be ended without starting a new test. Calling with

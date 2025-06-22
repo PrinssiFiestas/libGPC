@@ -179,6 +179,7 @@ void gp_fail_internal(
     pf_va_list args;
     va_copy(args.list, _args);
 
+    bool is_internal = strncmp(func, "gp_", 3) == 0;
     if (gp_current_test != NULL) {
         gp_test_failed = true;
         func = gp_current_test;
@@ -196,11 +197,17 @@ void gp_fail_internal(
         (void)va_arg(args.list, uint32_t);
 
     const char* indent = gp_current_test != NULL ? "\t" : "";
-    pf_fprintf(stderr,
-        "%s%s " GP_WHITE_BG GP_BLACK "line %i" GP_RESET_TERMINAL
-        " in " GP_CYAN "%s" GP_RESET_TERMINAL "\n"
-        "%sCondition " GP_RED "%s " GP_FAILED_STR "\n",
-        indent, file, line, func, indent, condition);
+
+    if ( ! is_internal) // user assertion
+        pf_fprintf(stderr,
+            "%s%s " GP_WHITE_BG GP_BLACK "line %i" GP_RESET_TERMINAL
+            " in " GP_CYAN "%s" GP_RESET_TERMINAL "\n"
+            "%sCondition " GP_RED "%s " GP_FAILED_STR "\n",
+            indent, file, line, func, indent, condition);
+    else // do not distract the user with internal file/line information
+        pf_fprintf(stderr,
+            "%sCondition " GP_RED "%s " GP_FAILED_STR " in " GP_CYAN "%s" GP_RESET_TERMINAL "\n",
+            indent, condition, func);
 
     char* buf = NULL;
     size_t buf_capacity = 0;
@@ -428,4 +435,3 @@ void gp_fail_internal(
 
     #endif // GP_HAS_SANITIZER
 }
-
