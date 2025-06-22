@@ -88,7 +88,7 @@ typedef struct gp_arena_node
     void* _padding; // to round size to aligment boundary and for future use
 } GPArenaNode;
 
-static void* gp_arena_alloc(const GPAllocator* allocator, const size_t size, const size_t alignment)
+void* gp_arena_alloc(const GPAllocator* allocator, const size_t size, const size_t alignment)
 {
     GPArena* arena = (GPArena*)allocator;
     GPArenaNode* head = arena->head;
@@ -461,6 +461,11 @@ void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
 
 // ----------------------------------------------------------------------------
 
+static void* gp_virtual_alloc(const GPAllocator* allocator, const size_t size, const size_t alignment)
+{
+
+}
+
 GPAllocator* gp_virtual_init(GPVirtualAllocator* alc, size_t size)
 {
     gp_db_assert(size != 0, "%zu", size);
@@ -488,7 +493,11 @@ GPAllocator* gp_virtual_init(GPVirtualAllocator* alc, size_t size)
     alc->start = alc->position = mmap(
         NULL,
         size,
+        #ifdef GP_VIRTUAL_LINUX_OVERCOMMIT
         PROT_READ | PROT_WRITE,
+        #else
+        PROT_NONE,
+        #endif
         MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE | MAP_HUGETLB,
         -1, 0);
     #else // _WIN32
@@ -496,6 +505,10 @@ GPAllocator* gp_virtual_init(GPVirtualAllocator* alc, size_t size)
     #endif
 
     if (alc->start == NULL || alc->start == (void*)-1)
-        return NULL;
+        return alc->start = alc->position = NULL;
+
+    alc->_allocator.alloc   = gp_virtual_alloc;
+    alc->_allocator.dealloc = gp_arena_dealloc;
+    alc->capacity = size;
     return (GPAllocator*)alc;
 }

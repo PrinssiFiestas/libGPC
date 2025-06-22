@@ -47,7 +47,9 @@
 inline void gp_arena_dealloc(const GPAllocator* arena, void* mem)
 {
     (void)arena;
-    ASAN_POISON_MEMORY_REGION(mem, sizeof(void*));
+    void* gp_arena_alloc(const GPAllocator*, size_t, size_t);
+    if (arena->alloc == gp_arena_alloc)
+        ASAN_POISON_MEMORY_REGION(mem, sizeof(void*));
 }
 #else // define in common.c so the linker can find it
 void gp_arena_dealloc(const GPAllocator*, void*);
