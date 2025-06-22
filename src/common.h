@@ -17,10 +17,12 @@
 
 #ifdef __SANITIZE_ADDRESS__ // GCC and MSVC defines this with -fsanitize=address
 #include <sanitizer/asan_interface.h>
+#include <sanitizer/common_interface_defs.h>
 #define GP_HAS_SANITIZER 1
 #elif defined(__has_feature) // Clang defines this
     #if __has_feature(address_sanitizer)
     #include <sanitizer/asan_interface.h>
+    #include <sanitizer/common_interface_defs.h>
     #define GP_HAS_SANITIZER 1
     #else
     #define ASAN_POISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
