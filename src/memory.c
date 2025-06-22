@@ -4,11 +4,18 @@
 
 #include <gpc/memory.h>
 #include <gpc/utils.h>
+#include <gpc/assert.h>
 #include "common.h"
 #include "thread.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#if !_WIN32
+#include <sys/mman.h>
+#else
+#include <windows.h>
+#endif
 
 #if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
 extern inline void* gp_mem_alloc        (const GPAllocator*, size_t);
@@ -126,7 +133,7 @@ static void* gp_arena_shared_alloc(
     return block;
 }
 
-void gp_arena_init(GPArena* arena, const size_t capacity)
+GPAllocator* gp_arena_init(GPArena* arena, const size_t capacity)
 {
     const size_t cap = (capacity != 0 ?
         gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT)
@@ -150,6 +157,8 @@ void gp_arena_init(GPArena* arena, const size_t capacity)
     } else if (arena->_allocator.alloc == NULL)
         arena->_allocator.alloc = gp_arena_alloc;
     arena->_allocator.dealloc = gp_arena_dealloc;
+
+    return (GPAllocator*)arena;
 }
 
 static bool gp_in_this_node(GPArenaNode* node, void* _pos)
@@ -450,3 +459,43 @@ void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
     scope->defer_stack->length++;
 }
 
+// ----------------------------------------------------------------------------
+
+GPAllocator* gp_virtual_init(GPVirtualAllocator* alc, size_t size)
+{
+    gp_db_assert(size != 0, "%zu", size);
+    gp_db_assert(size < SIZE_MAX/2, "%zu", size, "Possibly negative size detected");
+    gp_db_expect(size >= 4096, "%zu", size,
+        "Virtual allocator is supposed to be used with HUGE arenas. "
+        "Are you sure you are allocating enough?");
+
+    #ifdef _SC_PAGE_SIZE
+    const size_t page_size = sysconf(_SC_PAGE_SIZE);
+    #elif defined(_WIN32)
+    SYSTEM_INFO sys_info;
+    GetSystemInfo(&sys_info);
+    const size_t page_size = sys_info.dwPageSize;
+    #else
+    const size_t page_size = 4096;
+    #endif
+    if (size & (page_size - 1)) // round to page size
+        size += page_size - (size & (page_size - 1));
+
+    // Internal sanity check, remove this at some point.
+    gp_db_assert((size & (page_size - 1)) == 0);
+
+    #if !_WIN32
+    alc->start = alc->position = mmap(
+        NULL,
+        size,
+        PROT_READ | PROT_WRITE,
+        MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE | MAP_HUGETLB,
+        -1, 0);
+    #else // _WIN32
+
+    #endif
+
+    if (alc->start == NULL || alc->start == (void*)-1)
+        return NULL;
+    return (GPAllocator*)alc;
+}

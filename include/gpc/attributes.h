@@ -62,10 +62,8 @@
 // https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html
 
 #ifdef __GNUC__
-#define GP_ALLOC_SIZE(...)  __attribute__((alloc_size (__VA_ARGS__)))
 #define GP_ALLOC_ALIGN(...) __attribute__((alloc_align(__VA_ARGS__)))
 #else
-#define GP_ALLOC_SIZE(...)
 #define GP_ALLOC_ALIGN(...)
 #endif
 

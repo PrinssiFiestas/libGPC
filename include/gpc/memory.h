@@ -33,14 +33,14 @@ extern "C" {
 // calling the allocators. This massively simplifies NULL handling and makes
 // error handling more explicit.
 
-/** Polymorphic allocator.*/
+/** Polymorphic Allocator.*/
 typedef struct gp_allocator
 {
     void* (*alloc)  (const struct gp_allocator*, size_t size, size_t alignment);
     void  (*dealloc)(const struct gp_allocator*, void*  block);
 } GPAllocator;
 
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ALLOC_SIZE(2)
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 inline void* gp_mem_alloc(
     const GPAllocator* allocator,
     size_t size)
@@ -48,7 +48,7 @@ inline void* gp_mem_alloc(
     return allocator->alloc(allocator, size, GP_ALLOC_ALIGNMENT);
 }
 
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ALLOC_SIZE(2) GP_ALLOC_ALIGN(3)
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ALLOC_ALIGN(3)
 inline void* gp_mem_alloc_aligned(
     const GPAllocator* allocator,
     size_t size,
@@ -57,7 +57,7 @@ inline void* gp_mem_alloc_aligned(
     return allocator->alloc(allocator, size, alignment);
 }
 
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ALLOC_SIZE(2)
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 inline void* gp_mem_alloc_zeroes(
     const GPAllocator* allocator,
     size_t size)
@@ -88,7 +88,7 @@ void* gp_mem_realloc(
     size_t new_size);
 
 // ----------------------------------------------------------------------------
-// Scope allocator
+// Scope Allocator
 
 // The scope allocator is an allocator designed to make lifetimes trivial. Use
 // gp_begin() to create a new arena based allocator. You can then encapsulate
@@ -135,11 +135,12 @@ GP_NODISCARD
 GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
 
 // ----------------------------------------------------------------------------
-// Arena allocator
+// Arena Allocator
 
 /** Arena that does not run out of memory.
  * If address sanitizer is used, unused memory, freed memory, and allocation
- * boundaries are poisoned.
+ * boundaries are poisoned. The allocated memory cannot be assumed to be
+ * contiguous.
  */
 typedef struct gp_arena
 {
@@ -181,8 +182,9 @@ typedef struct gp_arena
  * Replaces zeroed fields in arena with default values. GPArena must be
  * initialized before calling this and this must be called before calling
  * any other arena function.
+ * @return pointer to arena casted to GPAllocator*.
  */
-void gp_arena_init(GPArena*, size_t capacity) GP_INOUT(1) GP_NONNULL_ARGS();
+GPAllocator* gp_arena_init(GPArena*, size_t capacity) GP_INOUT(1) GP_NONNULL_ARGS_AND_RETURN;
 
 /** Deallocate some memory.
  * Use this to free everything allocated after @p to_this_position including
@@ -199,7 +201,7 @@ void gp_arena_reset(GPArena*) GP_NONNULL_ARGS();
 void gp_arena_delete(GPArena* optional);
 
 // ----------------------------------------------------------------------------
-// Thread local scratch arena
+// Thread Local Scratch Arena
 
 /** Arena allocator for temporary memory.
  * Unlike the scope allocator, which creates a new arena for each scope, there
@@ -225,7 +227,7 @@ GPArena* gp_scratch_arena(void) GP_NODISCARD;
 #endif
 
 // ----------------------------------------------------------------------------
-// Heap allocator
+// Heap Allocator
 
 /** malloc() based allocator.*/
 extern const GPAllocator* gp_heap;
@@ -233,6 +235,27 @@ extern const GPAllocator* gp_heap;
 /** Allocation count to help optimizations.*/
 GP_NODISCARD
 size_t gp_heap_alloc_count(void);
+
+// ----------------------------------------------------------------------------
+// Virtual Allocator
+
+/** Contiguous fast huge arena allocator.
+ */
+typedef struct gp_virtual_allocator
+{
+    GPAllocator _allocator;
+    void* start;
+    void* position;
+    size_t capacity;
+} GPVirtualAllocator;
+
+GPAllocator* gp_virtual_init(GPVirtualAllocator*, size_t size) GP_NONNULL_ARGS();
+
+void gp_virtual_rewind(GPAllocator*, void* to_this_position) GP_NONNULL_ARGS();
+
+void gp_virtual_reset(GPAllocator*) GP_NONNULL_ARGS();
+
+void gp_virtual_delete(GPAllocator* optional);
 
 
 // ----------------------------------------------------------------------------
