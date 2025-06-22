@@ -165,7 +165,7 @@ single_header: build/singleheadergen$(EXE_EXT)
 	./$< build/gpc.h $(GPC_VERSION)
 
 build/gprun$(EXE_EXT): tools/gprun.c
-	$(CC) $(CFLAGS) $(LFLAGS) $(DEBUG_CFLAGS) $? -o $@
+	$(CC) $(CFLAGS) $(DEBUG_CFLAGS) -no-pie $(LFLAGS) $? -o $@
 
 $(GDBINIT_PATH)gdbinit:
 	mkdir -p $(GDBINIT_PATH)
