@@ -61,8 +61,9 @@ GPArray(void) gp_arr_reserve(
     if (capacity > gp_arr_capacity(arr))
     {
         capacity = gp_next_power_of_2(capacity);
-        if (gp_arr_allocator(arr)->dealloc == gp_arena_dealloc &&
-            gp_arr_allocation(arr) != NULL)
+        if ((gp_arr_allocator(arr)->dealloc == gp_arena_dealloc
+            || gp_arr_allocator(arr)->dealloc == gp_virtual_dealloc)
+            && gp_arr_allocation(arr) != NULL)
         { // gp_mem_realloc() knows how to just extend block in arena
             GPArrayHeader* new_block = gp_mem_realloc(
                 gp_arr_allocator(arr),

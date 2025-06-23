@@ -72,14 +72,15 @@ int main(void)
             // applies to GPArena as well.
 
             // Note: arrays and arenas have metadata so an arena with size
-            // 256 * sizeof(int) is NOT capable of holding an array with 256 ints.
+            // 256 * sizeof(int) is NOT capable of holding an array with 256 ints. // TODO ok this settles it: change arrays to use power of 2 blocks!
             GPAllocator* scope = gp_begin(256 * sizeof(int));
 
             const size_t INIT_CAPACITY = 8;
+            const size_t RESERVE_CAPACITY = INIT_CAPACITY + 1;
             GPArray(int) arr = gp_arr_new(scope, sizeof*arr, INIT_CAPACITY);
-            const int*const init_pos = arr;
+            const int* init_pos = arr;
             gp_expect(gp_arr_capacity(arr) == INIT_CAPACITY);
-            arr = gp_arr_reserve(sizeof*arr, arr, 9); // Extend arr memory
+            arr = gp_arr_reserve(sizeof*arr, arr, RESERVE_CAPACITY); // Extend arr memory
             gp_expect(gp_arr_capacity(arr) > INIT_CAPACITY
                 && arr == init_pos,"Arenas should know how to extend memory of "
                                    "lastly created objects so arr is not moved.");
@@ -99,6 +100,17 @@ int main(void)
 
             // No need to delete arr or dealloc new_object, they live in scope.
             gp_end(scope);
+
+            // Repeated memory block extension test on virtual arena
+            GPVirtualArena va;
+            arr = gp_arr_new(gp_virtual_init(&va, 4*4096), sizeof arr[0], INIT_CAPACITY);
+            init_pos = arr;
+            gp_expect(gp_arr_capacity(arr) == INIT_CAPACITY);
+            arr = gp_arr_reserve(sizeof arr[0], arr, RESERVE_CAPACITY); // Extend arr memory
+            gp_expect(gp_arr_capacity(arr) > INIT_CAPACITY
+                && arr == init_pos,"Arenas should know how to extend memory of "
+                                   "lastly created objects so arr is not moved.");
+            gp_virtual_delete(&va);
         }
     } // gp_suite("Memory");
 

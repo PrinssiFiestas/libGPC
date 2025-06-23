@@ -299,7 +299,8 @@ int main(void)
             char* buffer = gp_mem_alloc((GPAllocator*)&va, huge_size);
 
             // Physical memory is only used now
-            memset(buffer, 'x', huge_size);
+            buffer[0] = 'x';
+            buffer[huge_size - 1] = 'x';
 
             gp_virtual_rewind(&va, buffer);
             gp_expect(va.position == va.start, "Arena pointer should be resetted");

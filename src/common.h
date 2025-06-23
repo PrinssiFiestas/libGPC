@@ -43,17 +43,8 @@
 #define GP_NO_FUNCTION_POINTER_SANITIZE
 #endif
 
-#ifndef __COMPCERT__
-inline void gp_arena_dealloc(const GPAllocator* arena, void* mem)
-{
-    (void)arena;
-    void* gp_arena_alloc(const GPAllocator*, size_t, size_t);
-    if (arena->alloc == gp_arena_alloc)
-        ASAN_POISON_MEMORY_REGION(mem, sizeof(void*));
-}
-#else // define in common.c so the linker can find it
 void gp_arena_dealloc(const GPAllocator*, void*);
-#endif
+void gp_virtual_dealloc(const GPAllocator*, void*);
 
 static inline size_t gp_max_digits_in(const GPType T)
 {

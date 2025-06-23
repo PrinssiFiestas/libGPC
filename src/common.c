@@ -15,12 +15,17 @@
 extern inline size_t gp_count_fmt_specs(const char* fmt);
 #endif
 
-#ifndef __COMPCERT__
-extern inline void gp_arena_dealloc(const GPAllocator*, void*);
-#else // CompCert ignored this, so linker can't find it.
-void gp_arena_dealloc(const GPAllocator*_,void*__) { (void)_;(void)__; }
-#endif
+void gp_arena_dealloc(const GPAllocator* arena, void* mem)
+{
+    (void)arena;
+    ASAN_POISON_MEMORY_REGION(mem, sizeof(void*));
+}
 
+void gp_virtual_dealloc(const GPAllocator* arena, void* mem)
+{
+    (void)arena;
+    (void)mem;
+}
 
 // https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
 bool gp_valid_codepoint(

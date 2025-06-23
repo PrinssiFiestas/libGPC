@@ -268,6 +268,15 @@ void* gp_mem_realloc(
 
     if (new_size <= old_size)
         return old_block;
+
+    GPVirtualArena* varena = (GPVirtualArena*)allocator;
+    if (allocator->dealloc == gp_virtual_dealloc && old_block != NULL &&
+        (char*)old_block + old_size == (char*)varena->position)
+    { // extend block instead of reallocating and copying
+        varena->position = old_block;
+        return gp_virtual_alloc(varena, new_size, GP_ALLOC_ALIGNMENT);
+    }
+
     GPArena* arena = (GPArena*)allocator;
     if (allocator->dealloc == gp_arena_dealloc && old_block != NULL &&
         (char*)old_block + old_size + 8*GP_HAS_SANITIZER == (char*)arena->head->position)
@@ -460,13 +469,6 @@ void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
 
 // ----------------------------------------------------------------------------
 
-// gp_virtual_alloc() must be inline, since it is supposed to be the best
-// performing allocation. It also must be static to avoid linking issues with
-// CompCert, but we do need a stable pointer between translation units to be
-// compared against to detect GPVirtualArena during runtime for the generic
-// gp_rewind(), so here it is.
-void*(*const gp_virtual_alloc_ref)(const GPAllocator*,size_t,size_t) = (void*(*)(const GPAllocator*,size_t,size_t))gp_virtual_alloc;
-
 GPAllocator* gp_virtual_init(GPVirtualArena* alc, size_t size)
 {
     gp_db_assert(size != 0, "%zu", size);
@@ -503,8 +505,8 @@ GPAllocator* gp_virtual_init(GPVirtualArena* alc, size_t size)
     if (alc->start == NULL || alc->start == (void*)-1)
         return alc->start = alc->position = NULL;
 
-    alc->_allocator.alloc   = gp_virtual_alloc_ref;
-    alc->_allocator.dealloc = gp_arena_dealloc;
+    alc->_allocator.alloc   = (void*(*)(const GPAllocator*,size_t,size_t))gp_virtual_alloc;
+    alc->_allocator.dealloc = gp_virtual_dealloc;
     alc->capacity = size;
     return (GPAllocator*)alc;
 }
