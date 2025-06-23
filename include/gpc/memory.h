@@ -145,7 +145,7 @@ GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
 /** Arena that does not run out of memory.
  * If address sanitizer is used, unused memory, freed memory, and allocation
  * boundaries are poisoned. The allocated memory cannot be assumed to be
- * contiguous.
+ * contiguous due to boundary poisoning and linked list based backing buffer.
  */
 typedef struct gp_arena
 {
@@ -245,17 +245,35 @@ size_t gp_heap_alloc_count(void);
 // Virtual Allocator
 
 /** Contiguous fast huge arena allocator.
+ * Arena that uses contiguous possibly huge memory blocks for it's backing
+ * buffer. Allocated memory is contiguous ignoring possible padding bytes to
+ * satisfy alignment requirements. The assumption is that the backing buffer is
+ * large enough to not run out of memory, thus bounds are only checked if
+ * NDEBUG is not defined or GP_VIRTUAL_ALWAYS_BOUNDS_CHECK is defined.
  */
 typedef struct gp_virtual_arena
 {
     GPAllocator _allocator;
-    void* start;
-    void* position;
-    size_t capacity;
+    void* start;     // of the memory block
+    void* position;  // arena pointer
+    size_t capacity; // of arena
 } GPVirtualArena;
 
-GPAllocator* gp_virtual_init(GPVirtualArena*, size_t size) GP_NONNULL_ARGS();
+/** Allocate and initialize.
+ * @p capacity will be rounded up to page size boundary. It is recommended to
+ * pass huge (at least hundreds of megs depending on your application and
+ * underlying system) @p capacity to prevent out of memory bugs. Physical memory
+ * will only be used on writes to the arena.
+ * @return pointer to arena casted to GPAllocator* or NULL if virtual memory
+ * allocation fails. In case of failures, you may want to try again with smaller
+ * capacity.
+ */
+GPAllocator* gp_virtual_init(GPVirtualArena*, size_t capacity) GP_NONNULL_ARGS();
 
+/** Deallocate some memory.
+ * Use this to free everything allocated after @p to_this_position including
+ * @p to_this_position. Physical memory remains untouched.
+ */
 GP_NONNULL_ARGS()
 static inline void gp_virtual_rewind(GPVirtualArena* arena, void* to_this_position)
 {
@@ -264,12 +282,22 @@ static inline void gp_virtual_rewind(GPVirtualArena* arena, void* to_this_positi
     gp_db_assert(pointer >= (uint8_t*)arena->start, "Pointer points outside the arena.");
 }
 
+/** Deallocate all memory excluding the arena itself.
+ * Fully rewinds the arena pointer to the beginning of the arena. Physical
+ * memory will be deallocated, but virtual address space remains untouched.
+ */
 void gp_virtual_reset(GPVirtualArena*) GP_NONNULL_ARGS();
 
+/** Deallocate all arena memory including the arena itself.*/
 void gp_virtual_delete(GPVirtualArena* optional);
 
+/** Allocate memory from virtual arena.
+ * gp_mem_alloc() is meant to be polymorphic, use this directly to maximize
+ * performance.
+ */
 GP_NONNULL_ARGS_AND_RETURN GP_ALLOC_ALIGN(3)
-static inline void* gp_virtual_alloc(GPVirtualArena* allocator, const size_t size, const size_t alignment)
+static inline void* gp_virtual_alloc(
+    GPVirtualArena* allocator, const size_t size, const size_t alignment)
 {
     gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
     gp_db_assert((alignment & (alignment - 1)) == 0, "Alignment must be a power of 2.");
