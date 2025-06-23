@@ -103,9 +103,10 @@ extern "C" {
     (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
         (GP_FAIL(__VA_ARGS__), false))
 
-#else
-#define gp_db_assert(...) true
-#define gp_db_expect(...) true
+#else // always return true without evaluating condition
+static inline bool gp_dummy_bool(bool _) { return _; } // prevent -Wunused-value
+#define gp_db_assert(...) gp_dummy_bool(sizeof(GP_1ST_ARG(__VA_ARGS__)))
+#define gp_db_expect(...) gp_dummy_bool(sizeof(GP_1ST_ARG(__VA_ARGS__)))
 #endif
 
 /** Start test.

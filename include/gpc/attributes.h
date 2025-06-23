@@ -16,6 +16,8 @@
 #else
 #define GP_ALLOC_ALIGNMENT (sizeof(long double))
 #endif
+#elif (GP_ALLOC_ALIGNMENT < 8) || (GP_ALLOC_ALIGNMENT & (GP_ALLOC_ALIGNMENT - 1))
+#error "GP_ALLOC_ALIGNMENT must be a power of 2 larger or equal to 8."
 #endif
 
 // ----------------------------------------------------------------------------

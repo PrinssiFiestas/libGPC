@@ -289,7 +289,35 @@ int main(void)
             memset(data, 0, sizeof*data);
             gp_arena_delete(&arena);
         }
-    }
+
+        gp_test("Virtual Arena");
+        {
+            GPVirtualArena va;
+            const size_t huge_size = 1024*1024*1024;
+            gp_assert(gp_virtual_init(&va, huge_size) != NULL);
+
+            char* buffer = gp_mem_alloc((GPAllocator*)&va, huge_size);
+
+            // Physical memory is only used now
+            memset(buffer, 'x', huge_size);
+
+            gp_virtual_rewind(&va, buffer);
+            gp_expect(va.position == va.start, "Arena pointer should be resetted");
+            gp_expect(buffer[huge_size - 1] == 'x', "Memory should remain untouched");
+
+            // Faster than gp_mem_alloc(), which is used for polymorphism.
+            buffer = gp_virtual_alloc(&va, huge_size, GP_ALLOC_ALIGNMENT);
+
+            gp_virtual_reset(&va); // physical memory also freed
+            gp_expect(va.position == va.start, "Arena pointer should be resetted");
+            #if !_WIN32
+            gp_expect(buffer[huge_size - 1] == '\0',
+                "Physical freed, so access should zero memory");
+            #endif
+
+            gp_virtual_delete(&va);
+        }
+    } // gp_suite("Other stuff")
 
     delete_test_allocator(test_allocator);
 }

@@ -10,6 +10,7 @@
 #define GP_MEMORY_INCLUDED 1
 
 #include <gpc/attributes.h>
+#include <gpc/assert.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -45,6 +46,7 @@ inline void* gp_mem_alloc(
     const GPAllocator* allocator,
     size_t size)
 {
+    gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
     return allocator->alloc(allocator, size, GP_ALLOC_ALIGNMENT);
 }
 
@@ -54,6 +56,8 @@ inline void* gp_mem_alloc_aligned(
     size_t size,
     size_t alignment)
 {
+    gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
+    gp_db_assert((alignment & (alignment - 1)) == 0, "Alignment must be a power of 2.");
     return allocator->alloc(allocator, size, alignment);
 }
 
@@ -62,6 +66,7 @@ inline void* gp_mem_alloc_zeroes(
     const GPAllocator* allocator,
     size_t size)
 {
+    gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
     return memset(gp_mem_alloc(allocator, size), 0, size);
 }
 
@@ -241,21 +246,43 @@ size_t gp_heap_alloc_count(void);
 
 /** Contiguous fast huge arena allocator.
  */
-typedef struct gp_virtual_allocator
+typedef struct gp_virtual_arena
 {
     GPAllocator _allocator;
     void* start;
     void* position;
     size_t capacity;
-} GPVirtualAllocator;
+} GPVirtualArena;
 
-GPAllocator* gp_virtual_init(GPVirtualAllocator*, size_t size) GP_NONNULL_ARGS();
+GPAllocator* gp_virtual_init(GPVirtualArena*, size_t size) GP_NONNULL_ARGS();
 
-void gp_virtual_rewind(GPAllocator*, void* to_this_position) GP_NONNULL_ARGS();
+GP_NONNULL_ARGS()
+inline void gp_virtual_rewind(GPVirtualArena* arena, void* to_this_position)
+{
+    uint8_t* pointer = arena->position = to_this_position;
+    gp_db_assert(pointer < (uint8_t*)arena->start + arena->capacity, "Pointer points outside the arena.");
+    gp_db_assert(pointer >= (uint8_t*)arena->start, "Pointer points outside the arena.");
+}
 
-void gp_virtual_reset(GPAllocator*) GP_NONNULL_ARGS();
+void gp_virtual_reset(GPVirtualArena*) GP_NONNULL_ARGS();
 
-void gp_virtual_delete(GPAllocator* optional);
+void gp_virtual_delete(GPVirtualArena* optional);
+
+GP_NONNULL_ARGS_AND_RETURN GP_ALLOC_ALIGN(3)
+inline void* gp_virtual_alloc(GPVirtualArena* allocator, const size_t size, const size_t alignment)
+{
+    gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
+    gp_db_assert((alignment & (alignment - 1)) == 0, "Alignment must be a power of 2.");
+
+    GPVirtualArena* arena = (GPVirtualArena*)allocator;
+    void* block = arena->position;
+    arena->position = (void*)(gp_round_to_aligned((uintptr_t)arena->position, alignment) + size);
+
+    #if !defined(NDEBUG) || /*user*/defined(GP_VIRTUAL_ALWAYS_BOUNDS_CHECK)
+    gp_assert((uint8_t*)arena->position <= (uint8_t*)arena->start + arena->capacity, "Virtual allocator out of memory.");
+    #endif
+    return block;
+}
 
 
 // ----------------------------------------------------------------------------

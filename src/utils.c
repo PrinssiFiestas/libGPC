@@ -8,6 +8,10 @@
 #include <gpc/utils.h>
 #include "pcg_basic.h"
 
+#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
+extern inline uintptr_t gp_round_to_aligned(uintptr_t, uintptr_t);
+#endif
+
 size_t gp_next_power_of_2(size_t x)
 {
     return sizeof x == sizeof(uint32_t) ?

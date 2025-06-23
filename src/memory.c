@@ -4,7 +4,6 @@
 
 #include <gpc/memory.h>
 #include <gpc/utils.h>
-#include <gpc/assert.h>
 #include "common.h"
 #include "thread.h"
 #include <stdio.h>
@@ -13,6 +12,7 @@
 
 #if !_WIN32
 #include <sys/mman.h>
+#include <errno.h>
 #else
 #include <windows.h>
 #endif
@@ -267,6 +267,9 @@ void* gp_mem_realloc(
     size_t old_size,
     size_t new_size)
 {
+    gp_db_assert(old_size < SIZE_MAX/2, "Impossible size, no allocator accepts this.");
+    gp_db_assert(new_size < SIZE_MAX/2, "Possibly negative allocation detected.");
+
     if (new_size <= old_size)
         return old_block;
     GPArena* arena = (GPArena*)allocator;
@@ -461,15 +464,15 @@ void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
 
 // ----------------------------------------------------------------------------
 
-static void* gp_virtual_alloc(const GPAllocator* allocator, const size_t size, const size_t alignment)
-{
+#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
+extern inline void* gp_virtual_alloc(GPVirtualArena* allocator, size_t size, size_t alignment);
+extern inline void gp_virtual_rewind(GPVirtualArena* arena, void* to_this_position);
+#endif
 
-}
-
-GPAllocator* gp_virtual_init(GPVirtualAllocator* alc, size_t size)
+GPAllocator* gp_virtual_init(GPVirtualArena* alc, size_t size)
 {
     gp_db_assert(size != 0, "%zu", size);
-    gp_db_assert(size < SIZE_MAX/2, "%zu", size, "Possibly negative size detected");
+    gp_db_assert(size < SIZE_MAX/2, "%zu", size, "Possibly negative size detected.");
     gp_db_expect(size >= 4096, "%zu", size,
         "Virtual allocator is supposed to be used with HUGE arenas. "
         "Are you sure you are allocating enough?");
@@ -483,32 +486,59 @@ GPAllocator* gp_virtual_init(GPVirtualAllocator* alc, size_t size)
     #else
     const size_t page_size = 4096;
     #endif
-    if (size & (page_size - 1)) // round to page size
-        size += page_size - (size & (page_size - 1));
+    size = gp_round_to_aligned(size, page_size);
 
-    // Internal sanity check, remove this at some point.
-    gp_db_assert((size & (page_size - 1)) == 0);
-
-    #if !_WIN32
+    #if _WIN32
+    alc->start = alc->position = VirtualAlloc(
+        NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    gp_db_expect(alc->start != NULL, "VirtualAlloc():", "%lu", GetLastError());
+    #else
     alc->start = alc->position = mmap(
         NULL,
         size,
-        #ifdef GP_VIRTUAL_LINUX_OVERCOMMIT
         PROT_READ | PROT_WRITE,
+        #if GP_HAS_SANITIZER // MAP_HUGETLB does not play nice with sanitizers
+        MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
         #else
-        PROT_NONE,
-        #endif
         MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE | MAP_HUGETLB,
+        #endif
         -1, 0);
-    #else // _WIN32
-
+    gp_db_expect(alc->start != NULL && alc->start != (void*)-1, "mmap():", "%s", strerror(errno));
     #endif
 
     if (alc->start == NULL || alc->start == (void*)-1)
         return alc->start = alc->position = NULL;
 
-    alc->_allocator.alloc   = gp_virtual_alloc;
+    alc->_allocator.alloc   = (void*(*)(const GPAllocator*, size_t, size_t))gp_virtual_alloc;
     alc->_allocator.dealloc = gp_arena_dealloc;
     alc->capacity = size;
     return (GPAllocator*)alc;
+}
+
+void gp_virtual_reset(GPVirtualArena* arena)
+{
+    arena->position = arena->start;
+
+    #if _WIN32
+    VirtualAlloc(arena->start, 0, MEM_RESET, PAGE_READWRITE);
+    #else
+    madvise(arena->start, arena->capacity, MADV_DONTNEED);
+    #endif
+}
+
+void gp_virtual_delete(GPVirtualArena* arena)
+{
+    if (arena == NULL)
+        return;
+
+    #if _WIN32
+    BOOL VirtualFree_result = VirtualFree(arena->start, 0, MEM_RELEASE);
+    gp_db_expect(VirtualFree_result != 0, "%lu", GetLastError());
+    #else
+    int munmap_result = munmap(arena->start, arena->capacity);
+    gp_db_expect(munmap_result != -1, "%s", strerror(errno));
+    #endif
+
+    arena->start = arena->position = NULL;
+    arena->capacity = 0;
 }

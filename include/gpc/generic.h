@@ -1608,7 +1608,7 @@ typedef struct { GPAllocator alc; } GPDummyAlc; // for comma issues in GP_ALC_TY
 #define GP_USER_ALLOCATORS GPDummyAlc
 #endif
 
-#define GP_ALC_TYPES GP_USER_ALLOCATORS, GPAllocator, GPArena
+#define GP_ALC_TYPES GP_USER_ALLOCATORS, GPAllocator, GPArena, GPVirtualArena
 #define GP_ALC_SELECTION(T) const T*: 0, T*: 0
 #define GP_ALC11(A) ((int){0} = _Generic(A, \
     GP_PROCESS_ALL_ARGS(GP_ALC_SELECTION, GP_COMMA, GP_ALC_TYPES)), \
