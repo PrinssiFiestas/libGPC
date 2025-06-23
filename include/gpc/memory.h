@@ -110,8 +110,10 @@ GPAllocator* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
 /** Free scope arena.
  * Also frees any inner scopes in the current thread that have not been ended.
  * Calls deferred functions.
+ * @return combined size of all internal buffers. This may be useful to
+ * determine appropriate size for gp_begin().
  */
-void gp_end(GPAllocator* optional_scope);
+size_t gp_end(GPAllocator* optional_scope);
 
 /** Set cleanup routines to be executed when scope ends.
  * Deferred functions are called in Last In First Out order in gp_end().
@@ -138,6 +140,11 @@ void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
  */
 GP_NODISCARD
 GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
+
+#if __GNUC__ || _MSC_VER
+#define GP_BEGIN { GP_SCOPE_BEGIN
+#define GP_END     GP_SCOPE_END }
+#endif
 
 // ----------------------------------------------------------------------------
 // Arena Allocator
@@ -200,11 +207,16 @@ void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 
 /** Deallocate all memory excluding the arena itself.
  * Fully rewinds the arena pointer to the beginning of the arena.
+ * @return combined size of all internal buffers. This may be useful to
+ * determine appropriate size for gp_arena_init().
  */
-void gp_arena_reset(GPArena*) GP_NONNULL_ARGS();
+size_t gp_arena_reset(GPArena*) GP_NONNULL_ARGS();
 
-/** Deallocate all arena memory including the arena itself.*/
-void gp_arena_delete(GPArena* optional);
+/** Deallocate all arena memory including the arena itself.
+ * @return combined size of all internal buffers. This may be useful to
+ * determine appropriate size for gp_arena_init().
+ */
+size_t gp_arena_delete(GPArena* optional);
 
 // ----------------------------------------------------------------------------
 // Thread Local Scratch Arena
@@ -322,6 +334,40 @@ static inline void* gp_virtual_alloc(
 //
 // ----------------------------------------------------------------------------
 
+
+// GP_SCOPE_BEGIN and GP_SCOPE_END
+#if __GNUC__
+typedef struct gp_auto_scope_data
+{ // TODO defer stack size as well
+    GPAllocator* scope;
+    size_t* size;
+} GPAutoScopeData;
+
+static inline void gp_auto_scope_clean(GPAutoScopeData* scope)
+{
+    size_t scope_size = gp_end(scope->scope);
+    *scope->size = (scope_size >> 1) + (*scope->size >> 1); // IIR smoothing
+}
+#define GP_SCOPE_BEGIN \
+    static __thread size_t _gp_auto_scope_size; \
+    GPAllocator* scope = gp_begin(_gp_auto_scope_size); \
+    __attribute__((cleanup(gp_auto_scope_clean))) GPAutoScopeData _gp_auto_scope_data = \
+        { scope, &_gp_auto_scope_size };
+    // user code
+#define GP_SCOPE_END
+
+#elif _MSC_VER
+
+#define GP_SCOPE_BEGIN \
+    static __declspec(thread) size_t _gp_auto_scope_size; \
+    GPAllocator* scope = gp_begin(_gp_auto_scope_size); \
+    __try {
+        // user code
+#define GP_SCOPE_END } __finally { \
+    _gp_auto_scope_size = (gp_end(scope) >> 1) + (_gp_auto_scope_size >> 1); \
+}
+
+#endif // GP_SCOPE_BEGIN and GP_SCOPE_END
 
 #ifdef __cplusplus
 } // extern "C"

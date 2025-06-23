@@ -166,11 +166,13 @@ static bool gp_in_this_node(GPArenaNode* node, void* _pos)
     return block_start <= pos && pos <= block_start + node->capacity;
 }
 
-static void gp_arena_node_delete(GPArena* arena)
+static size_t gp_arena_node_delete(GPArena* arena)
 {
     GPArenaNode* old_head = arena->head;
+    size_t old_capacity = old_head->capacity;
     arena->head = arena->head->tail;
     gp_mem_dealloc(arena->allocator, old_head);
+    return old_capacity;
 }
 
 void gp_arena_rewind(GPArena* arena, void* new_pos)
@@ -183,23 +185,29 @@ void gp_arena_rewind(GPArena* arena, void* new_pos)
             (uint8_t*)(arena->head + 1) + arena->head->capacity - (uint8_t*)new_pos);
 }
 
-void gp_arena_reset(GPArena* arena)
+size_t gp_arena_reset(GPArena* arena)
 {
+    size_t total_capacity = 0;
     while (arena->head->tail != NULL)
-        gp_arena_node_delete(arena);
+        total_capacity += gp_arena_node_delete(arena);
     arena->head->position = arena->head + 1;
     ASAN_POISON_MEMORY_REGION(arena->head->position, arena->head->capacity);
+    return total_capacity + arena->head->capacity;
 }
 
-void gp_arena_delete(GPArena* arena)
+size_t gp_arena_delete(GPArena* arena)
 {
     if (arena == NULL)
-        return;
+        return 0;
+
+    size_t total_capacity = 0;
     while (arena->head != NULL)
-        gp_arena_node_delete(arena);
+        total_capacity += gp_arena_node_delete(arena);
 
     if (arena->is_shared)
         gp_mem_dealloc(arena->allocator, (GPMutex*)arena->is_shared);
+
+    return total_capacity;
 }
 
 // ----------------------------------------------------------------------------
@@ -341,19 +349,20 @@ static GPThreadKey  gp_scope_factory_key;
 static GPThreadOnce gp_scope_factory_key_once = GP_THREAD_ONCE_INIT;
 
 GP_NO_FUNCTION_POINTER_SANITIZE
-static void gp_end_scopes(GPScope* scope, GPScope*const last_to_be_ended)
+static size_t gp_end_scopes(GPScope* scope, GPScope*const last_to_be_ended)
 {
     if (scope == NULL)
-        return;
+        return 0;
     if (scope->defer_stack != NULL) {
         for (size_t i = scope->defer_stack->length - 1; i != (size_t)-1; --i) {
             scope->defer_stack->stack[i].f(scope->defer_stack->stack[i].arg);
         }
     }
     GPScope* previous = scope->parent;
-    gp_arena_delete(&scope->arena);
+    size_t scope_size = gp_arena_delete(&scope->arena);
     if (scope != last_to_be_ended)
-        gp_end_scopes(previous, last_to_be_ended);
+        return gp_end_scopes(previous, last_to_be_ended);
+    return scope_size;
 }
 
 GPAllocator* gp_last_scope(const GPAllocator* fallback)
@@ -429,17 +438,18 @@ GPAllocator* gp_begin(const size_t _size)
     return (GPAllocator*)scope;
 }
 
-void gp_end(GPAllocator*_scope)
+size_t gp_end(GPAllocator*_scope)
 {
     if (_scope == NULL)
-        return;
+        return 0;
     GPScope* scope = (GPScope*)_scope;
 
     GPScope* previous = scope->parent;
     GPScopeFactory* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    gp_end_scopes(scope_factory->last_scope, scope);
+    size_t scope_size = gp_end_scopes(scope_factory->last_scope, scope);
     scope_factory->last_scope = previous;
     gp_arena_rewind(&scope_factory->arena, scope);
+    return scope_size;
 }
 
 void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)

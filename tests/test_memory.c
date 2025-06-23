@@ -74,7 +74,10 @@ static GPThreadResult test0(void*_)
             ps[6] = gp_mem_alloc(scope, 64);
             ps[7] = gp_mem_alloc(scope, 64);
 
-            gp_end(scope);
+            // This could be used for better informed estimation for gp_begin(),
+            // but now we'll just test that it's not empty.
+            size_t scope_size = gp_end(scope);
+            gp_assert(scope_size > 0);
 
             for (size_t i = 0; i < sizeof ps / sizeof*ps; i++)
                 gp_expect(is_free(ps[i]));
@@ -111,6 +114,30 @@ static GPThreadResult test0(void*_)
             gp_expect(is_free(p1));
             gp_expect(is_free(p2));
         }
+
+        #if __GNUC__ || _MSC_VER
+        gp_test("Magic scope");
+        {
+            const int dummy_var = 0;
+            (void)dummy_var;
+            GP_BEGIN
+                // Shadowing to demonstrate that we are indeed in another {} scope
+                const int dummy_var = 1;
+                (void)dummy_var;
+
+                // GP_BEGIN created scope allocator
+                int* p = gp_mem_alloc(scope, sizeof*p);
+                *p = 7;
+
+                gp_defer(scope, gp_suite, NULL); // also end suite when exiting scope
+
+                // Exiting scope using any control structure is ok. gp_end() is
+                // guaranteed to be called on scope exit for the scope allocator
+                // of the current scope.
+                return (GPThreadResult)0;
+            GP_END
+        }
+        #endif
     }
     gp_suite(NULL);
 
