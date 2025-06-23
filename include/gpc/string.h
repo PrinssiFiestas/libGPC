@@ -104,7 +104,7 @@ void*              gp_str_allocation(GPString) GP_NONNULL_ARGS() GP_NODISCARD;
 /** Free string memory.
  * Passing strings on stack is safe too.
  */
-inline void gp_str_delete(GPString optional)
+static inline void gp_str_delete(GPString optional)
 {
     if (optional != NULL && gp_str_allocation(optional) != NULL)
         gp_mem_dealloc(gp_str_allocator(optional), gp_str_allocation(optional));
@@ -113,7 +113,7 @@ inline void gp_str_delete(GPString optional)
 /** Free string memory trough pointer.
  * This should be used as destructor for GPDictionary(GPString) if needed.
  */
-inline void gp_str_ptr_delete(GPString* optional)
+static inline void gp_str_ptr_delete(GPString* optional)
 {
     if (optional != NULL)
         gp_str_delete(*optional);

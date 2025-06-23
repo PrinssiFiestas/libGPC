@@ -11,17 +11,13 @@
 #include <string.h>
 
 #if !_WIN32
+#ifndef __USE_MISC
+#define __USE_MISC
+#endif
 #include <sys/mman.h>
 #include <errno.h>
 #else
 #include <windows.h>
-#endif
-
-#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
-extern inline void* gp_mem_alloc        (const GPAllocator*, size_t);
-extern inline void* gp_mem_alloc_aligned(const GPAllocator*, size_t, size_t);
-extern inline void* gp_mem_alloc_zeroes (const GPAllocator*, size_t);
-extern inline void  gp_mem_dealloc      (const GPAllocator*, void*);
 #endif
 
 static GP_MAYBE_ATOMIC size_t gp_heap_allocation_count = 0;
@@ -464,10 +460,12 @@ void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
 
 // ----------------------------------------------------------------------------
 
-#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
-extern inline void* gp_virtual_alloc(GPVirtualArena* allocator, size_t size, size_t alignment);
-extern inline void gp_virtual_rewind(GPVirtualArena* arena, void* to_this_position);
-#endif
+// gp_virtual_alloc() must be inline, since it is supposed to be the best
+// performing allocation. It also must be static to avoid linking issues with
+// CompCert, but we do need a stable pointer between translation units to be
+// compared against to detect GPVirtualArena during runtime for the generic
+// gp_rewind(), so here it is.
+void*(*const gp_virtual_alloc_ref)(const GPAllocator*,size_t,size_t) = (void*(*)(const GPAllocator*,size_t,size_t))gp_virtual_alloc;
 
 GPAllocator* gp_virtual_init(GPVirtualArena* alc, size_t size)
 {
@@ -497,11 +495,7 @@ GPAllocator* gp_virtual_init(GPVirtualArena* alc, size_t size)
         NULL,
         size,
         PROT_READ | PROT_WRITE,
-        #if GP_HAS_SANITIZER // MAP_HUGETLB does not play nice with sanitizers
         MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
-        #else
-        MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE | MAP_HUGETLB,
-        #endif
         -1, 0);
     gp_db_expect(alc->start != NULL && alc->start != (void*)-1, "mmap():", "%s", strerror(errno));
     #endif
@@ -509,7 +503,7 @@ GPAllocator* gp_virtual_init(GPVirtualArena* alc, size_t size)
     if (alc->start == NULL || alc->start == (void*)-1)
         return alc->start = alc->position = NULL;
 
-    alc->_allocator.alloc   = (void*(*)(const GPAllocator*, size_t, size_t))gp_virtual_alloc;
+    alc->_allocator.alloc   = gp_virtual_alloc_ref;
     alc->_allocator.dealloc = gp_arena_dealloc;
     alc->capacity = size;
     return (GPAllocator*)alc;

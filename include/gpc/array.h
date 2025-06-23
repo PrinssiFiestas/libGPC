@@ -99,7 +99,7 @@ const GPAllocator* gp_arr_allocator (const GPArray(void)) GP_NONNULL_ARGS();
 /** Free array memory.
  * Passing arrays on stack is safe too.
  */
-inline void gp_arr_delete(GPArray(void) optional)
+static inline void gp_arr_delete(GPArray(void) optional)
 {
     if (optional != NULL && gp_arr_allocation(optional) != NULL)
         gp_mem_dealloc(gp_arr_allocator(optional), gp_arr_allocation(optional));
@@ -109,7 +109,7 @@ inline void gp_arr_delete(GPArray(void) optional)
  * The parameter should be of type GPArray(T)*.
  * This should be used as destructor for GPDictionary(GPArray(T)) if needed.
  */
-inline void gp_arr_ptr_delete(void* optional)
+static inline void gp_arr_ptr_delete(void* optional)
 {
     if (optional != NULL)
         gp_arr_delete(*(GPArray(void)*)optional);

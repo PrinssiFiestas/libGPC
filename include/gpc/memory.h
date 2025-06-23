@@ -42,7 +42,7 @@ typedef struct gp_allocator
 } GPAllocator;
 
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
-inline void* gp_mem_alloc(
+static inline void* gp_mem_alloc(
     const GPAllocator* allocator,
     size_t size)
 {
@@ -51,7 +51,7 @@ inline void* gp_mem_alloc(
 }
 
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ALLOC_ALIGN(3)
-inline void* gp_mem_alloc_aligned(
+static inline void* gp_mem_alloc_aligned(
     const GPAllocator* allocator,
     size_t size,
     size_t alignment)
@@ -62,7 +62,7 @@ inline void* gp_mem_alloc_aligned(
 }
 
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
-inline void* gp_mem_alloc_zeroes(
+static inline void* gp_mem_alloc_zeroes(
     const GPAllocator* allocator,
     size_t size)
 {
@@ -71,7 +71,7 @@ inline void* gp_mem_alloc_zeroes(
 }
 
 GP_NONNULL_ARGS(1)
-inline void gp_mem_dealloc(
+static inline void gp_mem_dealloc(
     const GPAllocator* allocator,
     void* block)
 {
@@ -257,7 +257,7 @@ typedef struct gp_virtual_arena
 GPAllocator* gp_virtual_init(GPVirtualArena*, size_t size) GP_NONNULL_ARGS();
 
 GP_NONNULL_ARGS()
-inline void gp_virtual_rewind(GPVirtualArena* arena, void* to_this_position)
+static inline void gp_virtual_rewind(GPVirtualArena* arena, void* to_this_position)
 {
     uint8_t* pointer = arena->position = to_this_position;
     gp_db_assert(pointer < (uint8_t*)arena->start + arena->capacity, "Pointer points outside the arena.");
@@ -269,7 +269,7 @@ void gp_virtual_reset(GPVirtualArena*) GP_NONNULL_ARGS();
 void gp_virtual_delete(GPVirtualArena* optional);
 
 GP_NONNULL_ARGS_AND_RETURN GP_ALLOC_ALIGN(3)
-inline void* gp_virtual_alloc(GPVirtualArena* allocator, const size_t size, const size_t alignment)
+static inline void* gp_virtual_alloc(GPVirtualArena* allocator, const size_t size, const size_t alignment)
 {
     gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
     gp_db_assert((alignment & (alignment - 1)) == 0, "Alignment must be a power of 2.");
