@@ -32,7 +32,6 @@ static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size, size_t 
     (void)unused;
     ++gp_heap_allocation_count;
 
-    // TODO assert that alignment is a power of 2.
     #if _WIN32
     void* mem = _aligned_malloc(block_size, alignment);
     #elif __STDC_VERSION__ >= 201112L
@@ -159,6 +158,8 @@ GPAllocator* gp_arena_init(GPArena* arena, const size_t capacity)
 
 static bool gp_in_this_node(GPArenaNode* node, void* _pos)
 {
+    gp_assert(node != NULL,
+        "gp_arena_rewind(): passed pointer was not allocated by the arena.");
     uint8_t* pos = _pos;
     uint8_t* block_start = (uint8_t*)(node + 1);
     return block_start <= pos && pos <= block_start + node->capacity;

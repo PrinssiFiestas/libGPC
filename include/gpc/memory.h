@@ -193,7 +193,8 @@ GPAllocator* gp_arena_init(GPArena*, size_t capacity) GP_INOUT(1) GP_NONNULL_ARG
 
 /** Deallocate some memory.
  * Use this to free everything allocated after @p to_this_position including
- * @p to_this_position.
+ * @p to_this_position. The passed pointer must be a pointer returned by the
+ * arena.
  */
 void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 
