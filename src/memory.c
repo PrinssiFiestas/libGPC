@@ -11,8 +11,9 @@
 #include <string.h>
 
 #if !_WIN32
-#ifndef __USE_MISC
-#define __USE_MISC
+#ifndef __USE_MISC // this should not be used, but _GNU_SOURCE had too many
+#define __USE_MISC // portability related problems
+#define GP_USE_MISC_DEFINED
 #endif
 #include <sys/mman.h>
 #include <errno.h>
@@ -539,3 +540,8 @@ void gp_virtual_delete(GPVirtualArena* arena)
     arena->start = arena->position = NULL;
     arena->capacity = 0;
 }
+
+#ifdef GP_USE_MISC_DEFINED
+#undef __USE_MISC
+#undef GP_USE_MISC_DEFINED
+#endif
