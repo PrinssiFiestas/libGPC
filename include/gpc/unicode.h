@@ -201,7 +201,7 @@ int gp_str_compare(
 /** Create array of substrings.*/
 GP_NONNULL_ARGS() GP_NODISCARD
 GPArray(GPString) gp_str_split(
-    const GPAllocator*,
+    GPAllocator*,
     const void* str,
     size_t      str_length,
     const char* utf8_separator_char_set);

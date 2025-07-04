@@ -37,13 +37,13 @@ extern "C" {
 /** Polymorphic Allocator.*/
 typedef struct gp_allocator
 {
-    void* (*alloc)  (const struct gp_allocator*, size_t size, size_t alignment);
-    void  (*dealloc)(const struct gp_allocator*, void*  block);
+    void* (*alloc)  (struct gp_allocator*, size_t size, size_t alignment);
+    void  (*dealloc)(struct gp_allocator*, void*  block);
 } GPAllocator;
 
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 static inline void* gp_mem_alloc(
-    const GPAllocator* allocator,
+    GPAllocator* allocator,
     size_t size)
 {
     gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
@@ -52,7 +52,7 @@ static inline void* gp_mem_alloc(
 
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ALLOC_ALIGN(3)
 static inline void* gp_mem_alloc_aligned(
-    const GPAllocator* allocator,
+    GPAllocator* allocator,
     size_t size,
     size_t alignment)
 {
@@ -63,7 +63,7 @@ static inline void* gp_mem_alloc_aligned(
 
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 static inline void* gp_mem_alloc_zeroes(
-    const GPAllocator* allocator,
+    GPAllocator* allocator,
     size_t size)
 {
     gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
@@ -72,7 +72,7 @@ static inline void* gp_mem_alloc_zeroes(
 
 GP_NONNULL_ARGS(1)
 static inline void gp_mem_dealloc(
-    const GPAllocator* allocator,
+    GPAllocator* allocator,
     void* block)
 {
     if (block != NULL)
@@ -87,7 +87,7 @@ static inline void gp_mem_dealloc(
  */
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
 void* gp_mem_realloc(
-    const GPAllocator* allocator,
+    GPAllocator* allocator,
     void*  optional_old_block,
     size_t old_size,
     size_t new_size);
@@ -95,14 +95,7 @@ void* gp_mem_realloc(
 // ----------------------------------------------------------------------------
 // Scope Allocator
 
-// The scope allocator is an allocator designed to make lifetimes trivial. Use
-// gp_begin() to create a new arena based allocator. You can then encapsulate
-// the allocator in GPString, GPArray, or manually allocate memory. When the
-// allocator is passed to gp_end(), all memory is freed at once. This is much
-// simpler and more performant than using malloc()-free() pairs. It can also
-// handle mismatched gp_begin()-gp_end() pairs: if a scope misses it's gp_end()
-// call, the next call to gp_end() will end all unended scopes making memory
-// leaks and other memory bugs practically impossible.
+// TODO better docs
 
 /** Create scope arena.*/
 GPAllocator* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
@@ -139,7 +132,7 @@ void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
  * only to be able to access the current scope allocator in callbacks.
  */
 GP_NODISCARD
-GPAllocator* gp_last_scope(const GPAllocator* return_this_if_no_scopes);
+GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
 
 #if __GNUC__ || _MSC_VER
 #define GP_BEGIN { GP_SCOPE_BEGIN
@@ -162,7 +155,7 @@ typedef struct gp_arena
     /** Determine where arena gets it's memory from.
      * Default is gp_heap.
      */
-    const GPAllocator* allocator;
+    GPAllocator* allocator;
 
     /** Determine how new arenas grow.
      * Use this to determine the size of new arena node when old gets full. A
@@ -248,7 +241,7 @@ GPArena* gp_scratch_arena(void) GP_NODISCARD;
 // Heap Allocator
 
 /** malloc() based allocator.*/
-extern const GPAllocator* gp_heap;
+extern GPAllocator* gp_heap;
 
 /** Allocation count to help optimizations.*/
 GP_NODISCARD

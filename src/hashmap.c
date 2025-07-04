@@ -92,7 +92,7 @@ struct gp_map
 {
     const size_t length; // number of slots
     const size_t element_size; // if 0, elements is in GPSlot
-    const GPAllocator*const allocator;
+    GPAllocator*const allocator;
     void (*const destructor)(void* element); // may be NULL
 };
 
@@ -125,7 +125,7 @@ typedef struct gp_slot
 
 static void gp_no_op_destructor(void*_) { (void)_; }
 
-GPMap* gp_map_new(const GPAllocator* allocator, const GPMapInitializer*_init)
+GPMap* gp_map_new(GPAllocator* allocator, const GPMapInitializer*_init)
 {
     #define GP_DEFAULT_MAP_CAP (1 << 8) // somewhat arbitrary atm
     static const GPMapInitializer defaults = { .capacity = GP_DEFAULT_MAP_CAP };
@@ -224,7 +224,7 @@ void gp_map_delete(GPMap* map)
 }
 
 static void* gp_map_put_elem(
-    const GPAllocator*const allocator,
+    GPAllocator*const allocator,
     GPSlot*const            slots,
     const size_t            length,
     const GPUint128         key,
@@ -340,7 +340,7 @@ bool gp_map_remove(GPMap* map, GPUint128 key)
         map->destructor);
 }
 
-GPHashMap* gp_hash_map_new(const GPAllocator* alc, const GPMapInitializer* init)
+GPHashMap* gp_hash_map_new(GPAllocator* alc, const GPMapInitializer* init)
 {
     return (GPHashMap*)gp_map_new(alc, init);
 }

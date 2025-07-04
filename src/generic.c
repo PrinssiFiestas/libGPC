@@ -19,7 +19,7 @@ bool gp_is_valid99(GPStrIn s, size_t*i)
     return gp_bytes_is_valid_utf8(s.data, s.length, i);
 }
 
-GPString gp_replace_new(const GPAllocator* a, GPStrIn b, GPStrIn c, GPStrIn d, const size_t start)
+GPString gp_replace_new(GPAllocator* a, GPStrIn b, GPStrIn c, GPStrIn d, const size_t start)
 {
     GPString out = gp_str_new(a, b.length + c.length + d.length, "");
     const size_t pos = gp_bytes_find_first(b.data, b.length, c.data, c.length, start);
@@ -36,7 +36,7 @@ GPString gp_replace_new(const GPAllocator* a, GPStrIn b, GPStrIn c, GPStrIn d, c
 }
 
 GPString gp_replace99(
-    const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d,
+    const size_t a_size, void* a, GPStrIn b, GPStrIn c, GPStrIn d,
     const size_t start)
 {
     if (a_size < sizeof(GPAllocator)) {
@@ -84,7 +84,7 @@ GPString gp_trim99(
     return gp_str_trim_new(a, b, char_set, flags);
 }
 
-GPString gp_to_upper_new(const GPAllocator* alc, GPStrIn str)
+GPString gp_to_upper_new(GPAllocator* alc, GPStrIn str)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, str.length, "");
     memcpy(out, str.data, str.length);
@@ -93,7 +93,7 @@ GPString gp_to_upper_new(const GPAllocator* alc, GPStrIn str)
     return out;
 }
 
-GPString gp_to_upper_full_new(const GPAllocator* alc, GPStrIn str, const char* locale)
+GPString gp_to_upper_full_new(GPAllocator* alc, GPStrIn str, const char* locale)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, str.length, "");
     memcpy(out, str.data, str.length);
@@ -102,7 +102,7 @@ GPString gp_to_upper_full_new(const GPAllocator* alc, GPStrIn str, const char* l
     return out;
 }
 
-GPString gp_to_lower_new(const GPAllocator* alc, GPStrIn str)
+GPString gp_to_lower_new(GPAllocator* alc, GPStrIn str)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, str.length, "");
     memcpy(out, str.data, str.length);
@@ -111,7 +111,7 @@ GPString gp_to_lower_new(const GPAllocator* alc, GPStrIn str)
     return out;
 }
 
-GPString gp_to_lower_full_new(const GPAllocator* alc, GPStrIn str, const char* locale)
+GPString gp_to_lower_full_new(GPAllocator* alc, GPStrIn str, const char* locale)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, str.length, "");
     memcpy(out, str.data, str.length);
@@ -121,7 +121,7 @@ GPString gp_to_lower_full_new(const GPAllocator* alc, GPStrIn str, const char* l
 }
 
 GPString gp_to_valid_new(
-    const GPAllocator* alc, GPStrIn str, const char*const replacement)
+    GPAllocator* alc, GPStrIn str, const char*const replacement)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, str.length, "");
     memcpy(out, str.data, str.length);
@@ -130,7 +130,7 @@ GPString gp_to_valid_new(
     return out;
 }
 
-GPString gp_capitalize_new(const GPAllocator* alc, GPStrIn str)
+GPString gp_capitalize_new(GPAllocator* alc, GPStrIn str)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, str.length, "");
     memcpy(out, str.data, str.length);
@@ -139,7 +139,7 @@ GPString gp_capitalize_new(const GPAllocator* alc, GPStrIn str)
     return out;
 }
 
-GPString gp_capitalize_locale_new(const GPAllocator* alc, GPStrIn str, const char* locale)
+GPString gp_capitalize_locale_new(GPAllocator* alc, GPStrIn str, const char* locale)
 { // TODO don't copy and process. Read char, process, and write to out
     GPString out = gp_str_new(alc, str.length, "");
     memcpy(out, str.data, str.length);
@@ -151,7 +151,7 @@ GPString gp_capitalize_locale_new(const GPAllocator* alc, GPStrIn str, const cha
 // ----------------------------------------------------------------------------
 // Srtings and arrays
 
-GPString gp_join_new(const GPAllocator* allocator, const GPArray(GPString) strs, const char* separator)
+GPString gp_join_new(GPAllocator* allocator, const GPArray(GPString) strs, const char* separator)
 {
     if (gp_arr_length(strs) == 0)
         return gp_str_new(allocator, 0, "");

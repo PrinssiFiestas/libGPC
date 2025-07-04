@@ -43,8 +43,8 @@
 #define GP_NO_FUNCTION_POINTER_SANITIZE
 #endif
 
-void gp_arena_dealloc(const GPAllocator*, void*);
-void gp_virtual_dealloc(const GPAllocator*, void*);
+void gp_arena_dealloc(GPAllocator*, void*);
+void gp_virtual_dealloc(GPAllocator*, void*);
 
 static inline size_t gp_max_digits_in(const GPType T)
 {

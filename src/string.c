@@ -19,7 +19,7 @@
 #include <sys/stat.h>
 
 GPString gp_str_new(
-    const GPAllocator*const allocator,
+    GPAllocator*const allocator,
     size_t capacity,
     const char*const init)
 {
@@ -43,7 +43,7 @@ static GPStringHeader* gp_str_header(const GPString str)
 size_t             gp_str_length    (GPString s) { return gp_str_header(s)->length;    }
 size_t             gp_str_capacity  (GPString s) { return gp_str_header(s)->capacity;  }
 void*              gp_str_allocation(GPString s) { return gp_str_header(s)->allocation;}
-const GPAllocator* gp_str_allocator (GPString s) { return gp_str_header(s)->allocator; }
+GPAllocator* gp_str_allocator (GPString s) { return gp_str_header(s)->allocator; }
 
 size_t gp_str_find_first(
     GPString    haystack,
@@ -550,7 +550,7 @@ void gp_str_trim(
     gp_str_header(*str)->length = length;
 }
 
-GPArray(uint32_t) gp_utf8_to_utf32_new(const GPAllocator* allocator, const GPString u8)
+GPArray(uint32_t) gp_utf8_to_utf32_new(GPAllocator* allocator, const GPString u8)
 {
     GPArray(uint32_t) u32 = gp_arr_new(allocator, sizeof u32[0], gp_str_length(u8));
     for (size_t i = 0, codepoint_length; i < gp_str_length(u8); i += codepoint_length)

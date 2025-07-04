@@ -35,13 +35,13 @@
 #define stat _stat
 #endif
 
-static FILE*                   out            = NULL;
-static const char*             out_path       = NULL;
-static const char*             version_number = NULL;
-static GPString                implementation = NULL;
-static GPArena                 garena;
-static const GPAllocator*const gmem           = (GPAllocator*)&garena;
-static GPString                line           = NULL;
+static FILE*             out            = NULL;
+static const char*       out_path       = NULL;
+static const char*       version_number = NULL;
+static GPString          implementation = NULL;
+static GPArena           garena;
+static GPAllocator*const gmem           = (GPAllocator*)&garena;
+static GPString          line           = NULL;
 
 typedef struct file
 {

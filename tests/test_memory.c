@@ -9,8 +9,8 @@
 
 // Testing allocator. Does not free but marks memory as freed instead.
 // Check below main() for definitions and how to write custom allocators.
-const GPAllocator* new_test_allocator(void);
-void delete_test_allocator(const GPAllocator*);
+GPAllocator* new_test_allocator(void);
+void delete_test_allocator(GPAllocator*);
 
 static bool is_free(void*_ptr)
 {
@@ -239,8 +239,8 @@ static GPThreadResult test_scratch(void*_)
 
 int main(void)
 {
-    const GPAllocator* original_heap = gp_heap;
-    const GPAllocator* test_allocator = new_test_allocator();
+    GPAllocator* original_heap = gp_heap;
+    GPAllocator* test_allocator = new_test_allocator();
     gp_heap = test_allocator;
 
     GPThread tests[3];
@@ -358,8 +358,8 @@ int main(void)
 // seem like a big limitation, but it makes reasoning about NULL massively
 // simpler. All pointers returned by alloc() also MUST be aligned to
 // GP_ALLOC_ALIGNMENT boundary. dealloc() is REQUIRED to handle NULL arguments.
-static void* test_alloc(const GPAllocator*, size_t, size_t) GP_NONNULL_ARGS_AND_RETURN;
-static void  test_dealloc(const GPAllocator* optional, void* optional_block);
+static void* test_alloc(GPAllocator*, size_t, size_t) GP_NONNULL_ARGS_AND_RETURN;
+static void  test_dealloc(GPAllocator* optional, void* optional_block);
 
 // While struct gp_allocator could be used by itself, your allocator probably
 // needs some data of its own. We are going to write an arena-like allocator.
@@ -386,7 +386,7 @@ static GPMutex test_allocator_mutex;
 // However, in this case a constructor is needed. By returning a GPAllocator*
 // instead of TestAllocator*, we are also privatizing TestAllocator* specific
 // functionality while also removing the need for ugly upcasts from user.
-const GPAllocator* new_test_allocator(void)
+GPAllocator* new_test_allocator(void)
 {
     gp_mutex_init(&test_allocator_mutex);
     TestAllocator* allocator = malloc(1000 * (1 << 10));
@@ -398,14 +398,14 @@ const GPAllocator* new_test_allocator(void)
         .allocator  = {.alloc = test_alloc, .dealloc = test_dealloc },
         .free_block = (uint8_t*)allocator + gp_round_to_aligned(sizeof*allocator, GP_ALLOC_ALIGNMENT)
     };
-    return (const GPAllocator*)allocator;
+    return (GPAllocator*)allocator;
 }
 
 // Normally, arena running out of memory should be handled somehow. GPArena and
 // the scope allocator does this by creating new arenas where the size is
 // guranteed to fit the size argument of alloc(). Here we will keep things
 // simple for testing purposes and omit handling out of memory case.
-static void* test_alloc(const GPAllocator*_allocator, size_t size, size_t alignment)
+static void* test_alloc(GPAllocator*_allocator, size_t size, size_t alignment)
 {
     gp_mutex_lock(&test_allocator_mutex);
 
@@ -430,7 +430,7 @@ static void* test_alloc(const GPAllocator*_allocator, size_t size, size_t alignm
 }
 
 // Not actually deallocates, but marks pointer as free for testing purposes.
-static void test_dealloc(const GPAllocator* allocator, void*_block)
+static void test_dealloc(GPAllocator* allocator, void*_block)
 {
     if (!allocator || !_block)
         return;
@@ -459,7 +459,7 @@ static void private_delete_test_allocator(TestAllocator* allocator)
     free((void*)allocator);
 }
 
-void delete_test_allocator(const GPAllocator* allocator)
+void delete_test_allocator(GPAllocator* allocator)
 {
     private_delete_test_allocator((TestAllocator*)allocator);
 }

@@ -554,7 +554,7 @@ static size_t gp_utf8_find_first_not_of(
 }
 
 GPArray(GPString) gp_str_split(
-    const GPAllocator* allocator,
+    GPAllocator* allocator,
     const void*const str,
     const size_t str_length,
     const char*const separators)

@@ -132,4 +132,21 @@
 #define GP_UNREACHABLE ((void)0)
 #endif
 
+// ----------------------------------------------------------------------------
+// Static Assert
+
+// GP_SCOPE_ASSERT() is static_assert() if available, run-time assertion
+// otherwise. To ensure portability, only use it in scope {}, hence the name.
+
+#if __STDC_VERSION__ >= 202311L || __cplusplus
+#define GP_STATIC_ASSERT(...) static_assert(__VA_ARGS__)
+#define GP_SCOPE_ASSERT(...)  static_assert(__VA_ARGS__)
+#elif __STDC_VERSION >= 201112L
+#define GP_STATIC_ASSERT(...) _Static_assert(__VA_ARGS__)
+#define GP_SCOPE_ASSERT(...)  _Static_assert(__VA_ARGS__)
+#else
+#define GP_STATIC_ASSERT(...)
+#define GP_SCOPE_ASSERT(...) gp_assert(__VA_ARGS__)
+#endif
+
 #endif // GP_ATTRIBUTES_INCLUDED

@@ -54,14 +54,14 @@ typedef struct gp_string_header
 {
     uintptr_t          capacity;
     void*              allocation; // pointer to self or NULL if on stack
-    const GPAllocator* allocator;
+    GPAllocator* allocator;
     uintptr_t          length;
 } GPStringHeader;
 
 /** Create and initialize a new string.*/
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 GPString gp_str_new(
-    const       GPAllocator*,
+    GPAllocator*,
     size_t      capacity,
     const char* init);
 
@@ -96,10 +96,10 @@ GPString gp_str_new(
 */
 
 /** Getters */
-size_t             gp_str_length    (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
-size_t             gp_str_capacity  (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
-const GPAllocator* gp_str_allocator (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
-void*              gp_str_allocation(GPString) GP_NONNULL_ARGS() GP_NODISCARD;
+size_t       gp_str_length    (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
+size_t       gp_str_capacity  (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
+GPAllocator* gp_str_allocator (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
+void*        gp_str_allocation(GPString) GP_NONNULL_ARGS() GP_NODISCARD;
 
 /** Free string memory.
  * Passing strings on stack is safe too.

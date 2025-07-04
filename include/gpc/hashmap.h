@@ -142,7 +142,7 @@ typedef struct gp_map_initializer
 /** Create hash map that takes any bytes as keys.*/
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
 GPHashMap* gp_hash_map_new(
-    const GPAllocator*,
+    GPAllocator*,
     const GPMapInitializer* optional);
 
 /** Deallocate memory.*/
@@ -182,7 +182,7 @@ bool gp_hash_map_remove(
 /** Create hash map that takes 128-bit keys.*/
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
 GPMap* gp_map_new(
-    const GPAllocator*,
+    GPAllocator*,
     const GPMapInitializer* optional);
 
 /** Deallocate memory.*/

@@ -15,13 +15,13 @@
 extern inline size_t gp_count_fmt_specs(const char* fmt);
 #endif
 
-void gp_arena_dealloc(const GPAllocator* arena, void* mem)
+void gp_arena_dealloc(GPAllocator* arena, void* mem)
 {
     (void)arena;
     ASAN_POISON_MEMORY_REGION(mem, sizeof(void*));
 }
 
-void gp_virtual_dealloc(const GPAllocator* arena, void* mem)
+void gp_virtual_dealloc(GPAllocator* arena, void* mem)
 {
     (void)arena;
     (void)mem;

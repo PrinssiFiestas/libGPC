@@ -28,7 +28,7 @@ size_t gp_heap_alloc_count(void)
     return gp_heap_allocation_count;
 }
 
-static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size, size_t alignment)
+static void* gp_heap_alloc(GPAllocator* unused, size_t block_size, size_t alignment)
 {
     (void)unused;
     ++gp_heap_allocation_count;
@@ -53,7 +53,7 @@ static void* gp_heap_alloc(const GPAllocator* unused, size_t block_size, size_t 
     return mem;
 }
 
-static void gp_heap_dealloc(const GPAllocator* unused, void* block)
+static void gp_heap_dealloc(GPAllocator* unused, void* block)
 {
     (void)unused;
     #if _WIN32
@@ -66,11 +66,11 @@ static void gp_heap_dealloc(const GPAllocator* unused, void* block)
     #endif
 }
 
-static const GPAllocator gp_mallocator = {
+static GPAllocator gp_mallocator = {
     .alloc   = gp_heap_alloc,
     .dealloc = gp_heap_dealloc
 };
-const GPAllocator* gp_heap = &gp_mallocator;
+GPAllocator* gp_heap = &gp_mallocator;
 
 // ----------------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ typedef struct gp_arena_node
     void* _padding; // to round size to aligment boundary and for future use
 } GPArenaNode;
 
-void* gp_arena_alloc(const GPAllocator* allocator, const size_t size, const size_t alignment)
+void* gp_arena_alloc(GPAllocator* allocator, const size_t size, const size_t alignment)
 {
     GPArena* arena = (GPArena*)allocator;
     GPArenaNode* head = arena->head;
@@ -121,7 +121,7 @@ void* gp_arena_alloc(const GPAllocator* allocator, const size_t size, const size
 }
 
 static void* gp_arena_shared_alloc(
-    const GPAllocator* allocator, const size_t size, const size_t alignment)
+    GPAllocator* allocator, const size_t size, const size_t alignment)
 {
     gp_mutex_lock(((GPArena*)allocator)->is_shared);
     void* block = gp_arena_alloc(allocator, size, alignment);
@@ -268,7 +268,7 @@ GPArena* gp_scratch_arena(void)
 // ----------------------------------------------------------------------------
 
 void* gp_mem_realloc(
-    const GPAllocator* allocator,
+    GPAllocator* allocator,
     void* old_block,
     size_t old_size,
     size_t new_size)
@@ -365,7 +365,7 @@ static size_t gp_end_scopes(GPScope* scope, GPScope*const last_to_be_ended)
     return scope_size;
 }
 
-GPAllocator* gp_last_scope(const GPAllocator* fallback)
+GPAllocator* gp_last_scope(GPAllocator* fallback)
 {
     GPScopeFactory* factory = gp_thread_local_get(gp_scope_factory_key);
     if (factory == NULL || factory->last_scope == NULL)
@@ -393,7 +393,7 @@ static void gp_make_scope_factory_key(void)
     gp_thread_key_create(&gp_scope_factory_key, gp_delete_scope_factory);
 }
 
-static void* gp_scope_alloc(const GPAllocator* scope, size_t size, size_t alignment)
+static void* gp_scope_alloc(GPAllocator* scope, size_t size, size_t alignment)
 {
     return gp_arena_alloc(scope, size, alignment);
 }
@@ -517,7 +517,7 @@ GPAllocator* gp_virtual_init(GPVirtualArena* alc, size_t size)
     if (alc->start == NULL || alc->start == (void*)-1)
         return alc->start = alc->position = NULL;
 
-    alc->_allocator.alloc   = (void*(*)(const GPAllocator*,size_t,size_t))gp_virtual_alloc;
+    alc->_allocator.alloc   = (void*(*)(GPAllocator*,size_t,size_t))gp_virtual_alloc;
     alc->_allocator.dealloc = gp_virtual_dealloc;
     alc->capacity = size;
     return (GPAllocator*)alc;

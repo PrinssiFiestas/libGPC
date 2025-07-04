@@ -127,19 +127,19 @@
 #include <array> // PRIVATE HELPERS, IGNORE THESE -----------------------------
 typedef struct gp_str_in { const uint8_t* data; const size_t length; } GPStrIn;
 extern "C" {
-    GPString gp_replace_new(const GPAllocator*, GPStrIn, GPStrIn, GPStrIn, size_t);
-    GPString gp_replace_all_new(const GPAllocator*, GPStrIn, GPStrIn, GPStrIn);
+    GPString gp_replace_new(GPAllocator*, GPStrIn, GPStrIn, GPStrIn, size_t);
+    GPString gp_replace_all_new(GPAllocator*, GPStrIn, GPStrIn, GPStrIn);
     GPString gp_str_trim_new(const void*, GPStrIn, const char*, int);
-    GPString gp_to_upper_new(const GPAllocator*, GPStrIn);
-    GPString gp_to_lower_new(const GPAllocator*, GPStrIn);
-    GPString gp_to_valid_new(const GPAllocator*, GPStrIn, const char*);
-    GPString gp_to_upper_full_new(const GPAllocator*, GPStrIn, const char*);
-    GPString gp_to_lower_full_new(const GPAllocator*, GPStrIn, const char*);
-    GPString gp_capitalize_new(const GPAllocator*, GPStrIn);
-    GPString gp_capitalize_locale_new(const GPAllocator*, GPStrIn, const char*);
+    GPString gp_to_upper_new(GPAllocator*, GPStrIn);
+    GPString gp_to_lower_new(GPAllocator*, GPStrIn);
+    GPString gp_to_valid_new(GPAllocator*, GPStrIn, const char*);
+    GPString gp_to_upper_full_new(GPAllocator*, GPStrIn, const char*);
+    GPString gp_to_lower_full_new(GPAllocator*, GPStrIn, const char*);
+    GPString gp_capitalize_new(GPAllocator*, GPStrIn);
+    GPString gp_capitalize_locale_new(GPAllocator*, GPStrIn, const char*);
     size_t gp_bytes_codepoint_count(const void*, size_t);
     bool gp_bytes_is_valid_utf8(const void*, size_t, size_t*);
-    GPString gp_join_new(const GPAllocator*, const GPArray(GPString), const char*);
+    GPString gp_join_new(GPAllocator*, const GPArray(GPString), const char*);
 }
 static inline size_t gp_str_length_cpp(const GPString str) { return gp_str_length(str); }
 static inline size_t gp_str_length_cpp(const char*const str) { return strlen(str); }
@@ -160,13 +160,13 @@ static inline void* gp_insert_cpp(const size_t elem_size, void* out, const size_
 // END OF PRIVATE HELPERS -----------------------------------------------------
 
 // C++: Provide overloads for these for your custom allocators.
-static inline const GPAllocator* gp_alc_cpp(const GPAllocator* alc)
+static inline GPAllocator* gp_alc_cpp(GPAllocator* alc)
 {
-    return (const GPAllocator*)alc;
+    return (GPAllocator*)alc;
 }
-static inline const GPAllocator* gp_alc_cpp(const GPArena* alc)
+static inline GPAllocator* gp_alc_cpp(const GPArena* alc)
 {
-    return (const GPAllocator*)alc;
+    return (GPAllocator*)alc;
 }
 // C11: #define GP_USER_ALLOCATORS to be a comma separated list of your
 // custom allocator types.
@@ -800,7 +800,7 @@ static inline GPArray(T) gp_slice(
     T_ALLOCATOR* allocator, const T* src, const size_t start, const size_t end)
 {
     const size_t length = end - start;
-    GPArray(T) out = (GPArray(T))gp_arr_new((const GPAllocator*)allocator, sizeof out[0], length + sizeof"");
+    GPArray(T) out = (GPArray(T))gp_arr_new((GPAllocator*)allocator, sizeof out[0], length + sizeof"");
     ((GPArrayHeader*)out - 1)->length = length;
     return (GPArray(T))memcpy(out, src + start, length * sizeof out[0]);
 }
@@ -1612,7 +1612,7 @@ typedef struct { GPAllocator alc; } GPDummyAlc; // for comma issues in GP_ALC_TY
 #define GP_ALC_SELECTION(T) const T*: 0, T*: 0
 #define GP_ALC11(A) ((int){0} = _Generic(A, \
     GP_PROCESS_ALL_ARGS(GP_ALC_SELECTION, GP_COMMA, GP_ALC_TYPES)), \
-    (const GPAllocator*)(A))
+    (GPAllocator*)(A))
 
 // ----------------------------------------------------------------------------
 // Bytes and strings
@@ -1666,8 +1666,8 @@ static inline void gp_replace11(GPString* hay, GPStrIn ndl, GPStrIn repl, const 
     gp_str_replace(hay, ndl.data, ndl.length, repl.data, repl.length, start);
 }
 GP_NONNULL_ARGS_AND_RETURN
-GPString gp_replace_new(const GPAllocator* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl, size_t start);
-static inline GPString gp_replace_new4(const void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl)
+GPString gp_replace_new(GPAllocator* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl, size_t start);
+static inline GPString gp_replace_new4(void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl)
 {
     return gp_replace_new(alc, hay, ndl, repl, 0);
 }
@@ -1746,7 +1746,7 @@ static inline GPString gp_str_trim_new3(const void*const alc, GPStrIn str, const
 // ----------------------------------------------------------------------------
 // Strings and arrays
 
-GPString gp_join_new(const GPAllocator* allocator, const GPArray(GPString) srcs, const char* separator);
+GPString gp_join_new(GPAllocator* allocator, const GPArray(GPString) srcs, const char* separator);
 #define GP_JOIN_SELECTION(T) T*: gp_join_new, const T*: gp_join_new
 #define GP_JOIN11_2(A, STRS) _Generic(A, GPString*: gp_str_join, \
     GP_PROCESS_ALL_ARGS(GP_JOIN_SELECTION, GP_COMMA, GP_ALC_TYPES))((void*)(A), STRS, "")
@@ -2013,7 +2013,7 @@ static inline void gp_arr_map11(
 }
 GP_NONNULL_ARGS_AND_RETURN
 static inline GPArray(void) gp_arr_map_new11(
-    const size_t elem_size, const GPAllocator*const alc, GPArrIn src, void(*const f)(void*, const void*))
+    const size_t elem_size, GPAllocator*const alc, GPArrIn src, void(*const f)(void*, const void*))
 {
     GPArray(void) out = gp_arr_new(alc, elem_size, src.length);
     return out = gp_arr_map(elem_size, out, src.data, src.length, f);
@@ -2038,7 +2038,7 @@ static inline void gp_arr_filter11(
 }
 GP_NONNULL_ARGS_AND_RETURN
 static inline GPArray(void) gp_arr_filter_new11(
-    const size_t elem_size, const GPAllocator*const alc, GPArrIn src, bool(*const f)(const void*))
+    const size_t elem_size, GPAllocator*const alc, GPArrIn src, bool(*const f)(const void*))
 {
     GPArray(void) out = gp_arr_new(alc, elem_size, src.length);
     return out = gp_arr_filter(elem_size, out, src.data, src.length, f);
@@ -2098,12 +2098,12 @@ static inline GPString gp_file_to_new_str11(const void* alc, const char*const pa
 #define GP_SIZEOF_TYPEOF(...) sizeof(__VA_ARGS__)
 #endif
 
-#define GP_ALC99(A) ((const GPAllocator*)(A))
+#define GP_ALC99(A) ((GPAllocator*)(A))
 
 // ----------------------------------------------------------------------------
 // Constructors
 
-static inline GPArray(void) gp_arr99(const GPAllocator* alc,
+static inline GPArray(void) gp_arr99(GPAllocator* alc,
     const size_t elem_size, const void*const init, const size_t init_length)
 {
     GPArray(void) out = gp_arr_new(alc, elem_size, init_length > 4 ? init_length : 4);
@@ -2214,7 +2214,7 @@ static inline GPString gp_repeat99(
 #define GP_REPEAT99(A, COUNT, ...) gp_repeat99(GP_SIZEOF_TYPEOF(*(A)), A, COUNT, GP_STR_IN99(__VA_ARGS__))
 
 GPString gp_replace99(
-    const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d,
+    const size_t a_size, void* a, GPStrIn b, GPStrIn c, GPStrIn d,
     const size_t start);
 #define GP_REPLACE99_3(HAY, NDL, REPL) gp_replace99( \
     GP_SIZEOF_TYPEOF(*(HAY)), HAY, GP_STR_IN99(NDL), GP_STR_IN99(REPL), GP_STR_IN99(NULL, 0), 0)
@@ -2256,8 +2256,8 @@ GPString gp_trim99(
 #define GP_TRIM99(...) \
     GP_OVERLOAD4(__VA_ARGS__, GP_TRIM99_4, GP_TRIM99_3, GP_TRIM99_2, GP_TRIM99_1)(__VA_ARGS__)
 
-GPString gp_to_upper_new(const GPAllocator*, GPStrIn);
-GPString gp_to_upper_full_new(const GPAllocator*, GPStrIn, const char*);
+GPString gp_to_upper_new(GPAllocator*, GPStrIn);
+GPString gp_to_upper_full_new(GPAllocator*, GPStrIn, const char*);
 static inline GPString gp_to_upper99(const size_t a_size, const void* a, const void* b, const char* b_id)
 {
     if (a_size <= sizeof(GPAllocator)) {
@@ -2276,8 +2276,8 @@ static inline GPString gp_to_upper99(const size_t a_size, const void* a, const v
 #define GP_TO_UPPER3(ALC, STR, LOC) gp_to_upper_full_new(GP_ALC(ALC), GP_STR_IN(STR), LOC)
 #define GP_TO_UPPER99(...) GP_OVERLOAD3(__VA_ARGS__, GP_TO_UPPER3, GP_TO_UPPER99_2, GP_TO_UPPER1)(__VA_ARGS__)
 
-GPString gp_to_lower_new(const GPAllocator*, GPStrIn);
-GPString gp_to_lower_full_new(const GPAllocator*, GPStrIn, const char*);
+GPString gp_to_lower_new(GPAllocator*, GPStrIn);
+GPString gp_to_lower_full_new(GPAllocator*, GPStrIn, const char*);
 static inline GPString gp_to_lower99(const size_t a_size, const void* a, const void* b, const char* b_id)
 {
     if (a_size <= sizeof(GPAllocator)) {
@@ -2297,13 +2297,13 @@ static inline GPString gp_to_lower99(const size_t a_size, const void* a, const v
 #define GP_TO_LOWER99(...) GP_OVERLOAD3(__VA_ARGS__, GP_TO_LOWER3, GP_TO_LOWER99_2, GP_TO_LOWER1)(__VA_ARGS__)
 
 GPString gp_to_valid_new(
-    const GPAllocator* alc, GPStrIn str, const char*const replacement);
+    GPAllocator* alc, GPStrIn str, const char*const replacement);
 #define GP_TO_VALID2(A, REPL)        gp_str_to_valid(A, REPL)
 #define GP_TO_VALID3(ALC, STR, REPL) gp_to_valid_new(GP_ALC(ALC), GP_STR_IN(STR), REPL)
 #define GP_TO_VALID(A, ...) GP_OVERLOAD2(__VA_ARGS__, GP_TO_VALID3, GP_TO_VALID2)(A,__VA_ARGS__)
 
-GPString gp_capitalize_new(const GPAllocator*, GPStrIn);
-GPString gp_capitalize_locale_new(const GPAllocator*, GPStrIn, const char*);
+GPString gp_capitalize_new(GPAllocator*, GPStrIn);
+GPString gp_capitalize_locale_new(GPAllocator*, GPStrIn, const char*);
 static inline GPString gp_capitalize99(const size_t a_size, const void* a, const void* b, const char* b_id)
 {
     if (a_size <= sizeof(GPAllocator)) {
@@ -2376,7 +2376,7 @@ bool gp_is_valid99(GPStrIn s, size_t*i);
 // ----------------------------------------------------------------------------
 // Strings and arrays
 
-static inline GPArray(GPString) gp_split99(const GPAllocator* alc, GPStrIn str, const char* separators)
+static inline GPArray(GPString) gp_split99(GPAllocator* alc, GPStrIn str, const char* separators)
 {
     return gp_str_split(alc, str.data, str.length, separators);
 }
@@ -2384,9 +2384,9 @@ static inline GPArray(GPString) gp_split99(const GPAllocator* alc, GPStrIn str, 
 #define GP_SPLIT3(ALC, STR, SEP) gp_split99(GP_ALC(ALC), GP_STR_IN(STR), SEP)
 #define GP_SPLIT(ALC,...) GP_OVERLOAD2(__VA_ARGS__, GP_SPLIT3, GP_SPLIT2)(ALC,__VA_ARGS__)
 
-GPString gp_join_new(const GPAllocator* allocator, const GPArray(GPString) srcs, const char* separator);
+GPString gp_join_new(GPAllocator* allocator, const GPArray(GPString) srcs, const char* separator);
 static inline GPString gp_join99(
-    size_t a_size, const void* a, const GPArray(GPString) srcs, const char* separator)
+    size_t a_size, void* a, const GPArray(GPString) srcs, const char* separator)
 {
     if (a_size < sizeof(GPAllocator)) {
         gp_str_join((GPString*)a, srcs, separator);

@@ -42,7 +42,7 @@ typedef struct gp_array_header
 {
     uintptr_t          capacity;
     void*              allocation; // pointer to self or NULL if on stack
-    const GPAllocator* allocator;
+    GPAllocator* allocator;
     uintptr_t          length;
 } GPArrayHeader;
 
@@ -52,7 +52,7 @@ typedef struct gp_array_header
 /** Create a new empty array.*/
 GP_ARR_ATTRS()
 GPArray(void) gp_arr_new(
-    const GPAllocator*,
+    GPAllocator*,
     size_t element_size,
     size_t element_count);
 
@@ -91,10 +91,10 @@ GPArray(void) gp_arr_new(
 */
 
 /** Getters */
-size_t             gp_arr_length    (const GPArray(void)) GP_NONNULL_ARGS();
-size_t             gp_arr_capacity  (const GPArray(void)) GP_NONNULL_ARGS();
-void*              gp_arr_allocation(const GPArray(void)) GP_NONNULL_ARGS();
-const GPAllocator* gp_arr_allocator (const GPArray(void)) GP_NONNULL_ARGS();
+size_t       gp_arr_length    (const GPArray(void)) GP_NONNULL_ARGS();
+size_t       gp_arr_capacity  (const GPArray(void)) GP_NONNULL_ARGS();
+void*        gp_arr_allocation(const GPArray(void)) GP_NONNULL_ARGS();
+GPAllocator* gp_arr_allocator (const GPArray(void)) GP_NONNULL_ARGS();
 
 /** Free array memory.
  * Passing arrays on stack is safe too.

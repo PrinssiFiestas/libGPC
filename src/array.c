@@ -23,7 +23,7 @@ void* gp_arr_allocation(const void* arr)
     return ((GPArrayHeader*)arr - 1)->allocation;
 }
 
-const GPAllocator* gp_arr_allocator(const void* arr)
+GPAllocator* gp_arr_allocator(const void* arr)
 {
     return ((GPArrayHeader*)arr - 1)->allocator;
 }
@@ -35,7 +35,7 @@ GPArray(void) gp_arr_clear(GPArray(void) arr)
 }
 
 GPArray(void) gp_arr_new(
-    const GPAllocator* allocator,
+    GPAllocator* allocator,
     const size_t element_size,
     const size_t element_count)
 {
