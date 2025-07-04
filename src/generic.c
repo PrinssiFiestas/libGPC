@@ -46,7 +46,7 @@ GPString gp_replace99(
     return gp_replace_new(a, b, c, d, start);
 }
 
-GPString gp_replace_all_new(const void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl)
+GPString gp_replace_all_new(void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl)
 {
     // TODO don't copy and replace all, just copy what's needed
     GPString out = gp_str_new(alc, 3 * hay.length / 2, "");
@@ -56,7 +56,7 @@ GPString gp_replace_all_new(const void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn r
 }
 
 GPString gp_replace_all99(
-    const size_t a_size, const void* a, GPStrIn b, GPStrIn c, GPStrIn d)
+    const size_t a_size, void* a, GPStrIn b, GPStrIn c, GPStrIn d)
 {
     if (a_size < sizeof(GPAllocator)) {
         gp_str_replace_all((GPString*)a, b.data, b.length, c.data, c.length);
@@ -65,7 +65,7 @@ GPString gp_replace_all99(
     return gp_replace_all_new(a, b, c, d);
 }
 
-GPString gp_str_trim_new(const void* alc, GPStrIn str, const char* char_set, const int flags)
+GPString gp_str_trim_new(void* alc, GPStrIn str, const char* char_set, const int flags)
 {
     GPString out = gp_str_new(alc, str.length, "");
     // TODO don't copy and trim, just copy what's needed!
@@ -75,7 +75,7 @@ GPString gp_str_trim_new(const void* alc, GPStrIn str, const char* char_set, con
 }
 
 GPString gp_trim99(
-    const size_t a_size, const void* a, GPStrIn b, const char* char_set, int flags)
+    const size_t a_size, void* a, GPStrIn b, const char* char_set, int flags)
 {
     if (a_size < sizeof(GPAllocator)) {
         gp_str_trim((GPString*)a, char_set, flags);
@@ -193,7 +193,7 @@ static size_t gp_length99(const void* x, const char* ident, const size_t length)
         ident == NULL ? length : ident[0] == '"' ? length - sizeof"" : gp_arr_length(x);
 }
 
-void* gp_copy99(const size_t y_size, const void* y,
+void* gp_copy99(const size_t y_size, void* y,
     const void* x, const char* x_ident, size_t x_length, const size_t x_size)
 {
     x_length = gp_length99(x, x_ident, x_length);
@@ -211,7 +211,7 @@ void* gp_copy99(const size_t y_size, const void* y,
 }
 
 void* gp_slice99(
-    const size_t y_size, const void* y,
+    const size_t y_size, void* y,
     const size_t x_size, const void* x,
     const size_t start, const size_t end)
 {
@@ -223,7 +223,7 @@ void* gp_slice99(
 }
 
 void* gp_append99(
-    const size_t a_size, const void* a,
+    const size_t a_size, void* a,
     const void* b, const char* b_ident, size_t b_length, const size_t b_size,
     const void* c, const char* c_ident, size_t c_length)
 {
@@ -247,7 +247,7 @@ void* gp_append99(
 }
 
 void* gp_insert99(
-    const size_t a_size, const void* a, const size_t pos,
+    const size_t a_size, void* a, const size_t pos,
     const void* b, const char* b_ident, size_t b_length, const size_t b_size,
     const void* c, const char* c_ident, size_t c_length)
 {
@@ -274,7 +274,7 @@ void* gp_insert99(
 // ----------------------------------------------------------------------------
 // Arrays
 
-GPArray(void) gp_map99(const size_t a_size, const void* a,
+GPArray(void) gp_map99(const size_t a_size, void* a,
     const GPArray(void)const src, const char*const src_ident,
     const size_t src_size, const size_t src_elem_size,
     void(*f)(void*,const void*))
@@ -287,7 +287,7 @@ GPArray(void) gp_map99(const size_t a_size, const void* a,
     return out = gp_arr_map(src_elem_size, out, src, src_length, f);
 }
 
-GPArray(void) gp_filter99(size_t a_size, const void* a,
+GPArray(void) gp_filter99(size_t a_size, void* a,
     const GPArray(void) src, const char*src_ident, size_t src_size, size_t src_elem_size,
     bool(*f)(const void* element))
 {
