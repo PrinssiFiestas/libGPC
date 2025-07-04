@@ -205,10 +205,8 @@ void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 size_t gp_arena_reset(GPArena*) GP_NONNULL_ARGS();
 
 /** Deallocate all arena memory including the arena itself.
- * @return combined size of all internal buffers. This may be useful to
- * determine appropriate size for gp_arena_init().
  */
-size_t gp_arena_delete(GPArena* optional);
+void gp_arena_delete(GPArena* optional);
 
 // ----------------------------------------------------------------------------
 // Thread Local Scratch Arena

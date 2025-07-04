@@ -195,10 +195,10 @@ size_t gp_arena_reset(GPArena* arena)
     return total_capacity + arena->head->capacity;
 }
 
-size_t gp_arena_delete(GPArena* arena)
+void gp_arena_delete(GPArena* arena)
 {
     if (arena == NULL)
-        return 0;
+        return;
 
     size_t total_capacity = 0;
     while (arena->head != NULL)
@@ -206,8 +206,6 @@ size_t gp_arena_delete(GPArena* arena)
 
     if (arena->is_shared)
         gp_mem_dealloc(arena->allocator, (GPMutex*)arena->is_shared);
-
-    return total_capacity;
 }
 
 // ----------------------------------------------------------------------------
@@ -359,7 +357,8 @@ static size_t gp_end_scopes(GPScope* scope, GPScope*const last_to_be_ended)
         }
     }
     GPScope* previous = scope->parent;
-    size_t scope_size = gp_arena_delete(&scope->arena);
+    size_t scope_size = gp_arena_reset(&scope->arena);
+    gp_arena_delete(&scope->arena);
     if (scope != last_to_be_ended)
         return gp_end_scopes(previous, last_to_be_ended);
     return scope_size;
