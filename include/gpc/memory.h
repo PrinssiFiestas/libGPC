@@ -149,8 +149,7 @@ GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
  */
 typedef struct gp_arena
 {
-    /** @private */
-    GPAllocator _allocator;
+    GPAllocator base;
 
     /** Determine where arena gets it's memory from.
      * Default is gp_heap.
@@ -259,7 +258,7 @@ size_t gp_heap_alloc_count(void);
  */
 typedef struct gp_virtual_arena
 {
-    GPAllocator _allocator;
+    GPAllocator base;
     void* start;     // of the memory block
     void* position;  // arena pointer
     size_t capacity; // of arena

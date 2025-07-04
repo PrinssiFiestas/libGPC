@@ -149,10 +149,10 @@ GPAllocator* gp_arena_init(GPArena* arena, const size_t capacity)
     if (arena->is_shared) {
         arena->is_shared = gp_mem_alloc(arena->allocator, sizeof(GPMutex));
         gp_mutex_init(arena->is_shared);
-        arena->_allocator.alloc = gp_arena_shared_alloc;
-    } else if (arena->_allocator.alloc == NULL)
-        arena->_allocator.alloc = gp_arena_alloc;
-    arena->_allocator.dealloc = gp_arena_dealloc;
+        arena->base.alloc = gp_arena_shared_alloc;
+    } else if (arena->base.alloc == NULL)
+        arena->base.alloc = gp_arena_alloc;
+    arena->base.dealloc = gp_arena_dealloc;
 
     return (GPAllocator*)arena;
 }
@@ -427,7 +427,7 @@ GPAllocator* gp_begin(const size_t _size)
         (size_t)GP_SCOPE_DEFAULT_INIT_SIZE
       : _size;
     GPScope* scope = gp_mem_alloc_zeroes((GPAllocator*)scope_factory, sizeof*scope);
-    scope->arena._allocator.alloc   = gp_scope_alloc;
+    scope->arena.base.alloc   = gp_scope_alloc;
     scope->arena.max_size           = GP_SCOPE_DEFAULT_MAX_SIZE;
     scope->arena.growth_coefficient = GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT;
     gp_arena_init(&scope->arena, size);
@@ -517,8 +517,8 @@ GPAllocator* gp_virtual_init(GPVirtualArena* alc, size_t size)
     if (alc->start == NULL || alc->start == (void*)-1)
         return alc->start = alc->position = NULL;
 
-    alc->_allocator.alloc   = (void*(*)(GPAllocator*,size_t,size_t))gp_virtual_alloc;
-    alc->_allocator.dealloc = gp_virtual_dealloc;
+    alc->base.alloc   = (void*(*)(GPAllocator*,size_t,size_t))gp_virtual_alloc;
+    alc->base.dealloc = gp_virtual_dealloc;
     alc->capacity = size;
     return (GPAllocator*)alc;
 }

@@ -367,7 +367,7 @@ typedef struct test_allocator
 {
     // Inherit from GPAllocator by making the FIRST member a GPAllocator. This
     // allows safe and well defined upcasting.
-    GPAllocator allocator;
+    GPAllocator base;
 
     // This will be returned by test_alloc().
     void* free_block;
@@ -395,7 +395,7 @@ GPAllocator* new_test_allocator(void)
     memset(allocator, 0xBE, 1000 * (1 << 10)); // magic byte 0xBE for debugging
     gp_assert(allocator != NULL);
     *allocator = (TestAllocator) {
-        .allocator  = {.alloc = test_alloc, .dealloc = test_dealloc },
+        .base  = {.alloc = test_alloc, .dealloc = test_dealloc },
         .free_block = (uint8_t*)allocator + gp_round_to_aligned(sizeof*allocator, GP_ALLOC_ALIGNMENT)
     };
     return (GPAllocator*)allocator;
