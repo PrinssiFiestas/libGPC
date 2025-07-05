@@ -132,7 +132,7 @@ void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
  * only to be able to access the current scope allocator in callbacks.
  */
 GP_NODISCARD
-GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
+GPAllocator* gp_last_scope(void);
 
 #if __GNUC__ || _MSC_VER
 #define GP_BEGIN { GP_SCOPE_BEGIN
@@ -145,16 +145,31 @@ GPAllocator* gp_last_scope(GPAllocator* return_this_if_no_scopes);
 /** Arena that does not run out of memory.
  * If address sanitizer is used, unused memory, freed memory, and allocation
  * boundaries are poisoned. The allocated memory cannot be assumed to be
- * contiguous due to boundary poisoning and linked list based backing buffer.
+ * contiguous due to boundary poisoning and linked list based backing buffers.
  */
-typedef struct gp_arena
-{
-    GPAllocator base;
+typedef struct gp_arena GPArena;
 
+typedef struct gp_arena_initializer
+{
     /** Determine where arena gets it's memory from.
-     * Default is gp_heap.
+     * Default is gp_heap. If backing buffer is provided, then this will only
+     * determine how additional buffers are allocated.
      */
-    GPAllocator* allocator;
+    GPAllocator* backing_allocator;
+
+    /** Determines initial arena memory.
+     * Useful for recycling large buffers or using static memory. If not
+     * provided, backing allocator will allocate the inital block instead.
+     * If provided, capacity argument of gp_arena_new() must match buffer size.
+     * If the buffer cannot fit arena meta data, it will not be used.
+     */
+    void* backing_buffer;
+
+    /** Limit the arena size.
+     * Arenas will not grow past this value. Useful when
+     * growth_coefficient > 1.0.
+     */
+    size_t max_size;
 
     /** Determine how new arenas grow.
      * Use this to determine the size of new arena node when old gets full. A
@@ -165,30 +180,16 @@ typedef struct gp_arena
      */
     double growth_coefficient;
 
-    /** Limit the arena size.
-     * Arenas will not grow past this value. Useful when
-     * growth_coefficient > 1.0.
+    /** Size of the structure.
+     * Default is sizeof(GPArena). When inheriting from GPArena, this must be
+     * set to sizeof(YourArena) to allocate enough memory for the structure.
      */
-    size_t max_size;
+     size_t meta_size;
+} GPArenaInitializer;
 
-    /** Determine threading support.
-     * Set to (void*)1 before calling gp_arena_init() to make allocations mutex
-     * protected. This should not be modified after gp_arena_init().
-     * Note: rewinding and deleting arenas will not be thread safe!
-     */
-    void* is_shared;
-
-    /** @private */
-    struct gp_arena_node* head;
-} GPArena;
-
-/** Allocate and initialize.
- * Replaces zeroed fields in arena with default values. GPArena must be
- * initialized before calling this and this must be called before calling
- * any other arena function.
- * @return pointer to arena casted to GPAllocator*.
- */
-GPAllocator* gp_arena_init(GPArena*, size_t capacity) GP_INOUT(1) GP_NONNULL_ARGS_AND_RETURN;
+/** Create arena.*/
+GP_NONNULL_RETURN
+GPArena* gp_arena_new(const GPArenaInitializer* optional, size_t capacity);
 
 /** Deallocate some memory.
  * Use this to free everything allocated after @p to_this_position including
@@ -324,6 +325,16 @@ static inline void* gp_virtual_alloc(
 //
 // ----------------------------------------------------------------------------
 
+
+struct gp_arena
+{
+    GPAllocator base;
+    GPAllocator* allocator;
+    double growth_coefficient;
+    size_t max_size; // TODO this should be asserted, not saturated! Saturation is unnecessary due to virtual memory. Assertion allows compile time virtual/generic arena.
+    void* is_shared; // TODO get rid of this, replace with mutex allocator
+    struct gp_arena_node* head;
+};
 
 // GP_SCOPE_BEGIN and GP_SCOPE_END
 #if __GNUC__

@@ -8,10 +8,9 @@
 int main(void)
 {
     // Tiny arena to put address sanitizer to work
-    GPArena _arena = {0};
-    gp_arena_init(&_arena, 1);
-    _arena.growth_coefficient = 0.0;
-    GPAllocator* arena = (GPAllocator*)&_arena;
+    GPArena* _arena = gp_arena_new(NULL, 1);
+    _arena->growth_coefficient = 0.0;
+    GPAllocator* arena = &_arena->base;
 
     gp_suite("File IO");
     {
@@ -111,5 +110,5 @@ int main(void)
     }
 
     // Shut up Valgrind
-    gp_arena_delete(&_arena);
+    gp_arena_delete(_arena);
 }

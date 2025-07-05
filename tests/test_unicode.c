@@ -14,10 +14,9 @@
 int main(void)
 {
     // Tiny arena to put address sanitizer to work
-    GPArena _arena = {0};
-    gp_arena_init(&_arena, 1);
-    _arena.growth_coefficient = 0.0;
-    GPAllocator* arena = (GPAllocator*)&_arena;
+    GPArena* _arena = gp_arena_new(NULL, 1);
+    _arena->growth_coefficient = 0.0;
+    GPAllocator* arena = (GPAllocator*)_arena;
 
     gp_suite("Conversions");
     {
@@ -258,5 +257,5 @@ int main(void)
         }
     }
 
-    gp_arena_delete(&_arena);
+    gp_arena_delete(_arena);
 }

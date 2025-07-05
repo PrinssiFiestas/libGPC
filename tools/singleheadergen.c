@@ -35,13 +35,12 @@
 #define stat _stat
 #endif
 
-static FILE*             out            = NULL;
-static const char*       out_path       = NULL;
-static const char*       version_number = NULL;
-static GPString          implementation = NULL;
-static GPArena           garena;
-static GPAllocator*const gmem           = (GPAllocator*)&garena;
-static GPString          line           = NULL;
+static FILE*        out;
+static const char*  out_path;
+static const char*  version_number;
+static GPString     implementation;
+static GPAllocator* gmem;
+static GPString     line;
 
 typedef struct file
 {
@@ -69,8 +68,7 @@ do { \
 
 static void init_globals(void)
 {
-    gp_arena_init(&garena, 1 << 30);
-    garena.growth_coefficient = .25;
+    gmem = &gp_arena_new(NULL, 1 << 15)->base;
 
     gp_assert(out = fopen(out_path, "wb"), strerror(errno));
 

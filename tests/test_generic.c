@@ -10,7 +10,7 @@
 // g++ -Wall -Wextra -Iinclude -ggdb3 tests/test_generic.c -fsanitize=address -fsanitize=undefined -lm -lpthread -lasan build/libgpcd.so && ./a.out
 // `
 #include <gpc/generic.h>
-#define gp_arr_ro(...) gp_arr(&arena, __VA_ARGS__)
+#define gp_arr_ro(...) gp_arr(arena, __VA_ARGS__)
 #endif
 
 #include <gpc/io.h>
@@ -30,16 +30,15 @@
 int main(void)
 {
     // Tiny arena to put address sanitizer to work
-    GPArena arena = {0};
-    gp_arena_init(&arena, 1);
-    arena.growth_coefficient = 0.0;
+    GPArena* arena = gp_arena_new(
+        &(GPArenaInitializer){.growth_coefficient = 0.0}, 1);
 
     gp_suite("Bytes and strings");
     {
         gp_test("Count");
         {
-            GPString haystack = gp_str(&arena, "1 and 2 and 3");
-            GPString needle   = gp_str(&arena, "and");
+            GPString haystack = gp_str(arena, "1 and 2 and 3");
+            GPString needle   = gp_str(arena, "and");
             gp_expect(gp_count(haystack, needle) == 2);
             gp_expect(gp_count(haystack, "and") == 2);
             gp_expect(gp_count(haystack, needle, gp_length(needle)) == 2);
@@ -48,7 +47,7 @@ int main(void)
         gp_test("Codepoint length");
         { // aka how many bytes does a UTF-8 codepoint take. Only 1 byte read.
             const char* cstr = "x😂";
-            GPString str = gp_str(&arena, cstr);
+            GPString str = gp_str(arena, cstr);
 
             // Using index.
             gp_expect(gp_codepoint_length(cstr,  0)  == 1);
@@ -66,9 +65,9 @@ int main(void)
 
     gp_suite("Strings");
     {
-        GPString str1 = gp_str(&arena);
-        GPString str2 = gp_str(&arena);
-        GPString str3 = gp_str(&arena, ""); // same as the ones above
+        GPString str1 = gp_str(arena);
+        GPString str2 = gp_str(arena);
+        GPString str3 = gp_str(arena, ""); // same as the ones above
         gp_test("Repeat");
         {
             gp_repeat(&str1, 2, "blah"); // ok, literla string
@@ -78,9 +77,9 @@ int main(void)
 
             // Same as above but by passing an allocator, a copy is made instead
             // of writing to an output string.
-            GPString copy1 = gp_repeat(&arena, 2, "blah");
-            GPString copy2 = gp_repeat(&arena, 3, "BLAH");
-            GPString copy3 = gp_repeat(&arena, 4, str1);
+            GPString copy1 = gp_repeat(arena, 2, "blah");
+            GPString copy2 = gp_repeat(arena, 3, "BLAH");
+            GPString copy3 = gp_repeat(arena, 4, str1);
 
             gp_expect(gp_equal(str1, "blahblah"));
             gp_expect(gp_equal(str2, "BLAHBLAHBLAH"));
@@ -93,15 +92,15 @@ int main(void)
         {
             // This one does not take lengths. Only GPString and literals are
             // allowed.
-            GPString haystack = gp_str(&arena, "blah skiibel blah");
-            GPString needle   = gp_str(&arena, "BLAHH");
+            GPString haystack = gp_str(arena, "blah skiibel blah");
+            GPString needle   = gp_str(arena, "BLAHH");
             gp_replace(&haystack, "skiibel", "BLAHH");
             gp_replace(&haystack, needle, "XX");
-            gp_replace(&haystack, "XX", gp_str(&arena, "YYYY"));
+            gp_replace(&haystack, "XX", gp_str(arena, "YYYY"));
             gp_replace(&haystack, "YY", "yyy", 7);
-            GPString str2    = gp_replace(&arena, haystack, "blah", "shloiben", 1);
-            GPString result  = gp_replace(&arena, str2, "blah", "😂");
-            GPString result2 = gp_replace(&arena, "BLAHH", needle, "blah");
+            GPString str2    = gp_replace(arena, haystack, "blah", "shloiben", 1);
+            GPString result  = gp_replace(arena, str2, "blah", "😂");
+            GPString result2 = gp_replace(arena, "BLAHH", needle, "blah");
             gp_expect(gp_equal(result,  "😂 YYyyy shloiben"));
             gp_expect(gp_equal(result2, "blah"));
         }
@@ -110,38 +109,38 @@ int main(void)
         {
             // This one does not take lengths. Only GPString and literals are
             // allowed.
-            GPString haystack = gp_str(&arena, "blah skiibel skiibel blah");
-            GPString needle   = gp_str(&arena, "BLAHH");
+            GPString haystack = gp_str(arena, "blah skiibel skiibel blah");
+            GPString needle   = gp_str(arena, "BLAHH");
             gp_replace_all(&haystack, "skiibel", "BLAHH");
             gp_expect(gp_equal(haystack, "blah BLAHH BLAHH blah"));
             gp_replace_all(&haystack, needle, "XX");
             gp_expect(gp_equal(haystack, "blah XX XX blah"));
-            gp_replace_all(&haystack, "XX", gp_str(&arena, "YYYY"));
+            gp_replace_all(&haystack, "XX", gp_str(arena, "YYYY"));
             gp_expect(gp_equal(haystack, "blah YYYY YYYY blah"));
             gp_replace_all(&haystack, "YY", "yyy");
             gp_expect(gp_equal(haystack, "blah yyyyyy yyyyyy blah"));
-            GPString result = gp_replace_all(&arena, haystack, "blah", "😂");
+            GPString result = gp_replace_all(arena, haystack, "blah", "😂");
             gp_expect(gp_equal(result, "😂 yyyyyy yyyyyy 😂"), result);
         }
 
         gp_test("Trim");
         {
-            GPString str = gp_str(&arena, "\t XYX  asdfg\r  YYX  \n");
+            GPString str = gp_str(arena, "\t XYX  asdfg\r  YYX  \n");
             gp_trim(&str);
             gp_expect(gp_equal(str, "XYX  asdfg\r  YYX"));
             gp_trim(&str, "XY");
             gp_expect(gp_equal(str, "  asdfg\r  "));
-            GPString str1 = gp_trim(&arena, str);
+            GPString str1 = gp_trim(arena, str);
             gp_expect(gp_equal(str1, "asdfg"));
             gp_trim(&str1, "ag", 'l');
             gp_expect(gp_equal(str1, "sdfg"));
             gp_trim(&str1, "ag", 'r');
             gp_expect(gp_equal(str1, "sdf"));
-            GPString str2 = gp_trim(&arena, str1, "f");
+            GPString str2 = gp_trim(arena, str1, "f");
             gp_expect(gp_equal(str2, "sd"));
-            GPString str3 = gp_trim(&arena, str2, "s", 'l');
+            GPString str3 = gp_trim(arena, str2, "s", 'l');
             gp_expect(gp_equal(str3, "d"));
-            GPString str4 = gp_trim(&arena, "asdf", gp_cstr(str)); // for completeness
+            GPString str4 = gp_trim(arena, "asdf", gp_cstr(str)); // for completeness
             gp_expect(gp_equal(str4, ""));
         }
 
@@ -149,12 +148,12 @@ int main(void)
 
         gp_test("To upper, lower, and valid");
         {
-            GPString str0 = gp_str(&arena, "blah");
-            GPString str1 = gp_to_upper(&arena, str0);
+            GPString str0 = gp_str(arena, "blah");
+            GPString str1 = gp_to_upper(arena, str0);
             gp_to_upper(&str0);
             gp_expect(gp_equal(str0, str1) && gp_equal(str0, "BLAH"));
             gp_to_lower(&str1);
-            GPString str2 = gp_to_lower(&arena, str1);
+            GPString str2 = gp_to_lower(arena, str1);
             gp_expect(gp_equal(str1, str2) && gp_equal(str1, "blah"));
 
             // Pass locale for full language sensitive case mapping.
@@ -163,23 +162,23 @@ int main(void)
             gp_expect(gp_equal(str0, "FIRE!🔥"), str0);
 
             gp_copy(&str0, "iıİI");
-            GPString str3 = gp_to_upper(&arena, str0, turkish);
+            GPString str3 = gp_to_upper(arena, str0, turkish);
             gp_expect(gp_equal(str3, "İIİI"));
             gp_to_lower(&str3, turkish);
             gp_expect(gp_equal(str3, "iıiı"));
-            GPString str4 = gp_to_lower(&arena, str0, turkish);
+            GPString str4 = gp_to_lower(arena, str0, turkish);
             gp_expect(gp_equal(str4, "iıiı"));
 
             gp_append(&str2, "\xff\xff\xff");
-            GPString str5 = gp_to_valid(&arena, str2, GP_REPLACEMENT_CHARACTER);
+            GPString str5 = gp_to_valid(arena, str2, GP_REPLACEMENT_CHARACTER);
             gp_to_valid(&str2, GP_REPLACEMENT_CHARACTER);
             gp_expect(gp_equal(str2, str5) && gp_equal(str2, "blah���"), str2);
         }
 
         gp_test("Capitalize");
         {
-            GPString str1 = gp_str(&arena, "ﬁre!🔥");
-            GPString str2 = gp_str(&arena, "iasdf");
+            GPString str1 = gp_str(arena, "ﬁre!🔥");
+            GPString str2 = gp_str(arena, "iasdf");
             gp_capitalize(&str1);
             gp_capitalize(&str2, turkish);
             gp_expect(gp_equal(str1, "Fire!🔥"), str1);
@@ -188,42 +187,42 @@ int main(void)
 
         gp_test("Find first");
         {
-            GPString haystack = gp_str(&arena, "yeah blah nope blah yeah");
+            GPString haystack = gp_str(arena, "yeah blah nope blah yeah");
             gp_expect(gp_find_first(haystack, "blah")    ==  5);
             gp_expect(gp_find_first(haystack, "blah", 6) == 15);
         }
 
         gp_test("Find last");
         {
-            GPString haystack = gp_str(&arena, "yeah blah nope blah yeah");
+            GPString haystack = gp_str(arena, "yeah blah nope blah yeah");
             gp_expect(gp_find_last(haystack, "blah")                 == 15);
         }
 
         gp_test("Find first of");
         {
-            GPString haystack = gp_str(&arena, "yeah blah nope blah yeah");
+            GPString haystack = gp_str(arena, "yeah blah nope blah yeah");
             gp_expect(gp_find_first_of(haystack, "blah")    == 2);
             gp_expect(gp_find_first_of(haystack, "blah", 6) == 6);
         }
 
         gp_test("Find first not of");
         {
-            GPString haystack = gp_str(&arena, "yeah blah nope blah yeah");
+            GPString haystack = gp_str(arena, "yeah blah nope blah yeah");
             gp_expect(gp_find_first_not_of(haystack, "haey")    == 4);
             gp_expect(gp_find_first_not_of(haystack, "hlab", 6) == 9);
         }
 
         gp_test("Equal case");
         {
-            GPString a = gp_str(&arena, "😂aAaAäÄä😂");
-            GPString b = gp_copy(&arena, a);
+            GPString a = gp_str(arena, "😂aAaAäÄä😂");
+            GPString b = gp_copy(arena, a);
             gp_expect(gp_equal_case(a, b));
             gp_expect(gp_equal_case(a, "😂aAaAäÄä😂"));
         }
 
         gp_test("Compare");
         {
-            GPString str = gp_str(&arena, "chrt");
+            GPString str = gp_str(arena, "chrt");
             const char* czech = "cs_CZ";
 
             gp_expect(gp_compare(str, "hrnec") < 0);
@@ -232,23 +231,23 @@ int main(void)
             if (gp_locale(czech) != (GPLocale)0)
                 gp_expect(gp_compare(str, "hrnec", GP_COLLATE, czech) > 0);
 
-            gp_expect(gp_compare(str, gp_str(&arena, "hrnec")) < 0);
-            gp_expect(gp_compare(str, gp_str(&arena, "HRNEC")) > 0);
-            gp_expect(gp_compare(str, gp_str(&arena, "HRNEC"), GP_CASE_FOLD) < 0);
+            gp_expect(gp_compare(str, gp_str(arena, "hrnec")) < 0);
+            gp_expect(gp_compare(str, gp_str(arena, "HRNEC")) > 0);
+            gp_expect(gp_compare(str, gp_str(arena, "HRNEC"), GP_CASE_FOLD) < 0);
             if (gp_locale(czech) != (GPLocale)0)
-                gp_expect(gp_compare(str, gp_str(&arena, "hrnec"), GP_COLLATE, czech) > 0);
+                gp_expect(gp_compare(str, gp_str(arena, "hrnec"), GP_COLLATE, czech) > 0);
         }
 
         gp_test("Codepoint count");
         {
-            GPString str = gp_str(&arena, "😂aÄ😂");
+            GPString str = gp_str(arena, "😂aÄ😂");
             gp_expect(gp_codepoint_count(str) == 4);
             gp_expect(gp_codepoint_count("😂aÄ😂") == 4);
         }
 
         gp_test("Is valid");
         {
-            GPString str = gp_str(&arena, "😂aÄ😂");
+            GPString str = gp_str(arena, "😂aÄ😂");
             size_t invalid_index;
             gp_expect(   gp_is_valid(str));
             gp_expect(   gp_is_valid("😂aÄ😂"));
@@ -264,8 +263,8 @@ int main(void)
     {
         gp_test("Access with bounds checking");
         {
-            GPString str = gp_str(&arena, "yeeh");
-            GPArray(uint8_t) arr = gp_arr(&arena, uint8_t, 'a', 's', 'd', 'f');
+            GPString str = gp_str(arena, "yeeh");
+            GPArray(uint8_t) arr = gp_arr(arena, uint8_t, 'a', 's', 'd', 'f');
             gp_at((GPArray(uint8_t))str, 2) = gp_at(arr, 0);
             gp_expect(gp_equal(str, "yeah"));
             #if OUT_OF_BOUNDS
@@ -279,8 +278,8 @@ int main(void)
 
         gp_test("Reserve");
         {
-            GPString str = gp_str(&arena, "");
-            GPArray(int) arr = gp_arr(&arena, int);
+            GPString str = gp_str(arena, "");
+            GPArray(int) arr = gp_arr(arena, int);
             gp_reserve(&str, 4);
             gp_reserve(&arr, 4);
             memset(str, 0, 4);
@@ -289,59 +288,59 @@ int main(void)
 
         gp_test("Split and join");
         {
-            GPString str1 = gp_str(&arena, "blah blah blah");
-            GPArray(GPString) arr1 = gp_split(&arena, str1, " ");
-            GPArray(GPString) arr2 = gp_split(&arena, "BLAH BLAH BLAH", " ");
+            GPString str1 = gp_str(arena, "blah blah blah");
+            GPArray(GPString) arr1 = gp_split(arena, str1, " ");
+            GPArray(GPString) arr2 = gp_split(arena, "BLAH BLAH BLAH", " ");
             gp_join(&str1, arr1, "_");
             gp_expect(gp_equal(str1, "blah_blah_blah"));
-            GPString str2 = gp_join(&arena, arr2, "|");
+            GPString str2 = gp_join(arena, arr2, "|");
             gp_expect(gp_equal(str2, "BLAH|BLAH|BLAH"));
         }
 
         gp_test("Sort");
         {
             // No separator for gp_split() defaults to GP_WHITESPACE
-            GPArray(GPString) arr = gp_split(&arena, "asdf ÄLÄSDEE BLOINK öö");
+            GPArray(GPString) arr = gp_split(arena, "asdf ÄLÄSDEE BLOINK öö");
             gp_sort(&arr);
-            gp_expect(gp_equal(gp_join(&arena, arr), "BLOINKasdfÄLÄSDEEöö"));
+            gp_expect(gp_equal(gp_join(arena, arr), "BLOINKasdfÄLÄSDEEöö"));
             gp_sort(&arr, GP_CASE_FOLD);
-            gp_expect(gp_equal(gp_join(&arena, arr), "asdfBLOINKÄLÄSDEEöö"));
+            gp_expect(gp_equal(gp_join(arena, arr), "asdfBLOINKÄLÄSDEEöö"));
             const char* finnish = "fi_FI";
             if (gp_locale(finnish) != (GPLocale)0) {
                 gp_sort(&arr, GP_COLLATE | GP_CASE_FOLD, finnish);
-                gp_expect(gp_equal(gp_join(&arena, arr), "asdfBLOINKÄLÄSDEEöö"), gp_join(&arena, arr));
+                gp_expect(gp_equal(gp_join(arena, arr), "asdfBLOINKÄLÄSDEEöö"), gp_join(arena, arr));
             }
         }
 
         gp_test("Copy");
         {
-            GPString str1 = gp_str(&arena);
+            GPString str1 = gp_str(arena);
             gp_copy(&str1, "blah");
             gp_expect(gp_equal(str1, "blah"));
-            GPString str2 = gp_copy(&arena, "BLAH");
+            GPString str2 = gp_copy(arena, "BLAH");
             gp_expect(gp_equal(str2, "BLAH"));
             gp_copy(&str1, str2);
             gp_expect(gp_equal(str1, "BLAH"));
-            GPString str3 = gp_copy(&arena, str1);
+            GPString str3 = gp_copy(arena, str1);
             gp_expect(gp_equal(str3, "BLAH"));
             gp_copy(&str3, "XXX", 3);
             gp_expect(gp_equal(str3, "XXX"));
-            GPString str4 = gp_copy(&arena, str3, gp_length(str3));
+            GPString str4 = gp_copy(arena, str3, gp_length(str3));
             gp_expect(gp_equal(str4, "XXX"));
 
-            GPArray(int) arr1 = gp_arr(&arena, int);
+            GPArray(int) arr1 = gp_arr(arena, int);
             gp_copy(&arr1, gp_arr_ro(int, 1, 2, 3, 4));
             arr_assert_eq(arr1, gp_arr_ro(int, 1, 2, 3, 4), 4);
-            GPArray(int) arr2 = gp_copy(&arena, gp_arr_ro(int, 3, 2, 1));
+            GPArray(int) arr2 = gp_copy(arena, gp_arr_ro(int, 3, 2, 1));
             arr_assert_eq(arr2, gp_arr_ro(int, 3, 2, 1), 3);
             gp_copy(&arr1, arr2);
             arr_assert_eq(arr1, gp_arr_ro(int, 3, 2, 1), 3);
-            GPArray(int) arr3 = gp_copy(&arena, arr1);
+            GPArray(int) arr3 = gp_copy(arena, arr1);
             arr_assert_eq(arr3, gp_arr_ro(int, 3, 2, 1), 3);
             int carr[] = { 9, 8, 7, 6, 5 };
             gp_copy(&arr3, carr, 5);
             arr_assert_eq(arr3, carr, 5);
-            GPArray(int) arr4 = gp_copy(&arena, arr3, gp_length(arr3));
+            GPArray(int) arr4 = gp_copy(arena, arr3, gp_length(arr3));
             arr_assert_eq(arr4, carr, 5);
 
             #if TYPE_CHECK
@@ -354,20 +353,20 @@ int main(void)
 
         gp_test("Slice");
         {
-            GPString str1 = gp_str(&arena);
+            GPString str1 = gp_str(arena);
             gp_slice(&str1, "XXblahYY", 1, 7);
             gp_expect(gp_equal(str1, "XblahY"));
             gp_slice(&str1, 1, 5);
             gp_expect(gp_equal(str1, "blah"));
-            GPString str2 = gp_slice(&arena, str1, 1, 3);
+            GPString str2 = gp_slice(arena, str1, 1, 3);
             gp_expect(gp_equal(str2, "la"), str2);
 
-            GPArray(int) arr1 = gp_arr(&arena, int);
+            GPArray(int) arr1 = gp_arr(arena, int);
             gp_slice(&arr1, gp_arr_ro(int, 1, 2, 3, 4, 5, 6, 7, 8), 1, 7);
             arr_assert_eq(arr1, gp_arr_ro(int, 2, 3, 4, 5, 6, 7), 6);
             gp_slice(&arr1, 1, 5);
             arr_assert_eq(arr1, gp_arr_ro(int, 3, 4, 5, 6), 4);
-            GPArray(int) arr2 = gp_slice(&arena, arr1, 1, 3);
+            GPArray(int) arr2 = gp_slice(arena, arr1, 1, 3);
             arr_assert_eq(arr2, gp_arr_ro(int, 4, 5), 2);
 
             gp_clear(&arr2);
@@ -383,65 +382,65 @@ int main(void)
 
         gp_test("Append");
         {
-            GPString str1 = gp_str(&arena);
+            GPString str1 = gp_str(arena);
             gp_append(&str1, "ab");
             gp_expect(gp_equal(str1, "ab"));
             gp_append(&str1, "cd");
             gp_expect(gp_equal(str1, "abcd"));
             gp_append(&str1, "efg", 3);
             gp_expect(gp_equal(str1, "abcdefg"), str1);
-            GPString str2 = gp_append(&arena, str1, "h");
+            GPString str2 = gp_append(arena, str1, "h");
             gp_expect(gp_equal(str2, "abcdefgh"));
-            GPString str3 = gp_append(&arena, str1, str2);
+            GPString str3 = gp_append(arena, str1, str2);
             gp_expect(gp_equal(str3, "abcdefgabcdefgh"));
-            GPString str4 = gp_append(&arena, str1, "h", 1);
+            GPString str4 = gp_append(arena, str1, "h", 1);
             gp_expect(gp_equal(str4, str2));
 
-            GPArray(int) arr1 = gp_arr(&arena, int);
+            GPArray(int) arr1 = gp_arr(arena, int);
             gp_append(&arr1, gp_arr_ro(int, 1));
             arr_assert_eq(arr1, gp_arr_ro(int, 1), 1);
             gp_append(&arr1, gp_arr_ro(int, 2));
             arr_assert_eq(arr1, gp_arr_ro(int, 1, 2), 2);
             gp_append(&arr1, gp_arr_ro(int, 3, 4, 5 ), 3);
             arr_assert_eq(arr1, gp_arr_ro(int, 1, 2, 3, 4, 5), 5);
-            GPArray(int) arr2 = gp_append(&arena, arr1, gp_arr_ro(int, 6));
+            GPArray(int) arr2 = gp_append(arena, arr1, gp_arr_ro(int, 6));
             arr_assert_eq(arr2, gp_arr_ro(int, 1, 2, 3, 4, 5, 6 ), 6);
-            GPArray(int) arr3 = gp_append(&arena, arr1, arr2);
+            GPArray(int) arr3 = gp_append(arena, arr1, arr2);
             arr_assert_eq(arr3, gp_arr_ro(int, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6), 11);
-            GPArray(int) arr4 = gp_append(&arena, arr1, gp_arr_ro(int, 6), 1);
+            GPArray(int) arr4 = gp_append(arena, arr1, gp_arr_ro(int, 6), 1);
             arr_assert_eq(arr4, arr2, gp_length(arr2));
-            GPArray(int) arr5 = gp_append(&arena, arr1, gp_length(arr1), arr2, gp_length(arr2));
+            GPArray(int) arr5 = gp_append(arena, arr1, gp_length(arr1), arr2, gp_length(arr2));
             arr_assert_eq(arr5, gp_arr_ro(int, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 6), 11);
         }
 
         gp_test("Insert");
         {
-            GPString str1 = gp_str(&arena);
+            GPString str1 = gp_str(arena);
             gp_insert(&str1, 0, "ab");
             gp_expect(gp_equal(str1, "ab"));
             gp_insert(&str1, 0, "cd");
             gp_expect(gp_equal(str1, "cdab"));
             gp_insert(&str1, 0, "efg", 3);
             gp_expect(gp_equal(str1, "efgcdab"), str1);
-            GPString str2 = gp_insert(&arena, 0, str1, "h");
+            GPString str2 = gp_insert(arena, 0, str1, "h");
             gp_expect(gp_equal(str2, "hefgcdab"));
-            GPString str3 = gp_insert(&arena, 0, str1, str2);
+            GPString str3 = gp_insert(arena, 0, str1, str2);
             gp_expect(gp_equal(str3, "hefgcdabefgcdab"));
-            GPString str4 = gp_insert(&arena, 0, str1, "h", 1);
+            GPString str4 = gp_insert(arena, 0, str1, "h", 1);
             gp_expect(gp_equal(str4, str2));
 
-            GPArray(int) arr1 = gp_arr(&arena, int);
+            GPArray(int) arr1 = gp_arr(arena, int);
             gp_insert(&arr1, 0, gp_arr_ro(int, 1));
             arr_assert_eq(arr1, gp_arr_ro(int, 1), 1);
             gp_insert(&arr1, 0, gp_arr_ro(int, 2));
             arr_assert_eq(arr1, gp_arr_ro(int, 2, 1 ), 2);
             gp_insert(&arr1, 0, gp_arr_ro(int, 3, 4, 5 ), 3);
             arr_assert_eq(arr1, gp_arr_ro(int, 3, 4, 5, 2, 1 ), 5);
-            GPArray(int) arr2 = gp_insert(&arena, 0, arr1, gp_arr_ro(int, 6));
+            GPArray(int) arr2 = gp_insert(arena, 0, arr1, gp_arr_ro(int, 6));
             arr_assert_eq(arr2, gp_arr_ro(int, 6, 3, 4, 5, 2, 1), 6);
-            GPArray(int) arr3 = gp_insert(&arena, 0, arr1, arr2);
+            GPArray(int) arr3 = gp_insert(arena, 0, arr1, arr2);
             arr_assert_eq(arr3, gp_arr_ro(int, 6, 3, 4, 5, 2, 1, 3, 4, 5, 2, 1), 11);
-            GPArray(int) arr4 = gp_insert(&arena, 0, arr1, gp_arr_ro(int, 6), 1);
+            GPArray(int) arr4 = gp_insert(arena, 0, arr1, gp_arr_ro(int, 6), 1);
             arr_assert_eq(arr4, arr2, gp_length(arr2));
         }
     }
@@ -561,8 +560,8 @@ int main(void)
     {
         gp_test("Functionality");
         {
-            GPDictionary(int) dict = gp_dict(&arena, int);
-            GPString key1 = gp_str(&arena, "key1");
+            GPDictionary(int) dict = gp_dict(arena, int);
+            GPString key1 = gp_str(arena, "key1");
             gp_put(&dict, key1,   1);
             gp_put(&dict, "key2", 3);
             #if defined(GP_TYPEOF) || __cplusplus
@@ -587,24 +586,24 @@ int main(void)
             void int_destructor(int*_);
 
             // This is incredibly wasteful! We just test if compiles though.
-            GPHashMap* hmap = gp_hmap(&arena);
-            hmap = gp_hmap(&arena, sizeof(int));
-            hmap = gp_hmap(&arena, sizeof(int), int_destructor);
-            hmap = gp_hmap(&arena, sizeof(int), int_destructor, 128);
+            GPHashMap* hmap = gp_hmap(arena);
+            hmap = gp_hmap(arena, sizeof(int));
+            hmap = gp_hmap(arena, sizeof(int), int_destructor);
+            hmap = gp_hmap(arena, sizeof(int), int_destructor, 128);
             (void)hmap;
 
             // Same here, don't write code like this!
-            GPDictionary(int) dict = gp_dict(&arena, int);
-            dict = gp_dict(&arena, int, int_destructor);
-            dict = gp_dict(&arena, int, int_destructor, 128);
+            GPDictionary(int) dict = gp_dict(arena, int);
+            dict = gp_dict(arena, int, int_destructor);
+            dict = gp_dict(arena, int, int_destructor, 128);
             (void)dict;
 
             #if TYPE_CHECK
             // Incompatible destructor argument type.
-            GPDictionary(GPString) strs = gp_dict(&arena, GPString, int_destructor);
+            GPDictionary(GPString) strs = gp_dict(arena, GPString, int_destructor);
             // Still wrong, destructors take pointers to objects.
-            strs = gp_dict(&arena, GPString, gp_str_delete);
-            strs = gp_dict(&arena, GPString, gp_str_ptr_delete); // ok
+            strs = gp_dict(arena, GPString, gp_str_delete);
+            strs = gp_dict(arena, GPString, gp_str_ptr_delete); // ok
             #endif
         }
 
@@ -616,7 +615,7 @@ int main(void)
             int* ptr1 = malloc(sizeof*ptr1);
             int* ptr2 = malloc(sizeof*ptr2);
             gp_put(&dict, "first", ptr1);
-            gp_put(&dict, gp_str(&arena, "second"), ptr2);
+            gp_put(&dict, gp_str(arena, "second"), ptr2);
             gp_dict_delete(dict);
         }
 
@@ -624,13 +623,13 @@ int main(void)
         {
             // just checking if compiles
             uint32_t  i32  = gp_hash32("yees");                  (void)i32;
-            uint32_t  j32  = gp_hash32(gp_str(&arena, "yees"));  (void)j32;
+            uint32_t  j32  = gp_hash32(gp_str(arena, "yees"));  (void)j32;
             uint32_t  k32  = gp_hash32("yees", 4);               (void)k32;
             uint64_t  i64  = gp_hash64("yees");                  (void)i64;
-            uint64_t  j64  = gp_hash64(gp_str(&arena, "yees"));  (void)j64;
+            uint64_t  j64  = gp_hash64(gp_str(arena, "yees"));  (void)j64;
             uint64_t  k64  = gp_hash64("yees", 4);               (void)k64;
             GPUint128 i128 = gp_hash128("yees");                 (void)i128;
-            GPUint128 j128 = gp_hash128(gp_str(&arena, "yees")); (void)j128;
+            GPUint128 j128 = gp_hash128(gp_str(arena, "yees")); (void)j128;
             GPUint128 k128 = gp_hash128("yees", 4);              (void)k128;
         }
     }
@@ -640,44 +639,44 @@ int main(void)
         gp_test("Basics");
         {
             void* pheap   = gp_alloc(gp_heap, 1);
-            void* parena  = gp_alloc(&arena, 1);
-            void* pzeroes = gp_alloc_zeroes(&arena, 1);
-            pzeroes = gp_realloc(&arena, pzeroes, 1, 2);
+            void* parena  = gp_alloc(arena, 1);
+            void* pzeroes = gp_alloc_zeroes(arena, 1);
+            pzeroes = gp_realloc(arena, pzeroes, 1, 2);
             gp_dealloc(gp_heap, pheap);
-            gp_dealloc(&arena,  parena);
-            gp_dealloc(&arena,  pzeroes);
+            gp_dealloc(arena,  parena);
+            gp_dealloc(arena,  pzeroes);
         }
 
         gp_test("Types");
         {
             #ifndef __cplusplus
-            int* pint     = gp_new(&arena, int);
-            int* parr     = gp_new(&arena, int[4]);
-            int* pcnt     = gp_new(&arena, int, 4);
-            int* pname    = gp_new(&arena, pname);
-            int* pnamearr = gp_new(&arena, pnamearr, 4);
+            int* pint     = gp_new(arena, int);
+            int* parr     = gp_new(arena, int[4]);
+            int* pcnt     = gp_new(arena, int, 4);
+            int* pname    = gp_new(arena, pname);
+            int* pnamearr = gp_new(arena, pnamearr, 4);
             #else // casts required
-            int* pint     = (int*)gp_new(&arena, int);
-            int* parr     = (int*)gp_new(&arena, int[4]);
-            int* pcnt     = (int*)gp_new(&arena, int, 4);
-            int* pname    = (int*)gp_new(&arena, pname);
-            int* pnamearr = (int*)gp_new(&arena, pnamearr, 4);
+            int* pint     = (int*)gp_new(arena, int);
+            int* parr     = (int*)gp_new(arena, int[4]);
+            int* pcnt     = (int*)gp_new(arena, int, 4);
+            int* pname    = (int*)gp_new(arena, pname);
+            int* pnamearr = (int*)gp_new(arena, pnamearr, 4);
             #endif
 
-            gp_dealloc(&arena, pint    );
-            gp_dealloc(&arena, parr    );
-            gp_dealloc(&arena, pcnt    );
-            gp_dealloc(&arena, pname   );
-            gp_dealloc(&arena, pnamearr);
+            gp_dealloc(arena, pint    );
+            gp_dealloc(arena, parr    );
+            gp_dealloc(arena, pcnt    );
+            gp_dealloc(arena, pname   );
+            gp_dealloc(arena, pnamearr);
         }
     }
 
     gp_suite("File");
     {
         const char* test_path = "gptestfile.txt";
-        GPString str1 = gp_str(&arena, "contents");
-        GPString str2 = gp_str(&arena);
-        GPString str3 = gp_str(&arena);
+        GPString str1 = gp_str(arena, "contents");
+        GPString str2 = gp_str(arena);
+        GPString str3 = gp_str(arena);
 
         // Default mode is binary mode. Add "text" or 'x' if you want Windows to
         // do unnecessary text processing.
@@ -690,7 +689,7 @@ int main(void)
         gp_file_read_line(&str3, f);
         gp_file_close(f);
 
-        GPString str4 = gp_file(&arena, test_path, "read");
+        GPString str4 = gp_file(arena, test_path, "read");
 
         gp_expect(gp_equal(str1, str2));
         gp_expect(gp_equal(str1, str3));
@@ -699,7 +698,7 @@ int main(void)
         remove(test_path);
     }
 
-    gp_arena_delete(&arena);
+    gp_arena_delete(arena);
 }
 
 void int_destructor(int*_) { (void)_; }
@@ -713,7 +712,7 @@ char* append(char* result, const char**_element)
     const char* element = *_element;
     const size_t length = result != NULL ? strlen(result) : 0;
     result = (char*)gp_mem_realloc(
-        gp_last_scope(NULL), result, length, length + strlen(element) + sizeof" ");
+        gp_last_scope(), result, length, length + strlen(element) + sizeof" ");
     ((char*)result)[length] = '\0';
     return strcat(strcat(result, element), " ");
 }

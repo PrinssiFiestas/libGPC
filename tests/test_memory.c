@@ -172,50 +172,34 @@ static GPThreadResult test2(void*_)
             // Using a tiny arena forces it to allocate each objects separately.
             // This allows the testing allocator to mark freed objects on
             // rewind.
-            GPArena arena = {0};
-            gp_arena_init(&arena, 1);
-            arena.growth_coefficient = 1.;
+            GPArena* arena = gp_arena_new(NULL, 1);
+            arena->growth_coefficient = 1.;
             char* ps[4] = {0};
             for (size_t i = 0; i < 4; i++) {
-                ps[i] = gp_mem_alloc((GPAllocator*)&arena, block_size);
+                ps[i] = gp_mem_alloc(&arena->base, block_size);
                 strcpy(ps[i], &"abcd"[i]);
             }
             // Sanity test
             for (size_t i = 0; i < 4; i++)
                 gp_assert( ! is_free(ps[i]));
 
-            gp_arena_rewind(&arena, ps[2]);
+            gp_arena_rewind(arena, ps[2]);
             gp_expect( ! is_free(ps[0]));
             gp_expect( ! is_free(ps[1]));
             gp_expect( ! is_free(ps[2]), "Not from heap, but from arena!");
             gp_expect(   is_free(ps[3]));
 
-            void* overwriting_pointer = gp_mem_alloc((GPAllocator*)&arena, 4);
+            void* overwriting_pointer = gp_mem_alloc(&arena->base, 4);
             strcpy(overwriting_pointer, "XXX");
             gp_assert(strcmp(ps[2], "XXX") == 0,
                 "ps[2] should be considered as freed despite not freed from the "
                 "heap! Here it got overwritten since the arena reused it's "
                 "memory.", (char*)ps[2]);
 
-            gp_arena_delete(&arena);
+            gp_arena_delete(arena);
 
             gp_expect(is_free(ps[0]));
             gp_expect(is_free(ps[1]));
-        }
-    }
-    return (GPThreadResult)0;
-}
-
-static GPThreadResult test_shared(void* shared_arena)
-{
-    (void)shared_arena;
-    gp_test("Shared arena");
-    {
-        for (size_t i = 0; i < 1024; i++)
-        {
-            char* str = gp_mem_alloc(shared_arena, 32);
-            strcpy(str, "Thread safe!");
-            gp_assert(strcmp(str, "Thread safe!") == 0);
         }
     }
     return (GPThreadResult)0;
@@ -258,15 +242,6 @@ int main(void)
             gp_expect(is_free(test1_ps[i]));
     }
 
-    GPArena shared_arena = {.is_shared = (void*)1 };
-    gp_arena_init(&shared_arena, 0);
-    for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
-        gp_thread_create(&tests[i], test_shared, &shared_arena);
-    for (size_t i = 0; i < sizeof tests / sizeof*tests; i++)
-        gp_thread_join(tests[i], NULL);
-    gp_arena_delete(&shared_arena);
-
-
     gp_heap = original_heap; // put sanitizers back to work
 
     gp_suite("Other stuff");
@@ -281,14 +256,13 @@ int main(void)
 
         gp_test("Arena reset");
         {
-            GPArena arena = {0};
-            gp_arena_init(&arena, 8);
-            void* arena_start = gp_mem_alloc((GPAllocator*)&arena, 0);
+            GPArena* arena = gp_arena_new(NULL, 8);
+            void* arena_start = gp_mem_alloc(&arena->base, 0);
             for (size_t i = 0; i < 32; ++i)
-                (void*){0} = gp_mem_alloc((GPAllocator*)&arena, 32);
-            gp_arena_reset(&arena);
-            gp_assert(arena_start == gp_mem_alloc((GPAllocator*)&arena, 0));
-            gp_arena_delete(&arena);
+                (void*){0} = gp_mem_alloc(&arena->base, 32);
+            gp_arena_reset(arena);
+            gp_assert(arena_start == gp_mem_alloc(&arena->base, 0));
+            gp_arena_delete(arena);
         }
 
         gp_test("Alignment");
@@ -307,14 +281,13 @@ int main(void)
             memset(data, 0, sizeof*data);
             gp_mem_dealloc(gp_heap, data);
 
-            GPArena arena = {.max_size = 1};
-            gp_arena_init(&arena, 1);
-            data = gp_mem_alloc_aligned((GPAllocator*)&arena, sizeof*data, sizeof*data);
+            GPArena* arena = gp_arena_new(&(GPArenaInitializer){.max_size = 1}, 1);
+            data = gp_mem_alloc_aligned(&arena->base, sizeof*data, sizeof*data);
             gp_expect((uintptr_t)data == gp_round_to_aligned((uintptr_t)data, sizeof*data));
-            gp_expect((uintptr_t)data == gp_round_to_aligned((uintptr_t)(arena.head + 1), sizeof*data));
+            gp_expect((uintptr_t)data == gp_round_to_aligned((uintptr_t)(arena->head + 1), sizeof*data));
             gp_expect((uintptr_t)data % ALIGNMENT == 0);
             memset(data, 0, sizeof*data);
-            gp_arena_delete(&arena);
+            gp_arena_delete(arena);
         }
 
         gp_test("Virtual Arena");

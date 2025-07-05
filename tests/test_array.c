@@ -219,7 +219,7 @@ void* append(void* result, const void*_element)
     const char* element = *(const char**)_element;
     const size_t length = result != NULL ? strlen(result) : 0;
     result = gp_mem_realloc(
-        gp_last_scope(NULL), result, length, length + strlen(element) + sizeof" ");
+        gp_last_scope(), result, length, length + strlen(element) + sizeof" ");
     ((char*)result)[length] = '\0';
     return strcat(strcat(result, element), " ");
 }

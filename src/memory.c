@@ -78,10 +78,10 @@ GPAllocator* gp_heap = &gp_mallocator;
 // first object is in &node + 1;
 typedef struct gp_arena_node
 {
-    void* position;
+    void*  position;
     struct gp_arena_node* tail;
     size_t capacity;
-    void* _padding; // to round size to aligment boundary and for future use
+    void*  allocation;
 } GPArenaNode;
 
 void* gp_arena_alloc(GPAllocator* allocator, const size_t size, const size_t alignment)
@@ -100,8 +100,9 @@ void* gp_arena_alloc(GPAllocator* allocator, const size_t size, const size_t ali
             + gp_max(new_cap, size_with_poison)
             + alignment - GP_ALLOC_ALIGNMENT
         );
-        new_node->tail     = head;
-        new_node->capacity = new_cap;
+        new_node->tail       = head;
+        new_node->capacity   = new_cap;
+        new_node->allocation = new_node;
 
         block = new_node->position = (void*)gp_round_to_aligned(
             (uintptr_t)(new_node + 1), alignment);
@@ -120,46 +121,62 @@ void* gp_arena_alloc(GPAllocator* allocator, const size_t size, const size_t ali
     return block;
 }
 
-static void* gp_arena_shared_alloc(
-    GPAllocator* allocator, const size_t size, const size_t alignment)
+GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
 {
-    gp_mutex_lock(((GPArena*)allocator)->is_shared);
-    void* block = gp_arena_alloc(allocator, size, alignment);
-    gp_mutex_unlock(((GPArena*)allocator)->is_shared);
-    return block;
-}
+    GPArena* arena;
+    GPArenaInitializer empty_init = {0};
 
-GPAllocator* gp_arena_init(GPArena* arena, const size_t capacity)
-{
-    const size_t cap = (capacity != 0 ?
-        gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT)
-      : 256) + 8*GP_HAS_SANITIZER;
-    if (arena->allocator == NULL)
-        arena->allocator = gp_heap;
-    GPArenaNode* node = gp_mem_alloc(arena->allocator, sizeof(GPArenaNode) + cap);
-    node->position = node + 1;
-    node->tail     = NULL;
-    node->capacity = cap;
-    ASAN_POISON_MEMORY_REGION(node->position, node->capacity);
-    arena->head = node;
-    if (arena->growth_coefficient == 0.)
-        arena->growth_coefficient = 2.;
-    if (arena->max_size == 0)
-        arena->max_size = 1 << 15;
-    if (arena->is_shared) {
-        arena->is_shared = gp_mem_alloc(arena->allocator, sizeof(GPMutex));
-        gp_mutex_init(arena->is_shared);
-        arena->base.alloc = gp_arena_shared_alloc;
-    } else if (arena->base.alloc == NULL)
-        arena->base.alloc = gp_arena_alloc;
+    if (init == NULL)
+        init = &empty_init;
+
+    GPAllocator* allocator = init->backing_allocator ?
+        init->backing_allocator
+      : gp_heap;
+
+    const size_t meta_size = init->meta_size != 0 ?
+        init->meta_size
+      : sizeof(GPArena);
+
+    if (init->backing_buffer != NULL && capacity > meta_size + sizeof(GPArenaNode) + 8*GP_HAS_SANITIZER)
+    { // use backing buffer
+        arena = init->backing_buffer;
+        arena->head = (GPArenaNode*)((uint8_t*)arena + meta_size);
+        arena->head->capacity = capacity - meta_size - sizeof(GPArenaNode) - 8*GP_HAS_SANITIZER;
+        arena->head->allocation = NULL;
+    }
+    else {
+        capacity = capacity != 0 ? gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT) : 256;
+        capacity += 8*GP_HAS_SANITIZER;
+        arena = gp_mem_alloc(allocator, meta_size + sizeof(GPArenaNode) + capacity);
+        arena->head = (GPArenaNode*)((uint8_t*)arena + meta_size);
+        arena->head->capacity = capacity;
+        arena->head->allocation = arena;
+    }
+    arena->head->position = arena->head + 1; // TODO use flexible struct member
+    arena->head->tail     = NULL;
+    ASAN_POISON_MEMORY_REGION(arena->head->position, arena->head->capacity);
+
+    // TODO shared is removed!
+
+    arena->base.alloc   = gp_arena_alloc; // TODO scope allocator overrid this when we used arena as initializer!
     arena->base.dealloc = gp_arena_dealloc;
+    // TODO rename to backing_allocator
+    arena->allocator = init->backing_allocator != NULL ?
+        init->backing_allocator
+      : gp_heap;
+    arena->growth_coefficient = init->growth_coefficient != 0. ?
+        init->growth_coefficient
+      : 2.;
+    arena->max_size = init->max_size != 0 ?
+        init->max_size
+      : 1 << 15;
 
-    return (GPAllocator*)arena;
+    return arena;
 }
 
 static bool gp_in_this_node(GPArenaNode* node, void* _pos)
 {
-    gp_assert(node != NULL,
+    gp_db_assert(node != NULL,
         "gp_arena_rewind(): passed pointer was not allocated by the arena.");
     uint8_t* pos = _pos;
     uint8_t* block_start = (uint8_t*)(node + 1);
@@ -171,7 +188,7 @@ static size_t gp_arena_node_delete(GPArena* arena)
     GPArenaNode* old_head = arena->head;
     size_t old_capacity = old_head->capacity;
     arena->head = arena->head->tail;
-    gp_mem_dealloc(arena->allocator, old_head);
+    gp_mem_dealloc(arena->allocator, old_head->allocation);
     return old_capacity;
 }
 
@@ -200,12 +217,10 @@ void gp_arena_delete(GPArena* arena)
     if (arena == NULL)
         return;
 
-    size_t total_capacity = 0;
-    while (arena->head != NULL)
-        total_capacity += gp_arena_node_delete(arena);
+    while (arena->head->tail != NULL)
+        gp_arena_node_delete(arena);
 
-    if (arena->is_shared)
-        gp_mem_dealloc(arena->allocator, (GPMutex*)arena->is_shared);
+    gp_mem_dealloc(arena->allocator, arena->head->allocation); // TODO change arena node allocation to padding
 }
 
 // ----------------------------------------------------------------------------
@@ -213,9 +228,6 @@ void gp_arena_delete(GPArena* arena)
 
 static GPThreadKey  gp_scratch_arena_key;
 static GPThreadOnce gp_scratch_arena_key_once = GP_THREAD_ONCE_INIT;
-#ifndef GP_NO_THREAD_LOCALS // Avoid unnecessary heap allocation
-static GP_MAYBE_THREAD_LOCAL GPArena gp_scratch_allocator = {0};
-#endif
 
 static void gp_delete_scratch_arena(void* arena)
 {
@@ -241,14 +253,11 @@ static void gp_make_scratch_arena_key(void)
 
 static GPArena* gp_new_scratch_arena(void)
 {
-    #ifdef GP_NO_THREAD_LOCALS
-    GPArena* arena = gp_mem_alloc_zeroes(gp_heap, sizeof*arena);
-    #else
-    GPArena* arena = &gp_scratch_allocator;
-    #endif
-    arena->max_size           = GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE;
-    arena->growth_coefficient = GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT;
-    gp_arena_init(arena, GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE);
+    GPArenaInitializer init = {
+        .max_size           = GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE,
+        .growth_coefficient = GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT,
+    };
+    GPArena* arena = gp_arena_new(&init, GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE);
     gp_thread_local_set(gp_scratch_arena_key, arena);
     return arena;
 }
@@ -337,102 +346,63 @@ typedef struct gp_scope
     GPDeferStack*    defer_stack;
 } GPScope;
 
-typedef struct gp_scope_factory
-{
-    GPArena arena;
-    struct gp_scope* last_scope;
-} GPScopeFactory;
+static GPThreadKey  gp_scope_list_key;
+static GPThreadOnce gp_scope_list_key_once = GP_THREAD_ONCE_INIT;
 
-static GPThreadKey  gp_scope_factory_key;
-static GPThreadOnce gp_scope_factory_key_once = GP_THREAD_ONCE_INIT;
+GPAllocator* gp_last_scope(void)
+{
+    return gp_thread_local_get(gp_scope_list_key);
+}
 
 GP_NO_FUNCTION_POINTER_SANITIZE
-static size_t gp_end_scopes(GPScope* scope, GPScope*const last_to_be_ended)
+static void gp_scope_execute_defers(GPScope* scope)
 {
-    if (scope == NULL)
-        return 0;
     if (scope->defer_stack != NULL) {
         for (size_t i = scope->defer_stack->length - 1; i != (size_t)-1; --i) {
             scope->defer_stack->stack[i].f(scope->defer_stack->stack[i].arg);
         }
     }
-    GPScope* previous = scope->parent;
-    size_t scope_size = gp_arena_reset(&scope->arena);
-    gp_arena_delete(&scope->arena);
-    if (scope != last_to_be_ended)
-        return gp_end_scopes(previous, last_to_be_ended);
-    return scope_size;
 }
 
-GPAllocator* gp_last_scope(GPAllocator* fallback)
+static void gp_delete_thread_scopes(void*_scopes)
 {
-    GPScopeFactory* factory = gp_thread_local_get(gp_scope_factory_key);
-    if (factory == NULL || factory->last_scope == NULL)
-        return (GPAllocator*)fallback;
-    return (GPAllocator*)factory->last_scope;
+    GPScope* scope = _scopes;
+    while (scope != NULL) {
+        gp_scope_execute_defers(scope);
+        GPScope* parent = scope->parent;
+        gp_arena_delete(&scope->arena);
+        scope = parent;
+    }
 }
 
-static void gp_delete_scope_factory(void*_factory)
+static void gp_delete_main_thread_scopes(void)
 {
-    GPScopeFactory* factory = _factory;
-    gp_end_scopes(factory->last_scope, NULL);
-    gp_mem_dealloc(gp_heap, factory->arena.head);
+    gp_delete_thread_scopes(gp_thread_local_get(gp_scope_list_key));
 }
 
-// Make Valgrind shut up.
-static void gp_delete_main_thread_scope_factory(void)
+static void gp_make_scope_list_key(void)
 {
-    GPArena* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    if (scope_factory != NULL)
-        gp_delete_scope_factory(scope_factory);
-}
-static void gp_make_scope_factory_key(void)
-{
-    atexit(gp_delete_main_thread_scope_factory);
-    gp_thread_key_create(&gp_scope_factory_key, gp_delete_scope_factory);
-}
-
-static void* gp_scope_alloc(GPAllocator* scope, size_t size, size_t alignment)
-{
-    return gp_arena_alloc(scope, size, alignment);
-}
-
-GPScopeFactory* gp_new_scope_factory(void)
-{
-    const size_t nested_scopes = 64; // before reallocation
-    GPArena scope_factory_arena = {0};
-    gp_arena_init(&scope_factory_arena,
-        (nested_scopes + 1/*self*/) * gp_round_to_aligned(sizeof(GPScope), GP_ALLOC_ALIGNMENT));
-
-    // Extend lifetime
-    GPScopeFactory* scope_factory = gp_arena_alloc(
-        (GPAllocator*)&scope_factory_arena, sizeof*scope_factory, GP_ALLOC_ALIGNMENT);
-    memset(scope_factory, 0, sizeof*scope_factory);
-    scope_factory->arena = scope_factory_arena;
-
-    gp_thread_local_set(gp_scope_factory_key, scope_factory);
-    return scope_factory;
+    atexit(gp_delete_main_thread_scopes);
+    gp_thread_key_create(&gp_scope_list_key, gp_delete_thread_scopes);
 }
 
 GPAllocator* gp_begin(const size_t _size)
 {
-    gp_thread_once(&gp_scope_factory_key_once, gp_make_scope_factory_key);
-
-    GPScopeFactory* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    if (GP_UNLIKELY(scope_factory == NULL))
-        scope_factory = gp_new_scope_factory();
+    gp_thread_once(&gp_scope_list_key_once, gp_make_scope_list_key);
 
     const size_t size = _size == 0 ?
         (size_t)GP_SCOPE_DEFAULT_INIT_SIZE
       : _size;
-    GPScope* scope = gp_mem_alloc_zeroes((GPAllocator*)scope_factory, sizeof*scope);
-    scope->arena.base.alloc   = gp_scope_alloc;
-    scope->arena.max_size           = GP_SCOPE_DEFAULT_MAX_SIZE;
-    scope->arena.growth_coefficient = GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT;
-    gp_arena_init(&scope->arena, size);
-    scope->parent = scope_factory->last_scope;
+
+    GPArenaInitializer init = {
+        .growth_coefficient = GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT,
+        .max_size           = GP_SCOPE_DEFAULT_MAX_SIZE,
+        .meta_size          = sizeof(GPScope)
+    };
+    GPScope* scope = (GPScope*)gp_arena_new(&init, size + sizeof*scope);
     scope->defer_stack = NULL;
-    scope_factory->last_scope = scope;
+    scope->parent = gp_thread_local_get(gp_scope_list_key);
+    gp_thread_local_set(gp_scope_list_key, scope);
 
     return (GPAllocator*)scope;
 }
@@ -443,11 +413,18 @@ size_t gp_end(GPAllocator*_scope)
         return 0;
     GPScope* scope = (GPScope*)_scope;
 
-    GPScope* previous = scope->parent;
-    GPScopeFactory* scope_factory = gp_thread_local_get(gp_scope_factory_key);
-    size_t scope_size = gp_end_scopes(scope_factory->last_scope, scope);
-    scope_factory->last_scope = previous;
-    gp_arena_rewind(&scope_factory->arena, scope);
+    GPScope* child = gp_thread_local_get(gp_scope_list_key);
+    while (child != scope) {
+        GPScope* parent = child->parent;
+        gp_scope_execute_defers(child);
+        gp_arena_delete(&child->arena);
+        child = parent;
+    }
+    GPScope* parent = scope->parent;
+    gp_scope_execute_defers(child);
+    size_t scope_size = gp_arena_reset(&scope->arena);
+    gp_mem_dealloc(gp_heap, scope);
+    gp_thread_local_set(gp_scope_list_key, parent);
     return scope_size;
 }
 

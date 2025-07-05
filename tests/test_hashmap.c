@@ -30,11 +30,9 @@ void destroy(void*_obj)
 int main(void)
 {
     // Tiny arena to put address sanitizer to work
-    GPArena _arena = {0};
-    gp_arena_init(&_arena, 1);
-    _arena.growth_coefficient = 0.0;
-
-    GPAllocator* arena = (GPAllocator*)&_arena;
+    GPArena* _arena = gp_arena_new(NULL, 1);
+    _arena->growth_coefficient = 0.0; // TODO document this
+    GPAllocator* arena = (GPAllocator*)_arena;
 
     gp_suite("Hash map");
     {
@@ -234,5 +232,5 @@ int main(void)
     }
     #endif
 
-    gp_arena_delete(&_arena);
+    gp_arena_delete(_arena);
 }
