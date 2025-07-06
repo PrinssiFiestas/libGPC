@@ -222,26 +222,16 @@ void gp_arena_delete(GPArena* arena)
 static GPThreadKey  gp_scratch_arena_key;
 static GPThreadOnce gp_scratch_arena_key_once = GP_THREAD_ONCE_INIT;
 
-static void gp_delete_scratch_arena(void* arena)
-{
-    gp_arena_delete(arena);
-    #ifdef GP_NO_THREAD_LOCALS
-    gp_mem_dealloc(gp_heap, arena);
-    #endif
-}
-
 // Make Valgrind shut up.
 static void gp_delete_main_thread_scratch_arena(void)
 {
-    GPArena* arena = gp_thread_local_get(gp_scratch_arena_key);
-    if (arena != NULL)
-        gp_delete_scratch_arena(arena);
+    gp_arena_delete(gp_thread_local_get(gp_scratch_arena_key));
 }
 
 static void gp_make_scratch_arena_key(void)
 {
     atexit(gp_delete_main_thread_scratch_arena);
-    gp_thread_key_create(&gp_scratch_arena_key, gp_delete_scratch_arena);
+    gp_thread_key_create(&gp_scratch_arena_key, (void(*)(void*))gp_arena_delete);
 }
 
 static GPArena* gp_new_scratch_arena(void)
