@@ -447,7 +447,7 @@ int main(void)
 
     gp_suite("Array");
     { // Definitions for helper functions are below main()
-        GPAllocator* scope = gp_begin(0);
+        GPScope* scope = gp_begin(0);
         gp_test("Push and pop");
         {
             GPArray(int) arr = gp_arr(scope, int, 1, 2, 3);
@@ -711,7 +711,7 @@ char* append(char* result, const char**_element)
 {
     const char* element = *_element;
     const size_t length = result != NULL ? strlen(result) : 0;
-    result = (char*)gp_mem_realloc(
+    result = (char*)gp_realloc(
         gp_last_scope(), result, length, length + strlen(element) + sizeof" ");
     ((char*)result)[length] = '\0';
     return strcat(strcat(result, element), " ");

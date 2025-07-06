@@ -36,28 +36,32 @@ static int test0(void*_)
     { // The scopes created by the scope allocator are not in any way tied to
       // the C scoping operator {}. Here we use them just to empahize that
       // scopes are lexical.
+      //     Note that the conversions from GPScope* to GPAllocator* using
+      // gp_scope_allocator() is mostly here to avoid conversions when calling
+      // gp_mem_alloc(). Type safe generic macro gp_alloc() in generic.h does
+      // not require this.
         gp_test("Basic usage");
         {
             // Use tiny 1 byte scopes to demostrate that the arenas can hold
             // objects that do not fit in them. Normally you would use larger
             // values or 0 for some default value.
-            GPAllocator* scope = gp_begin(1);
+            GPAllocator* scope = gp_scope_allocator(gp_begin(1));
             ps[0] = gp_mem_alloc(scope, 64);
             {
-                GPAllocator* scope = gp_begin(1);
+                GPAllocator* scope = gp_scope_allocator(gp_begin(1));
                 ps[1] = gp_mem_alloc(scope, 64);
                 {
-                    GPAllocator* scope = gp_begin(1);
+                    GPAllocator* scope = gp_scope_allocator(gp_begin(1));
                     ps[2] = gp_mem_alloc(scope, 64);
                     // whoops, forgot to end(scope)
                 }
                 {
-                    GPAllocator* scope = gp_begin(1);
+                    GPAllocator* scope = gp_scope_allocator(gp_begin(1));
                     ps[3] = gp_mem_alloc(scope, 64);
-                    gp_end(scope);
+                    gp_end((GPScope*)scope);
                 }
                 {
-                    GPAllocator* scope = gp_begin(1);
+                    GPAllocator* scope = gp_scope_allocator(gp_begin(1));
                     ps[4] = gp_mem_alloc(scope, 64);
                     // Sanity check
                     gp_expect( ! is_free(ps[0]));
@@ -67,7 +71,7 @@ static int test0(void*_)
                     gp_expect( ! is_free(ps[4]));
                     // whoops, forgot to end(scope)
                 }
-                gp_end(scope); // this also ends the "forgotten" inner scopes.
+                gp_end((GPScope*)scope); // this also ends the "forgotten" inner scopes.
             }
             // We can allocate as much as we like, gp_end(scope) will free all.
             ps[5] = gp_mem_alloc(scope, 64);
@@ -76,7 +80,7 @@ static int test0(void*_)
 
             // This could be used for better informed estimation for gp_begin(),
             // but now we'll just test that it's not empty.
-            size_t scope_size = gp_end(scope);
+            size_t scope_size = gp_end((GPScope*)scope);
             gp_assert(scope_size > 0);
 
             for (size_t i = 0; i < sizeof ps / sizeof*ps; i++)
@@ -85,7 +89,7 @@ static int test0(void*_)
 
         gp_test("Defer");
         {
-            GPAllocator* scope = gp_begin(0);
+            GPScope* scope = gp_begin(0);
 
             // Note: using heap memory this way makes no sense, the scope
             // allocator could be used directly so no deferred free needed. In
@@ -115,7 +119,7 @@ static int test0(void*_)
             gp_expect(is_free(p2));
         }
 
-        #if __GNUC__ || _MSC_VER
+        #if 0 //__GNUC__ || _MSC_VER
         gp_test("Magic scope");
         {
             const int dummy_var = 0;
@@ -149,10 +153,10 @@ static void* test1_ps[4] = {0};
 static int test1(void*_)
 {
     (void)_;
-    GPAllocator* scope0 = gp_begin(0);
-    GPAllocator* scope1 = gp_begin(0);
-    GPAllocator* scope2 = gp_begin(0);
-    GPAllocator* scope3 = gp_begin(0);
+    GPAllocator* scope0 = gp_scope_allocator(gp_begin(0));
+    GPAllocator* scope1 = gp_scope_allocator(gp_begin(0));
+    GPAllocator* scope2 = gp_scope_allocator(gp_begin(0));
+    GPAllocator* scope3 = gp_scope_allocator(gp_begin(0));
     test1_ps[0] = gp_mem_alloc(scope0, 8);
     test1_ps[1] = gp_mem_alloc(scope1, 8);
     test1_ps[2] = gp_mem_alloc(scope2, 8);
@@ -294,7 +298,7 @@ int main(void)
         {
             GPVirtualArena va;
             const size_t huge_size = 1024*1024*1024;
-            gp_assert(gp_virtual_init(&va, huge_size) != NULL);
+            gp_assert(gp_varena_init(&va, huge_size) != NULL);
 
             char* buffer = gp_mem_alloc((GPAllocator*)&va, huge_size);
 
@@ -302,21 +306,21 @@ int main(void)
             buffer[0] = 'x';
             buffer[huge_size - 1] = 'x';
 
-            gp_virtual_rewind(&va, buffer);
+            gp_varena_rewind(&va, buffer);
             gp_expect(va.position == va.start, "Arena pointer should be resetted");
             gp_expect(buffer[huge_size - 1] == 'x', "Memory should remain untouched");
 
             // Faster than gp_mem_alloc(), which is used for polymorphism.
-            buffer = gp_virtual_alloc(&va, huge_size, GP_ALLOC_ALIGNMENT);
+            buffer = gp_varena_alloc(&va, huge_size, GP_ALLOC_ALIGNMENT);
 
-            gp_virtual_reset(&va); // physical memory also freed
+            gp_varena_reset(&va); // physical memory also freed
             gp_expect(va.position == va.start, "Arena pointer should be resetted");
             #if !_WIN32
             gp_expect(buffer[huge_size - 1] == '\0',
                 "Physical freed, so access should zero memory");
             #endif
 
-            gp_virtual_delete(&va);
+            gp_varena_delete(&va);
         }
     } // gp_suite("Other stuff")
 

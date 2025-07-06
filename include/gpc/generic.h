@@ -1608,7 +1608,8 @@ typedef struct { GPAllocator alc; } GPDummyAlc; // for comma issues in GP_ALC_TY
 #define GP_USER_ALLOCATORS GPDummyAlc
 #endif
 
-#define GP_ALC_TYPES GP_USER_ALLOCATORS, GPAllocator, GPArena, GPVirtualArena
+#define GP_ALC_TYPES \
+    GP_USER_ALLOCATORS, GPAllocator, GPArena, GPVirtualArena, GPMutexAllocator, GPScope
 #define GP_ALC_SELECTION(T) const T*: 0, T*: 0
 #define GP_ALC11(A) ((int){0} = _Generic(A, \
     GP_PROCESS_ALL_ARGS(GP_ALC_SELECTION, GP_COMMA, GP_ALC_TYPES)), \
@@ -2013,7 +2014,7 @@ static inline void gp_arr_map11(
 }
 GP_NONNULL_ARGS_AND_RETURN
 static inline GPArray(void) gp_arr_map_new11(
-    const size_t elem_size, GPAllocator*const alc, GPArrIn src, void(*const f)(void*, const void*))
+    const size_t elem_size, void*const alc, GPArrIn src, void(*const f)(void*, const void*))
 {
     GPArray(void) out = gp_arr_new(alc, elem_size, src.length);
     return out = gp_arr_map(elem_size, out, src.data, src.length, f);
@@ -2038,7 +2039,7 @@ static inline void gp_arr_filter11(
 }
 GP_NONNULL_ARGS_AND_RETURN
 static inline GPArray(void) gp_arr_filter_new11(
-    const size_t elem_size, GPAllocator*const alc, GPArrIn src, bool(*const f)(const void*))
+    const size_t elem_size, void*const alc, GPArrIn src, bool(*const f)(const void*))
 {
     GPArray(void) out = gp_arr_new(alc, elem_size, src.length);
     return out = gp_arr_filter(elem_size, out, src.data, src.length, f);

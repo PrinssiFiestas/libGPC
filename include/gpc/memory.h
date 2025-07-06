@@ -100,15 +100,15 @@ void* gp_mem_realloc(
     size_t old_size,
     size_t new_size);
 
-//void* gp_virtual_alloc(size_t size, int flags);
-
 // ----------------------------------------------------------------------------
 // Scope Allocator
 
 // TODO better docs
 
+typedef struct gp_scope GPScope;
+
 /** Create scope arena.*/
-GPAllocator* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
+GPScope* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
 
 /** Free scope arena.
  * Also frees any inner scopes in the current thread that have not been ended.
@@ -116,7 +116,7 @@ GPAllocator* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
  * @return combined size of all internal buffers. This may be useful to
  * determine appropriate size for gp_begin().
  */
-size_t gp_end(GPAllocator* optional_scope);
+size_t gp_end(GPScope* optional_scope);
 
 /** Set cleanup routines to be executed when scope ends.
  * Deferred functions are called in Last In First Out order in gp_end().
@@ -126,7 +126,7 @@ size_t gp_end(GPAllocator* optional_scope);
  * Deferring is meant to clean other than memory resources like file pointers.
  */
 GP_NONNULL_ARGS(1, 2)
-void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
+void gp_scope_defer(GPScope* scope, void (*f)(void* arg), void* arg);
 
 /** Set cleanup routines to be executed when scope ends.
  * like gp_scope_defer() but with type checking and can also take functions
@@ -137,12 +137,22 @@ void gp_scope_defer(GPAllocator* scope, void (*f)(void* arg), void* arg);
     gp_scope_defer(scope, (void(*)(void*))(f), arg); \
 } while(0)
 
+/** Type safe upcasting.
+ * GPScope is opaque, therefore no access to base allocator, so this can be used
+ * for type safe upcasting. Note that generic macros in generic.h do not
+ * require this.
+ */
+static inline GPAllocator* gp_scope_allocator(GPScope* scope)
+{
+    return (GPAllocator*)scope;
+}
+
 /** Get lastly created scope in the current thread.
  * You should prefer to just pass scopes as arguments when possible. This exists
  * only to be able to access the current scope allocator in callbacks.
  */
 GP_NODISCARD
-GPAllocator* gp_last_scope(void);
+GPScope* gp_last_scope(void);
 
 #if __GNUC__ || _MSC_VER
 #define GP_BEGIN { GP_SCOPE_BEGIN
@@ -281,7 +291,7 @@ GP_NODISCARD
 size_t gp_heap_alloc_count(void);
 
 // ----------------------------------------------------------------------------
-// Virtual Allocator
+// Virtual Arena Allocator
 
 /** Contiguous fast huge arena allocator.
  * Arena that uses contiguous possibly huge memory blocks for it's backing
@@ -301,7 +311,7 @@ typedef struct gp_virtual_arena
 /** Allocate and initialize.
  * @p capacity will be rounded up to page size boundary. It is recommended to
  * pass huge (at least hundreds of megs depending on your application and
- * underlying system) @p capacity to prevent out of memory bugs. Physical memory
+ * underlying system) @p capacity to prevent out-of-memory bugs. Physical memory
  * will only be used on writes to the arena.
  * @return pointer to arena casted to GPAllocator* or NULL if virtual memory
  * allocation fails. In case of failures, you may want to try again with smaller
@@ -391,7 +401,7 @@ void gp_mutex_allocator_destroy(GPMutexAllocator* optional);
 #if __GNUC__
 typedef struct gp_auto_scope_data
 { // TODO defer stack size as well
-    GPAllocator* scope;
+    GPScope* scope;
     size_t* size;
 } GPAutoScopeData;
 

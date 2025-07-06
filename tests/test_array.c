@@ -73,7 +73,7 @@ int main(void)
 
             // Note: arrays and arenas have metadata so an arena with size
             // 256 * sizeof(int) is NOT capable of holding an array with 256 ints. // TODO ok this settles it: change arrays to use power of 2 blocks!
-            GPAllocator* scope = gp_begin(256 * sizeof(int));
+            GPAllocator* scope = gp_scope_allocator(gp_begin(256 * sizeof(int)));
 
             const size_t INIT_CAPACITY = 8;
             const size_t RESERVE_CAPACITY = INIT_CAPACITY + 1;
@@ -99,24 +99,24 @@ int main(void)
                 "arr did not fit in arena so it should've been reallocated.");
 
             // No need to delete arr or dealloc new_object, they live in scope.
-            gp_end(scope);
+            gp_end((GPScope*)scope);
 
             // Repeated memory block extension test on virtual arena
             GPVirtualArena va;
-            arr = gp_arr_new(gp_virtual_init(&va, 4*4096), sizeof arr[0], INIT_CAPACITY);
+            arr = gp_arr_new(gp_varena_init(&va, 4*4096), sizeof arr[0], INIT_CAPACITY);
             init_pos = arr;
             gp_expect(gp_arr_capacity(arr) == INIT_CAPACITY);
             arr = gp_arr_reserve(sizeof arr[0], arr, RESERVE_CAPACITY); // Extend arr memory
             gp_expect(gp_arr_capacity(arr) > INIT_CAPACITY
                 && arr == init_pos,"Arenas should know how to extend memory of "
                                    "lastly created objects so arr is not moved.");
-            gp_virtual_delete(&va);
+            gp_varena_delete(&va);
         }
     } // gp_suite("Memory");
 
     gp_suite("Array manipulation");
     {
-        GPAllocator* scope = gp_begin(0);
+        GPAllocator* scope = gp_scope_allocator(gp_begin(0));
 
         gp_test("Copy slice");
         {
@@ -208,7 +208,7 @@ int main(void)
             arr2 = gp_arr_filter(sizeof*arr2, arr2, NULL, 0, more_than_5);
             arr_assert_eq(arr2, ((int[]){6}), 1);
         }
-        gp_end(scope);
+        gp_end((GPScope*)scope);
     }
 }
 
@@ -219,7 +219,7 @@ void* append(void* result, const void*_element)
     const char* element = *(const char**)_element;
     const size_t length = result != NULL ? strlen(result) : 0;
     result = gp_mem_realloc(
-        gp_last_scope(), result, length, length + strlen(element) + sizeof" ");
+        gp_scope_allocator(gp_last_scope()), result, length, length + strlen(element) + sizeof" ");
     ((char*)result)[length] = '\0';
     return strcat(strcat(result, element), " ");
 }

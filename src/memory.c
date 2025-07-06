@@ -334,7 +334,7 @@ typedef struct gp_scope
 static GPThreadKey  gp_scope_list_key;
 static GPThreadOnce gp_scope_list_key_once = GP_THREAD_ONCE_INIT;
 
-GPAllocator* gp_last_scope(void)
+GPScope* gp_last_scope(void)
 {
     return gp_thread_local_get(gp_scope_list_key);
 }
@@ -371,7 +371,7 @@ static void gp_make_scope_list_key(void)
     gp_thread_key_create(&gp_scope_list_key, gp_delete_thread_scopes);
 }
 
-GPAllocator* gp_begin(const size_t _size)
+GPScope* gp_begin(const size_t _size)
 {
     gp_thread_once(&gp_scope_list_key_once, gp_make_scope_list_key);
 
@@ -389,14 +389,13 @@ GPAllocator* gp_begin(const size_t _size)
     scope->parent = gp_thread_local_get(gp_scope_list_key);
     gp_thread_local_set(gp_scope_list_key, scope);
 
-    return (GPAllocator*)scope;
+    return scope;
 }
 
-size_t gp_end(GPAllocator*_scope)
+size_t gp_end(GPScope* scope)
 {
-    if (_scope == NULL)
+    if (scope == NULL)
         return 0;
-    GPScope* scope = (GPScope*)_scope;
 
     GPScope* child = gp_thread_local_get(gp_scope_list_key);
     while (child != scope) {
@@ -413,9 +412,8 @@ size_t gp_end(GPAllocator*_scope)
     return scope_size;
 }
 
-void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
+void gp_scope_defer(GPScope* scope, void (*f)(void*), void* arg)
 {
-    GPScope* scope = (GPScope*)_scope;
     if (scope->defer_stack == NULL)
     {
         const size_t init_cap = 4;
