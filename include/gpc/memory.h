@@ -34,8 +34,12 @@ extern "C" {
 // abort()ed anyway. In the first case, the inputs should be validated before
 // calling the allocators. This massively simplifies NULL handling and makes
 // error handling more explicit.
+//     Allocators inerit from GPAllocator by having GPAllocator as the first
+// member of the struct. Pointers to allocators can safely be upcasted to
+// GPAllocator*, although taking the address of the base allocator (the first
+// member, usually also named as 'base') is more type safe.
 
-/** Polymorphic Allocator.*/
+/** Polymorphic abstract allocator.*/
 typedef struct gp_allocator
 {
     void* (*alloc)  (struct gp_allocator*, size_t size, size_t alignment);
@@ -81,10 +85,13 @@ static inline void gp_mem_dealloc(
 }
 
 /** Maybe reallocate block.
+ * Possibly free @p old_block, allocate a new block and copies the memory from
+ * @p old_block to the new block.
  * If @p new_size <= @p old_size, no reallocation happens. Also, if @p allocator
- * is a GPArena, the arena extends @p old_block without reallocating if
- * @p old_block is the last object allocated by the arena.
+ * is a GPArena or GPVirtualArena, the arena extends @p old_block without
+ * reallocating if @p old_block is the last object allocated by the arena.
  * @p old_block may be NULL if @p old_size is zero.
+ * @return newly allocated memory or @p old_block if no reallocation happened.
  */
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
 void* gp_mem_realloc(
@@ -92,6 +99,8 @@ void* gp_mem_realloc(
     void*  optional_old_block,
     size_t old_size,
     size_t new_size);
+
+//void* gp_virtual_alloc(size_t size, int flags);
 
 // ----------------------------------------------------------------------------
 // Scope Allocator
@@ -150,10 +159,27 @@ GPAllocator* gp_last_scope(void);
  */
 typedef struct gp_arena
 {
-    // TODO docs
-    GPAllocator  base;
+    GPAllocator base;
+
+    /** Determine where arena gets it's memory from.
+     * Default is gp_heap. If backing buffer is provided, then this will only
+     * determine how additional buffers are allocated.
+     */
     GPAllocator* backing;
+
+    /** Determine how new arenas grow.
+     * Use this to determine the size of new arena node when old gets full. A
+     * value larger than 1.0 is useful for arenas that have small initial size.
+     * This allows the arena to estimate an optimal size for itself during
+     * runtime. A value smaller than 1.0 is useful for arenas that start out
+     * huge to not waste memory.
+     */
     double growth_coefficient;
+
+    /** Limit the arena size.
+     * Arenas will not grow past this value. Useful when
+     * growth_coefficient > 1.0.
+     */
     size_t max_size; // TODO this should be asserted, not saturated! Saturation is unnecessary due to virtual memory. Assertion allows compile time virtual/generic arena.
 
     /** @private */
@@ -211,8 +237,8 @@ void gp_arena_rewind(GPArena*, void* to_this_position) GP_NONNULL_ARGS();
 
 /** Deallocate all memory excluding the arena itself.
  * Fully rewinds the arena pointer to the beginning of the arena.
- * @return combined size of all internal buffers. This may be useful to
- * determine appropriate size for gp_arena_init().
+ * @return combined size of all internal buffers. This may be useful for
+ * optimizing appropriate size for gp_arena_new().
  */
 size_t gp_arena_reset(GPArena*) GP_NONNULL_ARGS();
 
@@ -233,17 +259,15 @@ void gp_arena_delete(GPArena* optional);
  */
 GPArena* gp_scratch_arena(void) GP_NODISCARD;
 
-// Feel free to define your own values for these. 256 is extremely conservative,
-// you probably want much larger scratch arenas. Check above for the meanings of
-// these.
+// Feel free to define your own values for these.
 #ifndef GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE
-#define GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE 256
+#define GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE (8192 - sizeof(GPArena) - 4*sizeof(void*))
 #endif
 #ifndef GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE
 #define GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE SIZE_MAX
 #endif
 #ifndef GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT
-#define GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT 2.0
+#define GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT 1.0
 #endif
 
 // ----------------------------------------------------------------------------
@@ -283,14 +307,14 @@ typedef struct gp_virtual_arena
  * allocation fails. In case of failures, you may want to try again with smaller
  * capacity.
  */
-GPAllocator* gp_virtual_init(GPVirtualArena*, size_t capacity) GP_NONNULL_ARGS();
+GPAllocator* gp_varena_init(GPVirtualArena*, size_t capacity) GP_NONNULL_ARGS();
 
 /** Deallocate some memory.
  * Use this to free everything allocated after @p to_this_position including
  * @p to_this_position. Physical memory remains untouched.
  */
 GP_NONNULL_ARGS()
-static inline void gp_virtual_rewind(GPVirtualArena* arena, void* to_this_position)
+static inline void gp_varena_rewind(GPVirtualArena* arena, void* to_this_position)
 {
     uint8_t* pointer = arena->position = to_this_position;
     gp_db_assert(pointer < (uint8_t*)arena->start + arena->capacity, "Pointer points outside the arena.");
@@ -301,17 +325,17 @@ static inline void gp_virtual_rewind(GPVirtualArena* arena, void* to_this_positi
  * Fully rewinds the arena pointer to the beginning of the arena. Physical
  * memory will be deallocated, but virtual address space remains untouched.
  */
-void gp_virtual_reset(GPVirtualArena*) GP_NONNULL_ARGS();
+void gp_varena_reset(GPVirtualArena*) GP_NONNULL_ARGS();
 
 /** Deallocate all arena memory including the arena itself.*/
-void gp_virtual_delete(GPVirtualArena* optional);
+void gp_varena_delete(GPVirtualArena* optional);
 
 /** Allocate memory from virtual arena.
  * gp_mem_alloc() is meant to be polymorphic, use this directly to maximize
  * performance.
  */
 GP_NONNULL_ARGS_AND_RETURN GP_ALLOC_ALIGN(3)
-static inline void* gp_virtual_alloc(
+static inline void* gp_varena_alloc(
     GPVirtualArena* allocator, const size_t size, const size_t alignment)
 {
     gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
@@ -330,13 +354,15 @@ static inline void* gp_virtual_alloc(
 // ----------------------------------------------------------------------------
 // Mutex Allocator
 
-// TODO docs
-
+/** Shared allocator wrapper.
+ * Uses backing allocator to do allocations and deallocations, which are mutex
+ * protected. This can be used to make any allocator thread safe.
+ */
 typedef struct gp_mutex_allocator
 {
     GPAllocator  base;
     GPAllocator* backing;
-    GPMutex      mutex; // TODO also document that you need to destroy this
+    GPMutex      mutex;
 } GPMutexAllocator;
 
 /** Initialize mutex allocator.
@@ -347,6 +373,9 @@ GP_NONNULL_ARGS()
 GPAllocator* gp_mutex_allocator_init(
     GPMutexAllocator*,
     GPAllocator* backing_allocator);
+
+/** Destroy mutex allocator mutex.*/
+void gp_mutex_allocator_destroy(GPMutexAllocator* optional);
 
 
 // ----------------------------------------------------------------------------

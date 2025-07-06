@@ -274,7 +274,7 @@ void* gp_mem_realloc(
         (char*)old_block + old_size == (char*)varena->position)
     { // extend block instead of reallocating and copying
         varena->position = old_block;
-        return gp_virtual_alloc(varena, new_size, GP_ALLOC_ALIGNMENT);
+        return gp_varena_alloc(varena, new_size, GP_ALLOC_ALIGNMENT);
     }
 
     GPArena* arena = (GPArena*)allocator;
@@ -441,7 +441,7 @@ void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
 // ----------------------------------------------------------------------------
 // Virtual Arena
 
-GPAllocator* gp_virtual_init(GPVirtualArena* alc, size_t size)
+GPAllocator* gp_varena_init(GPVirtualArena* alc, size_t size)
 {
     gp_db_assert(size != 0, "%zu", size);
     gp_db_assert(size < SIZE_MAX/2, "%zu", size, "Possibly negative size detected.");
@@ -477,13 +477,13 @@ GPAllocator* gp_virtual_init(GPVirtualArena* alc, size_t size)
     if (alc->start == NULL || alc->start == (void*)-1)
         return alc->start = alc->position = NULL;
 
-    alc->base.alloc   = (void*(*)(GPAllocator*,size_t,size_t))gp_virtual_alloc;
+    alc->base.alloc   = (void*(*)(GPAllocator*,size_t,size_t))gp_varena_alloc;
     alc->base.dealloc = gp_virtual_dealloc;
     alc->capacity = size;
     return (GPAllocator*)alc;
 }
 
-void gp_virtual_reset(GPVirtualArena* arena)
+void gp_varena_reset(GPVirtualArena* arena)
 {
     arena->position = arena->start;
 
@@ -494,7 +494,7 @@ void gp_virtual_reset(GPVirtualArena* arena)
     #endif
 }
 
-void gp_virtual_delete(GPVirtualArena* arena)
+void gp_varena_delete(GPVirtualArena* arena)
 {
     if (arena == NULL)
         return;
@@ -539,6 +539,13 @@ GPAllocator* gp_mutex_allocator_init(GPMutexAllocator* alc, GPAllocator* backing
     alc->base.dealloc = gp_mutex_dealloc;
     alc->backing      = backing;
     return (GPAllocator*)alc;
+}
+
+void gp_mutex_allocator_destroy(GPMutexAllocator* alc)
+{
+    if (alc == NULL)
+        return;
+    gp_mutex_destroy(&alc->mutex);
 }
 
 #ifdef GP_USE_MISC_DEFINED
