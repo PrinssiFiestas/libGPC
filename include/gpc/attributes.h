@@ -149,4 +149,15 @@
 #define GP_SCOPE_ASSERT(...) gp_assert(__VA_ARGS__)
 #endif
 
+// ----------------------------------------------------------------------------
+// Predict
+
+#ifdef __GNUC__
+#define GP_LIKELY(...)   __builtin_expect(!!(__VA_ARGS__), 1)
+#define GP_UNLIKELY(...) __builtin_expect(!!(__VA_ARGS__), 0)
+#else
+#define GP_LIKELY(...)   (!!(__VA_ARGS__))
+#define GP_UNLIKELY(...) (!!(__VA_ARGS__))
+#endif
+
 #endif // GP_ATTRIBUTES_INCLUDED

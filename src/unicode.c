@@ -5,7 +5,7 @@
 #include <gpc/unicode.h>
 #include <gpc/utils.h>
 #include <gpc/hashmap.h>
-#include "thread.h"
+#include <gpc/thread.h>
 #include "common.h"
 #include <stdlib.h>
 #include <wchar.h>

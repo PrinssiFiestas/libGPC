@@ -4,8 +4,8 @@
 
 #include <gpc/memory.h>
 #include <gpc/utils.h>
+#include <gpc/thread.h>
 #include "common.h"
-#include "thread.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -74,14 +74,13 @@ GPAllocator* gp_heap = &gp_mallocator;
 
 // ----------------------------------------------------------------------------
 
-// Instances of these live in the beginning of the arenas memory block so the
-// first object is in &node + 1;
 typedef struct gp_arena_node
 {
-    void*  position;
     struct gp_arena_node* tail;
-    size_t capacity;
-    void*  allocation;
+    void*   position;
+    size_t  capacity;
+    void*   _padding; // to align memory and for future use
+    uint8_t memory[];
 } GPArenaNode;
 
 void* gp_arena_alloc(GPAllocator* allocator, const size_t size, const size_t alignment)
@@ -95,14 +94,13 @@ void* gp_arena_alloc(GPAllocator* allocator, const size_t size, const size_t ali
     { // out of memory, create new arena
         size_t new_cap = arena->growth_coefficient * arena->head->capacity;
         new_cap = gp_min(new_cap, arena->max_size);
-        GPArenaNode* new_node = gp_mem_alloc(arena->allocator,
+        GPArenaNode* new_node = gp_mem_alloc(arena->backing,
             gp_round_to_aligned(sizeof(GPArenaNode), alignment)
             + gp_max(new_cap, size_with_poison)
             + alignment - GP_ALLOC_ALIGNMENT
         );
         new_node->tail       = head;
         new_node->capacity   = new_cap;
-        new_node->allocation = new_node;
 
         block = new_node->position = (void*)gp_round_to_aligned(
             (uintptr_t)(new_node + 1), alignment);
@@ -142,7 +140,6 @@ GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
         arena = init->backing_buffer;
         arena->head = (GPArenaNode*)((uint8_t*)arena + meta_size);
         arena->head->capacity = capacity - meta_size - sizeof(GPArenaNode) - 8*GP_HAS_SANITIZER;
-        arena->head->allocation = NULL;
     }
     else {
         capacity = capacity != 0 ? gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT) : 256;
@@ -150,18 +147,16 @@ GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
         arena = gp_mem_alloc(allocator, meta_size + sizeof(GPArenaNode) + capacity);
         arena->head = (GPArenaNode*)((uint8_t*)arena + meta_size);
         arena->head->capacity = capacity;
-        arena->head->allocation = arena;
     }
-    arena->head->position = arena->head + 1; // TODO use flexible struct member
+    arena->head->position = arena->head->memory;
     arena->head->tail     = NULL;
     ASAN_POISON_MEMORY_REGION(arena->head->position, arena->head->capacity);
 
     // TODO shared is removed!
 
-    arena->base.alloc   = gp_arena_alloc; // TODO scope allocator overrid this when we used arena as initializer!
+    arena->base.alloc   = gp_arena_alloc;
     arena->base.dealloc = gp_arena_dealloc;
-    // TODO rename to backing_allocator
-    arena->allocator = init->backing_allocator != NULL ?
+    arena->backing = init->backing_allocator != NULL ?
         init->backing_allocator
       : gp_heap;
     arena->growth_coefficient = init->growth_coefficient != 0. ?
@@ -188,7 +183,7 @@ static size_t gp_arena_node_delete(GPArena* arena)
     GPArenaNode* old_head = arena->head;
     size_t old_capacity = old_head->capacity;
     arena->head = arena->head->tail;
-    gp_mem_dealloc(arena->allocator, old_head->allocation);
+    gp_mem_dealloc(arena->backing, old_head);
     return old_capacity;
 }
 
@@ -199,7 +194,7 @@ void gp_arena_rewind(GPArena* arena, void* new_pos)
     arena->head->position = new_pos;
     if ((uint8_t*)new_pos < (uint8_t*)arena->head->position + arena->head->capacity)
         ASAN_POISON_MEMORY_REGION(new_pos,
-            (uint8_t*)(arena->head + 1) + arena->head->capacity - (uint8_t*)new_pos);
+            arena->head->memory + arena->head->capacity - (uint8_t*)new_pos);
 }
 
 size_t gp_arena_reset(GPArena* arena)
@@ -207,7 +202,7 @@ size_t gp_arena_reset(GPArena* arena)
     size_t total_capacity = 0;
     while (arena->head->tail != NULL)
         total_capacity += gp_arena_node_delete(arena);
-    arena->head->position = arena->head + 1;
+    arena->head->position = arena->head->memory;
     ASAN_POISON_MEMORY_REGION(arena->head->position, arena->head->capacity);
     return total_capacity + arena->head->capacity;
 }
@@ -220,7 +215,7 @@ void gp_arena_delete(GPArena* arena)
     while (arena->head->tail != NULL)
         gp_arena_node_delete(arena);
 
-    gp_mem_dealloc(arena->allocator, arena->head->allocation); // TODO change arena node allocation to padding
+    gp_mem_dealloc(arena->backing, arena);
 }
 
 // ----------------------------------------------------------------------------

@@ -2,11 +2,15 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// Portability wrappers for threading.
+/**@file thread.h
+ * Portability wrappers for threads. Uses C11 if available, pthreads otherwise.
+ * TODO C++?
+ */
 
 #ifndef GP_THREAD_INCLUDED
 #define GP_THREAD_INCLUDED
 
+#include <gpc/attributes.h>
 #include <stdbool.h>
 
 #if __STDC_VERSION__ >= 201112L && !defined(__MINGW32__)
@@ -15,20 +19,14 @@
 #include <pthread.h>
 #endif
 
-#ifdef __GNUC__
-#define GP_UNLIKELY(COND) __builtin_expect(!!(COND), 0)
-#else
-#define GP_UNLIKELY(COND) (COND)
-#endif
-
 // Use this only when thread local storage is desirable but not necessary.
-// Note: GCC thread locals are broken (thread 1 frees, thread 2 uses, use after
-// free, boom), so they are disabled.
+// Note: MinGW thread locals are broken, so they are disabled.
+// https://sourceforge.net/p/mingw-w64/bugs/445/
 #ifdef _MSC_VER
 #define GP_MAYBE_THREAD_LOCAL __declspec(thread)
-#elif __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__) && !defined(_WIN32)
+#elif __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__) && !defined(__MINGW32__)
 #define GP_MAYBE_THREAD_LOCAL _Thread_local
-#elif defined(__GNUC__) && !defined(_WIN32)
+#elif defined(__GNUC__) && !defined(__MINGW32__)
 #define GP_MAYBE_THREAD_LOCAL __thread
 #else
 #define GP_MAYBE_THREAD_LOCAL
@@ -40,21 +38,23 @@
 #define GP_MAYBE_ATOMIC _Atomic
 #else
 #define GP_MAYBE_ATOMIC
+#define GP_NO_ATOMICS
 #endif
 
 #if __STDC_VERSION__ >= 201112L && \
     !defined(__MINGW32__)       && \
     !defined(__STDC_NO_THREADS__)
 
-typedef thrd_t GPThread;
-typedef int GPThreadResult;
+#define GP_USE_C11_THREADS 1
 
-static inline int gp_thread_create(GPThread* t, GPThreadResult(*f)(void*), void* arg)
+typedef thrd_t GPThread;
+
+static inline int gp_thread_create(GPThread* t, int(*f)(void*), void* arg)
 {
     return thrd_create(t, f, arg);
 }
 
-static inline int gp_thread_join(GPThread t, GPThreadResult* ret)
+static inline int gp_thread_join(GPThread t, int* ret)
 {
     return thrd_join(t, ret);
 }
@@ -106,17 +106,30 @@ static inline void gp_thread_once(GPThreadOnce* flag, void(*init)(void))
 
 #else // standard threads not supported, use POSIX threads // --------------- //
 
-typedef pthread_t GPThread;
-typedef void* GPThreadResult;
+#define GP_USE_PTHREADS 1
 
-static inline int gp_thread_create(GPThread* t, GPThreadResult(*f)(void*), void* arg)
+typedef pthread_t GPThread;
+
+static inline int gp_thread_create(GPThread* t, int(*f)(void*), void* arg)
 {
-    return pthread_create(t, NULL, f, arg);
+    #if __cplusplus
+    extern "C" {
+    #endif
+    void* gp_thread_wrapper_routine(void*); // wrappers used to match return types
+    void* gp_thread_wrapper_arg(int(*f)(void*), void*);
+    #if __cplusplus
+    } // extern "C"
+    #endif
+    return pthread_create(t, NULL, gp_thread_wrapper_routine, gp_thread_wrapper_arg(f, arg));
 }
 
-static inline int gp_thread_join(GPThread t, GPThreadResult* ret)
+static inline int gp_thread_join(GPThread t, int* return_value)
 {
-    return pthread_join(t, ret);
+    void* void_return_value;
+    int result = pthread_join(t, &void_return_value);
+    if (return_value != NULL)
+        *return_value = (int)(intptr_t)void_return_value;
+    return result;
 }
 // ----------------------------------------------------------------------------
 // Mutual exclusion

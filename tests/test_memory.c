@@ -4,8 +4,8 @@
 
 #include <gpc/assert.h>
 #include <gpc/io.h>
+#include <gpc/thread.h>
 #include "../src/memory.c"
-#include "../src/thread.h"
 
 // Testing allocator. Does not free but marks memory as freed instead.
 // Check below main() for definitions and how to write custom allocators.
@@ -27,7 +27,7 @@ static void deferred_dealloc(void* p)
     gp_mem_dealloc(gp_heap, p);
 }
 
-static GPThreadResult test0(void*_)
+static int test0(void*_)
 {
     (void)_;
     void* ps[8] = {0}; // Dummy objects
@@ -134,19 +134,19 @@ static GPThreadResult test0(void*_)
                 // Exiting scope using any control structure is ok. gp_end() is
                 // guaranteed to be called on scope exit for the scope allocator
                 // of the current scope.
-                return (GPThreadResult)0;
+                return 0;
             GP_END
         }
         #endif
     }
     gp_suite(NULL);
 
-    return (GPThreadResult)0;
+    return 0;
 }
 
 static void* test1_ps[4] = {0};
 
-static GPThreadResult test1(void*_)
+static int test1(void*_)
 {
     (void)_;
     GPAllocator* scope0 = gp_begin(0);
@@ -158,10 +158,10 @@ static GPThreadResult test1(void*_)
     test1_ps[2] = gp_mem_alloc(scope2, 8);
     test1_ps[3] = gp_mem_alloc(scope3, 8);
 
-    return (GPThreadResult)0;
+    return 0;
 } // All scopes will be cleaned when threads terminate
 
-static GPThreadResult test2(void*_)
+static int test2(void*_)
 {
     (void)_;
     gp_suite("Arena allocator");
@@ -202,10 +202,10 @@ static GPThreadResult test2(void*_)
             gp_expect(is_free(ps[1]));
         }
     }
-    return (GPThreadResult)0;
+    return 0;
 }
 
-static GPThreadResult test_scratch(void*_)
+static int test_scratch(void*_)
 {
     (void)_;
     gp_test("Scratch arena");
@@ -218,7 +218,7 @@ static GPThreadResult test_scratch(void*_)
         // Do NOT delete scratch arenas! Scratch arenas get deleted
         // automatically when threads exit.
     }
-    return (GPThreadResult)0;
+    return 0;
 }
 
 int main(void)

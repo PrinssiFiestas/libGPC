@@ -316,6 +316,16 @@ static inline void* gp_virtual_alloc(
     return block;
 }
 
+// ----------------------------------------------------------------------------
+// Mutex Allocator
+
+typedef struct gp_mutex_allocator
+{
+    GPAllocator  base;
+    GPAllocator* backing;
+    void*        mutex; // TODO make GPThread public
+} GPMutexAllocator;
+
 
 // ----------------------------------------------------------------------------
 //
@@ -329,7 +339,7 @@ static inline void* gp_virtual_alloc(
 struct gp_arena
 {
     GPAllocator base;
-    GPAllocator* allocator;
+    GPAllocator* backing;
     double growth_coefficient;
     size_t max_size; // TODO this should be asserted, not saturated! Saturation is unnecessary due to virtual memory. Assertion allows compile time virtual/generic arena.
     void* is_shared; // TODO get rid of this, replace with mutex allocator
