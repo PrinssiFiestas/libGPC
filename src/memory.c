@@ -152,8 +152,6 @@ GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
     arena->head->tail     = NULL;
     ASAN_POISON_MEMORY_REGION(arena->head->position, arena->head->capacity);
 
-    // TODO shared is removed!
-
     arena->base.alloc   = gp_arena_alloc;
     arena->base.dealloc = gp_arena_dealloc;
     arena->backing = init->backing_allocator != NULL ?
@@ -309,7 +307,7 @@ void* gp_mem_realloc(
 }
 
 // ----------------------------------------------------------------------------
-// Scope allocator
+// Scope Allocator
 
 #ifndef GP_SCOPE_DEFAULT_INIT_SIZE
 #define GP_SCOPE_DEFAULT_INIT_SIZE 256
@@ -451,6 +449,7 @@ void gp_scope_defer(GPAllocator*_scope, void (*f)(void*), void* arg)
 }
 
 // ----------------------------------------------------------------------------
+// Virtual Arena
 
 GPAllocator* gp_virtual_init(GPVirtualArena* alc, size_t size)
 {
@@ -520,6 +519,36 @@ void gp_virtual_delete(GPVirtualArena* arena)
 
     arena->start = arena->position = NULL;
     arena->capacity = 0;
+}
+
+// ----------------------------------------------------------------------------
+// Mutex Allocator
+
+static void* gp_mutex_alloc(GPAllocator*_alc, size_t size, size_t alignment)
+{
+    GPMutexAllocator* alc = (GPMutexAllocator*)_alc;
+    gp_mutex_lock(&alc->mutex);
+    void* ptr = gp_mem_alloc_aligned(alc->backing, size, alignment);
+    gp_mutex_unlock(&alc->mutex);
+    return ptr;
+}
+
+static void gp_mutex_dealloc(GPAllocator*_alc, void* ptr)
+{
+    GPMutexAllocator* alc = (GPMutexAllocator*)_alc;
+    gp_mutex_lock(&alc->mutex);
+    gp_mem_dealloc(alc->backing, ptr);
+    gp_mutex_unlock(&alc->mutex);
+}
+
+GPAllocator* gp_mutex_allocator_init(GPMutexAllocator* alc, GPAllocator* backing)
+{
+    if ( ! gp_mutex_init(&alc->mutex))
+        return NULL;
+    alc->base.alloc   = gp_mutex_alloc;
+    alc->base.dealloc = gp_mutex_dealloc;
+    alc->backing      = backing;
+    return (GPAllocator*)alc;
 }
 
 #ifdef GP_USE_MISC_DEFINED

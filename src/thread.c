@@ -4,8 +4,9 @@
 
 #include <gpc/thread.h>
 
-#ifdef GP_USE_PTHREADS
+#ifndef _MSC_VER
 
+#include <pthread.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -16,7 +17,7 @@
 
 typedef struct gp_thread_routine_wrapper
 {
-    int (*GP_MAYBE_ATOMIC routine)(void* arg);
+    int (*routine)(void* arg);
     void* arg;
 } GPThreadRoutineWrapper;
 

@@ -11,6 +11,7 @@
 
 #include <gpc/attributes.h>
 #include <gpc/assert.h>
+#include <gpc/thread.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -147,7 +148,17 @@ GPAllocator* gp_last_scope(void);
  * boundaries are poisoned. The allocated memory cannot be assumed to be
  * contiguous due to boundary poisoning and linked list based backing buffers.
  */
-typedef struct gp_arena GPArena;
+typedef struct gp_arena
+{
+    // TODO docs
+    GPAllocator  base;
+    GPAllocator* backing;
+    double growth_coefficient;
+    size_t max_size; // TODO this should be asserted, not saturated! Saturation is unnecessary due to virtual memory. Assertion allows compile time virtual/generic arena.
+
+    /** @private */
+    struct gp_arena_node* head;
+} GPArena;
 
 typedef struct gp_arena_initializer
 {
@@ -319,12 +330,23 @@ static inline void* gp_virtual_alloc(
 // ----------------------------------------------------------------------------
 // Mutex Allocator
 
+// TODO docs
+
 typedef struct gp_mutex_allocator
 {
     GPAllocator  base;
     GPAllocator* backing;
-    void*        mutex; // TODO make GPThread public
+    GPMutex      mutex; // TODO also document that you need to destroy this
 } GPMutexAllocator;
+
+/** Initialize mutex allocator.
+ * @return pointer to allocator casted to GPAllocator* or NULL if mutex creation
+ * fails.
+ */
+GP_NONNULL_ARGS()
+GPAllocator* gp_mutex_allocator_init(
+    GPMutexAllocator*,
+    GPAllocator* backing_allocator);
 
 
 // ----------------------------------------------------------------------------
@@ -335,16 +357,6 @@ typedef struct gp_mutex_allocator
 //
 // ----------------------------------------------------------------------------
 
-
-struct gp_arena
-{
-    GPAllocator base;
-    GPAllocator* backing;
-    double growth_coefficient;
-    size_t max_size; // TODO this should be asserted, not saturated! Saturation is unnecessary due to virtual memory. Assertion allows compile time virtual/generic arena.
-    void* is_shared; // TODO get rid of this, replace with mutex allocator
-    struct gp_arena_node* head;
-};
 
 // GP_SCOPE_BEGIN and GP_SCOPE_END
 #if __GNUC__
