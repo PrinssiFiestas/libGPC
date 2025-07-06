@@ -18,7 +18,9 @@
 #include <sys/mman.h>
 #include <errno.h>
 #else
-#include <windows.h>
+#include <memoryapi.h>
+#include <sysinfoapi.h>
+#include <errhandlingapi.h>
 #endif
 
 static GP_MAYBE_ATOMIC size_t gp_heap_allocation_count = 0;
