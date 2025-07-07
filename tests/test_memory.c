@@ -169,7 +169,7 @@ static int test2(void*_)
 {
     (void)_;
     gp_suite("Arena allocator");
-    {
+    { // TODO test backing buffer
         gp_test("Basic usage");
         {
             const size_t block_size = 64;

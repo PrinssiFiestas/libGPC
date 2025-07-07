@@ -76,47 +76,67 @@ GPAllocator* gp_heap = &gp_mallocator;
 
 // ----------------------------------------------------------------------------
 
+// Note: we probably want to keep the size of this a multiple of
+// GP_ALLOC_ALIGNMENT since allocations are anyway rounded to this boundary. If
+// you need to change this, add explicit padding.
 typedef struct gp_arena_node
 {
     struct gp_arena_node* tail;
     void*   position;
     size_t  capacity;
-    void*   _padding; // to align memory and for future use
+    void*   allocation;
     uint8_t memory[];
 } GPArenaNode;
+
+#if GP_HAS_SANITIZER
+#define GP_POISON_BOUNDARY_SIZE 8 // 8 is minimum required by libasan
+#else
+#define GP_POISON_BOUNDARY_SIZE 0
+#endif
+
+static void* gp_arena_node_new_alloc(
+    GPAllocator* allocator,
+    GPArenaNode** head,
+    size_t new_cap,
+    size_t size,
+    size_t alignment)
+{
+    GPArenaNode* new_node = gp_mem_alloc(allocator,
+        gp_round_to_aligned(sizeof(GPArenaNode), alignment)
+        + gp_max(new_cap, size + GP_POISON_BOUNDARY_SIZE)
+        + alignment - GP_ALLOC_ALIGNMENT
+    );
+    new_node->tail       = *head;
+    new_node->capacity   = new_cap;
+    new_node->allocation = new_node;
+
+    void* block = new_node->position = (void*)gp_round_to_aligned(
+        (uintptr_t)(new_node + 1), alignment);
+    new_node->position = (uint8_t*)(new_node->position) + size + GP_POISON_BOUNDARY_SIZE;
+    *head = new_node;
+    if (new_node->capacity > size) // -8 for poison boundary
+        ASAN_POISON_MEMORY_REGION((uint8_t*)new_node->position - 8, new_node->capacity - size);
+    // Poison padding possibly caused by large alginments
+    ASAN_POISON_MEMORY_REGION(new_node + 1,
+        gp_round_to_aligned((uintptr_t)(new_node + 1), alignment) - (uintptr_t)(new_node + 1));
+
+    return block;
+}
 
 void* gp_arena_alloc(GPAllocator* allocator, const size_t size, const size_t alignment)
 {
     GPArena* arena = (GPArena*)allocator;
     GPArenaNode* head = arena->head;
-    const size_t size_with_poison = size + 8*GP_HAS_SANITIZER;
 
     void* block = head->position = (void*)gp_round_to_aligned((uintptr_t)head->position, alignment);
-    if ((uint8_t*)block + size_with_poison > (uint8_t*)(head + 1) + arena->head->capacity)
+    if ((uint8_t*)block + size + GP_POISON_BOUNDARY_SIZE > (uint8_t*)(head + 1) + arena->head->capacity)
     { // out of memory, create new arena
         size_t new_cap = arena->growth_coefficient * arena->head->capacity;
-        new_cap = gp_min(new_cap, arena->max_size);
-        GPArenaNode* new_node = gp_mem_alloc(arena->backing,
-            gp_round_to_aligned(sizeof(GPArenaNode), alignment)
-            + gp_max(new_cap, size_with_poison)
-            + alignment - GP_ALLOC_ALIGNMENT
-        );
-        new_node->tail       = head;
-        new_node->capacity   = new_cap;
-
-        block = new_node->position = (void*)gp_round_to_aligned(
-            (uintptr_t)(new_node + 1), alignment);
-        new_node->position = (uint8_t*)(new_node->position) + size_with_poison;
-        arena->head = new_node;
-        if (new_node->capacity > size) // -8 for poison boundary
-            ASAN_POISON_MEMORY_REGION((uint8_t*)new_node->position - 8, new_node->capacity - size);
-        // Poison padding possibly caused by large alginments
-        ASAN_POISON_MEMORY_REGION(new_node + 1,
-            gp_round_to_aligned((uintptr_t)(new_node + 1), alignment) - (uintptr_t)(new_node + 1));
+        block = gp_arena_node_new_alloc(arena->backing, &arena->head, new_cap, size, alignment);
     }
     else {
         ASAN_UNPOISON_MEMORY_REGION(block, size);
-        head->position = (uint8_t*)block + size_with_poison;
+        head->position = (uint8_t*)block + size + GP_POISON_BOUNDARY_SIZE;
     }
     return block;
 }
@@ -142,6 +162,7 @@ GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
         arena = init->backing_buffer;
         arena->head = (GPArenaNode*)((uint8_t*)arena + meta_size);
         arena->head->capacity = capacity - meta_size - sizeof(GPArenaNode) - 8*GP_HAS_SANITIZER;
+        arena->head->allocation = NULL; // don't free backing buffer on delete
     }
     else {
         capacity = capacity != 0 ? gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT) : 256;
@@ -149,6 +170,7 @@ GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
         arena = gp_mem_alloc(allocator, meta_size + sizeof(GPArenaNode) + capacity);
         arena->head = (GPArenaNode*)((uint8_t*)arena + meta_size);
         arena->head->capacity = capacity;
+        arena->head->allocation = arena;
     }
     arena->head->position = arena->head->memory;
     arena->head->tail     = NULL;
@@ -183,7 +205,7 @@ static size_t gp_arena_node_delete(GPArena* arena)
     GPArenaNode* old_head = arena->head;
     size_t old_capacity = old_head->capacity;
     arena->head = arena->head->tail;
-    gp_mem_dealloc(arena->backing, old_head);
+    gp_mem_dealloc(arena->backing, old_head->allocation);
     return old_capacity;
 }
 
@@ -215,7 +237,7 @@ void gp_arena_delete(GPArena* arena)
     while (arena->head->tail != NULL)
         gp_arena_node_delete(arena);
 
-    gp_mem_dealloc(arena->backing, arena);
+    gp_mem_dealloc(arena->backing, arena->head->allocation);
 }
 
 // ----------------------------------------------------------------------------
@@ -330,6 +352,15 @@ typedef struct gp_scope
     struct gp_scope* parent;
     GPDeferStack*    defer_stack;
 } GPScope;
+
+#if 0 // TODO This should be the type exposed to user
+typedef union gp_scope
+{
+    GPAllocator base;
+    GPArena     arena;
+    GPScopeInternal _;
+} GPScope
+#endif
 
 static GPThreadKey  gp_scope_list_key;
 static GPThreadOnce gp_scope_list_key_once = GP_THREAD_ONCE_INIT;
@@ -551,4 +582,83 @@ void gp_mutex_allocator_destroy(GPMutexAllocator* alc)
 #ifdef GP_USE_MISC_DEFINED
 #undef __USE_MISC
 #undef GP_USE_MISC_DEFINED
+#endif
+
+
+
+
+
+
+
+
+
+
+#if SCOPE_PROTO
+
+typedef struct gp_scope
+{
+    GPAllocator base;
+    struct gp_arena_node* head;
+    struct gp_scope* parent;
+    // TODO defers
+} GPScope;
+
+void* gp_scope_alloc(GPAllocator* allocator, const size_t size, const size_t alignment)
+{
+    GPScope* arena = (GScope*)allocator;
+    GPArenaNode* head = arena->head;
+    const size_t size_with_poison = size + 8*GP_HAS_SANITIZER;
+
+    void* block = head->position = (void*)gp_round_to_aligned((uintptr_t)head->position, alignment);
+    if ((uint8_t*)block + size_with_poison > (uint8_t*)(head + 1) + arena->head->capacity)
+    { // out of memory, create new arena
+        block = gp_arena_node_new_alloc(gp_heap, &arena->head, 2*arena->head->capacity, size_with_poison);
+    }
+    else {
+        ASAN_UNPOISON_MEMORY_REGION(block, size);
+        head->position = (uint8_t*)block + size_with_poison;
+    }
+    return block;
+}
+
+GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
+{
+    GPScope* arena;
+
+    capacity = capacity != 0 ? gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT) : 256;
+    capacity += 8*GP_HAS_SANITIZER;
+    arena = gp_mem_alloc(gp_heap, sizeof*arena + sizeof(GPArenaNode) + capacity);
+    arena->head = (GPArenaNode*)(arena + 1);
+    arena->head->capacity = capacity;
+
+    arena->head->position = arena->head->memory;
+    arena->head->tail     = NULL;
+    ASAN_POISON_MEMORY_REGION(arena->head->position, arena->head->capacity);
+
+    arena->base.alloc   = gp_scope_alloc;
+    arena->base.dealloc = gp_arena_dealloc; // TODO remember to update realloc, which is using gp_arena_alloc(), to gp_mem_alloc()
+
+    return arena;
+}
+
+static size_t gp_arena_node_delete(GPAllocator* allocator, GPArenaNode** head)
+{
+    GPArenaNode* old_head = *head;
+    size_t old_capacity = old_head->capacity;
+    *head = (*head)->tail;
+    gp_mem_dealloc(allocator, old_head);
+    return old_capacity;
+}
+
+void gp_arena_delete(GPArena* arena)
+{
+    if (arena == NULL)
+        return;
+
+    while (arena->head->tail != NULL)
+        gp_arena_node_delete(arena);
+
+    gp_mem_dealloc(arena->backing, arena);
+}
+
 #endif
