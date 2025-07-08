@@ -96,10 +96,10 @@ GPString gp_str_new(
 */
 
 /** Getters */
-size_t       gp_str_length    (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
-size_t       gp_str_capacity  (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
-GPAllocator* gp_str_allocator (GPString) GP_NONNULL_ARGS() GP_NODISCARD;
-void*        gp_str_allocation(GPString) GP_NONNULL_ARGS() GP_NODISCARD;
+GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_str_length    (GPString str) { return ((GPStringHeader*)str - 1)->length;     }
+GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_str_capacity  (GPString str) { return ((GPStringHeader*)str - 1)->capacity;   }
+GP_NONNULL_ARGS() GP_NODISCARD static inline GPAllocator* gp_str_allocator (GPString str) { return ((GPStringHeader*)str - 1)->allocator;  }
+GP_NONNULL_ARGS() GP_NODISCARD static inline void*        gp_str_allocation(GPString str) { return ((GPStringHeader*)str - 1)->allocation; }
 
 /** Free string memory.
  * Passing strings on stack is safe too.

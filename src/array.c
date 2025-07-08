@@ -8,26 +8,6 @@
 #include <string.h>
 #include <assert.h>
 
-size_t gp_arr_length(const void* arr)
-{
-    return ((GPArrayHeader*)arr - 1)->length;
-}
-
-size_t gp_arr_capacity(const void* arr)
-{
-    return ((GPArrayHeader*)arr - 1)->capacity;
-}
-
-void* gp_arr_allocation(const void* arr)
-{
-    return ((GPArrayHeader*)arr - 1)->allocation;
-}
-
-GPAllocator* gp_arr_allocator(const void* arr)
-{
-    return ((GPArrayHeader*)arr - 1)->allocator;
-}
-
 GPArray(void) gp_arr_clear(GPArray(void) arr)
 {
     ((GPArrayHeader*)arr - 1)->length = 0;
