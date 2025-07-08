@@ -373,7 +373,6 @@ GPScope* gp_last_scope(void)
     return gp_thread_local_get(gp_scope_list_key);
 }
 
-GP_NO_FUNCTION_POINTER_SANITIZE
 static void gp_scope_execute_defers(GPScope* scope)
 {
     if (scope->defer_stack != NULL) {
