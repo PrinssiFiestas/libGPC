@@ -157,16 +157,16 @@ GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
         init->meta_size
       : sizeof(GPArena);
 
-    if (init->backing_buffer != NULL && capacity > meta_size + sizeof(GPArenaNode) + 8*GP_HAS_SANITIZER)
+    if (init->backing_buffer != NULL && capacity > meta_size + sizeof(GPArenaNode) + GP_POISON_BOUNDARY_SIZE)
     { // use backing buffer
         arena = init->backing_buffer;
         arena->head = (GPArenaNode*)((uint8_t*)arena + meta_size);
-        arena->head->capacity = capacity - meta_size - sizeof(GPArenaNode) - 8*GP_HAS_SANITIZER;
+        arena->head->capacity = capacity - meta_size - sizeof(GPArenaNode) - GP_POISON_BOUNDARY_SIZE;
         arena->head->allocation = NULL; // don't free backing buffer on delete
     }
     else {
         capacity = capacity != 0 ? gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT) : 256;
-        capacity += 8*GP_HAS_SANITIZER;
+        capacity += GP_POISON_BOUNDARY_SIZE;
         arena = gp_mem_alloc(allocator, meta_size + sizeof(GPArenaNode) + capacity);
         arena->head = (GPArenaNode*)((uint8_t*)arena + meta_size);
         arena->head->capacity = capacity;
@@ -200,19 +200,20 @@ static bool gp_in_this_node(GPArenaNode* node, void* _pos)
     return block_start <= pos && pos <= block_start + node->capacity;
 }
 
-static size_t gp_arena_node_delete(GPArena* arena)
+static size_t gp_arena_node_delete(GPAllocator* allocator, GPArenaNode** head)
 {
-    GPArenaNode* old_head = arena->head;
+    GPArenaNode* old_head = *head;
     size_t old_capacity = old_head->capacity;
-    arena->head = arena->head->tail;
-    gp_mem_dealloc(arena->backing, old_head->allocation);
+    *head = (*head)->tail;
+    gp_mem_dealloc(allocator, old_head);
     return old_capacity;
 }
 
 void gp_arena_rewind(GPArena* arena, void* new_pos)
 {
     while ( ! gp_in_this_node(arena->head, new_pos))
-        gp_arena_node_delete(arena);
+        gp_arena_node_delete(arena->backing, &arena->head);
+
     arena->head->position = new_pos;
     if ((uint8_t*)new_pos < (uint8_t*)arena->head->position + arena->head->capacity)
         ASAN_POISON_MEMORY_REGION(new_pos,
@@ -223,7 +224,8 @@ size_t gp_arena_reset(GPArena* arena)
 {
     size_t total_capacity = 0;
     while (arena->head->tail != NULL)
-        total_capacity += gp_arena_node_delete(arena);
+        total_capacity += gp_arena_node_delete(arena->backing, &arena->head);
+
     arena->head->position = arena->head->memory;
     ASAN_POISON_MEMORY_REGION(arena->head->position, arena->head->capacity);
     return total_capacity + arena->head->capacity;
@@ -233,10 +235,8 @@ void gp_arena_delete(GPArena* arena)
 {
     if (arena == NULL)
         return;
-
     while (arena->head->tail != NULL)
-        gp_arena_node_delete(arena);
-
+        gp_arena_node_delete(arena->backing, &arena->head);
     gp_mem_dealloc(arena->backing, arena->head->allocation);
 }
 
@@ -303,7 +303,7 @@ void* gp_mem_realloc(
 
     GPArena* arena = (GPArena*)allocator;
     if (allocator->dealloc == gp_arena_dealloc && old_block != NULL &&
-        (char*)old_block + old_size + 8*GP_HAS_SANITIZER == (char*)arena->head->position)
+        (char*)old_block + old_size + GP_POISON_BOUNDARY_SIZE == (char*)arena->head->position)
     { // extend block instead of reallocating and copying
         arena->head->position = old_block;
         void* new_block = gp_arena_alloc(allocator, new_size, GP_ALLOC_ALIGNMENT);
@@ -352,15 +352,6 @@ typedef struct gp_scope
     struct gp_scope* parent;
     GPDeferStack*    defer_stack;
 } GPScope;
-
-#if 0 // TODO This should be the type exposed to user
-typedef union gp_scope
-{
-    GPAllocator base;
-    GPArena     arena;
-    GPScopeInternal _;
-} GPScope
-#endif
 
 static GPThreadKey  gp_scope_list_key;
 static GPThreadOnce gp_scope_list_key_once = GP_THREAD_ONCE_INIT;
@@ -607,7 +598,7 @@ void* gp_scope_alloc(GPAllocator* allocator, const size_t size, const size_t ali
 {
     GPScope* arena = (GScope*)allocator;
     GPArenaNode* head = arena->head;
-    const size_t size_with_poison = size + 8*GP_HAS_SANITIZER;
+    const size_t size_with_poison = size + GP_POISON_BOUNDARY_SIZE;
 
     void* block = head->position = (void*)gp_round_to_aligned((uintptr_t)head->position, alignment);
     if ((uint8_t*)block + size_with_poison > (uint8_t*)(head + 1) + arena->head->capacity)
@@ -626,7 +617,7 @@ GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
     GPScope* arena;
 
     capacity = capacity != 0 ? gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT) : 256;
-    capacity += 8*GP_HAS_SANITIZER;
+    capacity += GP_POISON_BOUNDARY_SIZE;
     arena = gp_mem_alloc(gp_heap, sizeof*arena + sizeof(GPArenaNode) + capacity);
     arena->head = (GPArenaNode*)(arena + 1);
     arena->head->capacity = capacity;
@@ -639,15 +630,6 @@ GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
     arena->base.dealloc = gp_arena_dealloc; // TODO remember to update realloc, which is using gp_arena_alloc(), to gp_mem_alloc()
 
     return arena;
-}
-
-static size_t gp_arena_node_delete(GPAllocator* allocator, GPArenaNode** head)
-{
-    GPArenaNode* old_head = *head;
-    size_t old_capacity = old_head->capacity;
-    *head = (*head)->tail;
-    gp_mem_dealloc(allocator, old_head);
-    return old_capacity;
 }
 
 void gp_arena_delete(GPArena* arena)
