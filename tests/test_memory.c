@@ -36,33 +36,29 @@ static int test0(void*_)
     { // The scopes created by the scope allocator are not in any way tied to
       // the C scoping operator {}. Here we use them just to empahize that
       // scopes are lexical.
-      //     Note that the conversions from GPScope* to GPAllocator* using
-      // gp_scope_allocator() is mostly here to avoid conversions when calling
-      // gp_mem_alloc(). Type safe generic macro gp_alloc() in generic.h does
-      // not require this.
         gp_test("Basic usage");
         {
             // Use tiny 1 byte scopes to demostrate that the arenas can hold
             // objects that do not fit in them. Normally you would use larger
             // values or 0 for some default value.
-            GPAllocator* scope = gp_scope_allocator(gp_begin(1));
-            ps[0] = gp_mem_alloc(scope, 64);
+            GPScope* scope = gp_begin(1);
+            ps[0] = gp_mem_alloc(&scope->base, 64);
             {
-                GPAllocator* scope = gp_scope_allocator(gp_begin(1));
-                ps[1] = gp_mem_alloc(scope, 64);
+                GPScope* scope = gp_begin(1);
+                ps[1] = gp_mem_alloc(&scope->base, 64);
                 {
-                    GPAllocator* scope = gp_scope_allocator(gp_begin(1));
-                    ps[2] = gp_mem_alloc(scope, 64);
+                    GPScope* scope = gp_begin(1);
+                    ps[2] = gp_mem_alloc(&scope->base, 64);
                     // whoops, forgot to end(scope)
                 }
                 {
-                    GPAllocator* scope = gp_scope_allocator(gp_begin(1));
-                    ps[3] = gp_mem_alloc(scope, 64);
+                    GPScope* scope = gp_begin(1);
+                    ps[3] = gp_mem_alloc(&scope->base, 64);
                     gp_end((GPScope*)scope);
                 }
                 {
-                    GPAllocator* scope = gp_scope_allocator(gp_begin(1));
-                    ps[4] = gp_mem_alloc(scope, 64);
+                    GPScope* scope = gp_begin(1);
+                    ps[4] = gp_mem_alloc(&scope->base, 64);
                     // Sanity check
                     gp_expect( ! is_free(ps[0]));
                     gp_expect( ! is_free(ps[1]));
@@ -74,9 +70,9 @@ static int test0(void*_)
                 gp_end((GPScope*)scope); // this also ends the "forgotten" inner scopes.
             }
             // We can allocate as much as we like, gp_end(scope) will free all.
-            ps[5] = gp_mem_alloc(scope, 64);
-            ps[6] = gp_mem_alloc(scope, 64);
-            ps[7] = gp_mem_alloc(scope, 64);
+            ps[5] = gp_mem_alloc(&scope->base, 64);
+            ps[6] = gp_mem_alloc(&scope->base, 64);
+            ps[7] = gp_mem_alloc(&scope->base, 64);
 
             // This could be used for better informed estimation for gp_begin(),
             // but now we'll just test that it's not empty.
@@ -130,7 +126,7 @@ static int test0(void*_)
                 (void)dummy_var;
 
                 // GP_BEGIN created scope allocator
-                int* p = gp_mem_alloc(scope, sizeof*p);
+                int* p = gp_mem_alloc(&scope->base, sizeof*p);
                 *p = 7;
 
                 gp_defer(scope, gp_suite, NULL); // also end suite when exiting scope
@@ -153,14 +149,14 @@ static void* test1_ps[4] = {0};
 static int test1(void*_)
 {
     (void)_;
-    GPAllocator* scope0 = gp_scope_allocator(gp_begin(0));
-    GPAllocator* scope1 = gp_scope_allocator(gp_begin(0));
-    GPAllocator* scope2 = gp_scope_allocator(gp_begin(0));
-    GPAllocator* scope3 = gp_scope_allocator(gp_begin(0));
-    test1_ps[0] = gp_mem_alloc(scope0, 8);
-    test1_ps[1] = gp_mem_alloc(scope1, 8);
-    test1_ps[2] = gp_mem_alloc(scope2, 8);
-    test1_ps[3] = gp_mem_alloc(scope3, 8);
+    GPScope* scope0 = gp_begin(0);
+    GPScope* scope1 = gp_begin(0);
+    GPScope* scope2 = gp_begin(0);
+    GPScope* scope3 = gp_begin(0);
+    test1_ps[0] = gp_mem_alloc(&scope0->base, 8);
+    test1_ps[1] = gp_mem_alloc(&scope1->base, 8);
+    test1_ps[2] = gp_mem_alloc(&scope2->base, 8);
+    test1_ps[3] = gp_mem_alloc(&scope3->base, 8);
 
     return 0;
 } // All scopes will be cleaned when threads terminate

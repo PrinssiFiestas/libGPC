@@ -101,65 +101,6 @@ void* gp_mem_realloc(
     size_t new_size);
 
 // ----------------------------------------------------------------------------
-// Scope Allocator
-
-// TODO better docs
-
-typedef struct gp_scope GPScope;
-
-/** Create scope arena.*/
-GPScope* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
-
-/** Free scope arena.
- * Also frees any inner scopes in the current thread that have not been ended.
- * Calls deferred functions.
- * @return combined size of all internal buffers. This may be useful to
- * determine appropriate size for gp_begin().
- */
-size_t gp_end(GPScope* optional_scope);
-
-/** Set cleanup routines to be executed when scope ends.
- * Deferred functions are called in Last In First Out order in gp_end().
- * Deferring should not be used for gp_str_delete() or gp_arr_delete() due
- * to possibility of reallocating which would cause double free. It is not
- * needed either, since using the scope allocator makes freeing redundant.
- * Deferring is meant to clean other than memory resources like file pointers.
- */
-GP_NONNULL_ARGS(1, 2)
-void gp_scope_defer(GPScope* scope, void (*f)(void* arg), void* arg);
-
-/** Set cleanup routines to be executed when scope ends.
- * like gp_scope_defer() but with type checking and can also take functions
- * with non-void pointer arguments like gp_file_close().
- */
-#define gp_defer(scope, f, arg) do { \
-    if (0) (f)(arg); \
-    gp_scope_defer(scope, (void(*)(void*))(f), arg); \
-} while(0)
-
-/** Type safe upcasting.
- * GPScope is opaque, therefore no access to base allocator, so this can be used
- * for type safe upcasting. Note that generic macros in generic.h do not
- * require this.
- */
-static inline GPAllocator* gp_scope_allocator(GPScope* scope)
-{
-    return (GPAllocator*)scope;
-}
-
-/** Get lastly created scope in the current thread.
- * You should prefer to just pass scopes as arguments when possible. This exists
- * only to be able to access the current scope allocator in callbacks.
- */
-GP_NODISCARD
-GPScope* gp_last_scope(void);
-
-#if __GNUC__ || _MSC_VER
-#define GP_BEGIN { GP_SCOPE_BEGIN
-#define GP_END     GP_SCOPE_END }
-#endif
-
-// ----------------------------------------------------------------------------
 // Arena Allocator
 
 /** Arena that does not run out of memory.
@@ -360,6 +301,65 @@ static inline void* gp_varena_alloc(
     #endif
     return block;
 }
+
+// ----------------------------------------------------------------------------
+// Scope Allocator
+
+// TODO better docs
+
+typedef struct gp_scope
+{
+    GPAllocator      base;
+
+    /** @private */
+    struct gp_arena_node* head;
+    /** @private */
+    struct gp_scope* parent;
+    /** @private */
+    struct gp_defer_stack* defer_stack;
+} GPScope;
+
+/** Create scope arena.*/
+GPScope* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
+
+/** Free scope arena.
+ * Also frees any inner scopes in the current thread that have not been ended.
+ * Calls deferred functions.
+ * @return combined size of all internal buffers. This may be useful to
+ * determine appropriate size for gp_begin().
+ */
+size_t gp_end(GPScope* optional_scope);
+
+/** Set cleanup routines to be executed when scope ends.
+ * Deferred functions are called in Last In First Out order in gp_end().
+ * Deferring should not be used for gp_str_delete() or gp_arr_delete() due
+ * to possibility of reallocating which would cause double free. It is not
+ * needed either, since using the scope allocator makes freeing redundant.
+ * Deferring is meant to clean other than memory resources like file pointers.
+ */
+GP_NONNULL_ARGS(1, 2)
+void gp_scope_defer(GPScope* scope, void (*f)(void* arg), void* arg);
+
+/** Set cleanup routines to be executed when scope ends.
+ * like gp_scope_defer() but with type checking and can also take functions
+ * with non-void pointer arguments like gp_file_close().
+ */
+#define gp_defer(scope, f, arg) do { \
+    if (0) (f)(arg); \
+    gp_scope_defer(scope, (void(*)(void*))(f), arg); \
+} while(0)
+
+/** Get lastly created scope in the current thread.
+ * You should prefer to just pass scopes as arguments when possible. This exists
+ * only to be able to access the current scope allocator in callbacks.
+ */
+GP_NODISCARD
+GPScope* gp_last_scope(void);
+
+#if __GNUC__ || _MSC_VER
+#define GP_BEGIN { GP_SCOPE_BEGIN
+#define GP_END     GP_SCOPE_END }
+#endif
 
 // ----------------------------------------------------------------------------
 // Mutex Allocator

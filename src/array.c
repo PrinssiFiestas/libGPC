@@ -200,7 +200,7 @@ GPArray(void) gp_arr_null_terminate(
     return arr;
 }
 
-GP_NO_FUNCTION_POINTER_SANITIZE
+//GP_NO_FUNCTION_POINTER_SANITIZE
 GPArray(void) gp_arr_map(
     const size_t elem_size,
     GPArray(void) arr,
@@ -220,7 +220,7 @@ GPArray(void) gp_arr_map(
     return arr;
 }
 
-GP_NO_FUNCTION_POINTER_SANITIZE
+//GP_NO_FUNCTION_POINTER_SANITIZE
 void* gp_arr_fold(
     const size_t elem_size,
     const GPArray(void) arr,
@@ -232,7 +232,7 @@ void* gp_arr_fold(
     return accumulator;
 }
 
-GP_NO_FUNCTION_POINTER_SANITIZE
+//GP_NO_FUNCTION_POINTER_SANITIZE
 void* gp_arr_foldr(
     const size_t elem_size,
     const GPArray(void) arr,
@@ -244,7 +244,7 @@ void* gp_arr_foldr(
     return accumulator;
 }
 
-GP_NO_FUNCTION_POINTER_SANITIZE
+//GP_NO_FUNCTION_POINTER_SANITIZE
 static GPArray(void) gp_arr_filter_aliasing(
     const size_t elem_size,
     GPArray(void)restrict const arr,
@@ -275,7 +275,7 @@ static GPArray(void) gp_arr_filter_aliasing(
     return arr;
 }
 
-GP_NO_FUNCTION_POINTER_SANITIZE
+//GP_NO_FUNCTION_POINTER_SANITIZE
 static GPArray(void) gp_arr_filter_non_aliasing(
     const size_t elem_size,
     GPArray(void)restrict arr,
@@ -297,7 +297,7 @@ static GPArray(void) gp_arr_filter_non_aliasing(
     return arr;
 }
 
-GP_NO_FUNCTION_POINTER_SANITIZE
+//GP_NO_FUNCTION_POINTER_SANITIZE // TODO remove these comments if no breakage during multi-platform tests
 GPArray(void) gp_arr_filter(
     const size_t elem_size,
     GPArray(void) arr,

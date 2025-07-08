@@ -73,11 +73,11 @@ int main(void)
 
             // Note: arrays and arenas have metadata so an arena with size
             // 256 * sizeof(int) is NOT capable of holding an array with 256 ints. // TODO ok this settles it: change arrays to use power of 2 blocks!
-            GPAllocator* scope = gp_scope_allocator(gp_begin(256 * sizeof(int)));
+            GPScope* scope = gp_begin(256 * sizeof(int));
 
             const size_t INIT_CAPACITY = 8;
             const size_t RESERVE_CAPACITY = INIT_CAPACITY + 1;
-            GPArray(int) arr = gp_arr_new(scope, sizeof*arr, INIT_CAPACITY);
+            GPArray(int) arr = gp_arr_new(&scope->base, sizeof*arr, INIT_CAPACITY);
             const int* init_pos = arr;
             gp_expect(gp_arr_capacity(arr) == INIT_CAPACITY);
             arr = gp_arr_reserve(sizeof*arr, arr, RESERVE_CAPACITY); // Extend arr memory
@@ -85,7 +85,7 @@ int main(void)
                 && arr == init_pos,"Arenas should know how to extend memory of "
                                    "lastly created objects so arr is not moved.");
 
-            void* new_object = gp_mem_alloc(scope, 1); (void)new_object;
+            void* new_object = gp_mem_alloc(&scope->base, 1); (void)new_object;
             arr = gp_arr_reserve(sizeof*arr, arr, 32);
             gp_expect(arr != init_pos,
                 "arr can nott extend since it would overwrite new_object.");
@@ -99,7 +99,7 @@ int main(void)
                 "arr did not fit in arena so it should've been reallocated.");
 
             // No need to delete arr or dealloc new_object, they live in scope.
-            gp_end((GPScope*)scope);
+            gp_end(scope);
 
             // Repeated memory block extension test on virtual arena
             GPVirtualArena va;
@@ -116,7 +116,7 @@ int main(void)
 
     gp_suite("Array manipulation");
     {
-        GPAllocator* scope = gp_scope_allocator(gp_begin(0));
+        GPScope* scope = gp_begin(0);
 
         gp_test("Copy slice");
         {
@@ -141,7 +141,7 @@ int main(void)
 
         gp_test("Push and pop");
         {
-            GPArray(int) arr = gp_arr_new(scope, sizeof*arr, 4);
+            GPArray(int) arr = gp_arr_new(&scope->base, sizeof*arr, 4);
             arr = gp_arr_push(sizeof*arr, arr, &(int){3});
             arr = gp_arr_push(sizeof*arr, arr, &(int){6});
             gp_expect(arr[0] == 3);
@@ -157,7 +157,7 @@ int main(void)
 
         gp_test("Append, insert, and remove");
         {
-            GPArray(int) arr = gp_arr_new(scope, sizeof*arr, 4);
+            GPArray(int) arr = gp_arr_new(&scope->base, sizeof*arr, 4);
             arr = gp_arr_append(sizeof*arr, arr, (int[]){1,2,3}, 3);
             arr_assert_eq(arr, ((int[]){1,2,3}), 3);
             arr = gp_arr_append(sizeof*arr, arr, (int[]){4,5,6}, 3);
@@ -170,7 +170,7 @@ int main(void)
 
         gp_test("Null termination");
         {
-            GPArray(char*) arr = gp_arr_new(scope, sizeof arr[0], 8);
+            GPArray(char*) arr = gp_arr_new(&scope->base, sizeof arr[0], 8);
             for (size_t i = 0; i < 8; ++i)
                 arr = gp_arr_push(sizeof arr[0], arr, &"dummy string");
             arr = gp_arr_null_terminate(sizeof arr[0], arr);
@@ -182,8 +182,8 @@ int main(void)
         {
             void increment(void* out, const void* in);
 
-            GPArray(int) arr  = gp_arr_on_stack(scope, 2, int);
-            GPArray(int) arr2 = gp_arr_on_stack(scope, 4, int, 1, 2, 3, 4);
+            GPArray(int) arr  = gp_arr_on_stack(&scope->base, 2, int);
+            GPArray(int) arr2 = gp_arr_on_stack(&scope->base, 4, int, 1, 2, 3, 4);
             arr = gp_arr_map(sizeof*arr, arr, arr2, gp_arr_length(arr2), increment);
             arr_assert_eq(arr, ((int[]){2, 3, 4, 5}), 4);
 
@@ -195,7 +195,7 @@ int main(void)
                 == 0 + 3 + 4 + 5 + 6);
 
             void* append(void* accumulator, const void* element);
-            GPArray(const char*) arr_cstr = gp_arr_on_stack(scope, 4, const char*,
+            GPArray(const char*) arr_cstr = gp_arr_on_stack(&scope->base, 4, const char*,
                 "I", "am", "the", "Walrus");
             char* result = gp_arr_foldr(sizeof*arr_cstr, arr_cstr, NULL, append);
             gp_expect(strcmp(result, "Walrus the am I ") == 0, result);
@@ -219,7 +219,7 @@ void* append(void* result, const void*_element)
     const char* element = *(const char**)_element;
     const size_t length = result != NULL ? strlen(result) : 0;
     result = gp_mem_realloc(
-        gp_scope_allocator(gp_last_scope()), result, length, length + strlen(element) + sizeof" ");
+        &gp_last_scope()->base, result, length, length + strlen(element) + sizeof" ");
     ((char*)result)[length] = '\0';
     return strcat(strcat(result, element), " ");
 }
