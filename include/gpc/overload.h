@@ -577,6 +577,9 @@ _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, RESOLVED, ...) 
 } // extern "C"
 
 #if __cpp_decltype
+#ifdef GP_TYPEOF
+#undef GP_TYPEOF
+#endif
 #define GP_TYPEOF(...) decltype(__VA_ARGS__)
 #endif
 

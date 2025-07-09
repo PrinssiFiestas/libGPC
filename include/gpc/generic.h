@@ -160,14 +160,11 @@ static inline void* gp_insert_cpp(const size_t elem_size, void* out, const size_
 // END OF PRIVATE HELPERS -----------------------------------------------------
 
 // C++: Provide overloads for these for your custom allocators.
-static inline GPAllocator* gp_alc_cpp(GPAllocator* alc)
-{
-    return alc;
-}
-static inline GPAllocator* gp_alc_cpp(GPArena* alc)
-{
-    return (GPAllocator*)alc;
-}
+static inline GPAllocator* gp_alc_cpp(GPAllocator* a)      { return a; }
+static inline GPAllocator* gp_alc_cpp(GPArena* a)          { return (GPAllocator*)a; }
+static inline GPAllocator* gp_alc_cpp(GPVirtualArena* a)   { return (GPAllocator*)a; }
+static inline GPAllocator* gp_alc_cpp(GPMutexAllocator* a) { return (GPAllocator*)a; }
+static inline GPAllocator* gp_alc_cpp(GPScope* a)          { return (GPAllocator*)a; }
 // C11: #define GP_USER_ALLOCATORS to be a comma separated list of your
 // custom allocator types.
 // C99: just uses void*. No casts or defining macros required but no type safety
@@ -213,11 +210,10 @@ static inline GPHashMap* gp_hmap(
     if (element_size == 0)
         return gp_hash_map_new(gp_alc_cpp(allocator), NULL);
 
-    GPMapInitializer init = {
-        .element_size = element_size,
-        .capacity     = 0,
-        .destructor   = NULL
-    };
+    GPMapInitializer init{};
+    init.element_size = element_size;
+    init.capacity     = 0;
+    init.destructor   = NULL;
     return gp_hash_map_new(gp_alc_cpp(allocator), &init);
 }
 
@@ -231,12 +227,48 @@ static inline GPHashMap* gp_hmap(
     if (element_size == 0)
         return gp_hash_map_new(gp_alc_cpp(allocator), NULL);
 
-    GPMapInitializer init = {
-        .element_size = element_size,
-        .capacity     = capacity,
-        .destructor   = (void(*)(void*))destructor
-    };
+    GPMapInitializer init{};
+    init.element_size = element_size;
+    init.capacity     = capacity;
+    init.destructor   = (void(*)(void*))destructor;
     return gp_hash_map_new(gp_alc_cpp(allocator), &init);
+}
+
+static inline uint32_t gp_hash32(const char* str)
+{
+    return gp_bytes_hash32(str, strlen(str));
+}
+static inline uint32_t gp_hash32(GPString str)
+{
+    return gp_bytes_hash32(str, gp_str_length(str));
+}
+static inline uint32_t gp_hash32(const void* bytes, size_t bytes_length)
+{
+    return gp_bytes_hash32(bytes, bytes_length);
+}
+static inline uint64_t gp_hash64(const char* str)
+{
+    return gp_bytes_hash64(str, strlen(str));
+}
+static inline uint64_t gp_hash64(GPString str)
+{
+    return gp_bytes_hash64(str, gp_str_length(str));
+}
+static inline uint64_t gp_hash64(const void* bytes, size_t bytes_length)
+{
+    return gp_bytes_hash64(bytes, bytes_length);
+}
+static inline GPUint128 gp_hash128(const char* str)
+{
+    return gp_bytes_hash128(str, strlen(str));
+}
+static inline GPUint128 gp_hash128(GPString str)
+{
+    return gp_bytes_hash128(str, gp_str_length(str));
+}
+static inline GPUint128 gp_hash128(const void* bytes, size_t bytes_length)
+{
+    return gp_bytes_hash128(bytes, bytes_length);
 }
 
 // Create a new object of type GPDictionary(T)
@@ -1398,7 +1430,7 @@ static inline GPString gp_file(
 
 
 template <typename T_alc, typename T, size_t N>
-static inline T* gp_arr_new_cpp(const T_alc*const alc, const std::array<T,N>& init)
+static inline T* gp_arr_new_cpp(T_alc*const alc, const std::array<T,N>& init)
 {
     GPArray(void) out = gp_arr_new(gp_alc_cpp(alc), sizeof(T), N > 4 ? N : 4);
     ((GPArrayHeader*)out - 1)->length = N;

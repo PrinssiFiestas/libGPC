@@ -5,10 +5,6 @@
 #ifndef __cplusplus
 #include "../src/generic.c"
 #else
-// Build the library first using `make` then build and run this file with
-// `
-// g++ -Wall -Wextra -Iinclude -ggdb3 tests/test_generic.c -fsanitize=address -fsanitize=undefined -lm -lpthread -lasan build/libgpcd.so && ./a.out
-// `
 #include <gpc/generic.h>
 #define gp_arr_ro(...) gp_arr(arena, __VA_ARGS__)
 #endif
@@ -30,8 +26,10 @@
 int main(void)
 {
     // Tiny arena to put address sanitizer to work
-    GPArena* arena = gp_arena_new(
-        &(GPArenaInitializer){.growth_coefficient = 0.0}, 1);
+    GPArenaInitializer arena_init;
+    memset(&arena_init, 0, sizeof arena_init);
+    arena_init.growth_coefficient = 0.0;
+    GPArena* arena = gp_arena_new(&arena_init, 1);
 
     gp_suite("Bytes and strings");
     {
@@ -612,8 +610,8 @@ int main(void)
             void ptr_destructor(int**);
 
             GPDictionary(int*) dict = gp_dict(gp_heap, int*, ptr_destructor);
-            int* ptr1 = malloc(sizeof*ptr1);
-            int* ptr2 = malloc(sizeof*ptr2);
+            int* ptr1 = (int*)malloc(sizeof*ptr1);
+            int* ptr2 = (int*)malloc(sizeof*ptr2);
             gp_put(&dict, "first", ptr1);
             gp_put(&dict, gp_str(arena, "second"), ptr2);
             gp_dict_delete(dict);
@@ -622,15 +620,15 @@ int main(void)
         gp_test("Hash functions");
         {
             // just checking if compiles
-            uint32_t  i32  = gp_hash32("yees");                  (void)i32;
+            uint32_t  i32  = gp_hash32("yees");                 (void)i32;
             uint32_t  j32  = gp_hash32(gp_str(arena, "yees"));  (void)j32;
-            uint32_t  k32  = gp_hash32("yees", 4);               (void)k32;
-            uint64_t  i64  = gp_hash64("yees");                  (void)i64;
+            uint32_t  k32  = gp_hash32("yees", 4);              (void)k32;
+            uint64_t  i64  = gp_hash64("yees");                 (void)i64;
             uint64_t  j64  = gp_hash64(gp_str(arena, "yees"));  (void)j64;
-            uint64_t  k64  = gp_hash64("yees", 4);               (void)k64;
-            GPUint128 i128 = gp_hash128("yees");                 (void)i128;
+            uint64_t  k64  = gp_hash64("yees", 4);              (void)k64;
+            GPUint128 i128 = gp_hash128("yees");                (void)i128;
             GPUint128 j128 = gp_hash128(gp_str(arena, "yees")); (void)j128;
-            GPUint128 k128 = gp_hash128("yees", 4);              (void)k128;
+            GPUint128 k128 = gp_hash128("yees", 4);             (void)k128;
         }
     }
 

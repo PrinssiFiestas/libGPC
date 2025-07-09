@@ -67,7 +67,7 @@ RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(TEST_SRCS)
 
 .PHONY: all release debug install tests build_tests run_tests release_tests
 .PHONY: build_release_tests run_release_tests cl_tests single_header analyze
-.PHONY: test_all clean
+.PHONY: test_all cpp_tests clean
 
 .PRECIOUS: $(TESTS) $(RELEASE_TESTS)
 
@@ -95,6 +95,10 @@ run_cl_tests: $(CL_TESTS)
 	done
 
 cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
+
+cpp_tests:
+	g++ -Wall -Wextra -Werror -Wpedantic -std=c++17 -no-pie -Iinclude -ggdb3 tests/test_generic.c -fsanitize=address -fsanitize=undefined -fsanitize=leak -lm -lpthread -lasan build/libgpcd.so \
+	&& ./a.out && rm a.out
 
 ifneq ($(OS), Windows_NT)
 ifeq (,$(shell which ccomp))
@@ -148,6 +152,7 @@ test_all:
 	cp build/printf.o          build/printfd.o          # static analysis.
 	$(MAKE) analyze
 	$(MAKE) tests
+	$(MAKE) cpp_tests
 	@echo "\e[92m\nPassed all tests.\e[0m"
 endif
 

@@ -19,6 +19,15 @@
 #include <pthread.h>
 #endif
 
+#if __cplusplus
+extern "C" {
+#endif
+void* gp_thread_wrapper_routine(void*);
+void* gp_thread_wrapper_arg(int(*f)(void*), void*);
+#if __cplusplus
+} // extern "C"
+#endif
+
 // Use this only when thread local storage is desirable but not necessary.
 // Note: MinGW thread locals are broken, so they are disabled.
 // https://sourceforge.net/p/mingw-w64/bugs/445/
@@ -112,14 +121,6 @@ typedef pthread_t GPThread;
 
 static inline int gp_thread_create(GPThread* t, int(*f)(void*), void* arg)
 {
-    #if __cplusplus
-    extern "C" {
-    #endif
-    void* gp_thread_wrapper_routine(void*); // wrappers used to match return types
-    void* gp_thread_wrapper_arg(int(*f)(void*), void*);
-    #if __cplusplus
-    } // extern "C"
-    #endif
     return pthread_create(t, NULL, gp_thread_wrapper_routine, gp_thread_wrapper_arg(f, arg));
 }
 

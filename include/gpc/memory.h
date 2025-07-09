@@ -267,7 +267,8 @@ GPAllocator* gp_varena_init(GPVirtualArena*, size_t capacity) GP_NONNULL_ARGS();
 GP_NONNULL_ARGS()
 static inline void gp_varena_rewind(GPVirtualArena* arena, void* to_this_position)
 {
-    uint8_t* pointer = arena->position = to_this_position;
+    arena->position = to_this_position;
+    uint8_t* pointer = (uint8_t*)to_this_position;
     gp_db_assert(pointer < (uint8_t*)arena->start + arena->capacity, "Pointer points outside the arena.");
     gp_db_assert(pointer >= (uint8_t*)arena->start, "Pointer points outside the arena.");
 }

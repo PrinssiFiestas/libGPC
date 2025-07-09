@@ -47,7 +47,7 @@ Library installation and usage instructions below. API reference can be found in
 
 libGPC is regularly tested with MSVC on Windows x64, GCC/Clang on x86_64 Ubuntu, MinGW GCC/Clang on MSYS2 UCRT64, and GCC/Clang on 32-bit ARM Raspbian. Some testing is also done with CompCert on x86_64 Ubuntu.
 
-Full features are enabled with GNU C11. Standard C99 is supported with almost full features if not using MSVC. C++ is supported with minor differences, although the library must be compiled with a C compiler.
+Full features are enabled with GNU C11. Standard C99 is supported with almost full features if not using MSVC. C++ is mostly supported with minor differences, although the library must be compiled with a C compiler.
 
 Building the single header library with MSVC requires C11 standard threads, which are only available after Visual Studio 2022 version 17.8 Preview 2. Older versions are not supported.
 
