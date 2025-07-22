@@ -116,7 +116,12 @@ static inline void gp_arr_ptr_delete(void* optional)
 }
 
 /** Set length to 0 without changing capacity. */
-GPArray(void) gp_arr_clear(GPArray(void)) GP_NONNULL_ARGS();
+GP_NONNULL_ARGS_AND_RETURN
+static inline GPArray(void) gp_arr_clear(GPArray(void) arr)
+{
+    ((GPArrayHeader*)arr - 1)->length = 0;
+    return arr;
+}
 
 /** Reserve capacity.
  * If @p capacity > gp_arr_capacity(@p arr), reallocates, does nothing
@@ -215,9 +220,14 @@ GPArray(void) gp_arr_erase(
  * @return @p arr
  */
 GP_ARR_ATTRS()
-GPArray(void) gp_arr_null_terminate(
+static inline GPArray(void) gp_arr_null_terminate(
     size_t        element_size,
-    GPArray(void) arr);
+    GPArray(void) arr)
+{
+    arr = gp_arr_reserve(element_size, arr, gp_arr_length(arr) + 1);
+    memset((uint8_t*)arr + element_size*gp_arr_length(arr), 0, element_size);
+    return arr;
+}
 
 /** Apply function to elements.
  * Calls @f for all elements in source array. @p in will point to the element

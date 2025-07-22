@@ -122,10 +122,19 @@ static inline void gp_str_ptr_delete(GPString* optional)
 /** Convert to null-terminated string.
  * Adds null-terminator at the end of the string without allocating.
  */
-const char* gp_cstr(GPString) GP_NONNULL_ARGS_AND_RETURN;
+GP_NONNULL_ARGS_AND_RETURN
+static inline char* gp_cstr(GPString str)
+{
+    str[gp_str_length(str)].c = '\0';
+    return (char*)str;
+}
 
 /** Set length to 0 without changing capacity. */
-void gp_str_clear(GPString*) GP_NONNULL_ARGS();
+GP_NONNULL_ARGS()
+static inline void gp_str_clear(GPString* str)
+{
+    ((GPStringHeader*)*str - 1)->length = 0;
+}
 
 /** Reserve capacity.
  * If @p capacity > gp_str_capacity(@p *str), reallocates, does nothing

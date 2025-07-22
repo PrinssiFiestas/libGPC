@@ -8,12 +8,6 @@
 #include <string.h>
 #include <assert.h>
 
-GPArray(void) gp_arr_clear(GPArray(void) arr)
-{
-    ((GPArrayHeader*)arr - 1)->length = 0;
-    return arr;
-}
-
 GPArray(void) gp_arr_new(
     GPAllocator* allocator,
     const size_t element_size,
@@ -30,11 +24,28 @@ GPArray(void) gp_arr_new(
     return me + 1;
 }
 
+// Reserves but only if array has an allocator. Returns new capacity if
+// allocated, old otherwise. Useful for truncating strings/arrays.
+size_t gp_arr_try_reserve(
+    const size_t   element_size,
+    GPArray(void)* parr,
+    size_t         capacity)
+{
+    if (capacity > gp_arr_capacity(*parr) && gp_arr_allocator(*parr) != NULL)
+        *parr = gp_arr_reserve(element_size, *parr, capacity);
+    return gp_arr_capacity(*parr);
+}
+
 GPArray(void) gp_arr_reserve(
     const size_t  element_size,
     GPArray(void) arr,
     size_t        capacity)
 {
+    // This check is here so functions like gp_str_print() can try to
+    // guesstimate buffer sizes even for strings on stack when allocator is NULL.
+    //
+    // TODO once truncating strings and arrays are implemented, this should be
+    // an assertion instead.
     if (gp_arr_allocator(arr) == NULL)
         return arr;
 
@@ -168,15 +179,6 @@ GPArray(void) gp_arr_erase(
         (uint8_t*)arr + (pos + count) * elem_size,
         tail_length                   * elem_size);
     *length -= count;
-    return arr;
-}
-
-GPArray(void) gp_arr_null_terminate(
-    size_t        elem_size,
-    GPArray(void) arr)
-{
-    arr = gp_arr_reserve(elem_size, arr, gp_arr_length(arr) + 1);
-    memset((uint8_t*)arr + elem_size*gp_arr_length(arr), 0, elem_size);
     return arr;
 }
 

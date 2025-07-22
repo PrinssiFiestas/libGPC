@@ -160,17 +160,6 @@ bool gp_str_is_valid(
     return gp_bytes_is_valid_utf8(str, gp_str_length(str), invalid_index);
 }
 
-const char* gp_cstr(GPString str)
-{
-    str[gp_str_length(str)].c = '\0';
-    return (const char*)str;
-}
-
-void gp_str_clear(GPString* str)
-{
-    ((GPStringHeader*)*str - 1)->length = 0;
-}
-
 void gp_str_reserve(
     GPString* pstr,
     size_t capacity)

@@ -133,6 +133,7 @@ test_all:
 	./build/singleheadertest.exe
 	cl tests/singleheadertest.c $(CL_CFLAGS) -Fo"build/" -Fe"build/singleheadertest.exe"
 	./build/singleheadertest.exe
+	make clean
 	@echo -e "\e[92m\nPassed ALL tests!\e[0m"
 else
 test_all:
@@ -153,7 +154,8 @@ test_all:
 	$(MAKE) analyze
 	$(MAKE) tests
 	$(MAKE) cpp_tests
-	@echo "\e[92m\nPassed all tests.\e[0m"
+	make clean
+	@echo "\e[92m\nPassed all tests!\e[0m"
 endif
 
 ifeq ($(MSYS_VERSION), 0)
