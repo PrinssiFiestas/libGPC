@@ -72,7 +72,7 @@ int main(void)
             // applies to GPArena as well.
 
             // Note: arrays and arenas have metadata so an arena with size
-            // 256 * sizeof(int) is NOT capable of holding an array with 256 ints. // TODO ok this settles it: change arrays to use power of 2 blocks!
+            // 256 * sizeof(int) is NOT capable of holding an array with 256 ints.
             GPScope* scope = gp_begin(256 * sizeof(int));
 
             const size_t INIT_CAPACITY = 8;

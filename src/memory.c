@@ -279,11 +279,13 @@ GPArena* gp_scratch_arena(void)
 
 // ----------------------------------------------------------------------------
 
-void* gp_mem_realloc(
+// TODO use this to implement GPArray(AlignedT)
+void* gp_mem_realloc_aligned(
     GPAllocator* allocator,
     void* old_block,
     size_t old_size,
-    size_t new_size)
+    size_t new_size,
+    size_t alignment)
 {
     gp_db_assert(old_size < SIZE_MAX/2, "Impossible size, no allocator accepts this.");
     gp_db_assert(new_size < SIZE_MAX/2, "Possibly negative allocation detected.");
@@ -307,14 +309,14 @@ void* gp_mem_realloc(
         (uint8_t*)old_block + old_size + GP_POISON_BOUNDARY_SIZE == (uint8_t*)(*head)->position)
     { // extend block instead of reallocating and copying
         (*head)->position = old_block;
-        void* new_block = gp_mem_alloc(allocator, new_size);
+        void* new_block = gp_mem_alloc_aligned(allocator, new_size, alignment);
         if (new_block != old_block) { // arena ran out of space and reallocated
             memcpy(new_block, old_block, old_size);
             ASAN_POISON_MEMORY_REGION(old_block, old_size);
         }
         return new_block;
     }
-    void* new_block = gp_mem_alloc(allocator, new_size);
+    void* new_block = gp_mem_alloc_aligned(allocator, new_size, alignment);
     if (old_block != NULL)
         memcpy(new_block, old_block, old_size);
     gp_mem_dealloc(allocator, old_block);
