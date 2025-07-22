@@ -36,6 +36,41 @@ size_t gp_arr_try_reserve(
     return gp_arr_capacity(*parr);
 }
 
+GPArray(void) gp_arr_reallocate(
+    const size_t  element_size,
+    GPArray(void) arr,
+    size_t        capacity)
+{
+    capacity = gp_next_power_of_2(capacity);
+    if ((gp_arr_allocator(arr)->dealloc == gp_arena_dealloc
+        || gp_arr_allocator(arr)->dealloc == gp_virtual_dealloc)
+        && gp_arr_allocation(arr) != NULL)
+    { // gp_mem_realloc() knows how to just extend block in arena
+        GPArrayHeader* new_block = gp_mem_realloc(
+            gp_arr_allocator(arr),
+            gp_arr_allocation(arr),
+            sizeof*new_block + gp_arr_capacity(arr) * element_size,
+            sizeof*new_block + capacity             * element_size);
+        new_block->capacity   = capacity;
+        new_block->allocation = new_block;
+        return new_block + 1;
+    } // else not arena or must copy contens from stack
+    GPArrayHeader* new_block = gp_mem_alloc(
+        gp_arr_allocator(arr),
+        sizeof*new_block + capacity * element_size);
+
+    memcpy(new_block, (GPArrayHeader*)arr - 1,
+        sizeof*new_block + gp_arr_length(arr) * element_size);
+
+    new_block->capacity   = capacity;
+    new_block->allocation = new_block;
+
+    gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
+    arr = new_block + 1;
+
+    return arr;
+}
+
 GPArray(void) gp_arr_reserve(
     const size_t  element_size,
     GPArray(void) arr,
@@ -49,36 +84,9 @@ GPArray(void) gp_arr_reserve(
     if (gp_arr_allocator(arr) == NULL)
         return arr;
 
-    if (capacity > gp_arr_capacity(arr))
-    {
-        capacity = gp_next_power_of_2(capacity);
-        if ((gp_arr_allocator(arr)->dealloc == gp_arena_dealloc
-            || gp_arr_allocator(arr)->dealloc == gp_virtual_dealloc)
-            && gp_arr_allocation(arr) != NULL)
-        { // gp_mem_realloc() knows how to just extend block in arena
-            GPArrayHeader* new_block = gp_mem_realloc(
-                gp_arr_allocator(arr),
-                gp_arr_allocation(arr),
-                sizeof*new_block + gp_arr_capacity(arr) * element_size,
-                sizeof*new_block + capacity             * element_size);
-            new_block->capacity   = capacity;
-            new_block->allocation = new_block;
-            return new_block + 1;
-        } // else not arena or must copy contens from stack
-        GPArrayHeader* new_block = gp_mem_alloc(
-            gp_arr_allocator(arr),
-            sizeof*new_block + capacity * element_size);
-
-        memcpy(new_block, (GPArrayHeader*)arr - 1,
-            sizeof*new_block + gp_arr_length(arr) * element_size);
-
-        new_block->capacity   = capacity;
-        new_block->allocation = new_block;
-
-        gp_mem_dealloc(gp_arr_allocator(arr), gp_arr_allocation(arr));
-        arr = new_block + 1;
-    }
-    return arr;
+    if (capacity <= gp_arr_capacity(arr))
+        return arr;
+    return gp_arr_reallocate(element_size, arr, capacity);
 }
 
 GPArray(void) gp_arr_copy(

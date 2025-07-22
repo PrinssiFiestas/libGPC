@@ -176,9 +176,10 @@ GPString gp_join_new(GPAllocator* allocator, const GPArray(GPString) strs, const
     return out;
 }
 
+// TODO make inline
 void gp_reserve99(const size_t elem_size, void* px, const size_t capacity)
 {
-    if (gp_arr_allocator(*(void**)px) == NULL)
+    if (gp_arr_allocator(*(void**)px) == NULL) // TODO why is this check here??
         return;
 
     if (elem_size == sizeof(GPChar))

@@ -164,7 +164,12 @@ void gp_str_reserve(
     GPString* pstr,
     size_t capacity)
 {
-    GPString str = gp_arr_reserve(sizeof**pstr, *pstr, capacity + sizeof"");
+    if (gp_str_allocator(*pstr) == NULL)
+        return; // TODO like gp_arr_reserve(), get rid of this after truncating string implemented
+    if (capacity <= gp_arr_capacity(*pstr))
+        return;
+
+    GPString str = gp_arr_reallocate(sizeof**pstr, *pstr, capacity + sizeof"");
     if (str != *pstr) // allocation happened
         gp_str_header(str)->capacity -= sizeof"";
     *pstr = str;

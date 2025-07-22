@@ -296,6 +296,13 @@ GPArray(void) gp_arr_filter(
 // ----------------------------------------------------------------------------
 
 
+// Always reallocates, which makes no sense for the user, they should use
+// gp_arr_reserve() instead.
+GPArray(void) gp_arr_reallocate(
+    const size_t  element_size,
+    GPArray(void) arr,
+    size_t        capacity);
+
 #ifdef _MSC_VER
 // unnamed struct in parenthesis in gp_arr_on_stack()
 #pragma warning(disable : 4116)

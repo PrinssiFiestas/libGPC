@@ -47,11 +47,24 @@ int main(void)
         gp_test("Reserve");
         {
             size_t old_capacity;
-            GPString str = gp_str_on_stack(gp_heap, 1);
-            old_capacity = gp_arr_capacity(str);
+            GPString str    = gp_str_on_stack(gp_heap, 1);
+            old_capacity    = gp_str_capacity(str);
+            GPChar* old_ptr = str;
 
-            gp_str_reserve(&str, 12);
-            gp_expect(gp_arr_capacity(str) > old_capacity);
+            gp_str_reserve(&str, old_capacity);
+            gp_expect(gp_str_capacity(str) == old_capacity);
+            gp_expect(str == old_ptr);
+
+            size_t new_requested_capacity = 12;
+            gp_str_reserve(&str, new_requested_capacity);
+            gp_expect(gp_str_capacity(str) > old_capacity);
+            gp_expect(gp_str_capacity(str) > new_requested_capacity,
+                "Reserving should round up for exponential growth.");
+            gp_expect(gp_str_capacity(str) & 1,
+                "One allocated byte should be taken out from the space reserved "
+                "for the string (making capacity odd). This byte guarantees "
+                "safe null-termination without reallocations.");
+            gp_expect(old_ptr != str);
 
             gp_str_delete(str);
         }
