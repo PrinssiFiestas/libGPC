@@ -1359,12 +1359,19 @@ static inline void* gp_alloc_zeroes(T_ALLOCATOR* allocator, const size_t size)
     GP_ALLOC_TYPE_CPP(__VA_ARGS__)
 
 // ---------------------------
-// gp_dealloc() and gp_realloc()
+// gp_dealloc(), gp_reserve(), and gp_realloc()
 
 template <typename T_ALLOCATOR>
 static inline void gp_dealloc(T_ALLOCATOR* allocator, void* block)
 {
     gp_mem_dealloc(gp_alc_cpp(allocator), block);
+}
+
+template <typename T, typename T_ALLOCATOR>
+static inline T* gp_reserve(
+    T_ALLOCATOR* allocator, T* old_block, const size_t old_size, const size_t new_size)
+{
+    return (T*)gp_mem_reserve(gp_alc_cpp(allocator), old_block, old_size, new_size);
 }
 
 template <typename T, typename T_ALLOCATOR>
@@ -1799,8 +1806,10 @@ static inline void gp_arr_reserve11(const size_t elem_size, void*_arr, const siz
     void** arr = (void**)_arr;
     *arr = gp_arr_reserve(elem_size, *arr, size);
 }
-#define GP_RESERVE11(A, SIZE) _Generic(A, \
+#define GP_RESERVE11_2(A, SIZE) _Generic(A, \
     GPString*: gp_str_reserve11, default: gp_arr_reserve11)(sizeof**(A), A, SIZE)
+#define GP_RESERVE11(A, ...) \
+    GP_OVERLOAD4(__VA_ARGS__, GP_RESERVE_5, GP_RESERVE_4, INVALID_ARGS, GP_RESERVE11_2)(A, __VA_ARGS__)
 
 typedef GPStrIn GPArrIn;
 #define GP_ARR_T(A) _Generic(A, \
@@ -2443,7 +2452,11 @@ static inline GPString gp_join99(
 #define GP_CLEAR(A) gp_arr_clear(*(A))
 
 void gp_reserve99(size_t elem_size, void* px, const size_t capacity);
-#define GP_RESERVE99(A, CAPACITY) gp_reserve99(sizeof**(A), A, CAPACITY)
+#define GP_RESERVE99_2(A, CAPACITY) gp_reserve99(sizeof**(A), A, CAPACITY)
+#define GP_RESERVE_4(ALLOCATOR, OLD_BLOCK, OLD_SIZE, NEW_SIZE) gp_mem_reserve(GP_ALC(ALLOCATOR), OLD_BLOCK, OLD_SIZE, NEW_SIZE)
+#define GP_RESERVE_5(ALLOCATOR, OLD_BLOCK, OLD_SIZE, NEW_SIZE, ALIGNMENT) gp_mem_reserve(GP_ALC(ALLOCATOR), OLD_BLOCK, OLD_SIZE, NEW_SIZE, ALIGNMENT)
+#define GP_RESERVE99(A, ...) \
+    GP_OVERLOAD4(__VA_ARGS__, GP_RESERVE_5, GP_RESERVE_4, INVALID_ARGS, GP_RESERVE99_2)(A, __VA_ARGS__)
 
 void* gp_copy99(size_t y_size, void* y,
     const void* x, const char* x_ident, size_t x_length, const size_t x_size);

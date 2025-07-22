@@ -84,11 +84,10 @@ static inline void gp_mem_dealloc(
         allocator->dealloc(allocator, block);
 }
 
-/** Maybe reallocate aligned block.
- * Possibly free @p old_block, allocate a new block and copies the memory from
+/** Reallocate aligned block.
+ * Free @p old_block, allocate a new block and copy the memory from
  * @p old_block to the new block.
- * If @p new_size <= @p old_size, no reallocation happens. Also, if @p allocator
- * is a GPArena or GPVirtualArena, the arena extends @p old_block without
+ * If @p allocator is a builtin arena, the arena extends @p old_block without
  * reallocating if @p old_block is the last object allocated by the arena.
  * @p old_block may be NULL if @p old_size is zero.
  * @return newly allocated memory or @p old_block if no reallocation happened.
@@ -96,28 +95,64 @@ static inline void gp_mem_dealloc(
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
 void* gp_mem_realloc_aligned(
     GPAllocator* allocator,
-    void*  optional_old_block,
+    void* old_block,
     size_t old_size,
     size_t new_size,
     size_t alignment);
 
-/** Maybe reallocate block.
- * Possibly free @p old_block, allocate a new block and copies the memory from
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
+static inline void* gp_mem_realloc(
+    GPAllocator* allocator,
+    void* old_block,
+    size_t old_size,
+    size_t new_size)
+{
+    return gp_mem_realloc_aligned(
+        allocator, old_block, old_size, new_size, GP_ALLOC_ALIGNMENT);
+}
+
+/** Maybe reallocate aligned block.
+ * Possibly free @p old_block, allocate a new block and copy the memory from
  * @p old_block to the new block.
  * If @p new_size <= @p old_size, no reallocation happens. Also, if @p allocator
- * is a GPArena or GPVirtualArena, the arena extends @p old_block without
- * reallocating if @p old_block is the last object allocated by the arena.
- * @p old_block may be NULL if @p old_size is zero.
+ * is a builtin arena, the arena extends @p old_block without reallocating if
+ * @p old_block is the last object allocated by the arena. @p old_block may be
+ * NULL if @p old_size is zero.
  * @return newly allocated memory or @p old_block if no reallocation happened.
  */
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
-static inline void* gp_mem_realloc(
+static inline void* gp_mem_reserve_aligned(
+    GPAllocator* allocator,
+    void*  optional_old_block,
+    size_t old_size,
+    size_t new_size,
+    size_t alignment)
+{
+    if (new_size <= old_size)
+        return optional_old_block;
+    return gp_mem_realloc_aligned(
+        allocator, optional_old_block, old_size, new_size, alignment);
+}
+
+/** Maybe reallocate block.
+ * Possibly free @p old_block, allocate a new block and copy the memory from
+ * @p old_block to the new block.
+ * If @p new_size <= @p old_size, no reallocation happens. Also, if @p allocator
+ * is a builtin arena, the arena extends @p old_block without reallocating if
+ * @p old_block is the last object allocated by the arena. @p old_block may be
+ * NULL if @p old_size is zero.
+ * @return newly allocated memory or @p old_block if no reallocation happened.
+ */
+GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
+static inline void* gp_mem_reserve(
     GPAllocator* allocator,
     void*  optional_old_block,
     size_t old_size,
     size_t new_size)
 {
-    return gp_mem_realloc_aligned(
+    if (new_size <= old_size)
+        return optional_old_block;
+    return gp_mem_reserve_aligned(
         allocator, optional_old_block, old_size, new_size, GP_ALLOC_ALIGNMENT);
 }
 

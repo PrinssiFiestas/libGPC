@@ -290,9 +290,6 @@ void* gp_mem_realloc_aligned(
     gp_db_assert(old_size < SIZE_MAX/2, "Impossible size, no allocator accepts this.");
     gp_db_assert(new_size < SIZE_MAX/2, "Possibly negative allocation detected.");
 
-    if (new_size <= old_size)
-        return old_block;
-
     GPVirtualArena* varena = (GPVirtualArena*)allocator;
     if (allocator->dealloc == gp_virtual_dealloc && old_block != NULL &&
         (char*)old_block + old_size == (char*)varena->position)

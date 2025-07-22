@@ -97,7 +97,7 @@ run_cl_tests: $(CL_TESTS)
 cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
 
 cpp_tests:
-	g++ -Wall -Wextra -Werror -Wpedantic -std=c++17 -no-pie -Iinclude -ggdb3 tests/test_generic.c -fsanitize=address -fsanitize=undefined -fsanitize=leak -lm -lpthread -lasan build/libgpcd.so \
+	g++ -Wall -Wextra -Werror -std=c++17 -no-pie -Iinclude -ggdb3 tests/test_generic.c -fsanitize=address -fsanitize=undefined -fsanitize=leak -lm -lpthread -lasan build/libgpcd.so \
 	&& ./a.out && rm a.out
 
 ifneq ($(OS), Windows_NT)

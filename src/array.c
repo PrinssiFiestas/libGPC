@@ -33,7 +33,7 @@ GPArray(void) gp_arr_reallocate(
     GPArrayHeader* new_block;
 
     if (gp_arr_allocation(arr) != NULL)
-        new_block = gp_mem_realloc(
+        new_block = gp_mem_reserve(
             gp_arr_allocator(arr),
             gp_arr_allocation(arr),
             sizeof*new_block + element_size*gp_arr_capacity(arr),
