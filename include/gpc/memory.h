@@ -51,7 +51,7 @@ static inline void* gp_mem_alloc(
     GPAllocator* allocator,
     size_t size)
 {
-    gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
+    gp_db_assert(size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
     return allocator->alloc(allocator, size, GP_ALLOC_ALIGNMENT);
 }
 
@@ -61,7 +61,7 @@ static inline void* gp_mem_alloc_aligned(
     size_t size,
     size_t alignment)
 {
-    gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
+    gp_db_assert(size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
     gp_db_assert((alignment & (alignment - 1)) == 0, "Alignment must be a power of 2.");
     return allocator->alloc(allocator, size, alignment);
 }
@@ -71,7 +71,7 @@ static inline void* gp_mem_alloc_zeroes(
     GPAllocator* allocator,
     size_t size)
 {
-    gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
+    gp_db_assert(size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
     return memset(gp_mem_alloc(allocator, size), 0, size);
 }
 
@@ -346,7 +346,7 @@ GP_NONNULL_ARGS_AND_RETURN GP_ALLOC_ALIGN(3)
 static inline void* gp_varena_alloc(
     GPVirtualArena* allocator, const size_t size, const size_t alignment)
 {
-    gp_db_assert(size < SIZE_MAX/2, "Possibly negative allocation detected.");
+    gp_db_assert(size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
     gp_db_assert((alignment & (alignment - 1)) == 0, "Alignment must be a power of 2.");
 
     GPVirtualArena* arena = (GPVirtualArena*)allocator;

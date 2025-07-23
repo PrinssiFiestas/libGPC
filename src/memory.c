@@ -287,8 +287,8 @@ void* gp_mem_realloc_aligned(
     size_t new_size,
     size_t alignment)
 {
-    gp_db_assert(old_size < SIZE_MAX/2, "Impossible size, no allocator accepts this.");
-    gp_db_assert(new_size < SIZE_MAX/2, "Possibly negative allocation detected.");
+    gp_db_assert(old_size <= PTRDIFF_MAX, "Impossible size, no allocator accepts this.");
+    gp_db_assert(new_size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
 
     GPVirtualArena* varena = (GPVirtualArena*)allocator;
     if (allocator->dealloc == gp_virtual_dealloc && old_block != NULL &&
@@ -503,7 +503,7 @@ void gp_scope_defer(GPScope* scope, void (*f)(void*), void* arg)
 GPAllocator* gp_varena_init(GPVirtualArena* alc, size_t size)
 {
     gp_db_assert(size != 0, "%zu", size);
-    gp_db_assert(size < SIZE_MAX/2, "%zu", size, "Possibly negative size detected.");
+    gp_db_assert(size <= PTRDIFF_MAX, "%zu", size, "Possibly negative size detected.");
     gp_db_expect(size >= 4096, "%zu", size,
         "Virtual allocator is supposed to be used with HUGE arenas. "
         "Are you sure you are allocating enough?");

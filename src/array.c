@@ -33,7 +33,7 @@ GPArray(void) gp_arr_reallocate(
     GPArrayHeader* new_block;
 
     if (gp_arr_allocation(arr) != NULL)
-        new_block = gp_mem_reserve(
+        new_block = gp_mem_realloc(
             gp_arr_allocator(arr),
             gp_arr_allocation(arr),
             sizeof*new_block + element_size*gp_arr_capacity(arr),
@@ -50,6 +50,24 @@ GPArray(void) gp_arr_reallocate(
     new_block->allocation = new_block;
 
     return new_block + 1;
+}
+
+// TODO use this to implement truncating strings and arrays
+GPArray(void) gp_arr_try_reserve(
+    const size_t  element_size,
+    GPArray(void) arr,
+    size_t        capacity,
+    size_t*       diff)
+{
+    if (capacity <= gp_arr_capacity(arr))
+        *diff = 0;
+    else if (gp_arr_allocator(arr) == NULL)
+        *diff = capacity - gp_arr_capacity(arr);
+    else {
+        *diff = 0;
+        arr = gp_arr_reallocate(element_size, arr, capacity);
+    }
+    return arr;
 }
 
 GPArray(void) gp_arr_reserve(
