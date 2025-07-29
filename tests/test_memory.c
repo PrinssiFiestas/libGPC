@@ -354,9 +354,9 @@ int main(void)
 
         gp_test("Virtual Arena");
         {
-            GPVirtualArena va;
+            GPContiguousArena va;
             const size_t huge_size = 1024*1024*1024;
-            gp_assert(gp_varena_init(&va, huge_size) != NULL);
+            gp_assert(gp_carena_init(&va, huge_size) != NULL);
 
             char* buffer = gp_mem_alloc((GPAllocator*)&va, huge_size);
 
@@ -364,21 +364,21 @@ int main(void)
             buffer[0] = 'x';
             buffer[huge_size - 1] = 'x';
 
-            gp_varena_rewind(&va, buffer);
+            gp_carena_rewind(&va, buffer);
             gp_expect(va.position == va.start, "Arena pointer should be resetted");
             gp_expect(buffer[huge_size - 1] == 'x', "Memory should remain untouched");
 
             // Faster than gp_mem_alloc(), which is used for polymorphism.
-            buffer = gp_varena_alloc(&va, huge_size, GP_ALLOC_ALIGNMENT);
+            buffer = gp_carena_alloc(&va, huge_size, GP_ALLOC_ALIGNMENT);
 
-            gp_varena_reset(&va); // physical memory also freed
+            gp_carena_reset(&va); // physical memory also freed
             gp_expect(va.position == va.start, "Arena pointer should be resetted");
             #if !_WIN32
             gp_expect(buffer[huge_size - 1] == '\0',
                 "Physical freed, so access should zero memory");
             #endif
 
-            gp_varena_delete(&va);
+            gp_carena_delete(&va);
         }
     } // gp_suite("Other stuff")
 

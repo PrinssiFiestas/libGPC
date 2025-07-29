@@ -162,7 +162,7 @@ static inline void* gp_insert_cpp(const size_t elem_size, void* out, const size_
 // C++: Provide overloads for these for your custom allocators.
 static inline GPAllocator* gp_alc_cpp(GPAllocator* a)      { return a; }
 static inline GPAllocator* gp_alc_cpp(GPArena* a)          { return (GPAllocator*)a; }
-static inline GPAllocator* gp_alc_cpp(GPVirtualArena* a)   { return (GPAllocator*)a; }
+static inline GPAllocator* gp_alc_cpp(GPContiguousArena* a)   { return (GPAllocator*)a; }
 static inline GPAllocator* gp_alc_cpp(GPMutexAllocator* a) { return (GPAllocator*)a; }
 static inline GPAllocator* gp_alc_cpp(GPScope* a)          { return (GPAllocator*)a; }
 // C11: #define GP_USER_ALLOCATORS to be a comma separated list of your
@@ -1648,7 +1648,7 @@ typedef struct { GPAllocator alc; } GPDummyAlc; // for comma issues in GP_ALC_TY
 #endif
 
 #define GP_ALC_TYPES \
-    GP_USER_ALLOCATORS, GPAllocator, GPArena, GPVirtualArena, GPMutexAllocator, GPScope
+    GP_USER_ALLOCATORS, GPAllocator, GPArena, GPContiguousArena, GPMutexAllocator, GPScope
 #define GP_ALC_SELECTION(T) const T*: 0, T*: 0
 #define GP_ALC11(A) ((int){0} = _Generic(A, \
     GP_PROCESS_ALL_ARGS(GP_ALC_SELECTION, GP_COMMA, GP_ALC_TYPES)), \

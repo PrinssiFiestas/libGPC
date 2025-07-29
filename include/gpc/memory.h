@@ -296,7 +296,7 @@ GP_NODISCARD
 size_t gp_heap_alloc_count(void);
 
 // ----------------------------------------------------------------------------
-// Virtual Arena Allocator
+// Contiguous Arena Allocator
 
 /** Contiguous fast huge arena allocator.
  * Arena that uses contiguous possibly huge memory blocks for it's backing
@@ -305,13 +305,13 @@ size_t gp_heap_alloc_count(void);
  * large enough to not run out of memory, thus bounds are only checked if
  * NDEBUG is not defined or GP_VIRTUAL_ALWAYS_BOUNDS_CHECK is defined.
  */
-typedef struct gp_virtual_arena
+typedef struct gp_contiguous_arena
 {
     GPAllocator base;
     void* start;     // of the memory block
     void* position;  // arena pointer
     size_t capacity; // of arena
-} GPVirtualArena;
+} GPContiguousArena;
 
 /** Allocate and initialize.
  * @p capacity will be rounded up to page size boundary. It is recommended to
@@ -322,14 +322,14 @@ typedef struct gp_virtual_arena
  * allocation fails. In case of failures, you may want to try again with smaller
  * capacity.
  */
-GPAllocator* gp_varena_init(GPVirtualArena*, size_t capacity) GP_NONNULL_ARGS();
+GPAllocator* gp_carena_init(GPContiguousArena*, size_t capacity) GP_NONNULL_ARGS();
 
 /** Deallocate some memory.
  * Use this to free everything allocated after @p to_this_position including
  * @p to_this_position. Physical memory remains untouched.
  */
 GP_NONNULL_ARGS()
-static inline void gp_varena_rewind(GPVirtualArena* arena, void* to_this_position)
+static inline void gp_carena_rewind(GPContiguousArena* arena, void* to_this_position)
 {
     arena->position = to_this_position;
     uint8_t* pointer = (uint8_t*)to_this_position;
@@ -341,23 +341,23 @@ static inline void gp_varena_rewind(GPVirtualArena* arena, void* to_this_positio
  * Fully rewinds the arena pointer to the beginning of the arena. Physical
  * memory will be deallocated, but virtual address space remains untouched.
  */
-void gp_varena_reset(GPVirtualArena*) GP_NONNULL_ARGS();
+void gp_carena_reset(GPContiguousArena*) GP_NONNULL_ARGS();
 
 /** Deallocate all arena memory including the arena itself.*/
-void gp_varena_delete(GPVirtualArena* optional);
+void gp_carena_delete(GPContiguousArena* optional);
 
 /** Allocate memory from virtual arena.
  * gp_mem_alloc() is meant to be polymorphic, use this directly to maximize
  * performance.
  */
 GP_NONNULL_ARGS_AND_RETURN GP_ALLOC_ALIGN(3)
-static inline void* gp_varena_alloc(
-    GPVirtualArena* allocator, const size_t size, const size_t alignment)
+static inline void* gp_carena_alloc(
+    GPContiguousArena* allocator, const size_t size, const size_t alignment)
 {
     gp_db_assert(size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
     gp_db_assert((alignment & (alignment - 1)) == 0, "Alignment must be a power of 2.");
 
-    GPVirtualArena* arena = (GPVirtualArena*)allocator;
+    GPContiguousArena* arena = (GPContiguousArena*)allocator;
     void* block = arena->position;
     arena->position = (void*)(gp_round_to_aligned((uintptr_t)arena->position, alignment) + size);
 
@@ -395,6 +395,14 @@ GPScope* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
  */
 size_t gp_end(GPScope* optional_scope);
 
+/** Free scope arena.
+ * Like gp_end(), but appropriate return type for destructors or deferring.
+ */
+static inline void gp_end_scope(GPScope* optional_scope)
+{
+    gp_end(optional_scope);
+}
+
 /** Set cleanup routines to be executed on gp_end().
  * Deferred functions are called in Last In First Out order in gp_end().
  * Deferring should not be used for gp_str_delete() or gp_arr_delete() due
@@ -429,7 +437,7 @@ GPScope* gp_last_scope(void);
 #define GP_BEGIN(...) { GP_DEFER_BEGIN(__VA_ARGS__)
 #define GP_END          GP_DEFER_END }
 
-#define GP_AUTO_MEM ( gp_auto_mem_clean, _gp_auto_mem, \
+#define GP_AUTO_MEM    ( gp_auto_mem_clean, _gp_auto_mem, \
     static GP_AUTO_MEM_THREAD size_t _gp_auto_mem_size; \
     GPAutoMem* _gp_auto_mem = gp_defer_new(GPAutoMem, gp_begin(_gp_auto_mem_size), &_gp_auto_mem_size); \
     GPScope* scope = _gp_auto_mem->scope; )

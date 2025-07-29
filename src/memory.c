@@ -290,12 +290,12 @@ void* gp_mem_realloc_aligned(
     gp_db_assert(old_size <= PTRDIFF_MAX, "Impossible size, no allocator accepts this.");
     gp_db_assert(new_size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
 
-    GPVirtualArena* varena = (GPVirtualArena*)allocator;
+    GPContiguousArena* varena = (GPContiguousArena*)allocator;
     if (allocator->dealloc == gp_virtual_dealloc && old_block != NULL &&
         (char*)old_block + old_size == (char*)varena->position)
     { // extend block instead of reallocating and copying
         varena->position = old_block;
-        return gp_varena_alloc(varena, new_size, GP_ALLOC_ALIGNMENT);
+        return gp_carena_alloc(varena, new_size, GP_ALLOC_ALIGNMENT);
     }
 
     GPArena* arena = (GPArena*)allocator;
@@ -346,7 +346,7 @@ typedef struct gp_defer_stack
     uint32_t capacity;
 } GPDeferStack;
 
-void* gp_scope_allocator_alloc(GPAllocator* allocator, const size_t size, const size_t alignment)
+void* gp_scope_alloc(GPAllocator* allocator, const size_t size, const size_t alignment)
 {
     GPScope* arena = (GPScope*)allocator;
     GPArenaNode* head = arena->head;
@@ -407,7 +407,7 @@ static void gp_make_scope_list_key(void)
     gp_thread_key_create(&gp_scope_list_key, gp_delete_thread_scopes);
 }
 
-static GPScope* gp_scope_allocator_new(size_t capacity)
+static GPScope* gp_scope_new(size_t capacity)
 {
     GPScope* arena;
 
@@ -421,7 +421,7 @@ static GPScope* gp_scope_allocator_new(size_t capacity)
     arena->head->tail     = NULL;
     ASAN_POISON_MEMORY_REGION(arena->head->position, arena->head->capacity);
 
-    arena->base.alloc   = gp_scope_allocator_alloc;
+    arena->base.alloc   = gp_scope_alloc;
     arena->base.dealloc = gp_arena_dealloc;
 
     return arena;
@@ -435,7 +435,7 @@ GPScope* gp_begin(const size_t _size)
         (size_t)GP_SCOPE_DEFAULT_INIT_SIZE
       : _size;
 
-    GPScope* scope = gp_scope_allocator_new(size/* + sizeof*scope*/);
+    GPScope* scope = gp_scope_new(size/* + sizeof*scope*/);
     scope->defer_stack = NULL;
     scope->parent = gp_thread_local_get(gp_scope_list_key);
     gp_thread_local_set(gp_scope_list_key, scope);
@@ -476,7 +476,7 @@ void gp_scope_defer(GPScope* scope, void (*f)(void*), void* arg)
     if (scope->defer_stack == NULL)
     {
         const size_t init_cap = 4;
-        scope->defer_stack = gp_scope_allocator_alloc(&scope->base,
+        scope->defer_stack = gp_scope_alloc(&scope->base,
             sizeof*(scope->defer_stack) + init_cap * sizeof(GPDefer), GP_ALLOC_ALIGNMENT);
 
         scope->defer_stack->length   = 0;
@@ -486,7 +486,7 @@ void gp_scope_defer(GPScope* scope, void (*f)(void*), void* arg)
     else if (scope->defer_stack->length == scope->defer_stack->capacity)
     {
         GPDefer* old_stack  = scope->defer_stack->stack;
-        scope->defer_stack->stack = gp_scope_allocator_alloc(&scope->base,
+        scope->defer_stack->stack = gp_scope_alloc(&scope->base,
             scope->defer_stack->capacity * 2 * sizeof(GPDefer), GP_ALLOC_ALIGNMENT);
         memcpy(scope->defer_stack->stack, old_stack,
             scope->defer_stack->length * sizeof(GPDefer));
@@ -500,7 +500,7 @@ void gp_scope_defer(GPScope* scope, void (*f)(void*), void* arg)
 // ----------------------------------------------------------------------------
 // Virtual Arena
 
-GPAllocator* gp_varena_init(GPVirtualArena* alc, size_t size)
+GPAllocator* gp_carena_init(GPContiguousArena* alc, size_t size)
 {
     gp_db_assert(size != 0, "%zu", size);
     gp_db_assert(size <= PTRDIFF_MAX, "%zu", size, "Possibly negative size detected.");
@@ -536,13 +536,13 @@ GPAllocator* gp_varena_init(GPVirtualArena* alc, size_t size)
     if (alc->start == NULL || alc->start == (void*)-1)
         return alc->start = alc->position = NULL;
 
-    alc->base.alloc   = (void*(*)(GPAllocator*,size_t,size_t))gp_varena_alloc;
+    alc->base.alloc   = (void*(*)(GPAllocator*,size_t,size_t))gp_carena_alloc;
     alc->base.dealloc = gp_virtual_dealloc;
     alc->capacity = size;
     return (GPAllocator*)alc;
 }
 
-void gp_varena_reset(GPVirtualArena* arena)
+void gp_carena_reset(GPContiguousArena* arena)
 {
     arena->position = arena->start;
 
@@ -553,7 +553,7 @@ void gp_varena_reset(GPVirtualArena* arena)
     #endif
 }
 
-void gp_varena_delete(GPVirtualArena* arena)
+void gp_carena_delete(GPContiguousArena* arena)
 {
     if (arena == NULL)
         return;
