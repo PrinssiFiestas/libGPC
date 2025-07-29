@@ -27,6 +27,21 @@ static void deferred_dealloc(void* p)
     gp_mem_dealloc(gp_heap, p);
 }
 
+typedef struct object
+{
+    void* memory;
+} Object;
+
+void init_object(Object* obj)
+{
+    obj->memory = gp_mem_alloc(gp_heap, 32);
+}
+
+void destroy_object(Object* obj)
+{
+    gp_mem_dealloc(gp_heap, obj->memory);
+}
+
 static int test0(void*_)
 {
     (void)_;
@@ -83,8 +98,9 @@ static int test0(void*_)
                 gp_expect(is_free(ps[i]));
         }
 
-        gp_test("Defer");
+        gp_test("Runtime Defer");
         {
+            // Runtime defers use the scope allocator
             GPScope* scope = gp_begin(0);
 
             // Note: using heap memory this way makes no sense, the scope
@@ -115,29 +131,75 @@ static int test0(void*_)
             gp_expect(is_free(p2));
         }
 
-        #if 0 //__GNUC__ || _MSC_VER
-        gp_test("Magic scope");
-        {
+        gp_test("Static Defer");
+        // Static defers do not need a scope allocator.
+
+        // Note the parenthesis used to separate defer statements.
+        // 1st field: destructor or any function to be called at GP_END.
+        // 2nd field: argument for the destructor.
+        // 3rd field: like for-loop's first field, it is meant to be
+        // used for declarations and initalization, but can be any arbitrary
+        // code. Note that the declared variable can be used on 1st and 2nd
+        // fields.
+        GP_BEGIN(
+            (deferred_dealloc, ptr,   void* ptr = gp_mem_alloc(gp_heap, 16)),
+            (deferred_dealloc, ps[1], ps[1]     = gp_mem_alloc(gp_heap, 32))
+        )
             const int dummy_var = 0;
             (void)dummy_var;
-            GP_BEGIN
-                // Shadowing to demonstrate that we are indeed in another {} scope
-                const int dummy_var = 1;
+
+            ps[3] = gp_mem_alloc(gp_heap, 24);
+            #if __GNUC__ || _MSC_VER
+            // Safe to use pointers to stack allocated objects.
+            GP_BEGIN(
+                (deferred_dealloc, ps[2], ps[2] = gp_mem_alloc(gp_heap, 64)),
+                (deferred_dealloc, ps[3]), // third field is optional
+                (destroy_object, &obj, Object obj; init_object(&obj)) // note multiple statements in third field
+            )
+            #else
+            // Must use gp_scope_alloc() or gp_scope_new(). Portable
+            // applications should always do this anyway. No heap allocations.
+            GP_BEGIN(
+                (deferred_dealloc, ps[2], ps[2] = gp_mem_alloc(gp_heap, 64)),
+                (deferred_dealloc, ps[3]), // third field is optional
+                (destroy_object, obj, Object* obj = gp_scope_new(Object); init_object(obj))
+            )
+            #endif
+                // Shadowing to demostrate that we are indeed in another scope
+                const int dummy_var = 0;
                 (void)dummy_var;
 
-                // GP_BEGIN created scope allocator
-                int* p = gp_mem_alloc(&scope->base, sizeof*p);
-                *p = 7;
-
-                gp_defer(scope, gp_suite, NULL); // also end suite when exiting scope
-
-                // Exiting scope using any control structure is ok. gp_end() is
-                // guaranteed to be called on scope exit for the scope allocator
-                // of the current scope.
-                return 0;
+                gp_expect( ! is_free(ps[2]));
+                gp_expect( ! is_free(ps[3]));
+                goto skip_end; // whoopsie, missed cleanup, or did we?
             GP_END
-        }
-        #endif
+            skip_end:
+
+            #if __GNUC__ || _MSC_VER
+            gp_expect(is_free(ps[2]), "Should be freed after scope ends regardless skipping GP_END");
+            gp_expect(is_free(ps[3]), "Should be freed after scope ends regardless skipping GP_END");
+            #else
+            gp_expect( ! is_free(ps[2]), "Should be freed after next GP_END.");
+            gp_expect( ! is_free(ps[3]), "Should be freed after next GP_END.");
+            #endif
+
+            // GP_BEGIN() and GP_END can be used anywhere where {} would be used.
+            for (size_t *p, i = 0; i < 7; gp_expect(is_free(p)), ++i)
+            GP_BEGIN(GP_AUTO_MEM) // GP_AUTO_MEM declares scope, no parenthesis required
+                p = gp_mem_alloc(&scope->base, 16);
+                memset(p, 'x', 16);
+                gp_expect( ! is_free(p));
+            GP_END
+
+            gp_expect( ! is_free(ptr));
+            gp_expect( ! is_free(ps[1]));
+
+        GP_END
+
+        gp_expect(is_free(ps[0]));
+        gp_expect(is_free(ps[1]));
+        gp_expect(is_free(ps[2]));
+        gp_expect(is_free(ps[3]));
     }
     gp_suite(NULL);
 
@@ -398,8 +460,8 @@ static void* test_alloc(GPAllocator*_allocator, size_t size, size_t alignment)
     gp_mutex_unlock(&test_allocator_mutex);
 
     // block points to its size. We don't want to return that but return the
-    // memory right next to it instead.
-    return (uint8_t*)block + sizeof size;
+    // memory right next to it instead. Fill it with magic uninitialized bytes.
+    return memset((uint8_t*)block + sizeof size, 0xbe, size);
 }
 
 // Not actually deallocates, but marks pointer as free for testing purposes.

@@ -62,6 +62,7 @@ int main(void)
 #define GP_1ST_ARG(A, ...) A
 #define GP_ALL_BUT_1ST_ARG(A, ...) __VA_ARGS__
 #define GP_COMMA(...) ,
+#define GP_SEMICOLON(...) ;
 #define GP_DUMP(...)
 #define GP_EVAL(...) __VA_ARGS__
 #define GP_EVAL1(A) A

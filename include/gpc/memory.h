@@ -100,6 +100,14 @@ void* gp_mem_realloc_aligned(
     size_t new_size,
     size_t alignment);
 
+/** Reallocate block.
+ * Free @p old_block, allocate a new block and copy the memory from
+ * @p old_block to the new block.
+ * If @p allocator is a builtin arena, the arena extends @p old_block without
+ * reallocating if @p old_block is the last object allocated by the arena.
+ * @p old_block may be NULL if @p old_size is zero.
+ * @return newly allocated memory or @p old_block if no reallocation happened.
+ */
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
 static inline void* gp_mem_realloc(
     GPAllocator* allocator,
@@ -366,7 +374,7 @@ static inline void* gp_varena_alloc(
 
 typedef struct gp_scope
 {
-    GPAllocator      base;
+    GPAllocator base;
 
     /** @private */
     struct gp_arena_node* head;
@@ -387,7 +395,7 @@ GPScope* gp_begin(size_t size) GP_NONNULL_RETURN GP_NODISCARD;
  */
 size_t gp_end(GPScope* optional_scope);
 
-/** Set cleanup routines to be executed when scope ends.
+/** Set cleanup routines to be executed on gp_end().
  * Deferred functions are called in Last In First Out order in gp_end().
  * Deferring should not be used for gp_str_delete() or gp_arr_delete() due
  * to possibility of reallocating which would cause double free. It is not
@@ -397,13 +405,13 @@ size_t gp_end(GPScope* optional_scope);
 GP_NONNULL_ARGS(1, 2)
 void gp_scope_defer(GPScope* scope, void (*f)(void* arg), void* arg);
 
-/** Set cleanup routines to be executed when scope ends.
+/** Set cleanup routines to be executed on gp_end().
  * like gp_scope_defer() but with type checking and can also take functions
  * with non-void pointer arguments like gp_file_close().
  */
 #define gp_defer(scope, f, arg) do { \
-    if (0) (f)(arg); \
-    gp_scope_defer(scope, (void(*)(void*))(f), arg); \
+    if (0) (f)(arg);\
+    gp_scope_defer(scope, gp_defer_func_cast(f), arg); \
 } while(0)
 
 /** Get lastly created scope in the current thread.
@@ -413,10 +421,21 @@ void gp_scope_defer(GPScope* scope, void (*f)(void* arg), void* arg);
 GP_NODISCARD
 GPScope* gp_last_scope(void);
 
-#if __GNUC__ || _MSC_VER
-#define GP_BEGIN { GP_SCOPE_BEGIN
-#define GP_END     GP_SCOPE_END }
-#endif
+// ----------------------------------------------------------------------------
+// Deferring
+
+// TODO docs!
+
+#define GP_BEGIN(...) { GP_DEFER_BEGIN(__VA_ARGS__)
+#define GP_END          GP_DEFER_END }
+
+#define GP_AUTO_MEM ( gp_auto_mem_clean, _gp_auto_mem, \
+    static GP_AUTO_MEM_THREAD size_t _gp_auto_mem_size; \
+    GPAutoMem* _gp_auto_mem = gp_defer_new(GPAutoMem, gp_begin(_gp_auto_mem_size), &_gp_auto_mem_size); \
+    GPScope* scope = _gp_auto_mem->scope; )
+
+#define gp_defer_alloc(/* size_t n_bytes */...)             GP_DEFER_ALLOC(__VA_ARGS__)
+#define gp_defer_new(/* T type, optional_init_values */...) GP_DEFER_NEW(__VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // Mutex Allocator
@@ -454,42 +473,189 @@ void gp_mutex_allocator_destroy(GPMutexAllocator* optional);
 // ----------------------------------------------------------------------------
 
 
-// GP_SCOPE_BEGIN and GP_SCOPE_END
-#if __GNUC__
-typedef struct gp_auto_scope_data
-{ // TODO defer stack size as well
-    GPScope* scope;
-    size_t* size;
-} GPAutoScopeData;
-
-static inline void gp_auto_scope_clean(GPAutoScopeData* scope)
+#if !__cplusplus && __STDC_VERSION__ < 202311L
+// Unlike cast to void(*)(void*), this checks that return type matches.
+static inline void(*gp_defer_func_cast(void(*f)(/* accept any arg type */)))(void*)
 {
-    size_t scope_size = gp_end(scope->scope);
-    *scope->size = (scope_size >> 1) + (*scope->size >> 1); // IIR smoothing
+    return (void(*)(void*))f;
 }
-#define GP_SCOPE_BEGIN \
-    static __thread size_t _gp_auto_scope_size; \
-    GPAllocator* scope = gp_begin(_gp_auto_scope_size); \
-    __attribute__((cleanup(gp_auto_scope_clean))) GPAutoScopeData _gp_auto_scope_data = \
-        { scope, &_gp_auto_scope_size };
+#else // no return type checking available
+#define gp_defer_func_cast(...) ((void(*)(void*))(__VA_ARGS__))
+#endif
+
+// ----------------------------------------------------------------------------
+// GP_DEFER_BEGIN, GP_DEFER_END
+
+// Note: (void)_gp_auto_scope_defers is used for compiler errors when using
+// macros that are only supposed to be used in auto scopes.
+
+typedef struct gp_auto_mem
+{
+    GPScope* scope;
+    size_t*  size;
+} GPAutoMem;
+
+static inline void gp_auto_mem_clean(void*_arena)
+{
+    GPAutoMem* arena = (GPAutoMem*)_arena;
+    *arena->size = (gp_end(arena->scope) >> 1) + (*arena->size >> 1);
+}
+#define GP_DEFER_DECLARATION(DESTRUCTOR, DESTRUCTOR_ARGUMENT,/* declarations */...) \
+    __VA_ARGS__; \
+    if (0) (DESTRUCTOR)(DESTRUCTOR_ARGUMENT); \
+    _gp_auto_scope_defers[_gp_auto_scope_defers_length].func = gp_defer_func_cast(DESTRUCTOR); \
+    _gp_auto_scope_defers[_gp_auto_scope_defers_length].arg = (DESTRUCTOR_ARGUMENT); \
+    ++_gp_auto_scope_defers_length;
+
+#define GP_DEFER_DECLARE(...) GP_DEFER_DECLARATION __VA_ARGS__
+
+typedef struct gp_auto_scope_defer
+{
+    void(*func)(void*);
+    void* arg;
+} GPAutoScopeDefer;
+
+#define GP_DEFER_NEW(...) GP_OVERLOAD64(__VA_ARGS__, \
+    GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, \
+    GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, \
+    GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, \
+    GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, \
+    GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, \
+    GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, \
+    GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, \
+    GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, \
+    GP_DEFER_NEW_ZERO_INIT)(__VA_ARGS__)
+
+#if __GNUC__ && !defined(__MINGW32__) // Note: __thread is broken in MinGW // TODO just conditionally define GP_AUTO_DEFER_THREAD to __thread or _Atomic
+
+#define GP_AUTO_MEM_THREAD __thread
+
+#define GP_DEFER_ALLOC(...) __builtin_alloca((void)_gp_auto_scope_defers, (__VA_ARGS__))
+
+// Note: alloca.h not available in many platforms, so use builtin.
+#ifndef __cplusplus
+#define GP_DEFER_NEW_ZERO_INIT(T) ((void)_gp_auto_scope_defers, &(T){0})
+#define GP_DEFER_NEW_INIT(T, ...) ((void)_gp_auto_scope_defers, &(T){__VA_ARGS__})
+#endif
+
+#define GP_ALLOCA(...) __builtin_alloca(__VA_ARGS__)
+
+typedef const struct gp_auto_scope
+{
+    GPAutoScopeDefer* defers;
+    size_t defers_length;
+} GPAutoScope;
+
+__attribute__((always_inline))
+static inline void gp_auto_scope_clean(const GPAutoScope* scope)
+{
+    for (size_t i = scope->defers_length - 1; i != (size_t)-1; --i)
+        scope->defers[i].func(scope->defers[i].arg);
+}
+#define GP_DEFER_BEGIN(...) \
+    GPAutoScopeDefer _gp_auto_scope_defers[GP_COUNT_ARGS(__VA_ARGS__)]; \
+    size_t _gp_auto_scope_defers_length = 0; \
+    GP_PROCESS_ALL_ARGS(GP_DEFER_DECLARE, GP_SEMICOLON, __VA_ARGS__); \
+    __attribute__((cleanup(gp_auto_scope_clean))) GPAutoScope _gp_auto_scope = { \
+        _gp_auto_scope_defers, \
+        GP_COUNT_ARGS(__VA_ARGS__) \
+    };
     // user code
-#define GP_SCOPE_END
+#define GP_DEFER_END // cleanup attribute handles cleanup, nothing to do here
 
 #elif _MSC_VER
 
-#define GP_SCOPE_BEGIN \
-    static __declspec(thread) size_t _gp_auto_scope_size; \
-    GPAllocator* scope = gp_begin(_gp_auto_scope_size); \
+#include <malloc.h>
+// _alloca() is deprecated, but we have no way of free() the returned pointer,
+// so cannot use _malloca() either. We expect Microsoft keeping _alloca() around
+// for a long time due to backwards compatibility. Even they use it themselves
+// to implement _malloca().
+#define GP_DEFER_ALLOC(...) _alloca((void)_gp_auto_scope_defers, (__VA_ARGS__))
+#define GP_ALLOCA(...) _alloca(__VA_ARGS__)
+
+#define GP_AUTO_MEM_THREAD declspec(thread)
+
+#ifndef __cplusplus
+#define GP_DEFER_NEW_ZERO_INIT(T) ((void)_gp_auto_scope_defers, &(T){0})
+#define GP_DEFER_NEW_INIT(T, ...) ((void)_gp_auto_scope_defers, &(T){__VA_ARGS__})
+#endif
+
+#define GP_DEFER_BEGIN(...) \
+    GPAutoScopeDefer _gp_auto_scope_defers[GP_COUNT_ARGS(__VA_ARGS__)]; \
+    size_t _gp_auto_scope_defers_length = 0; \
+    GP_PROCESS_ALL_ARGS(GP_DEFER_DECLARE, GP_SEMICOLON, __VA_ARGS__); \
     __try {
-        // user code
-#define GP_SCOPE_END } __finally { \
-    _gp_auto_scope_size = (gp_end(scope) >> 1) + (_gp_auto_scope_size >> 1); \
+        //user code
+#define GP_DEFER_END } __finally { \
+    for (size_t i = _gp_auto_scope_defers_length - 1; i != (size_t)-1; --i) \
+        _gp_auto_scope_defers[i].func(_gp_auto_scope_defers[i].arg); \
 }
 
-#endif // GP_SCOPE_BEGIN and GP_SCOPE_END
+#else
+
+// Note: size estimation is not thread local due to not being able to have
+// globals in these macros, which is required by pthread thread locals. It also
+// saves some performance. Reads and writes to uint32_t assumed atomic. IIR
+// smoothing expression is not atomic, but has negligible effect on program
+// correctness.
+
+#define GP_AUTO_MEM_THREAD
+
+#ifndef __cplusplus
+#define GP_DEFER_NEW_ALLOC(T) (T*)gp_virtual_alloc(&_gp_auto_scope.arena, sizeof(T), GP_ALLOC_ALIGNMENT) // TODO use GP_PTR_TO()
+#define GP_DEFER_NEW_ZERO_INIT(T) memset(GP_DEFER_NEW_ALLOC(T), 0, sizeof(T))
+#define GP_DEFER_NEW_INIT(T, ...) memcpy(GP_DEFER_NEW_ALLOC(T), &(T){__VA_ARGS__}, sizeof (T){__VA_ARGS__})
+#define GP_DEFER_ALLOC(...) gp_virtual_alloc(&_gp_auto_scope.arena, __VA_ARGS__, GP_ALLOC_ALIGNMENT)
+#endif
+
+typedef struct gp_auto_scope99
+{
+    GPVirtualArena arena; // for gp_scope_alloc()
+    size_t defers_length;
+    GPAutoScopeDefer defers[];
+} GPAutoScope99;
+
+GPAutoScope99* gp_thread_local_auto_scope(void);
+#define GP_DEFER_BEGIN(...) \
+    GPAutoScope99* _gp_auto_scope = gp_thread_local_auto_scope(); \
+    void* _gp_auto_scope_arena_position = _gp_auto_scope->arena.position; \
+    size_t _gp_auto_scope_defers_old_length = _gp_auto_scope->defers_length; \
+    GPAutoScopeDefer* _gp_auto_scope_defers = _gp_auto_scope->defers + _gp_auto_scope->defers_length; \
+    _gp_auto_scope->defers_length += GP_COUNT_ARGS(__VA_ARGS__) + 1; \
+    size_t _gp_auto_scope_defers_length = 1; \
+    GP_PROCESS_ALL_ARGS(GP_DEFER_DECLARE, GP_SEMICOLON, __VA_ARGS__);
+    // user code
+#define GP_DEFER_END \
+    _gp_auto_scope->arena.position = _gp_auto_scope_arena; \
+    for ( ; _gp_auto_scope->defers_length > _gp_auto_scope_defers_old_length; --_gp_auto_scope->defers_length) \
+        _gp_auto_scope->defers[_gp_auto_scope->defers_length-1] \
+            .func(_gp_auto_scope->defers[_gp_auto_scope_->defers_length-1].arg);
+
+#endif // GP_DEFER_BEGIN, and GP_DEFER_END
+// ----------------------------------------------------------------------------
 
 #ifdef __cplusplus
 } // extern "C"
+
+// Note: we could use RAII for GP_BEGIN(), but if GP_ALLOCA() is not available,
+// then we need a thread local GPVirtualArena anyway for gp_scope_alloc(), so
+// we'll settle to C99 implementation for now. We probably should later use RAII
+// for performance though.
+
+template <typename T>
+#if __GNUC__ // allow using alloca() in function arguments. Note: on MSVC it's okay anyway.
+__attribute__((always_inline))
+#endif
+static inline T* gp_cpp_ptr_init(T* ptr, const T& value)
+{
+    *ptr = value;
+    return ptr;
+}
+
+#define GP_DEFER_NEW_ALLOC(T) ((T*)GP_DEFER_ALLOC(sizeof(T))) // TODO T!
+#define GP_DEFER_NEW_ZERO_INIT(T) gp_cpp_ptr_init(GP_DEFER_NEW_ALLOC(T), T{0})
+#define GP_DEFER_NEW_INIT(T, ...) gp_cpp_ptr_init(GP_DEFER_NEW_ALLOC(T), T{__VA_ARGS__})
+
 #endif
 
 #endif // GP_MEMORY_INCLUDED
