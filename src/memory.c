@@ -333,12 +333,6 @@ void* gp_mem_realloc_aligned(
 #define GP_SCOPE_DEFAULT_GROWTH_COEFFICIENT 2.0
 #endif
 
-typedef struct gp_defer
-{
-    void (*f)(void* arg);
-    void* arg;
-} GPDefer;
-
 typedef struct gp_defer_stack
 {
     GPDefer* stack;
@@ -435,7 +429,7 @@ GPScope* gp_begin(const size_t _size)
         (size_t)GP_SCOPE_DEFAULT_INIT_SIZE
       : _size;
 
-    GPScope* scope = gp_scope_new(size/* + sizeof*scope*/);
+    GPScope* scope = gp_scope_new(size);
     scope->defer_stack = NULL;
     scope->parent = gp_thread_local_get(gp_scope_list_key);
     gp_thread_local_set(gp_scope_list_key, scope);
@@ -485,7 +479,7 @@ void gp_scope_defer(GPScope* scope, void (*f)(void*), void* arg)
     }
     else if (scope->defer_stack->length == scope->defer_stack->capacity)
     {
-        GPDefer* old_stack  = scope->defer_stack->stack;
+        GPDefer* old_stack = scope->defer_stack->stack;
         scope->defer_stack->stack = gp_scope_alloc(&scope->base,
             scope->defer_stack->capacity * 2 * sizeof(GPDefer), GP_ALLOC_ALIGNMENT);
         memcpy(scope->defer_stack->stack, old_stack,
@@ -498,7 +492,7 @@ void gp_scope_defer(GPScope* scope, void (*f)(void*), void* arg)
 }
 
 // ----------------------------------------------------------------------------
-// Virtual Arena
+// Contiguous Arena
 
 GPAllocator* gp_carena_init(GPContiguousArena* alc, size_t size)
 {
