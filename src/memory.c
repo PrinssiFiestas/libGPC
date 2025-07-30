@@ -290,12 +290,12 @@ void* gp_mem_realloc_aligned(
     gp_db_assert(old_size <= PTRDIFF_MAX, "Impossible size, no allocator accepts this.");
     gp_db_assert(new_size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
 
-    GPContiguousArena* varena = (GPContiguousArena*)allocator;
-    if (allocator->dealloc == gp_virtual_dealloc && old_block != NULL &&
-        (char*)old_block + old_size == (char*)varena->position)
+    GPContiguousArena* carena = (GPContiguousArena*)allocator;
+    if (allocator->dealloc == gp_carena_dealloc && old_block != NULL &&
+        (char*)old_block + old_size == (char*)carena->position)
     { // extend block instead of reallocating and copying
-        varena->position = old_block;
-        return gp_carena_alloc(varena, new_size, GP_ALLOC_ALIGNMENT);
+        carena->position = old_block;
+        return gp_carena_alloc(carena, new_size, GP_ALLOC_ALIGNMENT);
     }
 
     GPArena* arena = (GPArena*)allocator;
@@ -370,7 +370,7 @@ static void gp_scope_execute_defers(GPScope* scope)
 {
     if (scope->defer_stack != NULL) {
         for (size_t i = scope->defer_stack->length - 1; i != (size_t)-1; --i) {
-            scope->defer_stack->stack[i].f(scope->defer_stack->stack[i].arg);
+            scope->defer_stack->stack[i].func(scope->defer_stack->stack[i].arg);
         }
     }
 }
@@ -486,15 +486,28 @@ void gp_scope_defer(GPScope* scope, void (*f)(void*), void* arg)
             scope->defer_stack->length * sizeof(GPDefer));
         scope->defer_stack->capacity *= 2;
     }
-    scope->defer_stack->stack[scope->defer_stack->length].f   = f;
-    scope->defer_stack->stack[scope->defer_stack->length].arg = arg;
+    scope->defer_stack->stack[scope->defer_stack->length].func = f;
+    scope->defer_stack->stack[scope->defer_stack->length].arg  = arg;
     scope->defer_stack->length++;
 }
 
 // ----------------------------------------------------------------------------
 // Contiguous Arena
 
-GPAllocator* gp_carena_init(GPContiguousArena* alc, size_t size)
+size_t gp_page_size(void)
+{
+    #ifdef _SC_PAGE_SIZE
+    return sysconf(_SC_PAGE_SIZE);
+    #elif defined(_WIN32)
+    SYSTEM_INFO sys_info;
+    GetSystemInfo(&sys_info);
+    return sys_info.dwPageSize;
+    #else
+    return 4096;
+    #endif
+}
+
+GPContiguousArena* gp_carena_new(size_t size)
 {
     gp_db_assert(size != 0, "%zu", size);
     gp_db_assert(size <= PTRDIFF_MAX, "%zu", size, "Possibly negative size detected.");
@@ -502,48 +515,50 @@ GPAllocator* gp_carena_init(GPContiguousArena* alc, size_t size)
         "Virtual allocator is supposed to be used with HUGE arenas. "
         "Are you sure you are allocating enough?");
 
-    #ifdef _SC_PAGE_SIZE
-    const size_t page_size = sysconf(_SC_PAGE_SIZE);
-    #elif defined(_WIN32)
-    SYSTEM_INFO sys_info;
-    GetSystemInfo(&sys_info);
-    const size_t page_size = sys_info.dwPageSize;
-    #else
-    const size_t page_size = 4096;
-    #endif
-    size = gp_round_to_aligned(size, page_size);
+    size = gp_round_to_aligned(size, gp_page_size());
 
     #if _WIN32
-    alc->start = alc->position = VirtualAlloc(
+    GPContiguousArena* arena = VirtualAlloc(
         NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-    gp_db_expect(alc->start != NULL, "VirtualAlloc():", "%lu", GetLastError());
+    gp_db_expect(arena != NULL, "VirtualAlloc():", "%lu", GetLastError());
     #else
-    alc->start = alc->position = mmap(
+    GPContiguousArena* arena = mmap(
         NULL,
         size,
         PROT_READ | PROT_WRITE,
         MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
         -1, 0);
-    gp_db_expect(alc->start != NULL && alc->start != (void*)-1, "mmap():", "%s", strerror(errno));
+    gp_db_expect(arena != NULL && arena != (void*)-1, "mmap():", "%s", strerror(errno));
     #endif
 
-    if (alc->start == NULL || alc->start == (void*)-1)
-        return alc->start = alc->position = NULL;
+    if (arena == NULL || arena == (void*)-1)
+        return arena = NULL;
 
-    alc->base.alloc   = (void*(*)(GPAllocator*,size_t,size_t))gp_carena_alloc;
-    alc->base.dealloc = gp_virtual_dealloc;
-    alc->capacity = size;
-    return (GPAllocator*)alc;
+    arena->base.alloc   = (void*(*)(GPAllocator*,size_t,size_t))gp_carena_alloc;
+    arena->base.dealloc = gp_carena_dealloc;
+    arena->position     = arena->memory;
+    arena->capacity     = size - sizeof*arena;
+    return arena;
 }
 
 void gp_carena_reset(GPContiguousArena* arena)
 {
-    arena->position = arena->start;
+    arena->position = arena->memory;
+    size_t page_size = gp_page_size();
+    if (arena->capacity < page_size)
+        return;
 
     #if _WIN32
-    VirtualAlloc(arena->start, 0, MEM_RESET, PAGE_READWRITE);
+    VirtualAlloc(
+        (uint8_t*)arena + page_size,
+        arena->capacity - page_size,
+        MEM_RESET,
+        PAGE_READWRITE);
     #else
-    madvise(arena->start, arena->capacity, MADV_DONTNEED);
+    madvise(
+        (uint8_t*)arena + page_size,
+        gp_round_to_aligned(arena->capacity, page_size),
+        MADV_DONTNEED);
     #endif
 }
 
@@ -553,15 +568,87 @@ void gp_carena_delete(GPContiguousArena* arena)
         return;
 
     #if _WIN32
-    BOOL VirtualFree_result = VirtualFree(arena->start, 0, MEM_RELEASE);
+    BOOL VirtualFree_result = VirtualFree(arena, 0, MEM_RELEASE);
     gp_db_expect(VirtualFree_result != 0, "%lu", GetLastError());
     #else
-    int munmap_result = munmap(arena->start, arena->capacity);
+    int munmap_result = munmap(arena, gp_round_to_aligned(arena->capacity, gp_page_size()));
     gp_db_expect(munmap_result != -1, "%s", strerror(errno));
     #endif
+}
 
-    arena->start = arena->position = NULL;
-    arena->capacity = 0;
+// ----------------------------------------------------------------------------
+// C99 Auto Scope Defer
+
+#define GP_AUTO_SCOPE_DEFERS_SIZE ((size_t)1024*1024)
+
+static GPThreadKey  gp_auto_scope_key;
+static GPThreadOnce gp_auto_scope_key_once = GP_THREAD_ONCE_INIT;
+
+GPAutoScope99* gp_thread_local_auto_scope(void);
+
+static void gp_delete_auto_scope(void* auto_scope)
+{
+    if (auto_scope == NULL)
+        return;
+    gp_carena_delete(auto_scope);
+
+    GPDefer* defers = ((GPAutoScope99*)auto_scope)->defers;
+    #if _WIN32
+    BOOL VirtualFree_result = VirtualFree(defers, 0, MEM_RELEASE);
+    gp_db_expect(VirtualFree_result != 0, "%lu", GetLastError());
+    #else
+    int munmap_result = munmap(defers, GP_AUTO_SCOPE_DEFERS_SIZE);
+    gp_db_expect(munmap_result != -1, "%s", strerror(errno));
+    #endif
+}
+
+static void gp_delete_main_thread_auto_scope(void)
+{
+    gp_delete_auto_scope(gp_thread_local_auto_scope());
+}
+
+static void gp_make_auto_scope_key(void)
+{
+    atexit(gp_delete_main_thread_auto_scope);
+    gp_thread_key_create(&gp_auto_scope_key, gp_delete_auto_scope);
+}
+
+static GPAutoScope99* gp_new_auto_scope(void)
+{
+    GPAutoScope99 auto_scope_data = {.arena = gp_carena_new(GP_AUTO_SCOPE_DEFERS_SIZE)};
+
+    // Extend lifetime
+    GPAutoScope99* auto_scope = auto_scope_data.arena->position;
+    auto_scope_data.arena->position = auto_scope + 1;
+    *auto_scope = auto_scope_data;
+
+    #if _WIN32
+    auto_scope->defers = VirtualAlloc(
+        NULL, GP_AUTO_SCOPE_DEFERS_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    gp_db_assert(auto_scope->defers != NULL, "VirtualAlloc():", "%lu", GetLastError());
+    #else
+    auto_scope->defers = mmap(
+        NULL,
+        GP_AUTO_SCOPE_DEFERS_SIZE,
+        PROT_READ | PROT_WRITE,
+        MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
+        -1, 0);
+    gp_db_assert(auto_scope->defers != NULL && auto_scope->defers != (void*)-1,
+        "mmap():", "%s", strerror(errno));
+    #endif
+
+    gp_thread_local_set(gp_auto_scope_key, auto_scope);
+    return auto_scope;
+}
+
+GPAutoScope99* gp_thread_local_auto_scope(void)
+{
+    gp_thread_once(&gp_auto_scope_key_once, gp_make_auto_scope_key);
+
+    GPAutoScope99* auto_scope = gp_thread_local_get(gp_auto_scope_key);
+    if (GP_UNLIKELY(auto_scope == NULL))
+        auto_scope = gp_new_auto_scope();
+    return auto_scope;
 }
 
 // ----------------------------------------------------------------------------

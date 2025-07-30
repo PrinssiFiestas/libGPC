@@ -102,15 +102,15 @@ int main(void)
             gp_end(scope);
 
             // Repeated memory block extension test on virtual arena
-            GPContiguousArena va;
-            arr = gp_arr_new(gp_carena_init(&va, 4*4096), sizeof arr[0], INIT_CAPACITY);
+            GPContiguousArena* ca = gp_carena_new(4*4096);
+            arr = gp_arr_new(&ca->base, sizeof arr[0], INIT_CAPACITY);
             init_pos = arr;
             gp_expect(gp_arr_capacity(arr) == INIT_CAPACITY);
             arr = gp_arr_reserve(sizeof arr[0], arr, RESERVE_CAPACITY); // Extend arr memory
             gp_expect(gp_arr_capacity(arr) > INIT_CAPACITY
                 && arr == init_pos,"Arenas should know how to extend memory of "
                                    "lastly created objects so arr is not moved.");
-            gp_carena_delete(&va);
+            gp_carena_delete(ca);
         }
     } // gp_suite("Memory");
 

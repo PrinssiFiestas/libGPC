@@ -1586,7 +1586,6 @@ static inline T* gp_arr_new_cpp(T_alc*const alc, const std::array<T,N>& init)
 #define gp_allocation(...)          gp_arr_allocation(__VA_ARGS__)
 #define gp_clear(...)               GP_CLEAR(__VA_ARGS__)
 #define gp_allocator(...)           gp_arr_allocator(__VA_ARGS__)
-#define gp_clear(...)               GP_CLEAR(__VA_ARGS__)
 #define gp_reserve(...)             GP_RESERVE99(__VA_ARGS__)
 #define gp_copy(...)                GP_COPY99(__VA_ARGS__)
 #define gp_slice(...)               GP_SLICE99(__VA_ARGS__)
@@ -2449,7 +2448,7 @@ static inline GPString gp_join99(
 
 #define GP_IS_ALC99(A) (GP_SIZEOF_TYPEOF(*(A)) >= sizeof(GPAllocator))
 
-#define GP_CLEAR(A) gp_arr_clear(*(A))
+#define GP_CLEAR(A) (0 ? (void*)GP_SIZEOF_TYPEOF(**(A)) : gp_arr_clear(*(A)))
 
 void gp_reserve99(size_t elem_size, void* px, const size_t capacity);
 #define GP_RESERVE99_2(A, CAPACITY) gp_reserve99(sizeof**(A), A, CAPACITY)

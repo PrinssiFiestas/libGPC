@@ -308,21 +308,23 @@ size_t gp_heap_alloc_count(void);
 typedef struct gp_contiguous_arena
 {
     GPAllocator base;
-    void* start;     // of the memory block
-    void* position;  // arena pointer
-    size_t capacity; // of arena
+    void*   position; // arena pointer
+    size_t  capacity; // size of memory
+    uint8_t memory[];
 } GPContiguousArena;
 
-/** Allocate and initialize.
- * @p capacity will be rounded up to page size boundary. It is recommended to
- * pass huge (at least hundreds of megs depending on your application and
- * underlying system) @p capacity to prevent out-of-memory bugs. Physical memory
- * will only be used on writes to the arena.
- * @return pointer to arena casted to GPAllocator* or NULL if virtual memory
- * allocation fails. In case of failures, you may want to try again with smaller
- * capacity.
+/** Get page size. */
+size_t gp_page_size(void);
+
+/** Create contiguous arena.
+ * @p capacity will be rounded up to page size  - sizeof(GPContiguousArena). It
+ * is recommended to pass huge (at least hundreds of megs depending on your
+ * application and underlying system) @p capacity to prevent out-of-memory bugs.
+ * Physical memory will only be used on writes to the arena.
+ * @return pointer to arena or NULL if virtual memory allocation fails. In case
+ * of failures, you may want to try again with smaller capacity.
  */
-GPAllocator* gp_carena_init(GPContiguousArena*, size_t capacity) GP_NONNULL_ARGS();
+GPContiguousArena* gp_carena_new(size_t capacity);
 
 /** Deallocate some memory.
  * Use this to free everything allocated after @p to_this_position including
@@ -333,8 +335,8 @@ static inline void gp_carena_rewind(GPContiguousArena* arena, void* to_this_posi
 {
     arena->position = to_this_position;
     uint8_t* pointer = (uint8_t*)to_this_position;
-    gp_db_assert(pointer < (uint8_t*)arena->start + arena->capacity, "Pointer points outside the arena.");
-    gp_db_assert(pointer >= (uint8_t*)arena->start, "Pointer points outside the arena.");
+    gp_db_assert(pointer < (uint8_t*)arena->memory + arena->capacity, "Pointer points outside the arena.");
+    gp_db_assert(pointer >= (uint8_t*)arena->memory, "Pointer points outside the arena.");
 }
 
 /** Deallocate all memory excluding the arena itself.
@@ -346,7 +348,7 @@ void gp_carena_reset(GPContiguousArena*) GP_NONNULL_ARGS();
 /** Deallocate all arena memory including the arena itself.*/
 void gp_carena_delete(GPContiguousArena* optional);
 
-/** Allocate memory from virtual arena.
+/** Allocate memory from contiguous arena.
  * gp_mem_alloc() is meant to be polymorphic, use this directly to maximize
  * performance.
  */
@@ -362,7 +364,7 @@ static inline void* gp_carena_alloc(
     arena->position = (void*)(gp_round_to_aligned((uintptr_t)arena->position, alignment) + size);
 
     #if !defined(NDEBUG) || /*user*/defined(GP_VIRTUAL_ALWAYS_BOUNDS_CHECK)
-    gp_assert((uint8_t*)arena->position <= (uint8_t*)arena->start + arena->capacity, "Virtual allocator out of memory.");
+    gp_assert((uint8_t*)arena->position <= (uint8_t*)arena->memory + arena->capacity, "Virtual allocator out of memory.");
     #endif
     return block;
 }
@@ -519,7 +521,7 @@ static inline void gp_auto_mem_clean(void*_arena)
 
 typedef struct gp_defer
 {
-    void (*f)(void* arg);
+    void (*func)(void* arg);
     void* arg;
 } GPDefer;
 
@@ -533,6 +535,13 @@ typedef struct gp_defer
     GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, \
     GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, GP_DEFER_NEW_INIT, \
     GP_DEFER_NEW_ZERO_INIT)(__VA_ARGS__)
+
+typedef struct gp_auto_scope99
+{
+    GPContiguousArena* arena; // for gp_defer_alloc()
+    size_t defers_length;
+    GPDefer* defers;
+} GPAutoScope99;
 
 #if __GNUC__ && !defined(__MINGW32__) // Note: __thread is broken in MinGW // TODO just conditionally define GP_AUTO_DEFER_THREAD to __thread or _Atomic
 
@@ -610,18 +619,11 @@ static inline void gp_auto_scope_clean(const GPAutoScope* scope)
 #define GP_AUTO_MEM_THREAD
 
 #ifndef __cplusplus
-#define GP_DEFER_NEW_ALLOC(T) (T*)gp_virtual_alloc(&_gp_auto_scope.arena, sizeof(T), GP_ALLOC_ALIGNMENT) // TODO use GP_PTR_TO()
+#define GP_DEFER_NEW_ALLOC(T) (T*)gp_carena_alloc(&_gp_auto_scope.arena, sizeof(T), GP_ALLOC_ALIGNMENT) // TODO use GP_PTR_TO()
 #define GP_DEFER_NEW_ZERO_INIT(T) memset(GP_DEFER_NEW_ALLOC(T), 0, sizeof(T))
 #define GP_DEFER_NEW_INIT(T, ...) memcpy(GP_DEFER_NEW_ALLOC(T), &(T){__VA_ARGS__}, sizeof (T){__VA_ARGS__})
-#define GP_DEFER_ALLOC(...) gp_virtual_alloc(&_gp_auto_scope.arena, __VA_ARGS__, GP_ALLOC_ALIGNMENT)
+#define GP_DEFER_ALLOC(...) gp_carena_alloc(&_gp_auto_scope.arena, __VA_ARGS__, GP_ALLOC_ALIGNMENT)
 #endif
-
-typedef struct gp_auto_scope99
-{
-    GPVirtualArena arena; // for gp_scope_alloc()
-    size_t defers_length;
-    GPDefer defers[];
-} GPAutoScope99;
 
 GPAutoScope99* gp_thread_local_auto_scope(void);
 #define GP_DEFER_BEGIN(...) \

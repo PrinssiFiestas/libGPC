@@ -21,7 +21,7 @@ void gp_arena_dealloc(GPAllocator* arena, void* mem)
     ASAN_POISON_MEMORY_REGION(mem, sizeof(void*));
 }
 
-void gp_virtual_dealloc(GPAllocator* arena, void* mem)
+void gp_carena_dealloc(GPAllocator* arena, void* mem)
 {
     (void)arena;
     (void)mem;

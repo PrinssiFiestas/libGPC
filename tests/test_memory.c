@@ -273,7 +273,7 @@ static int test_scratch(void*_)
     gp_test("Scratch arena");
     {
         GPArena* scratch = gp_scratch_arena();
-        char* mem = gp_mem_alloc((GPAllocator*)scratch, 64);
+        char* mem = gp_mem_alloc(&scratch->base, 64);
         strcpy(mem, "Blazing fast thread local memory!");
         gp_expect(strcmp(mem, "Blazing fast thread local memory!") == 0);
 
@@ -352,33 +352,34 @@ int main(void)
             gp_arena_delete(arena);
         }
 
-        gp_test("Virtual Arena");
+        gp_test("Contiguous Arena");
         {
-            GPContiguousArena va;
+            GPContiguousArena* ca;
             const size_t huge_size = 1024*1024*1024;
-            gp_assert(gp_carena_init(&va, huge_size) != NULL);
+            gp_assert((ca = gp_carena_new(huge_size)) != NULL);
 
-            char* buffer = gp_mem_alloc((GPAllocator*)&va, huge_size);
+            char* buffer = gp_mem_alloc(&ca->base, ca->capacity);
 
             // Physical memory is only used now
             buffer[0] = 'x';
-            buffer[huge_size - 1] = 'x';
+            buffer[ca->capacity - 1] = 'x';
 
-            gp_carena_rewind(&va, buffer);
-            gp_expect(va.position == va.start, "Arena pointer should be resetted");
-            gp_expect(buffer[huge_size - 1] == 'x', "Memory should remain untouched");
+            gp_carena_rewind(ca, buffer);
+            gp_expect(ca->position == ca->memory, "Arena pointer should be resetted");
+            gp_expect(buffer[ca->capacity - 1] == 'x', "Memory should remain untouched");
 
             // Faster than gp_mem_alloc(), which is used for polymorphism.
-            buffer = gp_carena_alloc(&va, huge_size, GP_ALLOC_ALIGNMENT);
+            buffer = gp_carena_alloc(ca, ca->capacity, GP_ALLOC_ALIGNMENT);
 
-            gp_carena_reset(&va); // physical memory also freed
-            gp_expect(va.position == va.start, "Arena pointer should be resetted");
+            gp_carena_reset(ca); // physical memory also freed
+            gp_expect(ca->position == ca->memory, "Arena pointer should be resetted");
             #if !_WIN32
-            gp_expect(buffer[huge_size - 1] == '\0',
+            gp_expect(buffer[ca->capacity - 1] == '\0',
                 "Physical freed, so access should zero memory");
             #endif
+            gp_expect(buffer[0] == 'x', "First arena page should be unaffected");
 
-            gp_carena_delete(&va);
+            gp_carena_delete(ca);
         }
     } // gp_suite("Other stuff")
 
@@ -417,6 +418,12 @@ static GPMutex test_allocator_mutex;
     void* my_data = gp_mem_alloc((GPAllocator*)&test_allocator, BLOCK_SIZE);
     // do something with my_data
     gp_mem_dealloc((GPAllocator*)&test_allocator, my_data);
+*/
+// although just taking a pointer to base has better type safety so
+/*
+    void* my_data = gp_mem_alloc(&test_allocator.base, BLOCK_SIZE);
+    // do something with my_data
+    gp_mem_dealloc(&test_allocator.base, my_data);
 */
 // However, in this case a constructor is needed. By returning a GPAllocator*
 // instead of TestAllocator*, we are also privatizing TestAllocator* specific

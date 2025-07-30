@@ -36,7 +36,7 @@
 #endif
 
 void gp_arena_dealloc(GPAllocator*, void*);
-void gp_virtual_dealloc(GPAllocator*, void*);
+void gp_carena_dealloc(GPAllocator*, void*);
 
 static inline size_t gp_max_digits_in(const GPType T)
 {
