@@ -111,12 +111,17 @@ CCOMP_SINGLEHEADERTEST = ./build/singleheadertest
 endif
 endif
 
+test_all: MAKEFLAGS= # prevent jobserver issues
+
+ifeq ($(OS), Windows_NT)
 # Run all tests sequentially to see where breaks. Requires MSYS2 UCRT64, WSL2,
 # and MSVC running in MSYS2 shell as explained above.
-test_all: MAKEFLAGS= # prevent jobserver issues
-ifeq ($(OS), Windows_NT)
-test_all:
+test_ALL: MAKEFLAGS=
+test_ALL:
 	wsl make test_all
+	$(MAKE) test_all
+
+test_all:
 	$(MAKE) clean
 	$(MAKE) tests CC=clang
 	$(MAKE) release_tests CC=clang

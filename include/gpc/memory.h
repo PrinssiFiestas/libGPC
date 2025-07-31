@@ -590,7 +590,7 @@ static inline void gp_auto_scope_clean(const GPAutoScope* scope)
 #define GP_DEFER_ALLOC(...) _alloca((void)_gp_auto_scope_defers, (__VA_ARGS__))
 #define GP_ALLOCA(...) _alloca(__VA_ARGS__)
 
-#define GP_AUTO_MEM_THREAD declspec(thread)
+#define GP_AUTO_MEM_THREAD __declspec(thread)
 
 #ifndef __cplusplus
 #define GP_DEFER_NEW_ZERO_INIT(T) ((void)_gp_auto_scope_defers, &(T){0})
@@ -606,7 +606,7 @@ static inline void gp_auto_scope_clean(const GPAutoScope* scope)
 #define GP_DEFER_END } __finally { \
     for (size_t i = _gp_auto_scope_defers_length - 1; i != (size_t)-1; --i) \
         _gp_auto_scope_defers[i].func(_gp_auto_scope_defers[i].arg); \
-}
+    }
 
 #else
 
@@ -619,7 +619,7 @@ static inline void gp_auto_scope_clean(const GPAutoScope* scope)
 #define GP_AUTO_MEM_THREAD
 
 #ifndef __cplusplus
-#define GP_DEFER_NEW_ALLOC(T) (T*)gp_carena_alloc(&_gp_auto_scope.arena, sizeof(T), GP_ALLOC_ALIGNMENT) // TODO use GP_PTR_TO()
+#define GP_DEFER_NEW_ALLOC(T) (T*)gp_carena_alloc(_gp_auto_scope->arena, sizeof(T), GP_ALLOC_ALIGNMENT) // TODO use GP_PTR_TO()
 #define GP_DEFER_NEW_ZERO_INIT(T) memset(GP_DEFER_NEW_ALLOC(T), 0, sizeof(T))
 #define GP_DEFER_NEW_INIT(T, ...) memcpy(GP_DEFER_NEW_ALLOC(T), &(T){__VA_ARGS__}, sizeof (T){__VA_ARGS__})
 #define GP_DEFER_ALLOC(...) gp_carena_alloc(&_gp_auto_scope.arena, __VA_ARGS__, GP_ALLOC_ALIGNMENT)
@@ -628,18 +628,18 @@ static inline void gp_auto_scope_clean(const GPAutoScope* scope)
 GPAutoScope99* gp_thread_local_auto_scope(void);
 #define GP_DEFER_BEGIN(...) \
     GPAutoScope99* _gp_auto_scope = gp_thread_local_auto_scope(); \
-    void* _gp_auto_scope_arena_position = _gp_auto_scope->arena.position; \
+    void* _gp_auto_scope_arena_position = _gp_auto_scope->arena->position; \
     size_t _gp_auto_scope_defers_old_length = _gp_auto_scope->defers_length; \
     GPDefer* _gp_auto_scope_defers = _gp_auto_scope->defers + _gp_auto_scope->defers_length; \
-    _gp_auto_scope->defers_length += GP_COUNT_ARGS(__VA_ARGS__) + 1; \
-    size_t _gp_auto_scope_defers_length = 1; \
+    _gp_auto_scope->defers_length += GP_COUNT_ARGS(__VA_ARGS__); \
+    size_t _gp_auto_scope_defers_length = 0; \
     GP_PROCESS_ALL_ARGS(GP_DEFER_DECLARE, GP_SEMICOLON, __VA_ARGS__);
     // user code
 #define GP_DEFER_END \
-    _gp_auto_scope->arena.position = _gp_auto_scope_arena; \
+    _gp_auto_scope->arena->position = _gp_auto_scope_arena_position; \
     for ( ; _gp_auto_scope->defers_length > _gp_auto_scope_defers_old_length; --_gp_auto_scope->defers_length) \
         _gp_auto_scope->defers[_gp_auto_scope->defers_length-1] \
-            .func(_gp_auto_scope->defers[_gp_auto_scope_->defers_length-1].arg);
+            .func(_gp_auto_scope->defers[_gp_auto_scope->defers_length-1].arg);
 
 #endif // GP_DEFER_BEGIN, and GP_DEFER_END
 // ----------------------------------------------------------------------------

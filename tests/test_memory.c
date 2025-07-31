@@ -175,7 +175,7 @@ static int test0(void*_)
             GP_END
             skip_end:
 
-            #if __GNUC__ || _MSC_VER
+            #if (__GNUC__ || _MSC_VER) && !__MINGW32__
             gp_expect(is_free(ps[2]), "Should be freed after scope ends regardless skipping GP_END");
             gp_expect(is_free(ps[3]), "Should be freed after scope ends regardless skipping GP_END");
             #else

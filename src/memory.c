@@ -579,20 +579,23 @@ void gp_carena_delete(GPContiguousArena* arena)
 // ----------------------------------------------------------------------------
 // C99 Auto Scope Defer
 
+#ifndef GP_AUTO_SCOPE_DEFERS_SIZE
 #define GP_AUTO_SCOPE_DEFERS_SIZE ((size_t)1024*1024)
+#endif
 
 static GPThreadKey  gp_auto_scope_key;
 static GPThreadOnce gp_auto_scope_key_once = GP_THREAD_ONCE_INIT;
 
 GPAutoScope99* gp_thread_local_auto_scope(void);
 
-static void gp_delete_auto_scope(void* auto_scope)
+static void gp_delete_auto_scope(void*_auto_scope)
 {
-    if (auto_scope == NULL)
+    if (_auto_scope == NULL)
         return;
-    gp_carena_delete(auto_scope);
 
-    GPDefer* defers = ((GPAutoScope99*)auto_scope)->defers;
+    GPAutoScope99* auto_scope = _auto_scope;
+
+    GPDefer* defers = auto_scope->defers;
     #if _WIN32
     BOOL VirtualFree_result = VirtualFree(defers, 0, MEM_RELEASE);
     gp_db_expect(VirtualFree_result != 0, "%lu", GetLastError());
@@ -600,6 +603,8 @@ static void gp_delete_auto_scope(void* auto_scope)
     int munmap_result = munmap(defers, GP_AUTO_SCOPE_DEFERS_SIZE);
     gp_db_expect(munmap_result != -1, "%s", strerror(errno));
     #endif
+
+    gp_carena_delete(auto_scope->arena);
 }
 
 static void gp_delete_main_thread_auto_scope(void)
@@ -616,6 +621,11 @@ static void gp_make_auto_scope_key(void)
 static GPAutoScope99* gp_new_auto_scope(void)
 {
     GPAutoScope99 auto_scope_data = {.arena = gp_carena_new(GP_AUTO_SCOPE_DEFERS_SIZE)};
+    gp_assert(
+        auto_scope_data.arena != NULL,
+        "Failed allocating memory for static defers. Try recompiling libGPC "
+        "with smaller GP_AUTO_SCOPE_DEFERS_SIZE. Current size:",
+        "%zu", GP_AUTO_SCOPE_DEFERS_SIZE);
 
     // Extend lifetime
     GPAutoScope99* auto_scope = auto_scope_data.arena->position;
