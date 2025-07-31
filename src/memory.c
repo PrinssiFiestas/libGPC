@@ -443,6 +443,12 @@ size_t gp_end(GPScope* scope)
         return 0;
 
     GPScope* child = gp_thread_local_get(gp_scope_list_key);
+
+    // If gp_end() is called in thread destructor twice (e.g. in case of skipped
+    // GP_END), child will be NULL and scope has already been freed.
+    if (child == NULL)
+        return 0;
+
     while (child != scope) {
         GPScope* parent = child->parent;
         gp_scope_execute_defers(child);
@@ -453,8 +459,8 @@ size_t gp_end(GPScope* scope)
 
         child = parent;
     }
-    GPScope* parent = scope->parent;
     gp_scope_execute_defers(child);
+    GPScope* parent = scope->parent;
 
     size_t scope_size = 0;
     while (scope->head->tail != NULL)
@@ -596,6 +602,9 @@ static void gp_delete_auto_scope(void*_auto_scope)
     GPAutoScope99* auto_scope = _auto_scope;
 
     GPDefer* defers = auto_scope->defers;
+    for ( ; auto_scope->defers_length > 0; auto_scope->defers_length--)
+        defers[auto_scope->defers_length - 1].func(defers[auto_scope->defers_length - 1].arg);
+
     #if _WIN32
     BOOL VirtualFree_result = VirtualFree(defers, 0, MEM_RELEASE);
     gp_db_expect(VirtualFree_result != 0, "%lu", GetLastError());

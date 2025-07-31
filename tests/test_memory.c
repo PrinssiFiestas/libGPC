@@ -206,7 +206,7 @@ static int test0(void*_)
     return 0;
 }
 
-static void* test1_ps[4] = {0};
+static void* test1_ps[12] = {0};
 
 static int test1(void*_)
 {
@@ -215,10 +215,42 @@ static int test1(void*_)
     GPScope* scope1 = gp_begin(0);
     GPScope* scope2 = gp_begin(0);
     GPScope* scope3 = gp_begin(0);
+
     test1_ps[0] = gp_mem_alloc(&scope0->base, 8);
     test1_ps[1] = gp_mem_alloc(&scope1->base, 8);
     test1_ps[2] = gp_mem_alloc(&scope2->base, 8);
     test1_ps[3] = gp_mem_alloc(&scope3->base, 8);
+
+    test1_ps[4] = gp_mem_alloc(gp_heap, 16);
+    test1_ps[5] = gp_mem_alloc(gp_heap, 16);
+    test1_ps[6] = gp_mem_alloc(gp_heap, 16);
+    test1_ps[7] = gp_mem_alloc(gp_heap, 16);
+    test1_ps[8] = gp_mem_alloc(gp_heap, 16);
+    test1_ps[9] = gp_mem_alloc(gp_heap, 16);
+    gp_scope_defer(scope0, deferred_dealloc, test1_ps[4]);
+    gp_scope_defer(scope0, deferred_dealloc, test1_ps[5]);
+    gp_scope_defer(scope1, deferred_dealloc, test1_ps[6]);
+    gp_scope_defer(scope2, deferred_dealloc, test1_ps[7]);
+
+    // If major compilers used, GP_END is guaranteed to run, which ruins the
+    // thread destructor test, so only test C99 skipping GP_END.
+    #ifndef GP_ALLOCA // TODO we probably want dedicated macro to check
+    GP_BEGIN(
+        GP_AUTO_MEM,
+        (deferred_dealloc, test1_ps[8]),
+        (deferred_dealloc, test1_ps[9])
+    )
+        test1_ps[10] = gp_mem_alloc(&scope->base, 32);
+        test1_ps[11] = gp_mem_alloc(&scope->base, 32);
+        return 0;
+    GP_END;
+    GP_UNREACHABLE;
+    #else
+    gp_scope_defer(scope1, deferred_dealloc, test1_ps[8]);
+    gp_scope_defer(scope1, deferred_dealloc, test1_ps[9]);
+    test1_ps[10] = gp_mem_alloc(&scope0->base, 32);
+    test1_ps[11] = gp_mem_alloc(&scope0->base, 32);
+    #endif
 
     return 0;
 } // All scopes will be cleaned when threads terminate
@@ -301,7 +333,7 @@ int main(void)
     gp_test("Thread cleaning it's scopes");
     {
         for (size_t i = 0; i < sizeof test1_ps / sizeof*test1_ps; i++)
-            gp_expect(is_free(test1_ps[i]));
+            gp_expect(is_free(test1_ps[i]), "%zu", i);
     }
 
     gp_heap = original_heap; // put sanitizers back to work
