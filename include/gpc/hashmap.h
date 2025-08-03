@@ -6,11 +6,12 @@
  * Hashing and hash maps
  */
 
-#ifndef GPC_HASHMAP_INCLUDED
-#define GPC_HASHMAP_INCLUDED 1
+#ifndef GP_HASHMAP_INCLUDED
+#define GP_HASHMAP_INCLUDED 1
 
 #include "memory.h"
 #include "attributes.h"
+#include "int128.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -24,12 +25,6 @@
 extern "C" {
 #endif
 
-typedef union gp_endianness_detector
-{
-    uint16_t u16;
-    struct { uint8_t is_little; uint8_t is_big; } endianness;
-} GPEndiannessDetector;
-
 
 // ----------------------------------------------------------------------------
 //
@@ -37,70 +32,6 @@ typedef union gp_endianness_detector
 //
 // ----------------------------------------------------------------------------
 
-
-// ------------------
-// 128-bit uint
-
-/** Endianness detection.
- * Use GP_INTEGER.endianness.is_little or GP_INTEGER.endianness.is_big to check
- * the endianness of your system.
- */
-extern const union gp_endianness_detector GP_INTEGER; // = {.u16 = 1 }
-
-/** 128-bit unsigned integer.
- * No arithmetic operations implemented, these are only used as keys for GPMap.
- */
-typedef union gp_uint128
-{
-    struct {
-        uint64_t lo;
-        uint64_t hi;
-    } little_endian;
-
-    struct {
-        uint64_t hi;
-        uint64_t lo;
-    } big_endian;
-
-    #if __GNUC__ && defined(__SIZEOF_INT128__)
-    __uint128_t u128;
-    #endif
-} GPUint128;
-
-/** Create 128-bit unsigned integer.*/
-GP_NODISCARD
-static inline GPUint128 gp_u128(const uint64_t hi_bits, const uint64_t lo_bits)
-{
-    GPUint128 u128;
-    if (GP_INTEGER.endianness.is_big) {
-        u128.big_endian.hi = hi_bits;
-        u128.big_endian.lo = lo_bits;
-    } else {
-        u128.little_endian.hi = hi_bits;
-        u128.little_endian.lo = lo_bits;
-    }
-    return u128;
-}
-
-/** Access low bits of 128-bit unsigned integer.
- * @return pointer to low bits.
- */
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
-static inline uint64_t* gp_u128_lo(const GPUint128* u)
-{
-    return (uint64_t*)(GP_INTEGER.endianness.is_little ?
-        &u->little_endian.lo : &u->big_endian.lo);
-}
-
-/** Access high bits of 128-bit unsigned integer.
- * @return pointer to high bits.
- */
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
-static inline uint64_t* gp_u128_hi(const GPUint128* u)
-{
-    return (uint64_t*)(GP_INTEGER.endianness.is_little ?
-        &u->little_endian.hi : &u->big_endian.hi);
-}
 
 // ------------------
 // Hash map
@@ -235,4 +166,4 @@ GPUint128 gp_bytes_hash128(const void* key, size_t key_size) GP_NONNULL_ARGS() G
 } // extern "C"
 #endif
 
-#endif // GPC_HASHMAP_INCLUDED
+#endif // GP_HASHMAP_INCLUDED

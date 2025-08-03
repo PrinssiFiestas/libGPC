@@ -6,9 +6,9 @@
 #include <gpc/utils.h>
 #include <string.h>
 
-const union gp_endianness_detector GP_INTEGER = {.u16 = 1 };
-
-#if !(__GNUC__ && __SIZEOF_INT128__) // unused static function
+#if __GNUC__
+__attribute__((unused))
+#endif
 static void gp_mult64to128(
     uint64_t u, uint64_t v, uint64_t* h, uint64_t* l)
 {
@@ -30,7 +30,7 @@ static void gp_mult64to128(
     *h = (u * v) + w1 + k;
     *l = (t << 32) + w3;
 }
-#endif
+
 static void gp_mult128(const GPUint128 N, const GPUint128 M, GPUint128*const Ans)
 {
     #if __GNUC__ && __SIZEOF_INT128__
