@@ -24,11 +24,11 @@
 extern "C" {
 #endif
 
-union gp_endianness_detector
+typedef union gp_endianness_detector
 {
     uint16_t u16;
     struct { uint8_t is_little; uint8_t is_big; } endianness;
-};
+} GPEndiannessDetector;
 
 
 // ----------------------------------------------------------------------------

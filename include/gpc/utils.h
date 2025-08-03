@@ -38,16 +38,6 @@ struct gp_random_state
 // ----------------------------------------------------------------------------
 
 
-/** Check and limit upper and lower bounds at once.
- * @p end will be limited to @p limit and @p start will be limited to @p end and
- * @p limit.
- * @return true if arguments are in bounds and @p end > @p start.
- */
-bool gp_check_bounds(
-    size_t* optional_start_non_inclusive,
-    size_t* optional_end_inclusive,
-    size_t  limit);
-
 /** Round number up to the next power of 2.
  * Always rounds up so gp_next_power_of_2(1 << n) == 1 << (n + 1).
  */

@@ -39,21 +39,6 @@ uint64_t gp_next_power_of_2_64(uint64_t x)
     return x + 1;
 }
 
-bool gp_check_bounds(size_t* start, size_t* end, size_t limit)
-{
-    bool clipped = false;
-    end = end != NULL ? end : &(size_t){ limit };
-    if (*end > limit) {
-        *end = limit;
-        clipped = true;
-    }
-    if (start != NULL && *start >= *end) {
-        *start  = *end - (limit != 0);
-        clipped = true;
-    }
-    return ! clipped;
-}
-
 
 // Random stuff
 
