@@ -34,10 +34,10 @@ static void gp_mult64to128(
 static void gp_mult128(const GPUint128 N, const GPUint128 M, GPUint128*const Ans)
 {
     #if __GNUC__ && __SIZEOF_INT128__
-    Ans->u128 = N.u128 * M.u128;
+    Ans->gnu = N.gnu * M.gnu;
     #else
-    gp_mult64to128(*gp_u128_lo(&N), *gp_u128_lo(&M), gp_u128_hi(Ans), gp_u128_lo(Ans));
-    *gp_u128_hi(Ans) += *gp_u128_hi(&N) * *gp_u128_lo(&M) + *gp_u128_lo(&N) * *gp_u128_hi(&M);
+    gp_mult64to128(gp_uint128_lo(N), gp_uint128_lo(M), gp_uint128_hi_addr(Ans), gp_uint128_lo_addr(Ans));
+    *gp_uint128_hi_addr(Ans) += gp_uint128_hi(N) * gp_uint128_lo(M) + gp_uint128_lo(N) * gp_uint128_hi(M);
     #endif
 }
 
@@ -73,14 +73,14 @@ uint64_t gp_bytes_hash64(const void* str, const size_t str_size)
 
 GPUint128 gp_bytes_hash128(const void* str, const size_t str_size)
 {
-    GPUint128 FNV_prime        = gp_u128(0x0000000001000000, 0x000000000000013B);
-    GPUint128 FNV_offset_basis = gp_u128(0x6c62272e07bb0142, 0x62b821756295c58d);
+    GPUint128 FNV_prime        = gp_uint128(0x0000000001000000, 0x000000000000013B);
+    GPUint128 FNV_offset_basis = gp_uint128(0x6c62272e07bb0142, 0x62b821756295c58d);
     const uint8_t* ustr = str;
 
     GPUint128 hash = FNV_offset_basis;
     for (size_t i = 0; i < str_size; i++)
     {
-        *gp_u128_lo(&hash) ^= ustr[i];
+        *gp_uint128_lo_addr(&hash) ^= ustr[i];
         gp_mult128(hash, FNV_prime, &hash);
     }
     return hash;
@@ -156,14 +156,14 @@ static inline GPUint128 gp_shift_key(const GPUint128 key, const size_t length)
 {
     #if __GNUC__ && __SIZEOF_INT128__
     if      (sizeof length == sizeof(unsigned))
-        return (GPUint128){.u128 =
-            key.u128 >> (sizeof(int)  * CHAR_BIT -__builtin_clz  (length) - 1)};
+        return (GPUint128){.gnu =
+            key.gnu >> (sizeof(int)  * CHAR_BIT -__builtin_clz  (length) - 1)};
     else if (sizeof length == sizeof(long))
-        return (GPUint128){.u128 =
-            key.u128 >> (sizeof(long) * CHAR_BIT -__builtin_clzl (length) - 1)};
+        return (GPUint128){.gnu =
+            key.gnu >> (sizeof(long) * CHAR_BIT -__builtin_clzl (length) - 1)};
     return
-        (GPUint128){.u128 =
-        key.u128 >> (sizeof(long long)* CHAR_BIT -__builtin_clzll(length) - 1)};
+        (GPUint128){.gnu =
+        key.gnu >> (sizeof(long long)* CHAR_BIT -__builtin_clzll(length) - 1)};
     #else
 
     // Find bit width of length which is assumed to be a power of 2.
@@ -181,9 +181,9 @@ static inline GPUint128 gp_shift_key(const GPUint128 key, const size_t length)
     bitw |= (((uint64_t)length & b[1]) != 0) << 1;
 
     // 128-bit bit shift right
-    GPUint128 new_key = gp_u128(
-        *gp_u128_hi(&key) >> bitw,
-       (*gp_u128_lo(&key) >> bitw) | (*gp_u128_hi(&key)<<(64-bitw)));
+    GPUint128 new_key = gp_uint128(
+        gp_uint128_hi(key) >> bitw,
+       (gp_uint128_lo(key) >> bitw) | (gp_uint128_hi(key)<<(64-bitw)));
 
     return new_key;
     #endif
@@ -232,7 +232,7 @@ static void* gp_map_put_elem(
     const size_t            elem_size)
 {
     uint8_t* values = (uint8_t*)(slots + length);
-    const size_t i  = *gp_u128_lo(&key) & (length - 1);
+    size_t i = gp_uint128_lo(key) & (length - 1);
 
     if (slots[i].slot.index == GP_EMPTY)
     {
@@ -283,7 +283,7 @@ static void* gp_map_get_elem(
     const GPUint128 key,
     const size_t elem_size)
 {
-    const size_t i = *gp_u128_lo(&key) & (length - 1);
+    size_t i = gp_uint128_lo(key) & (length - 1);
 
     if (slots[i].slot.index == GP_EMPTY)
         return NULL;
@@ -310,7 +310,7 @@ static bool gp_map_remove_elem(
     const size_t elem_size,
     void (*const destructor)(void*))
 {
-    const size_t i  = *gp_u128_lo(&key) & (length - 1);
+    size_t i = gp_uint128_lo(key) & (length - 1);
     if (slots[i].slot.index == GP_IN_USE) {
         slots[i].slot.index = GP_EMPTY;
         destructor((void*)slots[i].element);

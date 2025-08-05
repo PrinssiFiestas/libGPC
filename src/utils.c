@@ -7,6 +7,7 @@
 
 #include <gpc/utils.h>
 #include "pcg_basic.h"
+#include <string.h>
 
 #if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
 extern inline uintptr_t gp_round_to_aligned(uintptr_t, uintptr_t);
@@ -67,4 +68,31 @@ int32_t gp_random_range(GPRandomState* state, int32_t min, int32_t max)
         return  (int32_t)pcg32_boundedrand_r((pcg32_random_t*)state,(uint32_t)( max - min + 1)) + min;
     else
         return -(int32_t)pcg32_boundedrand_r((pcg32_random_t*)state,(uint32_t)(-max + min - 1)) + min;
+}
+
+void gp_random_bytes(GPRandomState* state, void* buffer, size_t buffer_size)
+{
+    // Fix possible unalignment
+    size_t remainder = (uintptr_t)buffer & (sizeof(uint32_t)-1);
+    if (remainder != 0) {
+        uint32_t rand = gp_random(state);
+        memcpy(buffer, &rand, gp_min(remainder, buffer_size));
+        if (remainder >= buffer_size)
+            return;
+
+        buffer = (uint8_t*)buffer + remainder;
+        buffer_size -= remainder;
+    }
+
+    uint32_t* data = buffer; // TODO is this access UB??
+    size_t data_length = buffer_size/sizeof(uint32_t);
+    size_t i = 0;
+    for (; i < data_length; ++i)
+        data[i] = gp_random(state);
+
+    remainder = buffer_size & (sizeof(uint32_t)-1);
+    if (remainder != 0) {
+        uint32_t rand = gp_random(state);
+        memcpy((uint8_t*)buffer + i*sizeof(uint32_t), &rand, remainder);
+    }
 }

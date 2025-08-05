@@ -12,6 +12,7 @@
 #include "attributes.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include <limits.h>
 #include <string.h>
 
 #if _MSC_VER && _M_X64
@@ -33,18 +34,27 @@ typedef union gp_uint128
         uint64_t lo;
     } big_endian;
 
-    #if __GNUC__ && defined(__SIZEOF_INT128__)
-    __uint128_t u128;
+    #if (__GNUC__ && __SIZEOF_INT128__) || defined(GP_TEST_INT128)
+    __uint128_t gnu;
     #endif
 } GPUint128;
 
 /** 128-bit signed integer.*/
 typedef union gp_int128
 {
-    GPUint128 u128;
+    struct {
+        uint64_t lo;
+        int64_t  hi;
+    } little_endian;
 
-    #if __GNUC__ && defined(__SIZEOF_INT128__)
-    __int128_t i128;
+    struct {
+        int64_t  hi;
+        uint64_t lo;
+    } big_endian;
+
+
+    #if (__GNUC__ && defined(__SIZEOF_INT128__)) || defined(GP_TEST_INT128)
+    __int128_t gnu;
     #endif
 } GPInt128;
 
@@ -62,7 +72,6 @@ static inline bool gp_is_big_endian(void)
     integer.u16 = 1;
     return integer.endianness.is_big;
 }
-
 /** Check if system is little endian.*/
 static inline bool gp_is_little_endian(void)
 {
@@ -78,7 +87,7 @@ static inline bool gp_is_little_endian(void)
 // Constructors and Accessors
 
 /** Create 128-bit unsigned integer.*/
-GP_NODISCARD static inline GPUint128 gp_u128(uint64_t hi_bits, uint64_t lo_bits)
+GP_NODISCARD static inline GPUint128 gp_uint128(uint64_t hi_bits, uint64_t lo_bits)
 {
     GPUint128 u128;
     if (gp_is_big_endian()) {
@@ -90,156 +99,360 @@ GP_NODISCARD static inline GPUint128 gp_u128(uint64_t hi_bits, uint64_t lo_bits)
     }
     return u128;
 }
-
 /** Create 128-bit signed integer.*/
-GP_NODISCARD static inline GPInt128 gp_i128(uint64_t hi_bits, uint64_t lo_bits)
+GP_NODISCARD static inline GPInt128 gp_int128(int64_t hi_bits, uint64_t lo_bits)
 {
     GPInt128 i128;
     if (gp_is_big_endian()) {
-        i128.u128.big_endian.hi = hi_bits;
-        i128.u128.big_endian.lo = lo_bits;
+        i128.big_endian.hi = hi_bits;
+        i128.big_endian.lo = lo_bits;
     } else {
-        i128.u128.little_endian.hi = hi_bits;
-        i128.u128.little_endian.lo = lo_bits;
+        i128.little_endian.hi = hi_bits;
+        i128.little_endian.lo = lo_bits;
     }
     return i128;
 }
 
 /** Get low bits of 128-bit unsigned integer.*/
-GP_NODISCARD static inline uint64_t gp_u128_lo(GPUint128 u)
+GP_NODISCARD static inline uint64_t gp_uint128_lo(GPUint128 u)
 {
     return gp_is_little_endian() ? u.little_endian.lo : u.big_endian.lo;
 }
-
 /** Get low bits of 128-bit signed integer.*/
-GP_NODISCARD static inline uint64_t gp_i128_lo(GPInt128 i)
+GP_NODISCARD static inline uint64_t gp_int128_lo(GPInt128 i)
 {
-    return gp_is_little_endian() ? i.u128.little_endian.lo : i.u128.big_endian.lo;
+    return gp_is_little_endian() ? i.little_endian.lo : i.big_endian.lo;
 }
 
 /** Get high bits of 128-bit unsigned integer.*/
-GP_NODISCARD static inline uint64_t gp_u128_hi(GPUint128 u)
+GP_NODISCARD static inline uint64_t gp_uint128_hi(GPUint128 u)
 {
     return gp_is_little_endian() ? u.little_endian.hi : u.big_endian.hi;
 }
-
-/** Get high bits of 128-bit signed integer.*/
-GP_NODISCARD static inline uint64_t gp_i128_hi(GPInt128 i)
+/** Get signed high bits of 128-bit signed integer.*/
+GP_NODISCARD static inline int64_t gp_int128_hi(GPInt128 i)
 {
-    return gp_is_little_endian() ? i.u128.little_endian.hi : i.u128.big_endian.hi;
+    return gp_is_little_endian() ? i.little_endian.hi : i.big_endian.hi;
 }
 
-/** Set low bits of 128-bit unsigned integer.*/
-GP_NONNULL_ARGS() static inline void gp_u128_set_lo(GPUint128* u, uint64_t x)
+/** Get address of low bits of 128-bit unsigned integer.*/
+GP_NODISCARD GP_NONNULL_ARGS_AND_RETURN
+static inline uint64_t* gp_uint128_lo_addr(GPUint128* u)
 {
-    if (gp_is_little_endian())
-        u->little_endian.lo = x;
-    else
-        u->big_endian.lo = x;
+    return gp_is_little_endian() ? &u->little_endian.lo : &u->big_endian.lo;
+}
+/** Get address of low bits of 128-bit signed integer.*/
+GP_NODISCARD GP_NONNULL_ARGS_AND_RETURN
+static inline uint64_t* gp_int128_lo_addr(GPInt128* i)
+{
+    return gp_is_little_endian() ? &i->little_endian.lo : &i->big_endian.lo;
 }
 
-/** Set low bits of 128-bit signed integer.*/
-GP_NONNULL_ARGS() static inline void gp_i128_set_lo(GPInt128* i, uint64_t x)
+/** Get address of high bits of 128-bit unsigned integer.*/
+GP_NODISCARD GP_NONNULL_ARGS_AND_RETURN
+static inline uint64_t* gp_uint128_hi_addr(GPUint128* u)
 {
-    if (gp_is_little_endian())
-        i->u128.little_endian.lo = x;
-    else
-        i->u128.big_endian.lo = x;
+    return gp_is_little_endian() ? &u->little_endian.hi : &u->big_endian.hi;
+}
+/** Get address of signed high bits of 128-bit signed integer.*/
+GP_NODISCARD GP_NONNULL_ARGS_AND_RETURN
+static inline int64_t* gp_int128_hi_addr(GPInt128* i)
+{
+    return gp_is_little_endian() ? &i->little_endian.hi : &i->big_endian.hi;
 }
 
-/** Set high bits of 128-bit unsigned integer.*/
-GP_NONNULL_ARGS() static inline void gp_u128_set_hi(GPUint128* u, uint64_t x)
+#if __GNUC__ && __SIZEOF_INT128__
+GP_NODISCARD static inline GPUint128 gp_uint128_gnu(__uint128_t gnu_u)
 {
-    if (gp_is_little_endian())
-        u->little_endian.hi = x;
-    else
-        u->big_endian.hi = x;
+    GPUint128 u;
+    u.gnu = gnu_u;
+    return u;
+}
+GP_NODISCARD static inline GPInt128 gp_int128_gnu(__int128_t gnu_i)
+{
+    GPInt128 i;
+    i.gnu = gnu_i;
+    return i;
+}
+#endif
+
+// ----------------------------------------------------------------------------
+// Limits
+
+#define GP_UINT128_MAX gp_uint128(0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF)
+#define GP_INT128_MAX  gp_int128( 0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF)
+#define GP_INT128_MIN  gp_int128(INT64_MIN, 0)
+
+// ----------------------------------------------------------------------------
+// Bitwise operations
+
+/** Unsigned bitwise NOT */
+GP_NODISCARD static inline GPUint128 gp_uint128_not(GPUint128 a)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_uint128_gnu(~a.gnu);
+    #else
+    return gp_uint128(~gp_uint128_hi(a), ~gp_uint128_lo(a));
+    #endif
+}
+/** Signed bitwise NOT */
+GP_NODISCARD static inline GPInt128 gp_int128_not(GPInt128 a)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_int128_gnu(~a.gnu);
+    #else
+    return gp_int128(~gp_int128_hi(a), ~gp_int128_lo(a));
+    #endif
 }
 
-/** Set high bits of 128-bit signed integer.*/
-GP_NONNULL_ARGS() static inline void gp_i128_set_hi(GPInt128* i, uint64_t x)
+/** Unsigned bitwise AND */
+GP_NODISCARD static inline GPUint128 gp_uint128_and(GPUint128 a, GPUint128 b)
 {
-    if (gp_is_little_endian())
-        i->u128.little_endian.hi = x;
-    else
-        i->u128.big_endian.hi = x;
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_uint128_gnu(a.gnu & b.gnu);
+    #else
+    return gp_uint128(gp_uint128_hi(a) & gp_uint128_hi(b), gp_uint128_lo(a) & gp_uint128_lo(b));
+    #endif
+}
+/** Signed bitwise AND */
+GP_NODISCARD static inline GPInt128 gp_int128_and(GPInt128 a, GPInt128 b)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_int128_gnu(a.gnu & b.gnu);
+    #else
+    return gp_int128(gp_int128_hi(a) & gp_int128_hi(b), gp_int128_lo(a) & gp_int128_lo(b));
+    #endif
+}
+
+/** Unsigned bitwise OR */
+GP_NODISCARD static inline GPUint128 gp_uint128_or(GPUint128 a, GPUint128 b)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_uint128_gnu(a.gnu | b.gnu);
+    #else
+    return gp_uint128(gp_uint128_hi(a) | gp_uint128_hi(b), gp_uint128_lo(a) | gp_uint128_lo(b));
+    #endif
+}
+/** Signed bitwise OR */
+GP_NODISCARD static inline GPInt128 gp_int128_or(GPInt128 a, GPInt128 b)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_int128_gnu(a.gnu | b.gnu);
+    #else
+    return gp_int128(gp_int128_hi(a) | gp_int128_hi(b), gp_int128_lo(a) | gp_int128_lo(b));
+    #endif
+}
+
+/** Unsigned bitwise XOR */
+GP_NODISCARD static inline GPUint128 gp_uint128_xor(GPUint128 a, GPUint128 b)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_uint128_gnu(a.gnu ^ b.gnu);
+    #else
+    return gp_uint128(gp_uint128_hi(a) ^ gp_uint128_hi(b), gp_uint128_lo(a) ^ gp_uint128_lo(b));
+    #endif
+}
+/** Signed bitwise XOR */
+GP_NODISCARD static inline GPInt128 gp_int128_xor(GPInt128 a, GPInt128 b)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_int128_gnu(a.gnu ^ b.gnu);
+    #else
+    return gp_int128(gp_int128_hi(a) ^ gp_int128_hi(b), gp_int128_lo(a) ^ gp_int128_lo(b));
+    #endif
+}
+
+/** Unsigned bitwise left shift */
+GP_NODISCARD static inline GPUint128 gp_uint128_shift_left(GPUint128 a, uint8_t b)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_uint128_gnu(a.gnu << b);
+    #else
+    if (b == 0) // avoid UB in `>> (64-b)`
+        return a;
+    if (b >= 64)
+        return gp_uint128(gp_uint128_lo(a) << (b-64), 0);
+    return gp_uint128(
+        (gp_uint128_hi(a) << b) | (gp_uint128_lo(a) >> (64-b)),
+         gp_uint128_lo(a) << b);
+    #endif
+}
+/** Signed bitwise left shift */
+GP_NODISCARD static inline GPInt128 gp_int128_shift_left(GPInt128 a, uint8_t b)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_int128_gnu(a.gnu << b);
+    #else
+    if (b == 0) // avoid UB in `>> (64-b)`
+        return a;
+    if (b >= 64)
+        return gp_int128(gp_int128_lo(a) << (b-64), 0);
+    return gp_int128(
+        (gp_int128_hi(a) << b) | (gp_int128_lo(a) >> (64-b)),
+         gp_int128_lo(a) << b);
+    #endif
+}
+
+/** Unsigned bitwise right shift */
+GP_NODISCARD static inline GPUint128 gp_uint128_shift_right(GPUint128 a, uint8_t b)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_uint128_gnu(a.gnu >> b);
+    #else
+    if (b == 0) // avoid UB in `<< (64-b)`
+        return a;
+    if (b >= 64)
+        return gp_uint128(0, gp_uint128_hi(a) >> (b-64));
+    return gp_uint128(
+         gp_uint128_hi(a) >> b,
+        (gp_uint128_lo(a) >> b) | (gp_uint128_hi(a) << (64-b)));
+    #endif
+}
+/** Signed bitwise right shift */
+GP_NODISCARD static inline GPInt128 gp_int128_shift_right(GPInt128 a, uint8_t b)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_int128_gnu(a.gnu >> b);
+    #else
+    if (b == 0) // avoid UB in `<< (64-b)`
+        return a;
+    if (b >= 64)
+        return gp_int128(gp_int128_hi(a) >> 63/*sign extend*/, gp_int128_hi(a) >> (b-64));
+    return gp_int128(
+         gp_int128_hi(a) >> b,
+        (gp_int128_lo(a) >> b) | ((uint64_t)gp_int128_hi(a) << (64-b)));
+    #endif
 }
 
 // ----------------------------------------------------------------------------
 // Arithmetic
 
-#undef __SIZEOF_INT128__ // TODO TEMP
-
 /** Add 128-bit unsigned integers.*/
-GP_NODISCARD static inline GPUint128 gp_u128_add(GPUint128 a, GPUint128 b)
+GP_NODISCARD static inline GPUint128 gp_uint128_add(GPUint128 a, GPUint128 b)
 {
-    GPUint128 y;
     #if __GNUC__ && __SIZEOF_INT128__
-    y.u128 = a.u128 + b.u128;
+    return gp_uint128_gnu(a.gnu + b.gnu);
     #else
-    gp_u128_set_lo(&y, gp_u128_lo(a) + gp_u128_lo(b));
-    gp_u128_set_hi(&y, gp_u128_hi(a) + gp_u128_hi(b)
-        + (gp_u128_lo(b) > UINT64_MAX - gp_u128_lo(a))); // carry
+    return gp_uint128(
+        gp_uint128_lo(a) + gp_uint128_lo(b),
+        gp_uint128_hi(a) + gp_uint128_hi(b)
+            + (gp_uint128_lo(b) > UINT64_MAX - gp_uint128_lo(a))); // carry
     #endif
-    return y;
 }
 
 /** Add 128-bit signed integers.*/
-GP_NODISCARD static inline GPInt128 gp_i128_add(GPInt128 a, GPInt128 b)
+GP_NODISCARD static inline GPInt128 gp_int128_add(GPInt128 a, GPInt128 b)
 {
-    GPInt128 y;
     #if __GNUC__ && __SIZEOF_INT128__
-    y.i128 = a.i128 + b.i128;
+    return gp_int128_gnu(a.gnu + b.gnu);
     #else
-    gp_i128_set_lo(&y, gp_i128_lo(a) + gp_i128_lo(b));
-    gp_i128_set_hi(&y, gp_i128_hi(a) + gp_i128_hi(b)
-        + (gp_i128_lo(b) > UINT64_MAX - gp_i128_lo(a))); // carry
+    return gp_int128(
+        gp_int128_lo(a) + gp_int128_lo(b),
+        gp_int128_hi(a) + gp_int128_hi(b)
+            + (gp_int128_lo(b) > UINT64_MAX - gp_int128_lo(a))); // carry
     #endif
-    return y;
 }
 
 /** Subtract 128-bit unsigned integers.*/
-GP_NODISCARD static inline GPUint128 gp_u128_sub(GPUint128 a, GPUint128 b)
+GP_NODISCARD static inline GPUint128 gp_uint128_sub(GPUint128 a, GPUint128 b)
 {
-    GPUint128 y;
     #if __GNUC__ && __SIZEOF_INT128__
-    y.u128 = a.u128 - b.u128;
+    return gp_uint128_gnu(a.gnu - b.gnu);
     #else
-    gp_u128_set_lo(&y, gp_u128_lo(a) - gp_u128_lo(b));
-    gp_u128_set_hi(&y, gp_u128_hi(a) - gp_u128_hi(b)
-        - (gp_u128_lo(b) > gp_u128_lo(a))); // borrow
+    return gp_uint128(
+        gp_uint128_lo(a) - gp_uint128_lo(b),
+        gp_uint128_hi(a) - gp_uint128_hi(b)
+            - (gp_uint128_lo(b) > gp_uint128_lo(a))); // borrow
     #endif
-    return y;
 }
 
 /** Subtract 128-bit signed integers.*/
-GP_NODISCARD static inline GPInt128 gp_i128_sub(GPInt128 a, GPInt128 b)
+GP_NODISCARD static inline GPInt128 gp_int128_sub(GPInt128 a, GPInt128 b)
 {
-    GPInt128 y;
     #if __GNUC__ && __SIZEOF_INT128__
-    y.i128 = a.i128 - b.i128;
+    return gp_int128_gnu(a.gnu - b.gnu);
     #else
-    gp_i128_set_lo(&y, gp_i128_lo(a) - gp_i128_lo(b));
-    gp_i128_set_hi(&y, gp_i128_hi(a) - gp_i128_hi(b)
-        - (gp_i128_lo(b) > gp_i128_lo(a))); // borrow
+    return gp_int128(
+        gp_int128_lo(a) - gp_int128_lo(b),
+        gp_int128_hi(a) - gp_int128_hi(b)
+            - (gp_int128_lo(b) > gp_int128_lo(a))); // borrow
     #endif
-    return y;
 }
 
 /** Multiply 64-bit unsigned integers to 128-bit unsigned integer.*/
-GP_NODISCARD static inline GPUint128 gp_u128_mul64(uint64_t a, uint64_t b)
+GP_NODISCARD static inline GPUint128 gp_uint128_mul64(uint64_t a, uint64_t b)
 {
     #if __GNUC__ && __SIZEOF_INT128__
-    GPUint128 y;
-    y.u128 = (__uint128_t)a * b;
-    return y;
+    return gp_uint128_gnu((__uint128_t)a * b);
     #elif _MSC_VER && _M_X64
     uint64_t lo, hi;
     lo = _umul128(a, b, &hi);
-    return gp_u128(hi, lo);
-    #else // very slow, but as portable as it gets
-    GPUint128 gp_u128_long_mul64(uint64_t a, uint64_t b);
-    return gp_u128_long_mul64(a, b);
+    return gp_uint128(hi, lo);
+    #else
+    GPUint128 gp_uint128_long_mul64(uint64_t a, uint64_t b);
+    return gp_uint128_long_mul64(a, b);
+    #endif
+}
+
+GP_NODISCARD static inline GPUint128 gp_uint128_negate(GPUint128 a)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_uint128_gnu(a.gnu * -1);
+    #else
+    (void)a;
+    return gp_uint128(0xadf, 0xfeedbeef); // TODO bogus just to make sure that test work
+    #endif
+}
+
+/** Multiply 128-bit unsigned integers.*/
+GP_NODISCARD static inline GPUint128 gp_uint128_mul(GPUint128 a, GPUint128 b)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_uint128_gnu(a.gnu * b.gnu);
+    #else
+    GPUint128 y = gp_uint128_mul64(gp_uint128_lo(a), gp_uint128_hi(b));
+    *gp_uint128_hi_addr(&y) += gp_uint128_hi(a)*gp_uint128_lo(b) + gp_uint128_lo(a)*gp_uint128_hi(b);
+    return y;
+    #endif
+}
+
+/** Multiply 128-bit signed integers.*/
+GP_NODISCARD static inline GPInt128 gp_int128_mul(GPInt128 a, GPInt128 b)
+{
+    #if __GNUC__ && __SIZEOF_INT128__
+    return gp_int128_gnu(a.gnu * b.gnu);
+    #else
+    GPUint128 abs_a;
+    GPUint128 abs_b;
+    memcpy(&abs_a, &a, sizeof a);
+    memcpy(&abs_b, &b, sizeof b);
+
+    bool neg_a = false;
+    bool neg_b = false;
+
+    if (gp_int128_hi(a) < 0) {
+        *gp_uint128_hi_addr(&abs_a) = ~gp_uint128_hi(abs_a);
+        *gp_uint128_lo_addr(&abs_a) = ~gp_uint128_lo(abs_a);
+        abs_a = gp_uint128_add(abs_a, gp_uint128(0, 1));
+        neg_a = true;
+    }
+    if (gp_int128_hi(b) < 0) {
+        *gp_uint128_hi_addr(&abs_b) = ~gp_uint128_hi(abs_b);
+        *gp_uint128_lo_addr(&abs_b) = ~gp_uint128_lo(abs_b);
+        abs_b = gp_uint128_add(abs_b, gp_uint128(0, 1));
+        neg_b = true;
+    }
+
+    GPUint128 prod = gp_uint128_mul(abs_a, abs_b);
+    if (neg_a ^ neg_b) {
+        *gp_uint128_hi_addr(&prod) = ~gp_uint128_hi(prod);
+        *gp_uint128_lo_addr(&prod) = ~gp_uint128_lo(prod);
+        prod = gp_uint128_add(prod, gp_uint128(0, 1));
+    }
+
+    GPInt128 y;
+    memcpy(&y, &prod, sizeof y);
+    return y;
     #endif
 }
 

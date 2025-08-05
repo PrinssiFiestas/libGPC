@@ -23,13 +23,6 @@
 extern "C" {
 #endif
 
-/** @private */
-struct gp_random_state
-{
-    uint64_t state;
-    uint64_t inc;
-};
-
 
 // ----------------------------------------------------------------------------
 //
@@ -92,12 +85,17 @@ static inline bool gp_approxl(long double a, long double b, long double max_rel_
  * Create a RNG object with gp_random_state() which you can use to generate
  * high quality random numbers with great performance.
  */
-typedef struct gp_random_state GPRandomState;
+typedef struct gp_random_state
+{
+    uint64_t state;
+    uint64_t inc;
+} GPRandomState;
 
 GPRandomState gp_random_state(uint64_t seed) GP_NODISCARD;
 uint32_t gp_random      (GPRandomState*) GP_NONNULL_ARGS() GP_NODISCARD;
 double   gp_frandom     (GPRandomState*) GP_NONNULL_ARGS() GP_NODISCARD;
 int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_ARGS() GP_NODISCARD;
+void     gp_random_bytes(GPRandomState*, void* buffer, size_t buffer_size) GP_NONNULL_ARGS();
 
 
 // ----------------------------------------------------------------------------

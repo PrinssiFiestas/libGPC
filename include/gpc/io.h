@@ -54,9 +54,9 @@ extern "C" {
 /** Opens file.
  * This exists mostly for completeness.
  * Like fopen(), but handles mode differently. Checks the first character in
- * mode string: 'r' for read, 'w' for write. Then checks if 'x' exists in mode
- * string for text mode. Default is binary mode. Also checks for '+' for
- * read/write or write/read like fopen().
+ * mode string: 'r' for read, 'w' for write, 'a' for append. Then checks if 'x'
+ * exists in mode string for text mode. Default is binary mode. Also checks for
+ * '+' for read/write or write/read like fopen().
  */
 GP_NONNULL_ARGS() GP_NODISCARD
 FILE* gp_file_open(const char* path, const char* mode);
