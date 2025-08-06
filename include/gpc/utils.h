@@ -43,7 +43,7 @@ uint64_t gp_next_power_of_2_64(uint64_t) GP_NODISCARD;
  * @return @p x if already aligned.
  */
 GP_NODISCARD inline
-uintptr_t gp_round_to_aligned(const uintptr_t x, const uintptr_t boundary)
+uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary)
 {
     return x + (boundary - 1) - ((x - 1) & (boundary - 1));
 }

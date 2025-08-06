@@ -14,7 +14,7 @@
 #include <gpc/io.h>
 #include <gpc/utils.h>
 
-#if _WIN32 // write result to file that we can use for MSVC tests
+#if _WIN32 && !__cplusplus // write result to file that we can use for MSVC tests
 #define WRITE_RESULT(...) do { \
     GP_TYPEOF(__VA_ARGS__) _result = (__VA_ARGS__); \
     fwrite(&_result, sizeof _result, 1, msvc_test_file); \
@@ -65,6 +65,26 @@ GPInt128 int128_random_negative(void)
 
 int main(void)
 {
+    gp_suite("Endianness"); // the very prerequisite for anything
+    {
+        uint16_t u16 = 1;
+        uint8_t* p = (uint8_t*)&u16;
+        GPUint128 u128;
+        u128.gnu = 1;
+        gp_assert(gp_uint128_hi(u128) == 0);
+        gp_assert(gp_uint128_lo(u128) == 1);
+        if (gp_is_big_endian()) {
+            gp_assert( ! gp_is_little_endian());
+            gp_assert(p[0] == 0);
+            gp_assert(p[1] == 1);
+        }
+        if (gp_is_little_endian()) {
+            gp_assert( ! gp_is_big_endian());
+            gp_assert(p[0] == 1);
+            gp_assert(p[1] == 0);
+        }
+    } // gp_suite("Endianness");
+
     #if _WIN32
     FILE* msvc_test_file = gp_file_open("../build/gnu_int128_result.bin", "write");
     gp_assert(msvc_test_file != NULL, strerror(errno));
@@ -83,7 +103,7 @@ int main(void)
 
     gp_suite("Bitwise operators");
     {
-        gp_test("~ & | ^");
+        gp_test("~ & | ^"); // trivial, but good sanity checks
         {
             ua = uint128_random();
             ub = uint128_random();
@@ -105,28 +125,97 @@ int main(void)
             EXPECT_EQ(gp_int128_xor(ia, ib).gnu,  ia.gnu ^ ib.gnu);
         }
 
-        gp_test("<< >>");
+        // Note: n larger or equal to 128 is undefined.
+        gp_test("<< >>"); for (uint8_t n = 0; n < 128; ++n)
         {
-            // Note: n larger or equal to 128 is undefined.
-            for (uint8_t n = 0; n < 128; ++n) {
-                ua = uint128_random();
-                ia = int128_random();
+            ua = uint128_random();
+            ia = int128_random();
 
-                // Shifting big signed numbers left cannot be represented in
-                // __int128_t, which is undefined, use mask to limit the size of
-                // the numbers.
-                GPInt128 mask = {.gnu = GP_INT128_MAX.gnu >> n };
+            // Shifting big signed numbers left cannot be represented in
+            // __int128_t, which is undefined, use mask to limit the size of
+            // the numbers.
+            GPInt128 mask = {.gnu = GP_INT128_MAX.gnu >> n };
 
-                ASSERT_EQ(gp_uint128_shift_left(ua, n).gnu,  ua.gnu << n, "%hhu", n);
-                ASSERT_EQ(gp_uint128_shift_right(ua, n).gnu, ua.gnu >> n, "%hhu", n);
-                ASSERT_EQ(gp_int128_shift_right(ia, n).gnu,  ia.gnu >> n, "%hhu", n);
-                ASSERT_EQ(
-                    gp_int128_shift_left(gp_int128_and(ia, mask), n).gnu,
-                    (ia.gnu & mask.gnu) << n,
-                    "%hhu", n);
-            }
+            ASSERT_EQ(gp_uint128_shift_left(ua, n).gnu,  ua.gnu << n, "%hhu", n);
+            ASSERT_EQ(gp_uint128_shift_right(ua, n).gnu, ua.gnu >> n, "%hhu", n);
+            ASSERT_EQ(gp_int128_shift_right(ia, n).gnu,  ia.gnu >> n, "%hhu", n);
+            ASSERT_EQ(
+                gp_int128_shift_left(gp_int128_and(ia, mask), n).gnu,
+                (ia.gnu & mask.gnu) << n,
+                "%hhu", n);
         }
-    }
+    } // gp_suite("Bitwise operators");
+
+    gp_suite("Arithmetic");
+    {
+        gp_test("Unsigned +");
+        {
+            // No carry
+            ua = gp_uint128(0x1, 0x123456789ABCDEF0);
+            ub = gp_uint128(0x0, 0xFEDCBA9876543210);
+            EXPECT_EQ(gp_uint128_add(ua, ub).gnu, ua.gnu + ub.gnu);
+
+            // Carry propagation
+            ua = gp_uint128(0, UINT64_MAX);
+            ub = gp_uint128(0, 1);
+            gp_expect(gp_uint128_add(ua, ub).gnu ==  gp_uint128(1, 0).gnu);
+            EXPECT_EQ(gp_uint128_add(ua, ub).gnu, ua.gnu + ub.gnu);
+
+            // Overflow
+            ua = GP_UINT128_MAX;
+            ub = uint128_random();
+            EXPECT_EQ(gp_uint128_add(ua, ub).gnu, ua.gnu + ub.gnu);
+        }
+
+        gp_test("Signed +");
+        {
+            // No carry
+            ia = gp_int128(0x1, 0x123456789ABCDEF0);
+            ib = gp_int128(0x0, 0xFEDCBA9876543210);
+            EXPECT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu);
+
+            // Carry propagation
+            ia = gp_int128(0, UINT64_MAX);
+            ib = gp_int128(0, 1);
+            gp_expect(gp_int128_add(ia, ib).gnu == gp_int128(1, 0).gnu);
+            EXPECT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu);
+
+            // Overflow is undefined
+
+            // Positive + negative carry ((UINT64_MAX+1) + -1 == UINT64_MAX)
+            ia = gp_int128(1, 0);
+            ib = gp_int128(-1, -1);
+            gp_expect(gp_int128_add(ia, ib).gnu == gp_int128(0, UINT64_MAX).gnu);
+            EXPECT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu);
+
+            // Negative + negative (-1 + -1 == -2)
+            ia = gp_int128(-1, -1);
+            ib = gp_int128(-1, -1);
+            gp_expect(gp_int128_add(ia, ib).gnu == gp_int128(-1, -2).gnu);
+            EXPECT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu);
+        }
+
+        gp_test("+- fuzz"); for (size_t fuzz_count = 0; fuzz_count < 128; ++fuzz_count)
+        { // test basic addition/subtraction and large numbers with mixed signs
+            ua = uint128_random();
+            ub = uint128_random();
+            ia = int128_random();
+            ib = int128_random();
+
+            ASSERT_EQ(gp_uint128_add(ua, ub).gnu, ua.gnu + ub.gnu, "%zu", fuzz_count);
+            ASSERT_EQ(gp_uint128_sub(ua, ub).gnu, ua.gnu - ub.gnu, "%zu", fuzz_count);
+
+            // Again, overflow is UB!
+            if (ib.gnu >= 0 && ia.gnu <= GP_INT128_MAX.gnu - ib.gnu)
+                ASSERT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu, "%zu", fuzz_count);
+            if (ib.gnu  < 0 && ia.gnu >= GP_INT128_MIN.gnu - ib.gnu)
+                ASSERT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu, "%zu", fuzz_count);
+            if (ib.gnu >= 0 && ia.gnu >= GP_INT128_MIN.gnu + ib.gnu)
+                ASSERT_EQ(gp_int128_sub(ia, ib).gnu, ia.gnu - ib.gnu, "%zu", fuzz_count);
+            if (ib.gnu  < 0 && ia.gnu <= GP_INT128_MAX.gnu + ib.gnu)
+                ASSERT_EQ(gp_int128_sub(ia, ib).gnu, ia.gnu - ib.gnu, "%zu", fuzz_count);
+        }
+    } // gp_suite("Arithmetic");
 
     #if _WIN32 // pedantic close
     gp_file_close(msvc_test_file);

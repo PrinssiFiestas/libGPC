@@ -39,7 +39,9 @@ typedef union gp_uint128
     #endif
 } GPUint128;
 
-/** 128-bit signed integer.*/
+/** 128-bit signed integer.
+ * Overflow is undefined.
+ */
 typedef union gp_int128
 {
     struct {
@@ -51,7 +53,6 @@ typedef union gp_int128
         int64_t  hi;
         uint64_t lo;
     } big_endian;
-
 
     #if (__GNUC__ && defined(__SIZEOF_INT128__)) || defined(GP_TEST_INT128)
     __int128_t gnu;
@@ -262,7 +263,9 @@ GP_NODISCARD static inline GPInt128 gp_int128_xor(GPInt128 a, GPInt128 b)
     #endif
 }
 
-/** Unsigned bitwise left shift */
+/** Unsigned bitwise left shift.
+ * Shifting by more than 127 is undefined.
+ */
 GP_NODISCARD static inline GPUint128 gp_uint128_shift_left(GPUint128 a, uint8_t b)
 {
     #if __GNUC__ && __SIZEOF_INT128__
@@ -277,7 +280,9 @@ GP_NODISCARD static inline GPUint128 gp_uint128_shift_left(GPUint128 a, uint8_t 
          gp_uint128_lo(a) << b);
     #endif
 }
-/** Signed bitwise left shift */
+/** Signed bitwise left shift.
+ * Shifting by more than 127 is undefined.
+ */
 GP_NODISCARD static inline GPInt128 gp_int128_shift_left(GPInt128 a, uint8_t b)
 {
     #if __GNUC__ && __SIZEOF_INT128__
@@ -293,7 +298,9 @@ GP_NODISCARD static inline GPInt128 gp_int128_shift_left(GPInt128 a, uint8_t b)
     #endif
 }
 
-/** Unsigned bitwise right shift */
+/** Unsigned bitwise right shift.
+ * Shifting by more than 127 is undefined.
+ */
 GP_NODISCARD static inline GPUint128 gp_uint128_shift_right(GPUint128 a, uint8_t b)
 {
     #if __GNUC__ && __SIZEOF_INT128__
@@ -308,7 +315,9 @@ GP_NODISCARD static inline GPUint128 gp_uint128_shift_right(GPUint128 a, uint8_t
         (gp_uint128_lo(a) >> b) | (gp_uint128_hi(a) << (64-b)));
     #endif
 }
-/** Signed bitwise right shift */
+/** Signed bitwise right shift.
+ * Shifting by more than 127 is undefined.
+ */
 GP_NODISCARD static inline GPInt128 gp_int128_shift_right(GPInt128 a, uint8_t b)
 {
     #if __GNUC__ && __SIZEOF_INT128__
@@ -334,9 +343,9 @@ GP_NODISCARD static inline GPUint128 gp_uint128_add(GPUint128 a, GPUint128 b)
     return gp_uint128_gnu(a.gnu + b.gnu);
     #else
     return gp_uint128(
-        gp_uint128_lo(a) + gp_uint128_lo(b),
         gp_uint128_hi(a) + gp_uint128_hi(b)
-            + (gp_uint128_lo(b) > UINT64_MAX - gp_uint128_lo(a))); // carry
+            + (gp_uint128_lo(b) > UINT64_MAX - gp_uint128_lo(a)), // carry
+        gp_uint128_lo(a) + gp_uint128_lo(b));
     #endif
 }
 
@@ -347,9 +356,9 @@ GP_NODISCARD static inline GPInt128 gp_int128_add(GPInt128 a, GPInt128 b)
     return gp_int128_gnu(a.gnu + b.gnu);
     #else
     return gp_int128(
-        gp_int128_lo(a) + gp_int128_lo(b),
         gp_int128_hi(a) + gp_int128_hi(b)
-            + (gp_int128_lo(b) > UINT64_MAX - gp_int128_lo(a))); // carry
+            + (gp_int128_lo(b) > UINT64_MAX - gp_int128_lo(a)), // carry
+        gp_int128_lo(a) + gp_int128_lo(b));
     #endif
 }
 
@@ -360,9 +369,9 @@ GP_NODISCARD static inline GPUint128 gp_uint128_sub(GPUint128 a, GPUint128 b)
     return gp_uint128_gnu(a.gnu - b.gnu);
     #else
     return gp_uint128(
-        gp_uint128_lo(a) - gp_uint128_lo(b),
         gp_uint128_hi(a) - gp_uint128_hi(b)
-            - (gp_uint128_lo(b) > gp_uint128_lo(a))); // borrow
+            - (gp_uint128_lo(b) > gp_uint128_lo(a)), // borrow
+        gp_uint128_lo(a) - gp_uint128_lo(b));
     #endif
 }
 
@@ -373,9 +382,9 @@ GP_NODISCARD static inline GPInt128 gp_int128_sub(GPInt128 a, GPInt128 b)
     return gp_int128_gnu(a.gnu - b.gnu);
     #else
     return gp_int128(
-        gp_int128_lo(a) - gp_int128_lo(b),
         gp_int128_hi(a) - gp_int128_hi(b)
-            - (gp_int128_lo(b) > gp_int128_lo(a))); // borrow
+            - (gp_int128_lo(b) > gp_int128_lo(a)), // borrow
+        gp_int128_lo(a) - gp_int128_lo(b));
     #endif
 }
 
