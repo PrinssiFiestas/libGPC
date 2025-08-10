@@ -225,9 +225,9 @@ int main(void)
     {
         gp_test("Shift key");
         {
-            GPUint128 x  = {{.hi = 59318, .lo = 86453012}};
+            GPUint128 x = gp_uint128(59318, 86453012);
             size_t shift = 8;
-            gp_expect(gp_shift_key(x, shift).gnu == x.gnu >> 3);
+            gp_expect(gp_shift_key(x, shift).u128 == x.u128 >> 3);
         }
     }
     #endif

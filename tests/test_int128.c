@@ -2,6 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#define FUZZ_COUNT 128
+
 #if __GNUC__ && __SIZEOF_INT128__
 
 // Force int128.h implementations to not use __[u]int128_t, we want to test
@@ -70,7 +72,7 @@ int main(void)
         uint16_t u16 = 1;
         uint8_t* p = (uint8_t*)&u16;
         GPUint128 u128;
-        u128.gnu = 1;
+        u128.u128 = 1;
         gp_assert(gp_uint128_hi(u128) == 0);
         gp_assert(gp_uint128_lo(u128) == 1);
         if (gp_is_big_endian()) {
@@ -110,19 +112,19 @@ int main(void)
             ia = int128_random();
             ib = int128_random();
 
-            EXPECT_EQ(gp_uint128_not(ua).gnu, ~ua.gnu);
-            EXPECT_EQ(gp_uint128_not(ub).gnu, ~ub.gnu);
-            EXPECT_EQ(gp_int128_not(ia).gnu,  ~ia.gnu);
-            EXPECT_EQ(gp_int128_not(ib).gnu,  ~ib.gnu);
+            EXPECT_EQ(gp_uint128_not(ua).u128, ~ua.u128);
+            EXPECT_EQ(gp_uint128_not(ub).u128, ~ub.u128);
+            EXPECT_EQ(gp_int128_not(ia).i128,  ~ia.i128);
+            EXPECT_EQ(gp_int128_not(ib).i128,  ~ib.i128);
 
-            EXPECT_EQ(gp_uint128_and(ua, ub).gnu, ua.gnu & ub.gnu);
-            EXPECT_EQ(gp_int128_and(ia, ib).gnu,  ia.gnu & ib.gnu);
+            EXPECT_EQ(gp_uint128_and(ua, ub).u128, ua.u128 & ub.u128);
+            EXPECT_EQ(gp_int128_and(ia, ib).i128,  ia.i128 & ib.i128);
 
-            EXPECT_EQ(gp_uint128_or(ua, ub).gnu, ua.gnu | ub.gnu);
-            EXPECT_EQ(gp_int128_or(ia, ib).gnu,  ia.gnu | ib.gnu);
+            EXPECT_EQ(gp_uint128_or(ua, ub).u128, ua.u128 | ub.u128);
+            EXPECT_EQ(gp_int128_or(ia, ib).i128,  ia.i128 | ib.i128);
 
-            EXPECT_EQ(gp_uint128_xor(ua, ub).gnu, ua.gnu ^ ub.gnu);
-            EXPECT_EQ(gp_int128_xor(ia, ib).gnu,  ia.gnu ^ ib.gnu);
+            EXPECT_EQ(gp_uint128_xor(ua, ub).u128, ua.u128 ^ ub.u128);
+            EXPECT_EQ(gp_int128_xor(ia, ib).i128,  ia.i128 ^ ib.i128);
         }
 
         // Note: n larger or equal to 128 is undefined.
@@ -134,88 +136,140 @@ int main(void)
             // Shifting big signed numbers left cannot be represented in
             // __int128_t, which is undefined, use mask to limit the size of
             // the numbers.
-            GPInt128 mask = {.gnu = GP_INT128_MAX.gnu >> n };
+            GPInt128 mask = {.i128 = GP_INT128_MAX.i128 >> n };
 
-            ASSERT_EQ(gp_uint128_shift_left(ua, n).gnu,  ua.gnu << n, "%hhu", n);
-            ASSERT_EQ(gp_uint128_shift_right(ua, n).gnu, ua.gnu >> n, "%hhu", n);
-            ASSERT_EQ(gp_int128_shift_right(ia, n).gnu,  ia.gnu >> n, "%hhu", n);
+            ASSERT_EQ(gp_uint128_shift_left(ua, n).u128,  ua.u128 << n, "%hhu", n);
+            ASSERT_EQ(gp_uint128_shift_right(ua, n).u128, ua.u128 >> n, "%hhu", n);
+            ASSERT_EQ(gp_int128_shift_right(ia, n).i128,  ia.i128 >> n, "%hhu", n);
             ASSERT_EQ(
-                gp_int128_shift_left(gp_int128_and(ia, mask), n).gnu,
-                (ia.gnu & mask.gnu) << n,
+                gp_int128_shift_left(gp_int128_and(ia, mask), n).i128,
+                (ia.i128 & mask.i128) << n,
                 "%hhu", n);
         }
     } // gp_suite("Bitwise operators");
 
-    gp_suite("Arithmetic");
+    gp_suite("Addition & Subtraction");
     {
-        gp_test("Unsigned +");
+        gp_test("Unsigned +-");
         {
-            // No carry
-            ua = gp_uint128(0x1, 0x123456789ABCDEF0);
-            ub = gp_uint128(0x0, 0xFEDCBA9876543210);
-            EXPECT_EQ(gp_uint128_add(ua, ub).gnu, ua.gnu + ub.gnu);
-
             // Carry propagation
             ua = gp_uint128(0, UINT64_MAX);
             ub = gp_uint128(0, 1);
-            gp_expect(gp_uint128_add(ua, ub).gnu ==  gp_uint128(1, 0).gnu);
-            EXPECT_EQ(gp_uint128_add(ua, ub).gnu, ua.gnu + ub.gnu);
+            gp_expect(gp_uint128_add(ua, ub).u128 ==  gp_uint128(1, 0).u128);
+            EXPECT_EQ(gp_uint128_add(ua, ub).u128, ua.u128 + ub.u128);
+            ua = gp_uint128(1, 0);
+            gp_expect(gp_uint128_sub(ua, ub).u128 == gp_uint128(0, UINT64_MAX).u128);
+            EXPECT_EQ(gp_uint128_sub(ua, ub).u128, ua.u128 - ub.u128);
 
             // Overflow
             ua = GP_UINT128_MAX;
             ub = uint128_random();
-            EXPECT_EQ(gp_uint128_add(ua, ub).gnu, ua.gnu + ub.gnu);
+            EXPECT_EQ(gp_uint128_add(ua, ub).u128, ua.u128 + ub.u128);
+            ua = gp_uint128(0, 0);
+            EXPECT_EQ(gp_uint128_sub(ua, ub).u128, ua.u128 - ub.u128);
         }
 
-        gp_test("Signed +");
+        gp_test("Signed +-");
         {
-            // No carry
-            ia = gp_int128(0x1, 0x123456789ABCDEF0);
-            ib = gp_int128(0x0, 0xFEDCBA9876543210);
-            EXPECT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu);
-
             // Carry propagation
             ia = gp_int128(0, UINT64_MAX);
             ib = gp_int128(0, 1);
-            gp_expect(gp_int128_add(ia, ib).gnu == gp_int128(1, 0).gnu);
-            EXPECT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu);
+            gp_expect(gp_int128_add(ia, ib).i128 == gp_int128(1, 0).i128);
+            EXPECT_EQ(gp_int128_add(ia, ib).i128, ia.i128 + ib.i128);
+            ia = gp_int128(1, 0);
+            gp_expect(gp_int128_sub(ia, ib).i128 == gp_int128(0, UINT64_MAX).i128);
+            EXPECT_EQ(gp_int128_sub(ia, ib).i128, ia.i128 - ib.i128);
 
             // Overflow is undefined
 
             // Positive + negative carry ((UINT64_MAX+1) + -1 == UINT64_MAX)
             ia = gp_int128(1, 0);
             ib = gp_int128(-1, -1);
-            gp_expect(gp_int128_add(ia, ib).gnu == gp_int128(0, UINT64_MAX).gnu);
-            EXPECT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu);
+            gp_expect(gp_int128_add(ia, ib).i128 == gp_int128(0, UINT64_MAX).i128);
+            EXPECT_EQ(gp_int128_add(ia, ib).i128, ia.i128 + ib.i128);
 
             // Negative + negative (-1 + -1 == -2)
             ia = gp_int128(-1, -1);
             ib = gp_int128(-1, -1);
-            gp_expect(gp_int128_add(ia, ib).gnu == gp_int128(-1, -2).gnu);
-            EXPECT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu);
+            gp_expect(gp_int128_add(ia, ib).i128 == gp_int128(-1, -2).i128);
+            EXPECT_EQ(gp_int128_add(ia, ib).i128, ia.i128 + ib.i128);
         }
 
-        gp_test("+- fuzz"); for (size_t fuzz_count = 0; fuzz_count < 128; ++fuzz_count)
+        gp_test("+- fuzz"); for (size_t fuzz_count = 0; fuzz_count < FUZZ_COUNT; ++fuzz_count)
         { // test basic addition/subtraction and large numbers with mixed signs
             ua = uint128_random();
             ub = uint128_random();
             ia = int128_random();
             ib = int128_random();
 
-            ASSERT_EQ(gp_uint128_add(ua, ub).gnu, ua.gnu + ub.gnu, "%zu", fuzz_count);
-            ASSERT_EQ(gp_uint128_sub(ua, ub).gnu, ua.gnu - ub.gnu, "%zu", fuzz_count);
+            ASSERT_EQ(gp_uint128_add(ua, ub).u128, ua.u128 + ub.u128, "%zu", fuzz_count);
+            ASSERT_EQ(gp_uint128_sub(ua, ub).u128, ua.u128 - ub.u128, "%zu", fuzz_count);
 
             // Again, overflow is UB!
-            if (ib.gnu >= 0 && ia.gnu <= GP_INT128_MAX.gnu - ib.gnu)
-                ASSERT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu, "%zu", fuzz_count);
-            if (ib.gnu  < 0 && ia.gnu >= GP_INT128_MIN.gnu - ib.gnu)
-                ASSERT_EQ(gp_int128_add(ia, ib).gnu, ia.gnu + ib.gnu, "%zu", fuzz_count);
-            if (ib.gnu >= 0 && ia.gnu >= GP_INT128_MIN.gnu + ib.gnu)
-                ASSERT_EQ(gp_int128_sub(ia, ib).gnu, ia.gnu - ib.gnu, "%zu", fuzz_count);
-            if (ib.gnu  < 0 && ia.gnu <= GP_INT128_MAX.gnu + ib.gnu)
-                ASSERT_EQ(gp_int128_sub(ia, ib).gnu, ia.gnu - ib.gnu, "%zu", fuzz_count);
+            if (ib.i128 >= 0 && ia.i128 <= GP_INT128_MAX.i128 - ib.i128)
+                ASSERT_EQ(gp_int128_add(ia, ib).i128, ia.i128 + ib.i128, "%zu", fuzz_count);
+            if (ib.i128  < 0 && ia.i128 >= GP_INT128_MIN.i128 - ib.i128)
+                ASSERT_EQ(gp_int128_add(ia, ib).i128, ia.i128 + ib.i128, "%zu", fuzz_count);
+            if (ib.i128 >= 0 && ia.i128 >= GP_INT128_MIN.i128 + ib.i128)
+                ASSERT_EQ(gp_int128_sub(ia, ib).i128, ia.i128 - ib.i128, "%zu", fuzz_count);
+            if (ib.i128  < 0 && ia.i128 <= GP_INT128_MAX.i128 + ib.i128)
+                ASSERT_EQ(gp_int128_sub(ia, ib).i128, ia.i128 - ib.i128, "%zu", fuzz_count);
         }
-    } // gp_suite("Arithmetic");
+    } // gp_suite("Addition & Subtraction");
+
+    gp_suite("Multiplication");
+    {
+        gp_test("Multiply 64-bit integers to 128-bit integer");
+        {
+            gp_expect(gp_uint128_mul64(UINT64_MAX, 2).u128 == gp_uint128(1, UINT64_MAX - 1).u128);
+            EXPECT_EQ(gp_uint128_mul64(UINT64_MAX, 2).u128, (__uint128_t)UINT64_MAX * 2);
+
+            gp_expect(gp_uint128_mul64(UINT64_MAX, UINT64_MAX).u128 == gp_uint128(-2, 1).u128);
+            EXPECT_EQ(gp_uint128_mul64(UINT64_MAX, UINT64_MAX).u128, (__uint128_t)UINT64_MAX * UINT64_MAX);
+
+            ua = uint128_random();
+            EXPECT_EQ(gp_uint128_mul64(ua.u64[0], ua.u64[1]).u128, (__uint128_t)ua.u64[0] * ua.u64[1],
+                "%llx", ua.u64[0], "%llx", ua.u64[1]);
+        }
+
+        size_t overflow_count = 0;
+
+        gp_test("Unsigned fuzz"); for (size_t fuzz_count = 0; fuzz_count < FUZZ_COUNT; ++fuzz_count)
+        {
+            // Absolutely massive numbers, practically always overflow
+            ua = uint128_random();
+            ub = uint128_random();
+            ASSERT_EQ(gp_uint128_mul(ua, ub).u128, ua.u128 * ub.u128, "%zu", fuzz_count);
+
+            // Huge numbers, should overflow sometimes
+            ua = gp_uint128_and(ua, gp_uint128(0x00000005FFFFFFFF, 0xFFFFFFFFFFFFFFFF));
+            ub = gp_uint128(0, gp_random(&g_rs));
+            ASSERT_EQ(gp_uint128_mul(ua, ub).u128, ua.u128 * ub.u128, "%zu", fuzz_count);
+            overflow_count += ua.u128 >= GP_UINT128_MAX.u128 / ub.u128;
+        }
+        gp_println("\toverflow ratio: %g", (double)overflow_count/FUZZ_COUNT); // ≈ 0.5
+
+        gp_test("Signed fuzz"); for (size_t fuzz_count = 0; fuzz_count < FUZZ_COUNT; ++fuzz_count)
+        {
+            // Bitwise operations used to limit the size of numbers to prevent
+            // overflow.
+
+            // Positive * negative
+            ia = gp_int128_and(int128_random_positive(), gp_int128(1, 0xFFFFFFFFFFFFFFFF));
+            ib = gp_int128(-1, 0xFFFFFFFF00000000 | gp_random(&g_rs));
+            ASSERT_EQ(gp_int128_mul(ia, ib).i128, ia.i128 * ib.i128, "%zu", fuzz_count);
+
+            // Negative * positive
+            ia = gp_int128_or(int128_random_negative(), gp_int128(-2, 0));
+            ib = gp_int128(0, gp_random(&g_rs));
+            ASSERT_EQ(gp_int128_mul(ia, ib).i128, ia.i128 * ib.i128, "%zu", fuzz_count);
+
+            // Negative * negative
+            ia = gp_int128_or(int128_random_negative(), gp_int128(-2, 0));
+            ib = gp_int128(-1, 0xFFFFFFFF00000000 | gp_random(&g_rs));
+            ASSERT_EQ(gp_int128_mul(ia, ib).i128, ia.i128 * ib.i128, "%zu", fuzz_count);
+        }
+    } // gp_suite("Multiplication");
 
     #if _WIN32 // pedantic close
     gp_file_close(msvc_test_file);

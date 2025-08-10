@@ -6,41 +6,6 @@
 #include <gpc/utils.h>
 #include <string.h>
 
-#if __GNUC__
-__attribute__((unused))
-#endif
-static void gp_mult64to128(
-    uint64_t u, uint64_t v, uint64_t* h, uint64_t* l)
-{
-    uint64_t u1 = (u & 0xffffffff);
-    uint64_t v1 = (v & 0xffffffff);
-    uint64_t t = (u1 * v1);
-    uint64_t w3 = (t & 0xffffffff);
-    uint64_t k = (t >> 32);
-
-    u >>= 32;
-    t = (u * v1) + k;
-    k = (t & 0xffffffff);
-    uint64_t w1 = (t >> 32);
-
-    v >>= 32;
-    t = (u1 * v) + k;
-    k = (t >> 32);
-
-    *h = (u * v) + w1 + k;
-    *l = (t << 32) + w3;
-}
-
-static void gp_mult128(const GPUint128 N, const GPUint128 M, GPUint128*const Ans)
-{
-    #if __GNUC__ && __SIZEOF_INT128__
-    Ans->gnu = N.gnu * M.gnu;
-    #else
-    gp_mult64to128(gp_uint128_lo(N), gp_uint128_lo(M), gp_uint128_hi_addr(Ans), gp_uint128_lo_addr(Ans));
-    *gp_uint128_hi_addr(Ans) += gp_uint128_hi(N) * gp_uint128_lo(M) + gp_uint128_lo(N) * gp_uint128_hi(M);
-    #endif
-}
-
 uint32_t gp_bytes_hash32(const void* str, const size_t str_size)
 {
     const uint32_t FNV_prime        = 0x01000193;
@@ -73,15 +38,15 @@ uint64_t gp_bytes_hash64(const void* str, const size_t str_size)
 
 GPUint128 gp_bytes_hash128(const void* str, const size_t str_size)
 {
-    GPUint128 FNV_prime        = gp_uint128(0x0000000001000000, 0x000000000000013B);
-    GPUint128 FNV_offset_basis = gp_uint128(0x6c62272e07bb0142, 0x62b821756295c58d);
+    const GPUint128 FNV_prime        = gp_uint128(0x0000000001000000, 0x000000000000013B);
+    const GPUint128 FNV_offset_basis = gp_uint128(0x6c62272e07bb0142, 0x62b821756295c58d);
     const uint8_t* ustr = str;
 
     GPUint128 hash = FNV_offset_basis;
     for (size_t i = 0; i < str_size; i++)
     {
         *gp_uint128_lo_addr(&hash) ^= ustr[i];
-        gp_mult128(hash, FNV_prime, &hash);
+        hash = gp_uint128_mul(hash, FNV_prime);
     }
     return hash;
 }
@@ -156,14 +121,14 @@ static inline GPUint128 gp_shift_key(const GPUint128 key, const size_t length)
 {
     #if __GNUC__ && __SIZEOF_INT128__
     if      (sizeof length == sizeof(unsigned))
-        return (GPUint128){.gnu =
-            key.gnu >> (sizeof(int)  * CHAR_BIT -__builtin_clz  (length) - 1)};
+        return (GPUint128){.u128 =
+            key.u128 >> (sizeof(int)  * CHAR_BIT -__builtin_clz  (length) - 1)};
     else if (sizeof length == sizeof(long))
-        return (GPUint128){.gnu =
-            key.gnu >> (sizeof(long) * CHAR_BIT -__builtin_clzl (length) - 1)};
+        return (GPUint128){.u128 =
+            key.u128 >> (sizeof(long) * CHAR_BIT -__builtin_clzl (length) - 1)};
     return
-        (GPUint128){.gnu =
-        key.gnu >> (sizeof(long long)* CHAR_BIT -__builtin_clzll(length) - 1)};
+        (GPUint128){.u128 =
+        key.u128 >> (sizeof(long long)* CHAR_BIT -__builtin_clzll(length) - 1)};
     #else
 
     // Find bit width of length which is assumed to be a power of 2.
