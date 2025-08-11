@@ -329,6 +329,35 @@ int main(void)
             EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
             EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
         }
+
+        // Signed div/mod uses gp_uint128_divmod under the hood, just sanity
+        // check for correct sign handling.
+        gp_test("Sign");
+        {
+            ia = int128_random_positive();
+            ib = gp_int128_shift_right(int128_random_positive(), gp_random_range(&g_rs, 64, 127));
+            gp_expect(gp_int128_idiv(ia, ib).i128 >= 0);
+            EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
+            EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
+
+            ia = int128_random_negative();
+            ib = gp_int128_shift_right(int128_random_positive(), gp_random_range(&g_rs, 64, 127));
+            gp_expect(gp_int128_idiv(ia, ib).i128  < 0);
+            EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
+            EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
+
+            ia = int128_random_positive();
+            ib = gp_int128_shift_right(int128_random_negative(), gp_random_range(&g_rs, 64, 127));
+            gp_expect(gp_int128_idiv(ia, ib).i128  < 0);
+            EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
+            EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
+
+            ia = int128_random_negative();
+            ib = gp_int128_shift_right(int128_random_negative(), gp_random_range(&g_rs, 64, 127));
+            gp_expect(gp_int128_idiv(ia, ib).i128 >= 0);
+            EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
+            EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
+        }
     } // gp_suite("Division/modulus");
 
     #if _WIN32 // pedantic close

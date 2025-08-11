@@ -445,7 +445,11 @@ GP_NODISCARD static inline GPInt128 gp_int128_mul(GPInt128 a, GPInt128 b)
     #endif
 }
 
-/** Divide 128-bit unsigned integers.*/
+/** Divide 128-bit unsigned integers with remainder.*/
 GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128* optional_remainder);
+
+/** Divide 128-bit signed integers with remainder.*/
+GPInt128 gp_int128_idiv(GPInt128 a, GPInt128 b);
+GPInt128 gp_int128_imod(GPInt128 a, GPInt128 b);
 
 #endif // GP_INT128_INCLUDED

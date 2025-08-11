@@ -22,7 +22,7 @@ GPUint128 gp_uint128_long_mul64(uint64_t a, uint64_t b)
         (ahbl << 32) + (albh << 32) + albl);
 }
 
-// Division yoinked from LLVM
+// Yoinked from LLVM
 // https://github.com/llvm-mirror/compiler-rt/blob/master/lib/builtins/udivmodti4.c
 GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128 *rem)
 {
@@ -186,7 +186,6 @@ GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128 *rem)
         //     r -= d;
         //      carry = 1;
         // }
-        //const ti_int s = (ti_int)(d.all - r.all - 1) >> (n_utword_bits - 1);
         const GPInt128 s = gp_int128_shift_right(
             gp_int128_uint128(gp_uint128_sub(
                 gp_uint128_sub(d, r),
@@ -199,4 +198,38 @@ GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128 *rem)
     if (rem)
         *rem = r;
     return q;
+}
+
+// Yoinked from LLVM
+// https://github.com/llvm-mirror/compiler-rt/blob/master/lib/builtins/divti3.c
+GPInt128 gp_int128_idiv(GPInt128 a, GPInt128 b)
+{
+    const int bits_in_tword_m1 = (int)(sizeof(GPInt128) * CHAR_BIT) - 1;
+    GPInt128 s_a = gp_int128_shift_right(a, bits_in_tword_m1); // s_a = a < 0 ? -1 : 0
+    GPInt128 s_b = gp_int128_shift_right(b, bits_in_tword_m1); // s_b = b < 0 ? -1 : 0
+    a = gp_int128_sub(gp_int128_xor(a, s_a), s_a);             // negate if s_a == -1
+    b = gp_int128_sub(gp_int128_xor(b, s_b), s_b);             // negate if s_b == -1
+    s_a = gp_int128_xor(s_a, s_b);                             // sign of quotient
+    return gp_int128_sub(
+        gp_int128_xor(
+            gp_int128_uint128(gp_uint128_divmod(
+                gp_uint128_int128(a),
+                gp_uint128_int128(b),
+                NULL)),
+            s_a),
+        s_a); // negate if s_a == -1
+}
+
+// Yoinked from LLVM
+// https://github.com/llvm-mirror/compiler-rt/blob/master/lib/builtins/modti3.c
+GPInt128 gp_int128_imod(GPInt128 a, GPInt128 b)
+{
+    const int bits_in_tword_m1 = (int)(sizeof(GPInt128) * CHAR_BIT) - 1;
+    GPInt128 s = gp_int128_shift_right(b, bits_in_tword_m1); // s = b < 0 ? -1 : 0
+    b = gp_int128_sub(gp_int128_xor(b, s), s);               // negate if s == -1
+    s = gp_int128_shift_right(a, bits_in_tword_m1);          // s = a < 0 ? -1 : 0
+    a = gp_int128_sub(gp_int128_xor(a, s), s);               // negate if s == -1
+    GPUint128 r;
+    gp_uint128_divmod(gp_uint128_int128(a), gp_uint128_int128(b), &r);
+    return gp_int128_sub(gp_int128_xor(gp_int128_uint128(r), s), s); // negate if s == -1
 }
