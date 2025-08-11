@@ -116,6 +116,21 @@ GP_NODISCARD static inline GPInt128 gp_int128(int64_t hi_bits, uint64_t lo_bits)
     return i128;
 }
 
+/** Convert 128-bit signed integer to 128-bit unsigned integer.*/
+GP_NODISCARD static inline GPUint128 gp_uint128_int128(GPInt128 i)
+{
+    GPUint128 u;
+    memcpy(&u, &i, sizeof u);
+    return u;
+}
+/** Convert 128-bit unsigned integer to 128-bit signed integer.*/
+GP_NODISCARD static inline GPInt128 gp_int128_uint128(GPUint128 u)
+{
+    GPInt128 i;
+    memcpy(&i, &u, sizeof i);
+    return i;
+}
+
 /** Get low bits of 128-bit unsigned integer.*/
 GP_NODISCARD static inline uint64_t gp_uint128_lo(GPUint128 u)
 {
@@ -423,15 +438,14 @@ GP_NODISCARD static inline GPInt128 gp_int128_mul(GPInt128 a, GPInt128 b)
     #if __GNUC__ && __SIZEOF_INT128__
     return gp_int128_i128(a.i128 * b.i128);
     #else
-    GPUint128 ua;
-    GPUint128 ub;
-    GPInt128   y;
-    memcpy(&ua, &a, sizeof ua);
-    memcpy(&ub, &b, sizeof ub);
-    GPUint128 uy = gp_uint128_mul(ua, ub);
-    memcpy(&y, &uy, sizeof y);
-    return y;
+    return gp_int128_uint128(
+        gp_uint128_mul(
+            gp_uint128_int128(a),
+            gp_uint128_int128(b)));
     #endif
 }
+
+/** Divide 128-bit unsigned integers.*/
+GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128* optional_remainder);
 
 #endif // GP_INT128_INCLUDED

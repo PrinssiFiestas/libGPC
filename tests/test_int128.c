@@ -88,7 +88,11 @@ int main(void)
     } // gp_suite("Endianness");
 
     #if _WIN32
+    #  if __GNUC__
     FILE* msvc_test_file = gp_file_open("../build/gnu_int128_result.bin", "write");
+    #  else // MSVC
+    FILE* msvc_test_file = gp_file_open("../build/gnu_int128_result.bin", "read");
+    #  endif
     gp_assert(msvc_test_file != NULL, strerror(errno));
     #endif
 
@@ -270,6 +274,62 @@ int main(void)
             ASSERT_EQ(gp_int128_mul(ia, ib).i128, ia.i128 * ib.i128, "%zu", fuzz_count);
         }
     } // gp_suite("Multiplication");
+
+    gp_suite("Division/modulus");
+    {
+        GPUint128 u64s;
+        GPUint128 remainder;
+
+        gp_test("0X/0X");
+        {
+            u64s = uint128_random();
+            ua = gp_uint128(0, u64s.u64[0]);
+            ub = gp_uint128(0, u64s.u64[1]);
+            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
+            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+        }
+
+        gp_test("0X/XX");
+        {
+            ua = gp_uint128(0, gp_uint128_lo(uint128_random()));
+            ub = uint128_random();
+            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
+            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+        }
+
+        gp_test("X0/X0");
+        {
+            u64s = uint128_random();
+            ua = gp_uint128(u64s.u64[0], 0);
+            ub = gp_uint128(u64s.u64[1], 0);
+            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
+            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+        }
+
+        gp_test("XX/X0");
+        {
+            ua = uint128_random();
+            ub = gp_uint128(gp_uint128_hi(uint128_random()), 0);
+            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
+            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+        }
+
+        gp_test("XX/0X");
+        {
+            ua = uint128_random();
+            ub = gp_uint128(0, gp_uint128_lo(uint128_random()));
+            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
+            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+        }
+
+        gp_test("XX/XX");
+        {
+            ua = uint128_random();
+            ub = uint128_random();
+            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
+            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+        }
+    } // gp_suite("Division/modulus");
 
     #if _WIN32 // pedantic close
     gp_file_close(msvc_test_file);
