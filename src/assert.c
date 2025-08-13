@@ -357,6 +357,9 @@ void gp_fail_internal(
                     GP_BRIGHT_BLUE "%llu", va_arg(args.list, unsigned long long));
                 break;
 
+            // TODO!!!!!!!!!!!!!!!!!!!!!!
+            case GP_UINT128: case GP_INT128: case GP_LONG_DOUBLE: GP_UNREACHABLE; break;
+
             case GP_BOOL:
                 pf_fprintf(stderr, va_arg(args.list, int) ? "true" : "false");
                 break;

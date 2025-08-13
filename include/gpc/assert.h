@@ -109,6 +109,22 @@ static inline bool gp_dummy_bool(bool _) { return _; } // prevent -Wunused-value
 #define gp_db_expect(...) gp_dummy_bool(sizeof(GP_1ST_ARG(__VA_ARGS__)))
 #endif
 
+/** Control flow assertion.
+ * Portably assert that control flow never reaches at a given point. The
+ * assertion is fatal in debug builds, otherwise undefined behavior is invoked,
+ * which may be used by the compiler for better optimizations like dead code
+ * elimination.
+ */
+#ifndef NDEBUG
+#define GP_UNREACHABLE do { bool unreachable = 0; gp_db_assert(unreachable); } while (0)
+#elif __GNUC__
+#define GP_UNREACHABLE __builtin_unreachable()
+#elif _MSC_VER
+#define GP_UNREACHABLE __assume(0)
+#else
+#define GP_UNREACHABLE do { bool unreachable = 0; gp_assert(unreachable); } while (0)
+#endif
+
 /** Start test.
  * Subsequent calls starts a new test ending the last one. If name
  * is NULL last test will be ended without starting a new test. Calling with

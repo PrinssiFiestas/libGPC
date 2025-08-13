@@ -163,6 +163,9 @@ static size_t gp_print_va_arg(
             fwrite(buf, 1, length, out);
         break;
 
+        // TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        case GP_UINT128: case GP_INT128: case GP_LONG_DOUBLE: GP_UNREACHABLE; break;
+
         case GP_BOOL:
             if (va_arg(args->list, int)) {
                 length = strlen("true");

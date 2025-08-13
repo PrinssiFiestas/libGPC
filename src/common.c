@@ -18,7 +18,7 @@ extern inline size_t gp_count_fmt_specs(const char* fmt);
 void gp_arena_dealloc(GPAllocator* arena, void* mem)
 {
     (void)arena;
-    ASAN_POISON_MEMORY_REGION(mem, sizeof(void*));
+    ASAN_POISON_MEMORY_REGION(mem, GP_ALLOC_ALIGNMENT);
 }
 
 void gp_carena_dealloc(GPAllocator* arena, void* mem)
@@ -177,6 +177,9 @@ size_t gp_convert_va_arg(
                 va_arg(args->list, unsigned long long));
             break;
 
+        // TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        case GP_UINT128: case GP_INT128: case GP_LONG_DOUBLE: GP_UNREACHABLE; break;
+
         case GP_BOOL:
             if (va_arg(args->list, int)) {
                 length += strlen("true");
@@ -269,4 +272,3 @@ size_t gp_bytes_print_objects(
     }
     return length;
 }
-

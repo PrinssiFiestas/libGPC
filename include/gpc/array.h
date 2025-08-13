@@ -34,16 +34,16 @@ extern "C" {
 #define GPArray(T) T*
 
 /** Array meta-data.
- * You can edit the fields directly with ((GPArrayHeader)my_array - 1)->field.
+ * You can edit the fields directly with ((GPArrayHeader*)my_array - 1)->field.
  * This might be useful for micro-optimizations, but it is mostly recommended to
  * use the provided functions instead.
  */
 typedef struct gp_array_header
 {
-    uintptr_t          capacity;
-    void*              allocation; // pointer to self or NULL if on stack
+    uintptr_t    capacity;
+    void*        allocation; // pointer to self or NULL if on stack
     GPAllocator* allocator;
-    uintptr_t          length;
+    uintptr_t    length;
 } GPArrayHeader;
 
 #define GP_ARR_ATTRS(...) \

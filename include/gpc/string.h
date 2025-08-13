@@ -46,16 +46,16 @@ typedef struct gp_char { uint8_t c; } GPChar;
 typedef GPChar* GPString;
 
 /** String meta-data.
- * You can edit the fields directly with ((GPStringHeader)my_string - 1)->field.
+ * You can edit the fields directly with ((GPStringHeader*)my_str - 1)->field.
  * This might be useful for micro-optimizations, but it is mostly recommended to
  * use the provided functions instead.
  */
 typedef struct gp_string_header
 {
-    uintptr_t          capacity;
-    void*              allocation; // pointer to self or NULL if on stack
+    uintptr_t    capacity;
+    void*        allocation; // pointer to self or NULL if on stack
     GPAllocator* allocator;
-    uintptr_t          length;
+    uintptr_t    length;
 } GPStringHeader;
 
 /** Create and initialize a new string.*/

@@ -4,7 +4,7 @@
 
 #define FUZZ_COUNT 128
 
-#if __GNUC__ && __SIZEOF_INT128__
+#if __GNUC__ && __SIZEOF_INT128__ && !__clang__
 
 // Force int128.h implementations to not use __[u]int128_t, we want to test
 // against that.
@@ -29,7 +29,7 @@
     (WRITE_RESULT(B), gp_expect((A) == (B)__VA_OPT__(,)__VA_ARGS__))
 
 #define ASSERT_EQ(A, B, ...) \
-    (WRITE_RESULT(B), gp_assert((A) == (B)__VA_OPT__(,)__VA_ARGS__))
+(WRITE_RESULT(B), gp_assert((A) == (B)__VA_OPT__(,)__VA_ARGS__))
 
 static GPRandomState g_rs;
 
@@ -223,6 +223,42 @@ int main(void)
 
     gp_suite("Multiplication");
     {
+        gp_test("Negation");
+        {
+            ua = gp_uint128(0, 0);
+            ia = gp_int128(0, 0);
+            gp_expect(gp_uint128_equal(gp_uint128_negate(ua), gp_uint128(0, 0)));
+            gp_expect(gp_int128_equal(gp_int128_negate(ia), gp_int128(0, 0)));
+            EXPECT_EQ(gp_uint128_negate(ua).u128, -ua.u128);
+            EXPECT_EQ(gp_int128_negate(ia).i128, -ia.i128);
+
+            ua = gp_uint128(0, UINT64_MAX);
+            ia = gp_int128(0, UINT64_MAX);
+            gp_expect(gp_uint128_equal(gp_uint128_negate(ua), gp_uint128(UINT64_MAX, 1)));
+            gp_expect(gp_int128_equal(gp_int128_negate(ia), gp_int128(-1, 1)));
+            EXPECT_EQ(gp_uint128_negate(ua).u128, -ua.u128);
+            EXPECT_EQ(gp_int128_negate(ia).i128, -ia.i128);
+
+            ua = gp_uint128(UINT64_MAX, 0);
+            ia = gp_int128(-1, 0);
+            gp_expect(gp_uint128_equal(gp_uint128_negate(ua), gp_uint128(1, 0)));
+            gp_expect(gp_int128_equal(gp_int128_negate(ia), gp_int128(1, 0)));
+            EXPECT_EQ(gp_uint128_negate(ua).u128, -ua.u128);
+            EXPECT_EQ(gp_int128_negate(ia).i128, -ia.i128);
+
+            ua = gp_uint128(UINT64_MAX, UINT64_MAX);
+            ia = gp_int128(-1, -1);
+            gp_expect(gp_uint128_equal(gp_uint128_negate(ua), gp_uint128(0, 1)));
+            gp_expect(gp_int128_equal(gp_int128_negate(ia), gp_int128(0, 1)));
+            EXPECT_EQ(gp_uint128_negate(ua).u128, -ua.u128);
+            EXPECT_EQ(gp_int128_negate(ia).i128, -ia.i128);
+
+            ua = uint128_random();
+            ia = int128_random();
+            EXPECT_EQ(gp_uint128_negate(ua).u128, -ua.u128);
+            EXPECT_EQ(gp_int128_negate(ia).i128, -ia.i128);
+        }
+
         gp_test("Multiply 64-bit integers to 128-bit integer");
         {
             gp_expect(gp_uint128_mul64(UINT64_MAX, 2).u128 == gp_uint128(1, UINT64_MAX - 1).u128);
@@ -232,8 +268,8 @@ int main(void)
             EXPECT_EQ(gp_uint128_mul64(UINT64_MAX, UINT64_MAX).u128, (__uint128_t)UINT64_MAX * UINT64_MAX);
 
             ua = uint128_random();
-            EXPECT_EQ(gp_uint128_mul64(ua.u64[0], ua.u64[1]).u128, (__uint128_t)ua.u64[0] * ua.u64[1],
-                "%llx", ua.u64[0], "%llx", ua.u64[1]);
+            EXPECT_EQ(gp_uint128_mul64(ua.little_endian.lo, ua.little_endian.hi).u128, (__uint128_t)ua.little_endian.lo * ua.little_endian.hi,
+                "%llx", ua.little_endian.lo, "%llx", ua.little_endian.hi);
         }
 
         size_t overflow_count = 0;
@@ -283,8 +319,8 @@ int main(void)
         gp_test("0X/0X");
         {
             u64s = uint128_random();
-            ua = gp_uint128(0, u64s.u64[0]);
-            ub = gp_uint128(0, u64s.u64[1]);
+            ua = gp_uint128(0, u64s.little_endian.lo);
+            ub = gp_uint128(0, u64s.little_endian.hi);
             EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
             EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
         }
@@ -300,8 +336,8 @@ int main(void)
         gp_test("X0/X0");
         {
             u64s = uint128_random();
-            ua = gp_uint128(u64s.u64[0], 0);
-            ub = gp_uint128(u64s.u64[1], 0);
+            ua = gp_uint128(u64s.little_endian.lo, 0);
+            ub = gp_uint128(u64s.little_endian.hi, 0);
             EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
             EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
         }

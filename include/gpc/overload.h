@@ -57,6 +57,7 @@ int main(void)
 
 // Helper macros
 
+#define GP_TOKEN_PASTE(A, B) A##B
 #define GP_STRFY(A) #A
 #define GP_STRFY_1ST_ARG(A, ...) #A
 #define GP_1ST_ARG(A, ...) A
@@ -126,20 +127,23 @@ int main(void)
 // Use in variadic function arguments with GP_TYPE() macro
 typedef enum gp_type
 {
+    GP_BOOL,
     GP_UNSIGNED_CHAR,
     GP_UNSIGNED_SHORT,
     GP_UNSIGNED,
     GP_UNSIGNED_LONG,
     GP_UNSIGNED_LONG_LONG,
-    GP_BOOL,
+    GP_UINT128,
     GP_SIGNED_CHAR,
     GP_CHAR,
     GP_SHORT,
     GP_INT,
     GP_LONG,
     GP_LONG_LONG,
+    GP_INT128,
     GP_FLOAT,
     GP_DOUBLE,
+    GP_LONG_DOUBLE,
     GP_CHAR_PTR,
     GP_STRING,
     GP_PTR,
@@ -159,8 +163,14 @@ static inline size_t gp_sizeof(const GPType T) {
             return sizeof(long);
         case GP_LONG_LONG: case GP_UNSIGNED_LONG_LONG:
             return sizeof(long long);
+        case GP_UINT128: case GP_INT128:
+            return 16;
         case GP_FLOAT:
             return sizeof(float);
+        case GP_LONG_DOUBLE:
+            #if __GNUC__
+            return sizeof(long double);
+            #endif
         case GP_DOUBLE:
             return sizeof(double);
         case GP_CHAR_PTR: case GP_STRING: case GP_PTR:
@@ -169,7 +179,133 @@ static inline size_t gp_sizeof(const GPType T) {
     return 0;
 }
 
+// Helper macros for C11 _Generic() selection // TODO TEST THESE!!!!!!!!!!!!!
+//
+// C11 _Generic() requires specifying all types explicitly and does not do
+// implicit conversions. This gives good control, but is inconvenient in some
+// cases e.g. you just want to differentiate between an integer and a float. It
+// is also not fully portable. For example, MSVC does not differentiate between
+// char and [un]signed char, but GCC does. Using these macros inside _Generic()
+// selection fixes the portability issues and increase convenience. Available
+// selection macros:
+//
+// - GP_C11_GENERIC_SIGNED_TYPE: signed primitive integers, GPInt128, and plain
+//   char if signed.
+//
+// - GP_C11_GENERIC_UNSIGNED_TYPE: unsigned primitive integers, GPUint128, bool,
+//   and plain char if unsigned.
+//
+// - GP_C11_GENERIC_FLOAT: float, double and long double if available.
+//
+// - GP_C11_GENERIC_NUMBER: all of the above.
+//
+// - GP_C11_GENERIC_INTEGRAL_TYPE: signed primitive integers, unsigned primitive
+//   integers, GPInt128, GPUint128, bool, and plain char.
+//
+// - GP_C11_GENERIC_SIGNED_INTEGER: signed primitive integers. Plain char is not
+//   considered as integer by this macro since it is most commonly used to
+//   represent raw bytes or text.
+//
+// - GP_C11_GENERIC_UNSIGNED_INTEGER: unsigned primitive integers. Plain char is
+//   not considered as integer by this macro since it is most commonly used to
+//   represent raw bytes or text. bool is also not considered as integer since
+//   it is most commonly used to represent logic.
+//
+// - GP_C11_GENERIC_INTEGER: signed and unsigned primitive integers. Plain char
+//   and bool is excluded.
+//
+// - GP_C11_GENERIC_ARITHMETIC_TYPE: signed and unsigned primitive integers and
+//   floating point types. Plain char and bool is excluded.
+//
+// - GP_C11_GENERIC_STRING: null-terminated char* and GPString.
+#if !_MSC_VER
+#  if CHAR_MAX == SCHAR_MAX
+#    define GP_C11_GENERIC_SIGNED_TYPE(A) \
+       GP_INT128_SELECTION((A),) \
+       char: (A), signed char: (A), short: (A), int: (A), \
+       long: (A), long long: (A)
+#    define GP_C11_GENERIC_UNSIGNED_TYPE(A) \
+       GP_UINT128_SELECTION((A),) \
+       bool: (A), unsigned char: (A), unsigned short: (A), unsigned: (A), \
+       unsigned long: (A), unsigned long long: (A)
+#  else
+#    define GP_C11_GENERIC_SIGNED_TYPE(A) \
+       GP_INT128_SELECTION((A),) \
+       signed char: (A), short: (A), int: (A), \
+       long: (A), long long: (A)
+#    define GP_C11_GENERIC_UNSIGNED_TYPE(A) \
+       GP_UINT128_SELECTION((A),) \
+       bool: (A), char: (A): unsigned char: (A), unsigned short: (A), unsigned: (A), \
+       unsigned long: (A), unsigned long long: (A)
+#  endif
+#else // MSVC doesn't differentiate between char and [un]signed char
+#  if CHAR_MAX == SCHAR_MAX
+#    define GP_C11_GENERIC_SIGNED_TYPE(A) \
+       GP_INT128_SELECTION((A),) \
+       signed char: (A), short: (A), int: (A), \
+       long: (A), long long: (A)
+#    define GP_C11_GENERIC_UNSIGNED_TYPE(A) \
+       GP_UINT128_SELECTION((A),) \
+       bool: (A), unsigned char: (A), unsigned short: (A), unsigned: (A), \
+       unsigned long: (A), unsigned long long: (A)
+#  else
+#    define GP_C11_GENERIC_SIGNED_TYPE(A) \
+       GP_INT128_SELECTION((A),) \
+       signed char: (A), short: (A), int: (A), long: (A), long long: (A)
+#    define GP_C11_GENERIC_UNSIGNED_TYPE(A) \
+       GP_UINT128_SELECTION((A),) \
+       bool: (A), unsigned char: (A), unsigned short: (A), unsigned: (A), \
+       unsigned long: (A), unsigned long long: (A)
+#  endif
+#endif
+#if __GNUC__
+#  define GP_C11_GENERIC_FLOAT(A) float: (A), double: (A), long double: (A)
+#else
+#  define GP_C11_GENERIC_FLOAT(A) float: (A), double: (A)
+#endif
+#define GP_C11_GENERIC_INTEGRAL_TYPE(A) GP_C11_GENERIC_SIGNED_TYPE(A), GP_C11_GENERIC_UNSIGNED_TYPE(A)
+#define GP_C11_GENERIC_NUMBER(A) \
+    GP_C11_GENERIC_SIGNED_TYPE(A), GP_C11_GENERIC_UNSIGNED_TYPE(A), GP_C11_GENERIC_FLOAT(A)
+#define GP_C11_GENERIC_SIGNED_INTEGER(A) \
+    signed char: (A), short: (A), int (A), long: (A), long long: (A)
+#define GP_C11_GENERIC_UNSIGNED_INTEGER(A) \
+    unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A)
+#define GP_C11_GENERIC_INTEGER(A) \
+    signed char: (A), short: (A), int (A), long: (A), long long: (A), \
+    unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A)
+#define GP_C11_GENERIC_ARITHMETIC_TYPE(A) \
+    signed char: (A), short: (A), int (A), long: (A), long long: (A), \
+    unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A), \
+    GP_C11_GENERIC_FLOAT(A)
+#define GP_C11_GENERIC_STRING(A) char*: (A), const char*: (A), struct gp_char*: (A)
+
+// GP_TYPE(): basic reflection
+// User structs currently not supported. // TODO we want these!
 #if __cplusplus // defined with overloads
+#elif __GNUC__ // long double supported
+#define GP_TYPE(VAR)                              \
+_Generic(VAR,                                     \
+    bool:                  GP_BOOL,               \
+    short:                 GP_SHORT,              \
+    int:                   GP_INT,                \
+    long:                  GP_LONG,               \
+    long long:             GP_LONG_LONG,          \
+    GP_INT128_SELECTION(GP_INT128,)               \
+    unsigned short:        GP_UNSIGNED_SHORT,     \
+    unsigned int:          GP_UNSIGNED,           \
+    unsigned long:         GP_UNSIGNED_LONG,      \
+    unsigned long long:    GP_UNSIGNED_LONG_LONG, \
+    GP_UINT128_SELECTION(GP_UINT128,)             \
+    float:                 GP_FLOAT,              \
+    double:                GP_DOUBLE,             \
+    long double:           GP_LONG_DOUBLE,        \
+    char:                  GP_CHAR,               \
+    unsigned char:         GP_UNSIGNED_CHAR,      \
+    signed char:           GP_SIGNED_CHAR,        \
+    char*:                 GP_CHAR_PTR,           \
+    const char*:           GP_CHAR_PTR,           \
+    struct gp_char*:       GP_STRING,             \
+    default:               GP_PTR)
 #elif !_MSC_VER
 #define GP_TYPE(VAR)                              \
 _Generic(VAR,                                     \
@@ -178,10 +314,12 @@ _Generic(VAR,                                     \
     int:                   GP_INT,                \
     long:                  GP_LONG,               \
     long long:             GP_LONG_LONG,          \
+    GP_INT128_SELECTION(GP_INT128,)               \
     unsigned short:        GP_UNSIGNED_SHORT,     \
     unsigned int:          GP_UNSIGNED,           \
     unsigned long:         GP_UNSIGNED_LONG,      \
     unsigned long long:    GP_UNSIGNED_LONG_LONG, \
+    GP_UINT128_SELECTION(GP_UINT128,)             \
     float:                 GP_FLOAT,              \
     double:                GP_DOUBLE,             \
     char:                  GP_CHAR,               \
@@ -191,7 +329,7 @@ _Generic(VAR,                                     \
     const char*:           GP_CHAR_PTR,           \
     struct gp_char*:       GP_STRING,             \
     default:               GP_PTR)
-#else // MSVC char <=> signed char, although standard says that they are different
+#else // MSVC doesn't differentiate between char and [un]signed char
 #define GP_TYPE(VAR)                              \
 _Generic(VAR,                                     \
     bool:                  GP_BOOL,               \
@@ -199,10 +337,12 @@ _Generic(VAR,                                     \
     int:                   GP_INT,                \
     long:                  GP_LONG,               \
     long long:             GP_LONG_LONG,          \
+    GP_INT128_SELECTION(GP_INT128,)               \
     unsigned short:        GP_UNSIGNED_LONG,      \
     unsigned int:          GP_UNSIGNED,           \
     unsigned long:         GP_UNSIGNED_LONG,      \
     unsigned long long:    GP_UNSIGNED_LONG_LONG, \
+    GP_UINT128_SELECTION(GP_UINT128,)             \
     float:                 GP_FLOAT,              \
     double:                GP_DOUBLE,             \
     unsigned char:         GP_UNSIGNED_CHAR,      \
@@ -213,8 +353,8 @@ _Generic(VAR,                                     \
     default:               GP_PTR)
 #endif
 
-static inline bool gp_is_unsigned(const GPType T) { return T <= GP_UNSIGNED_LONG_LONG; }
-static inline bool gp_is_integer (const GPType T) { return T <= GP_LONG_LONG; }
+static inline bool gp_is_unsigned(const GPType T) { return T <= GP_UINT128; }
+static inline bool gp_is_integer (const GPType T) { return T <= GP_INT128;  }
 static inline bool gp_is_floating(const GPType T) { return GP_FLOAT <= T && T <= GP_DOUBLE; }
 static inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_PTR; }
 
@@ -234,17 +374,21 @@ static inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T
 // ----------------------------------------------------------------------------
 
 
+#ifndef GP_INT128_SELECTION
+#define GP_INT128_SELECTION(...)
+#define GP_UINT128_SELECTION(...)
+#endif
+
 #if __clang__
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #endif
 
 #if __STDC_VERSION__ <= 199901L
 // Unique struct/union name
-#define GP_MAKE_UNIQUE(A, B) A##B
-#define GP_C99_UNIQUE_STRUCT(LINE) GP_MAKE_UNIQUE(_gp_uniqs__, LINE)
+#  define GP_C99_UNIQUE_STRUCT(LINE) GP_TOKEN_PASTE(_gp_uniqs__, LINE)
 #else
 // C11 allows structs and unions to be unnamed
-#define GP_C99_UNIQUE_STRUCT(_)
+#  define GP_C99_UNIQUE_STRUCT(_)
 #endif
 
 // ----------------------------------------------------------------------------

@@ -48,8 +48,11 @@ static void* gp_heap_alloc(GPAllocator* unused, size_t block_size, size_t alignm
     void* mem = (uint8_t*)gp_round_to_aligned((uintptr_t)((void**)mem_start + 1), alignment);
     memcpy((void**)mem - 1, &mem_start, sizeof mem_start);
     #endif
-    if (mem == NULL) // Inputs should be validated by the user, so this
-        abort();     // indicates something critical, don't try to 'handle' this!
+    if (mem == NULL && errno == ENOMEM)
+        abort();
+    // Arguments should already be validated, so this assertion should not fail,
+    // but double check for good measure.
+    gp_assert(mem != NULL, "malloc() failed!");
     return mem;
 }
 
