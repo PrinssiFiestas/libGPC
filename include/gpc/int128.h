@@ -18,14 +18,14 @@
 #include <limits.h>
 #include <string.h>
 
-#if _MSC_VER && _M_X64
-// Note: MSVC sometimes produces much worse code using intrinsics, so only use
-// them with some functions.
-#include <intrin.h>
+#if _MSC_VER
+#include <winnt.h>
 #endif
 
 #if (__GNUC__ && defined(__SIZEOF_INT128__)) || __clang__ || GP_TEST_INT128
-#define GP_HAS_TI_INT 1
+#  ifndef GP_TEST_INT128
+#    define GP_HAS_TI_INT 1
+#  endif
 typedef unsigned GPTIUint __attribute__((mode(TI)));
 typedef int      GPTIInt  __attribute__((mode(TI)));
 #endif
@@ -38,6 +38,32 @@ typedef int      GPTIInt  __attribute__((mode(TI)));
 // ----------------------------------------------------------------------------
 
 
+// ----------------------------------------------------------------------------
+// Endianness
+
+/** Check if system is big endian.*/
+GP_NODISCARD
+static inline bool gp_is_big_endian(void)
+{
+    union Endianness {
+        uint16_t u16;
+        struct { uint8_t is_little; uint8_t is_big; } endianness;
+    } integer;
+    integer.u16 = 1;
+    return integer.endianness.is_big;
+}
+/** Check if system is little endian.*/
+static inline bool gp_is_little_endian(void)
+{
+    union Endianness {
+        uint16_t u16;
+        struct { uint8_t is_little; uint8_t is_big; } endianness;
+    } integer;
+    integer.u16 = 1;
+    return integer.endianness.is_little;
+}
+
+// ----------------------------------------------------------------------------
 /** 128-bit unsigned integer.*/
 typedef union gp_uint128
 {
@@ -81,31 +107,6 @@ typedef union gp_int128
 } GPInt128;
 
 // ----------------------------------------------------------------------------
-// Endianness
-
-/** Check if system is big endian.*/
-GP_NODISCARD
-static inline bool gp_is_big_endian(void)
-{
-    union Endianness {
-        uint16_t u16;
-        struct { uint8_t is_little; uint8_t is_big; } endianness;
-    } integer;
-    integer.u16 = 1;
-    return integer.endianness.is_big;
-}
-/** Check if system is little endian.*/
-static inline bool gp_is_little_endian(void)
-{
-    union Endianness {
-        uint16_t u16;
-        struct { uint8_t is_little; uint8_t is_big; } endianness;
-    } integer;
-    integer.u16 = 1;
-    return integer.endianness.is_little;
-}
-
-// ----------------------------------------------------------------------------
 // Limits
 
 #define GP_UINT128_MAX gp_uint128(0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF)
@@ -143,19 +144,28 @@ GP_NODISCARD static inline GPInt128 gp_int128(int64_t hi_bits, uint64_t lo_bits)
 }
 
 /** Convert 128-bit signed integer to 128-bit unsigned integer.*/
-GP_NODISCARD static inline GPUint128 gp_uint128_int128(GPInt128 i)
+GP_NODISCARD static inline GPUint128 gp_uint128_i128(GPInt128 i)
 {
     GPUint128 u;
     memcpy(&u, &i, sizeof u);
     return u;
 }
 /** Convert 128-bit unsigned integer to 128-bit signed integer.*/
-GP_NODISCARD static inline GPInt128 gp_int128_uint128(GPUint128 u)
+GP_NODISCARD static inline GPInt128 gp_int128_u128(GPUint128 u)
 {
     GPInt128 i;
     memcpy(&i, &u, sizeof i);
     return i;
 }
+
+/** Convert 64-bit unsigned integer to 128-bit unsigned integer.*/
+GP_NODISCARD static inline GPUint128 gp_uint128_u64(uint64_t u) { return gp_uint128(0, u)     ; }
+/** Convert sign extended 64-bit signed integer to 128-bit unsigned integer.*/
+GP_NODISCARD static inline GPUint128 gp_uint128_i64(int64_t i)  { return gp_uint128(-(i<0), i); }
+/** Convert 64-bit unsigned integer to 128-bit signed integer.*/
+GP_NODISCARD static inline GPInt128 gp_int128_u64(uint64_t u)   { return gp_int128(0, u)      ; }
+/** Convert sign extended 64-bit signed integer to 128-bit signed integer.*/
+GP_NODISCARD static inline GPInt128 gp_int128_i64(int64_t i)    { return gp_int128(-(i<0), i) ; }
 
 /** Get low bits of 128-bit unsigned integer.*/
 GP_NODISCARD static inline uint64_t gp_uint128_lo(GPUint128 u)
@@ -220,24 +230,22 @@ GP_NODISCARD static inline GPInt128 gp_int128_tiint(GPTIInt _i)
 }
 #endif
 
-#if __cplusplus // constructor overloads, available in C as macros
+#if __cplusplus // concise constructors, available in C as macros
 GP_NODISCARD static inline GPUint128 gp_u128(uint64_t hi, uint64_t lo) { return gp_uint128(hi, lo); }
-GP_NODISCARD static inline GPUint128 gp_u128(uint64_t u)  { return gp_uint128(0, u); }
-GP_NODISCARD static inline GPUint128 gp_u128(int64_t i)   { return gp_uint128(-(i<0), i); }
-GP_NODISCARD static inline GPUint128 gp_u128(GPInt128 i)  { return gp_uint128_int128(i); }
-GP_NODISCARD static inline GPUint128 gp_u128(GPUint128 u) { return u; } // may be useful for generics
-GP_NODISCARD static inline GPInt128 gp_i128(int64_t hi, uint64_t lo) { return gp_int128(hi, lo); }
-GP_NODISCARD static inline GPInt128 gp_i128(int64_t i)   { return gp_int128(-(i<0), i); }
-GP_NODISCARD static inline GPInt128 gp_i128(uint64_t u)  { return gp_int128(0, u); }
-GP_NODISCARD static inline GPInt128 gp_i128(GPUint128 u) { return gp_int128_uint128(u); }
-GP_NODISCARD static inline GPInt128 gp_i128(GPInt128 i)  { return i; } // may be useful for generics
+GP_NODISCARD static inline GPUint128 gp_u128(GPInt128 i)   { return gp_uint128_i128(i); }
+GP_NODISCARD static inline GPUint128 gp_u128(GPUint128 u)  { return u; } // may be useful for generics
+template <typename T> static inline GPUint128 gp_u128(T i) { return gp_uint128(-(i<0), i); }
+GP_NODISCARD static inline GPInt128  gp_i128(int64_t hi,  uint64_t lo) { return gp_int128(hi, lo); }
+GP_NODISCARD static inline GPInt128  gp_i128(GPUint128 u)  { return gp_int128_u128(u); }
+GP_NODISCARD static inline GPInt128  gp_i128(GPInt128 i)   { return i; } // may be useful for generics
+template <typename T> static inline GPInt128 gp_i128(T i)  { return gp_int128(-(i<0), i); }
 #  if GP_HAS_TI_INT
 GP_NODISCARD static inline GPUint128 gp_u128(GPTIUint u) { return gp_uint128_tiuint(u); }
 GP_NODISCARD static inline GPInt128  gp_i128(GPTIInt  i) { return gp_int128_tiint(i);  }
 #  endif
 #else
-#define gp_u128(...) GP_OVERLOAD2(__VA_ARGS__, gp_uint128, GP_U128)(__VA_ARGS__)
-#define gp_i128(...) GP_OVERLOAD2(__VA_ARGS__, gp_int128,  GP_I128)(__VA_ARGS__)
+#define gp_u128(...) GP_OVERLOAD2(__VA_ARGS__, gp_uint128, GP_U128_CTOR)(__VA_ARGS__)
+#define gp_i128(...) GP_OVERLOAD2(__VA_ARGS__, gp_int128,  GP_I128_CTOR)(__VA_ARGS__)
 #endif
 
 // ----------------------------------------------------------------------------
@@ -327,13 +335,18 @@ GP_NODISCARD static inline GPUint128 gp_uint128_shift_left(GPUint128 a, uint8_t 
     #if GP_HAS_TI_INT
     return gp_uint128_tiuint(a.u128 << b);
     #else
-    if (b == 0) // avoid UB in `>> (64-b)`
+    if (b == 0) // avoid UB in `<< (64-b)`
         return a;
     if (b >= 64)
         return gp_uint128(gp_uint128_lo(a) << (b-64), 0);
+    #  if _MSC_VER
+    DWORD64 hi = ShiftLeft128(gp_uint128_lo(a), gp_uint128_hi(a), b);
+    return gp_uint128(hi, gp_uint128_lo(a) << b);
+    #  else
     return gp_uint128(
         (gp_uint128_hi(a) << b) | (gp_uint128_lo(a) >> (64-b)),
          gp_uint128_lo(a) << b);
+    #  endif
     #endif
 }
 /** Signed bitwise left shift.
@@ -344,7 +357,7 @@ GP_NODISCARD static inline GPInt128 gp_int128_shift_left(GPInt128 a, uint8_t b)
     #if GP_HAS_TI_INT
     return gp_int128_tiint(a.i128 << b);
     #else
-    if (b == 0) // avoid UB in `>> (64-b)`
+    if (b == 0) // avoid UB in `<< (64-b)`
         return a;
     if (b >= 64)
         return gp_int128(gp_int128_lo(a) << (b-64), 0);
@@ -362,13 +375,18 @@ GP_NODISCARD static inline GPUint128 gp_uint128_shift_right(GPUint128 a, uint8_t
     #if GP_HAS_TI_INT
     return gp_uint128_tiuint(a.u128 >> b);
     #else
-    if (b == 0) // avoid UB in `<< (64-b)`
+    if (b == 0) // avoid UB in `>> (64-b)`
         return a;
     if (b >= 64)
         return gp_uint128(0, gp_uint128_hi(a) >> (b-64));
+    #  if _MSC_VER
+    DWORD64 lo = ShiftRight128(gp_uint128_lo(a), gp_uint128_hi(a), b);
+    return gp_uint128(gp_uint128_hi(a) >> b, lo);
+    #  else
     return gp_uint128(
          gp_uint128_hi(a) >> b,
         (gp_uint128_lo(a) >> b) | (gp_uint128_hi(a) << (64-b)));
+    #  endif
     #endif
 }
 /** Signed bitwise right shift.
@@ -379,7 +397,7 @@ GP_NODISCARD static inline GPInt128 gp_int128_shift_right(GPInt128 a, uint8_t b)
     #if GP_HAS_TI_INT
     return gp_int128_tiint(a.i128 >> b);
     #else
-    if (b == 0) // avoid UB in `<< (64-b)`
+    if (b == 0) // avoid UB in `>> (64-b)`
         return a;
     if (b >= 64)
         return gp_int128(gp_int128_hi(a) >> 63/*sign extend*/, gp_int128_hi(a) >> (b-64));
@@ -448,7 +466,7 @@ GP_NODISCARD static inline GPUint128 gp_uint128_negate(GPUint128 a)
     #if GP_HAS_TI_INT
     return gp_uint128_tiuint(-a.u128);
     #else
-    return gp_uint128(~a.hi + !a.lo, ~a.lo + 1);
+    return gp_uint128(~gp_uint128_hi(a) + !gp_uint128_lo(a), ~gp_uint128_lo(a) + 1);
     #endif
 }
 /** Negate 128-bit signed integer.*/
@@ -457,7 +475,7 @@ GP_NODISCARD static inline GPInt128 gp_int128_negate(GPInt128 a)
     #if GP_HAS_TI_INT
     return gp_int128_tiint(-a.i128);
     #else
-    return gp_int128_uint128(gp_uint128_negate(gp_uint128_int128(a)));
+    return gp_int128_u128(gp_uint128_negate(gp_uint128_i128(a)));
     #endif
 }
 
@@ -466,16 +484,15 @@ GP_NODISCARD static inline GPUint128 gp_uint128_mul64(uint64_t a, uint64_t b)
 {
     #if GP_HAS_TI_INT
     return gp_uint128_tiuint((GPTIUint)a * b);
-    #elif _MSC_VER && _M_X64
-    uint64_t lo, hi;
-    lo = _umul128(a, b, &hi);
+    #elif _MSC_VER
+    DWORD64 lo, hi;
+    lo = UnsignedMultiply128(a, b, &hi);
     return gp_uint128(hi, lo);
     #else
     GPUint128 gp_uint128_long_mul64(uint64_t a, uint64_t b);
     return gp_uint128_long_mul64(a, b);
     #endif
 }
-
 /** Multiply 128-bit unsigned integers.*/
 GP_NODISCARD static inline GPUint128 gp_uint128_mul(GPUint128 a, GPUint128 b)
 {
@@ -487,16 +504,30 @@ GP_NODISCARD static inline GPUint128 gp_uint128_mul(GPUint128 a, GPUint128 b)
     return y;
     #endif
 }
+/** Multiply 64-bit signed integers to 128-bit signed integer.*/
+GP_NODISCARD static inline GPInt128 gp_int128_mul64(int64_t a, int64_t b)
+{
+    #if GP_HAS_TI_INT
+    return gp_int128_tiint((GPTIInt)a * b);
+    #elif _MSC_VER
+    LONG64 lo, hi;
+    lo = Multiply128(a, b, &hi);
+    return gp_int128(hi, lo);
+    #else
+    return gp_int128_u128(gp_uint128_mul(gp_uint128(-(a<0), a), gp_uint128(-(b<0), b)));
+    #endif
+}
+
 /** Multiply 128-bit signed integers.*/
 GP_NODISCARD static inline GPInt128 gp_int128_mul(GPInt128 a, GPInt128 b)
 {
     #if GP_HAS_TI_INT
     return gp_int128_tiint(a.i128 * b.i128);
     #else
-    return gp_int128_uint128(
+    return gp_int128_u128(
         gp_uint128_mul(
-            gp_uint128_int128(a),
-            gp_uint128_int128(b)));
+            gp_uint128_i128(a),
+            gp_uint128_i128(b)));
     #endif
 }
 
@@ -587,7 +618,7 @@ GP_NODISCARD static inline bool gp_uint128_greater_than(GPUint128 a, GPUint128 b
     #if GP_HAS_TI_INT
     return a.u128 > b.u128;
     #else
-    if (gp_uint128_hi(a) == gp_uint128_lo(b))
+    if (gp_uint128_hi(a) == gp_uint128_hi(b))
         return gp_uint128_lo(a) > gp_uint128_lo(b);
     return gp_uint128_hi(a) > gp_uint128_hi(b);
     #endif
@@ -597,9 +628,9 @@ GP_NODISCARD static inline bool gp_int128_greater_than(GPInt128 a, GPInt128 b)
     #if GP_HAS_TI_INT
     return a.i128 > b.i128;
     #else
-    if (gp_uint128_hi(a) == gp_uint128_lo(b))
-        return gp_uint128_lo(a) > gp_uint128_lo(b);
-    return gp_uint128_hi(a) > gp_uint128_hi(b);
+    if (gp_int128_hi(a) == gp_int128_hi(b))
+        return gp_int128_lo(a) > gp_int128_lo(b);
+    return gp_int128_hi(a) > gp_int128_hi(b);
     #endif
 }
 
@@ -618,9 +649,9 @@ GP_NODISCARD static inline bool gp_int128_less_than(GPInt128 a, GPInt128 b)
     #if GP_HAS_TI_INT
     return a.i128 < b.i128;
     #else
-    if (gp_uint128_hi(a) == gp_uint128_hi(b))
-        return gp_uint128_lo(a) < gp_uint128_lo(b);
-    return gp_uint128_hi(a) < gp_uint128_hi(b);
+    if (gp_int128_hi(a) == gp_int128_hi(b))
+        return gp_int128_lo(a) < gp_int128_lo(b);
+    return gp_int128_hi(a) < gp_int128_hi(b);
     #endif
 }
 
@@ -629,7 +660,7 @@ GP_NODISCARD static inline bool gp_uint128_greater_than_equal(GPUint128 a, GPUin
     #if GP_HAS_TI_INT
     return a.u128 >= b.u128;
     #else
-    if (gp_uint128_hi(a) == gp_uint128_lo(b))
+    if (gp_uint128_hi(a) == gp_uint128_hi(b))
         return gp_uint128_lo(a) >= gp_uint128_lo(b);
     return gp_uint128_hi(a) >= gp_uint128_hi(b);
     #endif
@@ -639,9 +670,9 @@ GP_NODISCARD static inline bool gp_int128_greater_than_equal(GPInt128 a, GPInt12
     #if GP_HAS_TI_INT
     return a.i128 >= b.i128;
     #else
-    if (gp_uint128_hi(a) == gp_uint128_lo(b))
-        return gp_uint128_lo(a) >= gp_uint128_lo(b);
-    return gp_uint128_hi(a) >= gp_uint128_hi(b);
+    if (gp_int128_hi(a) == gp_int128_hi(b))
+        return gp_int128_lo(a) >= gp_int128_lo(b);
+    return gp_int128_hi(a) >= gp_int128_hi(b);
     #endif
 }
 
@@ -650,7 +681,7 @@ GP_NODISCARD static inline bool gp_uint128_less_than_equal(GPUint128 a, GPUint12
     #if GP_HAS_TI_INT
     return a.u128 <= b.u128;
     #else
-    if (gp_uint128_hi(a) == gp_uint128_lo(b))
+    if (gp_uint128_hi(a) == gp_uint128_hi(b))
         return gp_uint128_lo(a) <= gp_uint128_lo(b);
     return gp_uint128_hi(a) <= gp_uint128_hi(b);
     #endif
@@ -660,9 +691,9 @@ GP_NODISCARD static inline bool gp_int128_less_than_equal(GPInt128 a, GPInt128 b
     #if GP_HAS_TI_INT
     return a.i128 <= b.i128;
     #else
-    if (gp_uint128_hi(a) == gp_uint128_lo(b))
-        return gp_uint128_lo(a) <= gp_uint128_lo(b);
-    return gp_uint128_hi(a) <= gp_uint128_hi(b);
+    if (gp_int128_hi(a) == gp_int128_hi(b))
+        return gp_int128_lo(a) <= gp_int128_lo(b);
+    return gp_int128_hi(a) <= gp_int128_hi(b);
     #endif
 }
 
@@ -671,19 +702,79 @@ GP_NODISCARD static inline bool gp_int128_less_than_equal(GPInt128 a, GPInt128 b
 // combinations produce ambiguities, are bug prone, or both, so only overload
 // carefully selected combinations of types.
 
+// Arithmetic
+GP_NODISCARD static inline GPUint128 operator +(GPUint128 a, GPUint128 b) { return gp_uint128_add(a, b)                ; }
+GP_NODISCARD static inline GPInt128  operator +(GPInt128  a, GPInt128  b) { return gp_int128_add(a, b)                 ; }
+GP_NODISCARD static inline GPUint128 operator -(GPUint128 a, GPUint128 b) { return gp_uint128_sub(a, b)                ; }
+GP_NODISCARD static inline GPInt128  operator -(GPInt128  a, GPInt128  b) { return gp_int128_sub(a, b)                 ; }
+GP_NODISCARD static inline GPUint128 operator *(GPUint128 a, GPUint128 b) { return gp_uint128_mul(a, b)                ; }
+GP_NODISCARD static inline GPInt128  operator *(GPInt128  a, GPInt128  b) { return gp_int128_mul(a, b)                 ; }
+GP_NODISCARD static inline GPUint128 operator /(GPUint128 a, GPUint128 b) { return gp_uint128_div(a, b)                ; }
+GP_NODISCARD static inline GPInt128  operator /(GPInt128  a, GPInt128  b) { return gp_int128_div(a, b)                 ; }
+GP_NODISCARD static inline GPUint128 operator %(GPUint128 a, GPUint128 b) { return gp_uint128_mod(a, b)                ; }
+GP_NODISCARD static inline GPInt128  operator %(GPInt128  a, GPInt128  b) { return gp_int128_mod(a, b)                 ; }
+GP_NODISCARD static inline GPUint128 operator -(GPUint128 a) { return gp_uint128_negate(a); }
+GP_NODISCARD static inline GPInt128  operator -(GPInt128  a) { return gp_int128_negate(a);  }
+
 // Bitwise operators
 GP_NODISCARD static inline GPUint128 operator ~(GPUint128  a) { return gp_uint128_not(a); }
-GP_NODISCARD static inline GPInt128  operator ~(GPInt128   a)  { return gp_int128_not(a);  }
+GP_NODISCARD static inline GPInt128  operator ~(GPInt128   a) { return gp_int128_not(a) ; }
 GP_NODISCARD static inline GPUint128 operator &(GPUint128  a, GPUint128 b) { return gp_uint128_and(a, b); }
 GP_NODISCARD static inline GPInt128  operator &(GPInt128   a, GPInt128 b)  { return gp_int128_and(a, b) ; }
-GP_NODISCARD static inline GPUint128 operator |(GPUint128  a, GPUint128 b) { return gp_uint128_or(a, b) ; }
-GP_NODISCARD static inline GPInt128  operator |(GPInt128   a, GPInt128 b)  { return gp_int128_or(a, b)  ; }
+GP_NODISCARD static inline GPUint128 operator |(GPUint128  a, GPUint128 b) { return gp_uint128_or(a, b); }
+GP_NODISCARD static inline GPInt128  operator |(GPInt128   a, GPInt128 b)  { return gp_int128_or(a, b) ; }
 GP_NODISCARD static inline GPUint128 operator ^(GPUint128  a, GPUint128 b) { return gp_uint128_xor(a, b); }
 GP_NODISCARD static inline GPInt128  operator ^(GPInt128   a, GPInt128 b)  { return gp_int128_xor(a, b) ; }
 GP_NODISCARD static inline GPUint128 operator <<(GPUint128 a, uint8_t b)   { return gp_uint128_shift_left(a, b) ; }
 GP_NODISCARD static inline GPInt128  operator <<(GPInt128  a, uint8_t b)   { return gp_int128_shift_left(a, b)  ; }
-GP_NODISCARD static inline GPUint128 operator >>(GPUint128 a, uint8_t b)   { return gp_uint128_shift_rigth(a, b); }
+GP_NODISCARD static inline GPUint128 operator >>(GPUint128 a, uint8_t b)   { return gp_uint128_shift_right(a, b); }
 GP_NODISCARD static inline GPInt128  operator >>(GPInt128  a, uint8_t b)   { return gp_int128_shift_right(a, b) ; }
+
+// Assignments
+static inline GPUint128 operator +=(GPUint128& a, GPUint128 b) { return a = a + b ; }
+static inline GPInt128  operator +=(GPInt128& a,  GPInt128  b) { return a = a + b ; }
+static inline GPUint128 operator -=(GPUint128& a, GPUint128 b) { return a = a - b ; }
+static inline GPInt128  operator -=(GPInt128& a,  GPInt128  b) { return a = a - b ; }
+static inline GPUint128 operator *=(GPUint128& a, GPUint128 b) { return a = a * b ; }
+static inline GPInt128  operator *=(GPInt128& a,  GPInt128  b) { return a = a * b ; }
+static inline GPUint128 operator /=(GPUint128& a, GPUint128 b) { return a = a / b ; }
+static inline GPInt128  operator /=(GPInt128& a,  GPInt128  b) { return a = a / b ; }
+static inline GPUint128 operator %=(GPUint128& a, GPUint128 b) { return a = a % b ; }
+static inline GPInt128  operator %=(GPInt128& a,  GPInt128  b) { return a = a % b ; }
+static inline GPUint128 operator &=(GPUint128& a, GPUint128 b) { return a = a & b ; }
+static inline GPInt128  operator &=(GPInt128& a,  GPInt128  b) { return a = a & b ; }
+static inline GPUint128 operator |=(GPUint128& a, GPUint128 b) { return a = a | b ; }
+static inline GPInt128  operator |=(GPInt128& a,  GPInt128  b) { return a = a | b ; }
+static inline GPUint128 operator ^=(GPUint128& a, GPUint128 b) { return a = a ^ b ; }
+static inline GPInt128  operator ^=(GPInt128& a,  GPInt128  b) { return a = a ^ b ; }
+static inline GPUint128 operator <<=(GPUint128& a, uint8_t  b) { return a = a << b; }
+static inline GPInt128  operator <<=(GPInt128& a,  uint8_t  b) { return a = a << b; }
+static inline GPUint128 operator >>=(GPUint128& a, uint8_t  b) { return a = a >> b; }
+static inline GPInt128  operator >>=(GPInt128& a,  uint8_t  b) { return a = a >> b; }
+
+// Increment/decrement
+static inline GPUint128& operator ++(GPUint128& a) { return a = a + gp_u128(1); }
+static inline GPInt128&  operator ++(GPInt128&  a) { return a = a + gp_i128(1); }
+static inline GPUint128& operator --(GPUint128& a) { return a = a - gp_u128(1); }
+static inline GPInt128&  operator --(GPInt128&  a) { return a = a - gp_i128(1); }
+static inline GPUint128  operator ++(GPUint128& a, int _) { (void)_; return ++a - gp_u128(1); }
+static inline GPInt128   operator ++(GPInt128& a,  int _) { (void)_; return ++a - gp_i128(1); }
+static inline GPUint128  operator --(GPUint128& a, int _) { (void)_; return --a + gp_u128(1); }
+static inline GPInt128   operator --(GPInt128& a,  int _) { (void)_; return --a + gp_i128(1); }
+
+// Comparisons
+GP_NODISCARD static inline bool operator ==(GPUint128 a, GPUint128 b) { return gp_uint128_equal(a, b)             ; }
+GP_NODISCARD static inline bool operator ==(GPInt128  a, GPInt128  b) { return gp_int128_equal(a, b)              ; }
+GP_NODISCARD static inline bool operator !=(GPUint128 a, GPUint128 b) { return gp_uint128_not_equal(a, b)         ; }
+GP_NODISCARD static inline bool operator !=(GPInt128  a, GPInt128  b) { return gp_int128_not_equal(a, b)          ; }
+GP_NODISCARD static inline bool operator  <(GPUint128 a, GPUint128 b) { return gp_uint128_less_than(a, b)         ; }
+GP_NODISCARD static inline bool operator  <(GPInt128  a, GPInt128  b) { return gp_int128_less_than(a, b)          ; }
+GP_NODISCARD static inline bool operator <=(GPUint128 a, GPUint128 b) { return gp_uint128_less_than_equal(a, b)   ; }
+GP_NODISCARD static inline bool operator <=(GPInt128  a, GPInt128  b) { return gp_int128_less_than_equal(a, b)    ; }
+GP_NODISCARD static inline bool operator  >(GPUint128 a, GPUint128 b) { return gp_uint128_greater_than(a, b)      ; }
+GP_NODISCARD static inline bool operator  >(GPInt128  a, GPInt128  b) { return gp_int128_greater_than(a, b)       ; }
+GP_NODISCARD static inline bool operator >=(GPUint128 a, GPUint128 b) { return gp_uint128_greater_than_equal(a, b); }
+GP_NODISCARD static inline bool operator >=(GPInt128  a, GPInt128  b) { return gp_int128_greater_than_equal(a, b) ; }
 #endif // __cplusplus // operator overloads
 
 
@@ -704,32 +795,30 @@ GP_NODISCARD static inline GPInt128  operator >>(GPInt128  a, uint8_t b)   { ret
 #define GP_UINT128_SELECTION(...) GPUint128: __VA_ARGS__
 
 #if __STDC_VERSION__ >= 201112L
-
-GP_NODISCARD static inline GPUint128 gp_uint128_u64(uint64_t u) { return gp_uint128(0, u);      }
-GP_NODISCARD static inline GPUint128 gp_uint128_i64(int64_t  i) { return gp_uint128(-(i<0), i); }
-GP_NODISCARD static inline GPUint128 gp_uint128_uint128(GPUint128 u) { return u;                }
-GP_NODISCARD static inline GPInt128  gp_int128_u64(uint64_t  u) { return gp_int128(0, u);       }
-GP_NODISCARD static inline GPInt128  gp_int128_i64(int64_t   i) { return gp_int128(-(i<0), i);  }
-GP_NODISCARD static inline GPInt128  gp_int128_int128(GPInt128 i) { return i;                   }
+GP_NODISCARD static inline GPUint128 gp_uint128_uint128(GPUint128 u) { return u; }
+GP_NODISCARD static inline GPInt128  gp_int128_int128(GPInt128 i) { return i;    }
 #  if GP_HAS_TI_INT // use implicit integer conversions
-#    define GP_U128(A) _Generic(A, GPUint128: gp_uint128_uint128, GPInt128: gp_uint128_int128, default: gp_uint128_tiuint)(A)
-#    define GP_I128(A) _Generic(A, GPUint128: gp_int128_uint128,  GPInt128: gp_int128_int128,  default: gp_int128_tiint)(A)
+#    define GP_U128_CTOR(A) _Generic(A, GPUint128: gp_uint128_uint128, GPInt128: gp_uint128_i128, default: gp_uint128_tiuint)(A)
+#    define GP_I128_CTOR(A) _Generic(A, GPUint128: gp_int128_u128,  GPInt128: gp_int128_int128,  default: gp_int128_tiint)(A)
 #  else
-#    define GP_U128(A) _Generic(A, \
+#    define GP_U128_CTOR(A) _Generic(A, \
          GP_C11_GENERIC_SIGNED_INTEGER(gp_uint128_i64), \
          GP_C11_GENERIC_UNSIGNED_INTEGER(gp_uint128_u64), \
-         GPUint128: gp_uint128_uint128, GPInt128: gp_uint128_int128)(A)
-#    define GP_I128(A) _Generic(A, \
+         GPUint128: gp_uint128_uint128, GPInt128: gp_uint128_i128)(A)
+#    define GP_I128_CTOR(A) _Generic(A, \
          GP_C11_GENERIC_SIGNED_INTEGER(gp_int128_i64), \
          GP_C11_GENERIC_UNSIGNED_INTEGER(gp_int128_u64), \
-         GPUint128: gp_int128_uint128, GPInt128: gp_int128_int128)(A)
+         GPUint128: gp_int128_u128, GPInt128: gp_int128_int128)(A)
 #  endif
 #else // C99, no type safety
 
 #include <stdarg.h>
-#define GP_U128(A) gp_u128_raw_ctor(sizeof(A), ((A)<0), A)
-#define GP_I128(A) gp_i128_raw_ctor(sizeof(A), ((A)<0), A)
+#define GP_U128_CTOR(A) gp_u128_raw_ctor(sizeof(A), ((A)<0), A)
+#define GP_I128_CTOR(A) gp_i128_raw_ctor(sizeof(A), ((A)<0), A)
 
+#if __GNUC__
+__attribute__((unused))
+#endif
 GP_NODISCARD static GPUint128 gp_u128_raw_ctor(size_t size, int negative, ...)
 {
     GPUint128 u;
@@ -744,6 +833,9 @@ GP_NODISCARD static GPUint128 gp_u128_raw_ctor(size_t size, int negative, ...)
     va_end(args);
     return u;
 }
+#if __GNUC__
+__attribute__((unused))
+#endif
 GP_NODISCARD static GPInt128 gp_i128_raw_ctor(size_t size, int negative, ...)
 {
     GPInt128 i;

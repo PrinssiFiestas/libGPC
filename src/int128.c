@@ -6,6 +6,11 @@
 
 GPUint128 gp_uint128_long_mul64(uint64_t a, uint64_t b)
 {
+    if ((a | b) <= UINT32_MAX)
+        return gp_uint128(0, a*b);
+    // Optimizing for other edge cases is probably not worth the extra branches
+    // and implementation complexity. Or is it? Todo: benchmark on 32-bit ARM.
+
     // Slice to 32-bit components
     uint64_t ah = a >> 32, al = a & 0xFFFFFFFF;
     uint64_t bh = b >> 32, bl = b & 0xFFFFFFFF;
@@ -187,12 +192,12 @@ GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128 *rem)
         //      carry = 1;
         // }
         const GPInt128 s = gp_int128_shift_right(
-            gp_int128_uint128(gp_uint128_sub(
+            gp_int128_u128(gp_uint128_sub(
                 gp_uint128_sub(d, r),
                 gp_uint128(0, 1))),
             n_utword_bits - 1);
         carry = gp_int128_lo(s) & 1;
-        r = gp_uint128_sub(r, gp_uint128_and(d, gp_uint128_int128(s)));
+        r = gp_uint128_sub(r, gp_uint128_and(d, gp_uint128_i128(s)));
     }
     q = gp_uint128_or(gp_uint128_shift_left(q, 1), gp_uint128(0, carry));
     if (rem)
@@ -212,9 +217,9 @@ GPInt128 gp_int128_idiv(GPInt128 a, GPInt128 b)
     s_a = gp_int128_xor(s_a, s_b);                             // sign of quotient
     return gp_int128_sub(
         gp_int128_xor(
-            gp_int128_uint128(gp_uint128_divmod(
-                gp_uint128_int128(a),
-                gp_uint128_int128(b),
+            gp_int128_u128(gp_uint128_divmod(
+                gp_uint128_i128(a),
+                gp_uint128_i128(b),
                 NULL)),
             s_a),
         s_a); // negate if s_a == -1
@@ -230,6 +235,6 @@ GPInt128 gp_int128_imod(GPInt128 a, GPInt128 b)
     s = gp_int128_shift_right(a, bits_in_tword_m1);          // s = a < 0 ? -1 : 0
     a = gp_int128_sub(gp_int128_xor(a, s), s);               // negate if s == -1
     GPUint128 r;
-    gp_uint128_divmod(gp_uint128_int128(a), gp_uint128_int128(b), &r);
-    return gp_int128_sub(gp_int128_xor(gp_int128_uint128(r), s), s); // negate if s == -1
+    gp_uint128_divmod(gp_uint128_i128(a), gp_uint128_i128(b), &r);
+    return gp_int128_sub(gp_int128_xor(gp_int128_u128(r), s), s); // negate if s == -1
 }

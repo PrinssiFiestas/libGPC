@@ -374,6 +374,9 @@ static inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T
 // ----------------------------------------------------------------------------
 
 
+// _Generic() requires complete types, but we might not want to include
+// int128.h, which is a relatively large header to avoid namespace bloat and to
+// reduce compile times. These macros are defined in int128.h.
 #ifndef GP_INT128_SELECTION
 #define GP_INT128_SELECTION(...)
 #define GP_UINT128_SELECTION(...)

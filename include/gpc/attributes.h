@@ -14,7 +14,7 @@
 #  if (__STDC_VERSION__ >= 201112L && !defined(_MSC_VER)) || defined(__COMPCERT__)
 #    define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
 #  else
-#    define GP_ALLOC_ALIGNMENT (sizeof(long double))
+#    define GP_ALLOC_ALIGNMENT (2*sizeof(void*))
 #  endif
 #elif (GP_ALLOC_ALIGNMENT < 8) || (GP_ALLOC_ALIGNMENT & (GP_ALLOC_ALIGNMENT - 1))
 #  error "GP_ALLOC_ALIGNMENT must be a power of 2 larger or equal to 8."
@@ -27,6 +27,8 @@
 #  define GP_NODISCARD __attribute__((__warn_unused_result__))
 #elif _MSC_VER
 #  define GP_NODISCARD _Check_return_
+#elif __cplusplus >= 201703L || __STDC_VERSION__ >= 202311L
+#  define GP_NODISCARD [[nodiscard]]
 #else
 #  define GP_NODISCARD
 #endif
