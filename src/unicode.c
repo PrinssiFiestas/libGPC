@@ -78,7 +78,7 @@ GPLocale gp_locale(const char* locale_code)
     if (locale_code[0] == '\0')
         return gp_default_locale;
 
-    GPUint128 key = gp_uint128(0, gp_bytes_hash64(locale_code, strlen(locale_code)));
+    GPUInt128 key = gp_uint128(0, gp_bytes_hash64(locale_code, strlen(locale_code)));
     GP_MAYBE_ATOMIC GPLocale locale = (GPLocale)gp_map_get(gp_locale_table, key);
 
     if (locale == (GPLocale)0)

@@ -626,9 +626,9 @@ int main(void)
             uint64_t  i64  = gp_hash64("yees");                 (void)i64;
             uint64_t  j64  = gp_hash64(gp_str(arena, "yees"));  (void)j64;
             uint64_t  k64  = gp_hash64("yees", 4);              (void)k64;
-            GPUint128 i128 = gp_hash128("yees");                (void)i128;
-            GPUint128 j128 = gp_hash128(gp_str(arena, "yees")); (void)j128;
-            GPUint128 k128 = gp_hash128("yees", 4);             (void)k128;
+            GPUInt128 i128 = gp_hash128("yees");                (void)i128;
+            GPUInt128 j128 = gp_hash128(gp_str(arena, "yees")); (void)j128;
+            GPUInt128 k128 = gp_hash128("yees", 4);             (void)k128;
         }
     }
 

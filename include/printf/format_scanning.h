@@ -7,6 +7,7 @@
 
 #include <stdbool.h>
 #include <stdarg.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,7 +21,7 @@ typedef struct PFFormatSpecifier
     // scan_format_string(). NULL if fmt_string does not contain a format
     // specifier.
     const char* string;
-    unsigned string_length;
+    size_t string_length;
 
     struct // flag
     {
@@ -48,8 +49,8 @@ typedef struct PFFormatSpecifier
         } option;
     } precision;
 
-    unsigned char length_modifier;   // any of "hljztL" or 2*'h' or 2*'l'
-    unsigned char conversion_format; // any of "csdioxXufFeEgGp". 'n' not supported.
+    unsigned char length_modifier;   // any of "hljztL" or 2*'h' or 2*'l' // TODO C23 fixed width modifiers
+    unsigned char conversion_format; // any of "csSdioxXufFeEgGp". 'n' not supported.
 } PFFormatSpecifier;
 
 // Portability wrapper.

@@ -17,7 +17,7 @@
 #    define GP_ALLOC_ALIGNMENT (2*sizeof(void*))
 #  endif
 #elif (GP_ALLOC_ALIGNMENT < 8) || (GP_ALLOC_ALIGNMENT & (GP_ALLOC_ALIGNMENT - 1))
-#  error "GP_ALLOC_ALIGNMENT must be a power of 2 larger or equal to 8."
+#  error GP_ALLOC_ALIGNMENT must be a power of 2 larger or equal to 8.
 #endif
 
 // ----------------------------------------------------------------------------
@@ -135,9 +135,10 @@
        GP_STATIC_ASSERT_SELECT(__VA_ARGS__, _Static_assert, GP_STATIC_ASSERT_NO_MSG)(__VA_ARGS__)
 #else // C99, message will be ignored, it is just there for compatibility
 #  define GP_STATIC_ASSERT_SELECT(_0, _1, THIS, ...) THIS // GP_OVERLOAD2, but removes need to include header
-#  define GP_STATIC_ASSERTION_NAME(LINE) GP_MAKE_UNIQUE(GPStaticAssertion_line_, LINE)
-#  define GP_STATIC_ASSERT_MSG(E, MSG) typedef char GP_STATIC_ASSERTION_NAME(__LINE__)[(E)?1:-1]
-#  define GP_STATIC_ASSERT_NO_MSG(E)   typedef char GP_STATIC_ASSERTION_NAME(__LINE__)[(E)?1:-1]
+#  define GP_STATIC_ASSERT_TOKEN_PASTE(A, B) A##B
+#  define GP_STATIC_ASSERTION_NAME(LINE) GP_STATIC_ASSERT_TOKEN_PASTE(GPStaticAssertion_line_, LINE)
+#  define GP_STATIC_ASSERT_MSG(E, MSG) char GP_STATIC_ASSERTION_NAME(__LINE__)[(E) ? 1 : -1]; (void)GP_STATIC_ASSERTION_NAME(__LINE__)
+#  define GP_STATIC_ASSERT_NO_MSG(E)   char GP_STATIC_ASSERTION_NAME(__LINE__)[(E) ? 1 : -1]; (void)GP_STATIC_ASSERTION_NAME(__LINE__)
 #  define GP_STATIC_ASSERT(...) \
        GP_STATIC_ASSERT_SELECT(__VA_ARGS__, GP_STATIC_ASSERT_MSG, GP_STATIC_ASSERT_NO_MSG)(__VA_ARGS__)
 #endif
@@ -151,6 +152,36 @@
 #else
 #  define GP_LIKELY(...)   (!!(__VA_ARGS__))
 #  define GP_UNLIKELY(...) (!!(__VA_ARGS__))
+#endif
+
+// ----------------------------------------------------------------------------
+// C Linkage
+
+#if __cplusplus
+#  define GP_EXTERN_C extern "C" // for single functions in mixed C/C++ headers
+#  define GP_BEGIN_EXTERN_C extern "C" { // for many functions in mixed headers
+#  define GP_END_EXTERN_C              }
+#else
+#  define GP_EXTERN_C
+#  define GP_BEGIN_EXTERN_C
+#  define GP_END_EXTERN_C
+#endif
+
+// ----------------------------------------------------------------------------
+// Constexpr
+
+#if __cplusplus
+#  define GP_CONSTEXPR_FUNCTION constexpr
+#  define GP_CONSTEXPR_VARIABLE constexpr
+#  define GP_CONST constexpr
+#elif __STDC_VERSION__ >= 202311L
+#  define GP_CONSTEXPR_FUNCTION
+#  define GP_CONSTEXPR_VARIABLE constexpr
+#  define GP_CONST constexpr
+#else
+#  define GP_CONSTEXPR_FUNCTION
+#  define GP_CONSTEXPR_VARIABLE
+#  define GP_CONST static const
 #endif
 
 #endif // GP_ATTRIBUTES_INCLUDED

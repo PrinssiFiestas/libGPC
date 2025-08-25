@@ -4,7 +4,8 @@
 
 // This library is modified to suit the needs of libGPC. Most notably
 // pf_snprintf() does not null-terminate if n is exceeded and custom formats and
-// portable attributes and restrict are added.
+// portable attributes and restrict are added. Also, return types are size_t
+// instead of int. Currently no error checking TODO
 //
 // Use %S for GPString
 //
@@ -25,34 +26,34 @@ extern "C" {
 #endif
 
 GP_NONNULL_ARGS()
-int pf_vprintf(
+size_t pf_vprintf(
     const char*GP_RESTRICT fmt, va_list args);
 
 GP_NONNULL_ARGS()
-int pf_vfprintf(
+size_t pf_vfprintf(
     FILE*GP_RESTRICT stream, const char*GP_RESTRICT fmt, va_list args);
 
 GP_NONNULL_ARGS()
-int pf_vsprintf(
+size_t pf_vsprintf(
     char*GP_RESTRICT buf, const char*GP_RESTRICT fmt, va_list args);
 
 GP_NONNULL_ARGS(3)
-int pf_vsnprintf(
+size_t pf_vsnprintf(
     char*GP_RESTRICT buf, size_t n, const char*GP_RESTRICT fmt, va_list args);
 
 GP_PRINTF(1, 2)
-int pf_printf(
+size_t pf_printf(
     const char*GP_RESTRICT fmt, ...);
 
 GP_NONNULL_ARGS() GP_PRINTF(2, 3)
-int pf_fprintf(
+size_t pf_fprintf(
     FILE*GP_RESTRICT stream, const char*GP_RESTRICT fmt, ...);
 
 GP_NONNULL_ARGS() GP_PRINTF(2, 3)
-int pf_sprintf(char*GP_RESTRICT buf, const char*GP_RESTRICT fmt, ...);
+size_t pf_sprintf(char*GP_RESTRICT buf, const char*GP_RESTRICT fmt, ...);
 
 GP_NONNULL_ARGS(3) GP_PRINTF(3, 4)
-int pf_snprintf(
+size_t pf_snprintf(
     char*GP_RESTRICT buf, size_t n, const char*GP_RESTRICT fmt, ...);
 
 // Functions taking va_list may or may not consume an argument from the list due
@@ -61,7 +62,7 @@ int pf_snprintf(
 // pf_vsnprintf_consuming() is guranteed to consume an arg from arg list.
 
 GP_NONNULL_ARGS(3, 4)
-int pf_vsnprintf_consuming(
+size_t pf_vsnprintf_consuming(
     char*GP_RESTRICT out_buf,
     const size_t max_size,
     const char*GP_RESTRICT format,

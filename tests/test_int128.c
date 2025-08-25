@@ -33,9 +33,9 @@
 #define ASSERT_EQ(A, B, ...) \
 (WRITE_RESULT(B), gp_assert((A) == (B)__VA_OPT__(,)__VA_ARGS__))
 
-GPUint128 uint128_random(GPRandomState* rs)
+GPUInt128 uint128_random(GPRandomState* rs)
 {
-    GPUint128 y;
+    GPUInt128 y;
     uint32_t data[4];
     for (size_t i = 0; i < 4; ++i)
         data[i] = gp_random(rs);
@@ -45,7 +45,7 @@ GPUint128 uint128_random(GPRandomState* rs)
 
 GPInt128 int128_random(GPRandomState* rs)
 {
-    GPUint128 u = uint128_random(rs);
+    GPUInt128 u = uint128_random(rs);
     GPInt128 y;
     memcpy(&y, &u, sizeof y);
     return y;
@@ -71,7 +71,7 @@ int main(void)
     {
         uint16_t u16 = 1;
         uint8_t* p = (uint8_t*)&u16;
-        GPUint128 u128;
+        GPUInt128 u128;
         u128.u128 = 1;
         gp_assert(gp_uint128_hi(u128) == 0);
         gp_assert(gp_uint128_lo(u128) == 1);
@@ -104,7 +104,7 @@ int main(void)
         rs = gp_random_state(tm->tm_yday + 1000*tm->tm_year);
     }
 
-    GPUint128 ua, ub;
+    GPUInt128 ua, ub;
     GPInt128  ia, ib;
 
     gp_suite("Comparisons");
@@ -402,8 +402,8 @@ int main(void)
 
     gp_suite("Division/modulus");
     {
-        GPUint128 u64s;
-        GPUint128 remainder;
+        GPUInt128 u64s;
+        GPUInt128 remainder;
 
         gp_test("0X/0X");
         {
@@ -460,46 +460,114 @@ int main(void)
         gp_test("Sign");
         {
             ia = int128_random_positive(&rs);
-            ib = gp_int128_shift_right(int128_random_positive(&rs), gp_random_range(&rs, 64, 127));
+            do {
+                ib = gp_int128_shift_right(int128_random_positive(&rs), gp_random_range(&rs, 64, 127));
+            } while (gp_int128_equal(ib, gp_int128(0, 0)));
             gp_expect(gp_int128_idiv(ia, ib).i128 >= 0);
             EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
             EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
 
             ia = int128_random_negative(&rs);
-            ib = gp_int128_shift_right(int128_random_positive(&rs), gp_random_range(&rs, 64, 127));
+            do {
+                ib = gp_int128_shift_right(int128_random_positive(&rs), gp_random_range(&rs, 64, 127));
+            } while (gp_int128_equal(ib, gp_int128(0, 0)));
             gp_expect(gp_int128_idiv(ia, ib).i128  < 0);
             EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
             EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
 
             ia = int128_random_positive(&rs);
-            ib = gp_int128_shift_right(int128_random_negative(&rs), gp_random_range(&rs, 64, 127));
+            do {
+                ib = gp_int128_shift_right(int128_random_negative(&rs), gp_random_range(&rs, 64, 127));
+            } while (gp_int128_equal(ib, gp_int128(0, 0)));
             gp_expect(gp_int128_idiv(ia, ib).i128  < 0);
             EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
             EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
 
             ia = int128_random_negative(&rs);
-            ib = gp_int128_shift_right(int128_random_negative(&rs), gp_random_range(&rs, 64, 127));
+            do {
+                ib = gp_int128_shift_right(int128_random_negative(&rs), gp_random_range(&rs, 64, 127));
+            } while (gp_int128_equal(ib, gp_int128(0, 0)));
             gp_expect(gp_int128_idiv(ia, ib).i128 >= 0);
             EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
             EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
         }
     } // gp_suite("Division/modulus");
 
+    #ifdef __SIZEOF_INT128__
+    gp_suite("Float conversions");
+    {
+        // https://github.com/m-ou-se/floatconv/blob/main/src/test.rs
+        static const GPTetraUInt u128s[] = {
+            0, 1, 2, 3, 1234,
+            GP_UINT128_MAX.u128, // Overflows the mantissa, should increment the exponent (which will be odd).
+            GP_UINT128_MAX.u128 / 2, // Overflows the mantissa, should increment the exponent (which will be even).
+            0b10000000000000000000000000000000000000000000000000000000000, // Exact match, no rounding
+            0b10000000000000000000000000000000000000000000000000000100010, // Round to closest (up)
+            0b10000000000000000000000000000000000000000000000000000010010, // Round to closest (down)
+            0b10000000000000000000000000000000000000000000000000001100, // Tie, round to even (up)
+            0b10000000000000000000000000000000000000000000000000000100, // Tie, round to even (down)
+            // Round to closest (up), with tie-breaking bit further than 64 bits away.
+            0b10000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000001,
+            // Round to closest (down), with 1-bit in 63rd position (which should be insignificant).
+            0b10000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000,
+            // Round to closest (down), with 1-bits in all insignificant positions.
+            0b10000000000000000000000000000000000000000000000000000011111111111111111111111111111111111111111111111111111111111111111111111111,
+            // Mantissa of 2*52 bits, with last 32 bits set.
+            0b100000000000000000000000000000000000000000000000000000000000000000000000011111111111111111111111111111111,
+            // Mantissa of 2*52 bits, with bit 23 set.
+            0b100000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000,
+            // Mantissa of 2*52 bits, with last 23 bits set.
+            0b100000000000000000000000000000000000000000000000000000000000000000000000000000000011111111111111111111111,
+            // Mantissa of 128-32 bits, with last 24 bits set.
+            0b1000000000000000000000000000000000000000000000000000000000000000000000000111111111111111111111111,
+            (GPTetraUInt)1 << 127,
+            (GPTetraUInt)2 << 126,
+            (GPTetraUInt)3 << 126,
+            (GPTetraUInt)1 << 64,
+            (GPTetraUInt)1 << 63,
+            (GPTetraUInt)1 << 54,
+            (GPTetraUInt)1 << 53,
+            (GPTetraUInt)1 << 52,
+            (GPTetraUInt)1 << 51,
+            ((GPTetraUInt)1 << 54) - 1,
+            ((GPTetraUInt)1 << 53) - 1,
+            ((GPTetraUInt)1 << 52) - 1,
+            ((GPTetraUInt)1 << 51) - 1,
+            ((GPTetraUInt)1 << 54) + 1,
+            ((GPTetraUInt)1 << 53) + 1,
+            ((GPTetraUInt)1 << 52) + 1,
+            ((GPTetraUInt)1 << 51) + 1,
+            UINT64_MAX,
+            UINT64_MAX << 64,
+            UINT64_MAX << 63,
+            UINT64_MAX << 53,
+            UINT64_MAX << 52,
+            UINT64_MAX << 51,
+            UINT64_MAX >> 13 << 64,
+            UINT64_MAX >> 13 << 63,
+            UINT64_MAX >> 13 << 53,
+            UINT64_MAX >> 13 << 52,
+            UINT64_MAX >> 13 << 51,
+            UINT64_MAX >> 12 << 64,
+            UINT64_MAX >> 12 << 63,
+            UINT64_MAX >> 12 << 53,
+            UINT64_MAX >> 12 << 52,
+            UINT64_MAX >> 12 << 51,
+            UINT64_MAX >> 11 << 64,
+            UINT64_MAX >> 11 << 63,
+            UINT64_MAX >> 11 << 53,
+            UINT64_MAX >> 11 << 52,
+            UINT64_MAX >> 11 << 51,
+            GP_UINT128_MAX.u128 - (GP_UINT128_MAX.u128 >> 24),
+            GP_UINT128_MAX.u128 - (GP_UINT128_MAX.u128 >> 23),
+            GP_UINT128_MAX.u128 - (GP_UINT128_MAX.u128 >> 22)
+        };
+    } // gp_suite("Float conversions");
+    #endif // __SIZEOF_INT128__
+
     #if _WIN32 // pedantic close
     gp_file_close(msvc_test_file);
     #endif
-}
-
-#elif _MSC_VER && _M_X64 // mostly test that intrinsics are used correctly
-
-#include "../src/int128.c"
-#include <gpc/io.h>
-
-int main(void)
-{
-    // TODO maybe we could store the results of GNU tests to a file, read the
-    // file here (if exists), and compare against it. It would work nicely with
-    // `make test_all`
 }
 
 #else

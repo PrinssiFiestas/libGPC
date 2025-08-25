@@ -159,8 +159,8 @@ int main(void)
         int* elem_67 = malloc(sizeof(int));
         *elem_25 = 25;
         *elem_67 = 67;
-        GPUint128 key_25 = gp_uint128(0,0);
-        GPUint128 key_67 = gp_uint128(0,0);
+        GPUInt128 key_25 = gp_uint128(0,0);
+        GPUInt128 key_67 = gp_uint128(0,0);
         *gp_uint128_lo_addr(&key_25) = 3;
         *gp_uint128_hi_addr(&key_25) = 0;
         *gp_uint128_lo_addr(&key_67) = 3;
@@ -184,8 +184,8 @@ int main(void)
             GPMapInitializer init = {.element_size = sizeof(int) };
             GPMap* map = gp_map_new(gp_heap, &init);
 
-            GPUint128 key1 = gp_uint128(0,0);
-            GPUint128 key2 = gp_uint128(0,0);
+            GPUInt128 key1 = gp_uint128(0,0);
+            GPUInt128 key2 = gp_uint128(0,0);
             *gp_uint128_lo_addr(&key1) = 3;
             *gp_uint128_hi_addr(&key1) = 0;
             *gp_uint128_lo_addr(&key2) = 3;
@@ -206,8 +206,8 @@ int main(void)
             GPMapInitializer init = {.destructor = free };
             GPMap* map = gp_map_new(arena, &init);
 
-            GPUint128 key1 = gp_uint128(0,0);
-            GPUint128 key2 = gp_uint128(0,0);
+            GPUInt128 key1 = gp_uint128(0,0);
+            GPUInt128 key2 = gp_uint128(0,0);
             *gp_uint128_lo_addr(&key1) = 3;
             *gp_uint128_hi_addr(&key1) = 0;
             *gp_uint128_lo_addr(&key2) = 3;
@@ -225,7 +225,7 @@ int main(void)
     {
         gp_test("Shift key");
         {
-            GPUint128 x = gp_uint128(59318, 86453012);
+            GPUInt128 x = gp_uint128(59318, 86453012);
             size_t shift = 8;
             gp_expect(gp_shift_key(x, shift).u128 == x.u128 >> 3);
         }

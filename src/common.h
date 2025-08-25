@@ -2,8 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#ifndef GP_PRINT_COMMON_INCLUDED
-#define GP_PRINT_COMMON_INCLUDED
+#ifndef GP_COMMON_INCLUDED
+#define GP_COMMON_INCLUDED
 
 #include <gpc/overload.h>
 #include <gpc/attributes.h>
@@ -101,4 +101,14 @@ size_t gp_bytes_print_objects(
     size_t*const i,
     GPPrintable obj);
 
-#endif // GP_PRINT_COMMON_INCLUDED
+// ----------------------------------------------------------------------------
+// Portability Assumptions
+
+#if CHAR_BIT != 8
+#error CHAR_BIT != 8: Crazy machines not supported.
+#endif
+#if ~1 == -1
+#error Ones' complement integer arithmetic not supported. C23 deprecates it anyway.
+#endif
+
+#endif // GP_COMMON_INCLUDED

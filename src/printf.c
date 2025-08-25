@@ -29,6 +29,9 @@ static uintmax_t pf_get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
 
     switch (fmt.length_modifier)
     {
+        case 0:
+            return va_arg(args->list, unsigned);
+
         case 'j':
             return va_arg(args->list, uintmax_t);
 
@@ -58,13 +61,12 @@ static uintmax_t pf_get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
 
         case 'Q': // quad word
             return (uint64_t)va_arg(args->list, uint64_t);
-
-        default:
-            return va_arg(args->list, unsigned);
     }
+    GP_UNREACHABLE;
+    return 0;
 }
 
-static unsigned pf_write_wc(
+static size_t pf_write_wc(
     struct pf_string* out,
     pf_va_list* args)
 {
@@ -81,9 +83,9 @@ static void pf_c_string_padding(
     const void* string,
     const size_t length)
 {
-    const unsigned field_width = fmt.field.width > length ?
+    const size_t field_width = fmt.field.width > length ?
         fmt.field.width : length;
-    const unsigned diff = field_width - length;
+    const size_t diff = field_width - length;
     if (fmt.flag.dash) // left justified
     { // first string, then pad
         pf_concat(out, string, length);
@@ -97,7 +99,7 @@ static void pf_c_string_padding(
 
 }
 
-static unsigned pf_write_s(
+static size_t pf_write_s(
     struct pf_string* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
@@ -123,9 +125,9 @@ static void pf_utf8_string_padding(
     const size_t bytes_length,
     const size_t codepoint_count)
 {
-    const unsigned field_width = fmt.field.width > codepoint_count ?
+    const size_t field_width = fmt.field.width > codepoint_count ?
         fmt.field.width : codepoint_count;
-    const unsigned diff = field_width - codepoint_count;
+    const size_t diff = field_width - codepoint_count;
     if (fmt.flag.dash) // left justified
     { // first string, then pad
         pf_concat(out, bytes, bytes_length);
@@ -139,7 +141,7 @@ static void pf_utf8_string_padding(
 
 }
 
-static unsigned pf_write_S(
+static size_t pf_write_S(
     struct pf_string* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
@@ -172,12 +174,12 @@ static unsigned pf_write_S(
 
 static void pf_write_leading_zeroes(
     struct pf_string* out,
-    const unsigned written_by_utoa,
+    const size_t written_by_utoa,
     const PFFormatSpecifier fmt)
 {
     if (fmt.precision.option != PF_NONE)
     {
-        const unsigned diff =
+        const size_t diff =
             fmt.precision.width <= written_by_utoa ? 0 :
             fmt.precision.width - written_by_utoa;
         memmove(
@@ -193,7 +195,7 @@ static void pf_write_leading_zeroes(
     }
 }
 
-static unsigned pf_write_i(
+static size_t pf_write_i(
     struct pf_string* out,
     struct pf_misc_data* md,
     pf_va_list* args,
@@ -202,6 +204,10 @@ static unsigned pf_write_i(
     intmax_t i;
     switch (fmt.length_modifier)
     {
+        case 0:
+            i = va_arg(args->list, int);
+            break;
+
         case 'j':
             i = va_arg(args->list, intmax_t);
             break;
@@ -243,7 +249,7 @@ static unsigned pf_write_i(
             break;
 
         default:
-            i = va_arg(args->list, int);
+            GP_UNREACHABLE;
     }
 
     const size_t original_length = out->length;
@@ -255,14 +261,14 @@ static unsigned pf_write_i(
         md->has_sign = true;
     }
 
-    const unsigned max_written = pf_utoa(
+    const size_t max_written = pf_utoa(
         pf_capacity_left(*out), out->data + out->length, imaxabs(i));
 
     pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
-static unsigned pf_write_o(
+static size_t pf_write_o(
     struct pf_string* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
@@ -277,7 +283,7 @@ static unsigned pf_write_o(
         zero_written = true;
     }
 
-    const unsigned max_written = pf_otoa(
+    const size_t max_written = pf_otoa(
         pf_capacity_left(*out), out->data + out->length, u);
 
     // zero_written tells pad_zeroes() to add 1 less '0'
@@ -288,7 +294,7 @@ static unsigned pf_write_o(
     return out->length - original_length;
 }
 
-static unsigned pf_write_x(
+static size_t pf_write_x(
     struct pf_string* out,
     struct pf_misc_data* md,
     pf_va_list* args,
@@ -303,14 +309,14 @@ static unsigned pf_write_x(
         md->has_0x = true;
     }
 
-    const unsigned max_written = pf_xtoa(
+    const size_t max_written = pf_xtoa(
         pf_capacity_left(*out), out->data + out->length, u);
 
     pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
-static unsigned pf_write_X(
+static size_t pf_write_X(
     struct pf_string* out,
     struct pf_misc_data* md,
     pf_va_list* args,
@@ -325,27 +331,27 @@ static unsigned pf_write_X(
         md->has_0x = true;
     }
 
-    const unsigned max_written = pf_Xtoa(
+    const size_t max_written = pf_Xtoa(
         pf_capacity_left(*out), out->data + out->length, u);
 
     pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
-static unsigned pf_write_u(
+static size_t pf_write_u(
     struct pf_string* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
     const uintmax_t u = pf_get_uint(args, fmt);
-    const unsigned max_written = pf_utoa(
+    const size_t max_written = pf_utoa(
         pf_capacity_left(*out), out->data + out->length, u);
     pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
-static unsigned pf_write_p(
+static size_t pf_write_p(
     struct pf_string* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
@@ -356,7 +362,7 @@ static unsigned pf_write_p(
     if (u > 0)
     {
         pf_concat(out, "0x", strlen("0x"));
-        const unsigned max_written = pf_xtoa(
+        const size_t max_written = pf_xtoa(
             pf_capacity_left(*out), out->data + out->length, u);
         pf_write_leading_zeroes(out, max_written, fmt);
     }
@@ -392,17 +398,16 @@ static inline int pf_signbit(double x)
 #define pf_isinf(x)   isinf(x)
 #endif // __COMPCERT__
 
-static unsigned pf_write_f(
+static size_t pf_write_f(
     struct pf_string* out,
     struct pf_misc_data* md,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const double f = va_arg(args->list, double);
-    const unsigned written_by_conversion = pf_strfromd(
+    const size_t written_by_conversion = pf_strfromd(
         out->data + out->length, out->capacity, fmt, f);
     out->length += written_by_conversion;
-
 
     md->has_sign = pf_signbit(f) || fmt.flag.plus || fmt.flag.space;
     md->is_nan_or_inf = pf_isnan(f) || pf_isinf(f);
@@ -410,14 +415,14 @@ static unsigned pf_write_f(
     return written_by_conversion;
 }
 
-static unsigned pf_add_padding(
+static size_t pf_add_padding(
     struct pf_string* out,
-    const unsigned written,
+    const size_t written,
     const struct pf_misc_data md,
     const PFFormatSpecifier fmt)
 {
     size_t start = out->length - written;
-    const unsigned diff = fmt.field.width - written;
+    const size_t diff = fmt.field.width - written;
 
     const bool is_int_with_precision =
         strchr("diouxX", fmt.conversion_format) && fmt.precision.option != PF_NONE;
@@ -429,7 +434,7 @@ static unsigned pf_add_padding(
     }
     else if (fmt.flag.zero && ! ignore_zero) // fill in zeroes
     { // 0-padding minding "0x" or sign prefix
-        const unsigned offset = md.has_sign + 2 * md.has_0x;
+        const size_t offset = md.has_sign + 2 * md.has_0x;
         pf_insert_pad(out, start + offset, '0', diff);
     }
     else // fill in spaces
@@ -457,7 +462,7 @@ static unsigned pf_add_padding(
 // ------------------------------
 // String functtions
 
-int pf_vsnprintf_consuming(
+size_t pf_vsnprintf_consuming(
     char*restrict out_buf,
     const size_t max_size,
     const char* format,
@@ -476,7 +481,7 @@ int pf_vsnprintf_consuming(
         // Jump over format specifier for next iteration
         format = fmt.string + fmt.string_length;
 
-        unsigned written_by_conversion = 0;
+        size_t written_by_conversion = 0;
         struct pf_misc_data misc = {0};
 
         switch (fmt.conversion_format)
@@ -548,7 +553,7 @@ int pf_vsnprintf_consuming(
     return out.length;
 }
 
-int pf_vsnprintf(
+size_t pf_vsnprintf(
     char* restrict out_buf,
     const size_t max_size,
     const char*restrict format,
@@ -556,32 +561,32 @@ int pf_vsnprintf(
 {
     pf_va_list args;
     va_copy(args.list, _args);
-    int result = pf_vsnprintf_consuming(out_buf, max_size, format, &args);
+    size_t result = pf_vsnprintf_consuming(out_buf, max_size, format, &args);
     va_end(args.list);
     return result;
 }
 
-int pf_vsprintf(
+size_t pf_vsprintf(
     char*restrict buf, const char*restrict fmt, va_list args)
 {
     return pf_vsnprintf(buf, SIZE_MAX, fmt, args);
 }
 
-int pf_sprintf(char*restrict buf, const char*restrict fmt, ...)
+size_t pf_sprintf(char*restrict buf, const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    int written = pf_vsnprintf(buf, INT_MAX, fmt, args);
+    size_t written = pf_vsnprintf(buf, INT_MAX, fmt, args);
     va_end(args);
     return written;
 }
 
-int pf_snprintf(
+size_t pf_snprintf(
     char* restrict buf, const size_t n, const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    int written = pf_vsnprintf(buf, n, fmt, args);
+    size_t written = pf_vsnprintf(buf, n, fmt, args);
     va_end(args);
     return written;
 }
@@ -592,7 +597,7 @@ int pf_snprintf(
 #define PAGE_SIZE 4096
 #define BUF_SIZE (PAGE_SIZE + sizeof(""))
 
-int pf_vfprintf(
+size_t pf_vfprintf(
     FILE*restrict stream, const char*restrict fmt, va_list args)
 {
     char buf[BUF_SIZE];
@@ -600,8 +605,8 @@ int pf_vfprintf(
     va_list args_copy;
     va_copy(args_copy, args);
 
-    const int out_length = pf_vsnprintf(buf, BUF_SIZE, fmt, args);
-    if (out_length >= (int)BUF_SIZE) // try again
+    const size_t out_length = pf_vsnprintf(buf, BUF_SIZE, fmt, args);
+    if (out_length >= BUF_SIZE) // try again
     {
         pbuf = malloc(out_length + sizeof(""));
         pf_vsprintf(pbuf, fmt, args_copy);
@@ -614,30 +619,28 @@ int pf_vfprintf(
     return out_length;
 }
 
-int pf_vprintf(
+size_t pf_vprintf(
     const char*restrict fmt, va_list args)
 {
     return pf_vfprintf(stdout, fmt, args);
 }
 
-int pf_printf(
+size_t pf_printf(
     const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    int n = pf_vfprintf(stdout, fmt, args);
+    size_t n = pf_vfprintf(stdout, fmt, args);
     va_end(args);
     return n;
 }
 
-int pf_fprintf(
+size_t pf_fprintf(
     FILE*restrict stream, const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    int n = pf_vfprintf(stream, fmt, args);
+    size_t n = pf_vfprintf(stream, fmt, args);
     va_end(args);
     return n;
 }
-
-

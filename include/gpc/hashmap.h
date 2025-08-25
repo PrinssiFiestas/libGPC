@@ -125,7 +125,7 @@ void gp_map_delete(GPMap* optional);
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
 void* gp_map_put(
     GPMap*,
-    GPUint128   key,
+    GPUInt128   key,
     const void* value);
 
 /** Find element.
@@ -134,7 +134,7 @@ void* gp_map_put(
 GP_NONNULL_ARGS() GP_NODISCARD
 void* gp_map_get(
     GPMap*,
-    GPUint128 key);
+    GPUInt128 key);
 
 /** Remove element.
  * @return `true` if element found and removed, `false` otherwise.
@@ -142,7 +142,7 @@ void* gp_map_get(
 GP_NONNULL_ARGS()
 bool gp_map_remove(
     GPMap*,
-    GPUint128 key);
+    GPUInt128 key);
 
 // ------------------
 // Hashing
@@ -150,7 +150,7 @@ bool gp_map_remove(
 /** Hashing functions based on non-cryptographic FNV function.*/
 uint32_t  gp_bytes_hash32 (const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
 uint64_t  gp_bytes_hash64 (const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
-GPUint128 gp_bytes_hash128(const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
+GPUInt128 gp_bytes_hash128(const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
 
 
 // ----------------------------------------------------------------------------

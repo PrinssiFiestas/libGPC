@@ -3,8 +3,40 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include <gpc/int128.h>
+#include <gpc/assert.h>
+#include <stdarg.h>
 
-GPUint128 gp_uint128_long_mul64(uint64_t a, uint64_t b)
+GPUInt128 gp_u128_c99_ctor(size_t size, ...)
+{
+    GPUInt128 u;
+    va_list args;
+    va_start(args, size);
+    switch (size) {
+        case sizeof(GPInt128): u =               va_arg(args, GPUInt128); break;
+        case sizeof(uint64_t): u = gp_uint128(0, va_arg(args, uint64_t)); break;
+        case sizeof(uint32_t): u = gp_uint128(0, va_arg(args, uint32_t)); break;
+        default: GP_UNREACHABLE;
+    }
+    va_end(args);
+    return u;
+}
+GPInt128 gp_i128_c99_ctor(size_t size, ...)
+{
+    GPInt128 i;
+    va_list args;
+    va_start(args, size);
+    if (size == sizeof(GPInt128))
+        i = va_arg(args, GPInt128);
+    else {
+        int64_t i64 = size == sizeof(int64_t) ?
+            va_arg(args, int64_t)
+          : va_arg(args, int32_t);
+        i = gp_int128(-(i64<0), i64);
+    }
+    va_end(args);
+    return i;
+}
+GPUInt128 gp_uint128_long_mul64(uint64_t a, uint64_t b)
 {
     if ((a | b) <= UINT32_MAX)
         return gp_uint128(0, a*b);
@@ -27,16 +59,58 @@ GPUint128 gp_uint128_long_mul64(uint64_t a, uint64_t b)
         (ahbl << 32) + (albh << 32) + albl);
 }
 
+static size_t gp_trailing_zeros_u64(uint64_t u)
+{
+    // Note: C23 stdc_trailing_zeros() breaks builds, don't use it!
+    #if __GNUC__ && !defined(GP_TEST_INT128)
+    GP_STATIC_ASSERT(sizeof u == sizeof(unsigned long long)); // be pedantic and paranoid
+    return __builtin_ctzll(u);
+    #else // https://graphics.stanford.edu/~seander/bithacks.html
+    // u==0 is undefined with ctz(), we know it's not 0 anyway
+    // size_t c = 64;
+    // if (u) c--;
+    size_t c = 63;
+    if (u & 0x00000000FFFFFFFF) c -= 32;
+    if (u & 0x0000FFFF0000FFFF) c -= 16;
+    if (u & 0x00FF00FF00FF00FF) c -=  8;
+    if (u & 0x0F0F0F0F0F0F0F0F) c -=  4;
+    if (u & 0x3333333333333333) c -=  2;
+    if (u & 0x5555555555555555) c -=  1;
+    return c;
+    #endif
+}
+
+static size_t gp_leading_zeros_u64(uint64_t u)
+{
+    // Note: C23 stdc_leading_zeros() breaks builds, don't use it!
+    #if __GNUC__ && !defined(GP_TEST_INT128)
+    GP_STATIC_ASSERT(sizeof u == sizeof(unsigned long long)); // be pedantic and paranoid
+    return __builtin_clzll(u);
+    #else // https://graphics.stanford.edu/~seander/bithacks.html
+    // u==0 is undefined with clz(), we know it's not 0 anyway
+    // size_t c = 64;
+    // if (u) c--;
+    size_t c = 63;
+    if (u & 0xFFFFFFFF00000000) c -= 32;
+    if (u & 0xFFFF0000FFFF0000) c -= 16;
+    if (u & 0xFF00FF00FF00FF00) c -=  8;
+    if (u & 0xF0F0F0F0F0F0F0F0) c -=  4;
+    if (u & 0xCCCCCCCCCCCCCCCC) c -=  2;
+    if (u & 0xAAAAAAAAAAAAAAAA) c -=  1;
+    return c;
+    #endif
+}
+
 // Yoinked from LLVM
 // https://github.com/llvm-mirror/compiler-rt/blob/master/lib/builtins/udivmodti4.c
-GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128 *rem)
+GPUInt128 gp_uint128_divmod(GPUInt128 a, GPUInt128 b, GPUInt128 *rem)
 {
-    const unsigned n_udword_bits = sizeof(uint64_t) * CHAR_BIT;
-    const unsigned n_utword_bits = sizeof(GPUint128) * CHAR_BIT;
-    GPUint128 n = a;
-    GPUint128 d = b;
-    GPUint128 q;
-    GPUint128 r;
+    const unsigned n_udword_bits = sizeof(uint64_t)  * CHAR_BIT;
+    const unsigned n_utword_bits = sizeof(GPUInt128) * CHAR_BIT;
+    GPUInt128 n = a;
+    GPUInt128 d = b;
+    GPUInt128 q;
+    GPUInt128 r;
     unsigned sr;
     // special cases, X is unknown, K != 0
     if (gp_uint128_hi(n) == 0) {
@@ -60,7 +134,7 @@ GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128 *rem)
       if (gp_uint128_hi(d) == 0) {
           // K X
           // ---
-          // 0 0
+          // 0 0 // wait, we're handling zero division??
           if (rem)
               *rem = gp_uint128(0, gp_uint128_hi(n) % gp_uint128_lo(d));
           return gp_uint128(0, gp_uint128_hi(n) / gp_uint128_lo(d));
@@ -86,12 +160,12 @@ GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128 *rem)
               *gp_uint128_hi_addr(&r) = gp_uint128_hi(n) & (gp_uint128_hi(d) - 1);
               *rem = r;
           }
-          return gp_uint128(0, gp_uint128_hi(n) >> __builtin_ctzll(gp_uint128_hi(d)));
+          return gp_uint128(0, gp_uint128_hi(n) >> gp_trailing_zeros_u64(gp_uint128_hi(d)));
       }
       // K K
       // ---
       // K 0
-      sr = __builtin_clzll(gp_uint128_hi(d)) - __builtin_clzll(gp_uint128_hi(n));
+      sr = gp_leading_zeros_u64(gp_uint128_hi(d)) - gp_leading_zeros_u64(gp_uint128_hi(n));
       // 0 <= sr <= n_udword_bits - 2 or sr large
       if (sr > n_udword_bits - 2) {
           if (rem)
@@ -116,7 +190,7 @@ GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128 *rem)
                   *rem = gp_uint128(0, gp_uint128_lo(n) & (gp_uint128_lo(d) - 1));
               if (gp_uint128_lo(d) == 1)
                   return n;
-              sr = __builtin_ctzll(gp_uint128_lo(d));
+              sr = gp_trailing_zeros_u64(gp_uint128_lo(d));
               *gp_uint128_hi_addr(&q) = gp_uint128_hi(n) >> sr;
               *gp_uint128_lo_addr(&q) = (gp_uint128_hi(n) << (n_udword_bits - sr)) | (gp_uint128_lo(n) >> sr);
               return q;
@@ -124,8 +198,8 @@ GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128 *rem)
           // K X
           // ---
           // 0 K
-          sr = 1 + n_udword_bits + __builtin_clzll(gp_uint128_lo(d)) -
-               __builtin_clzll(gp_uint128_hi(n));
+          sr = 1 + n_udword_bits + gp_leading_zeros_u64(gp_uint128_lo(d)) -
+               gp_leading_zeros_u64(gp_uint128_hi(n));
           // 2 <= sr <= n_utword_bits - 1
           // q = n << (n_utword_bits - sr);
           // r = n >> sr;
@@ -150,7 +224,7 @@ GPUint128 gp_uint128_divmod(GPUint128 a, GPUint128 b, GPUint128 *rem)
             // K X
             // ---
             // K K
-            sr = __builtin_clzll(gp_uint128_hi(d)) - __builtin_clzll(gp_uint128_hi(n));
+            sr = gp_leading_zeros_u64(gp_uint128_hi(d)) - gp_leading_zeros_u64(gp_uint128_hi(n));
             // 0 <= sr <= n_udword_bits - 1 or sr large
             if (sr > n_udword_bits - 1) {
                 if (rem)
@@ -234,7 +308,158 @@ GPInt128 gp_int128_imod(GPInt128 a, GPInt128 b)
     b = gp_int128_sub(gp_int128_xor(b, s), s);               // negate if s == -1
     s = gp_int128_shift_right(a, bits_in_tword_m1);          // s = a < 0 ? -1 : 0
     a = gp_int128_sub(gp_int128_xor(a, s), s);               // negate if s == -1
-    GPUint128 r;
+    GPUInt128 r;
     gp_uint128_divmod(gp_uint128_i128(a), gp_uint128_i128(b), &r);
     return gp_int128_sub(gp_int128_xor(gp_int128_u128(r), s), s); // negate if s == -1
+}
+
+// ----------------------------------------------------------------------------
+// Floating Point Conversions
+
+GPUInt128 gp_uint128_convert_f64(double a)
+{
+    gp_db_assert( ! isnan(a), "Nan cannot be represented as an integral type.");
+    gp_db_assert( ! isinf(a), "Inf cannot be represented as an integral type.");
+    gp_db_assert(a >= 0., "Negative value cannot be represented as an unsigned type.");
+
+    uint64_t a_bits;
+    memcpy(&a_bits, &a, sizeof a);
+    int exponent = (a_bits >> 52) - 1023;
+    if (exponent <= 0)
+        return gp_uint128(0, 0);
+    gp_db_assert(exponent < 128, "Value too big to be represented as an 128-bit unsigned int.");
+
+    uint64_t fraction_bits = (a_bits & ((1llu << 52) - 1)) | (1llu << 52); // = fraction bits | implicit 1
+    if (exponent > 52)
+        return gp_uint128_shift_left(gp_uint128(0, fraction_bits), exponent - 52);
+    return gp_uint128(0, fraction_bits >> (52 - exponent));
+}
+GPInt128 gp_int128_convert_f64(double a)
+{
+    gp_db_assert( ! isnan(a), "Nan cannot be represented as an integral type.");
+    gp_db_assert( ! isinf(a), "Inf cannot be represented as an integral type.");
+
+    uint64_t a_bits;
+    memcpy(&a_bits, &a, sizeof a);
+    uint64_t sign_bit = a_bits & (1llu << 63);
+    uint64_t abs_a = a_bits & (-1llu >> 1);
+    int exponent = (abs_a >> 52) - 1023;
+    if (exponent <= 0)
+        return gp_int128(0, 0);
+    gp_db_assert(exponent < 127, "Value too big to be represented as an 128-bit signed int.");
+
+    uint64_t fraction_bits = (abs_a & ((1llu << 52) - 1)) | (1llu << 52); // = fraction bits | implicit 1
+    GPUInt128 u = exponent > 52 ?
+        gp_uint128_shift_left(gp_uint128(0, fraction_bits), exponent - 52)
+      : gp_uint128(0, fraction_bits >> (52 - exponent));
+    if (sign_bit)
+        return gp_int128_u128(gp_uint128_negate(u));
+    return gp_int128_u128(u);
+}
+GPUInt128 gp_uint128_convert_f32(float a)
+{
+    gp_db_assert( ! isnanf(a), "Nan cannot be represented as an integral type.");
+    gp_db_assert( ! isinff(a), "Inf cannot be represented as an integral type.");
+    gp_db_assert(a >= 0.f, "Negative value cannot be represented as an unsigned type.");
+
+    uint32_t a_bits;
+    memcpy(&a_bits, &a, sizeof a);
+    int exponent = (a_bits >> 23) - 127;
+    if (exponent <= 0)
+        return gp_uint128(0, 0);
+    // always fits, no need to assert it
+
+    uint32_t fraction_bits = (a_bits & ((1u << 23) - 1)) | (1u << 23); // = fraction bits | implicit 1
+    if (exponent > 23)
+        return gp_uint128_shift_left(gp_uint128(0, fraction_bits), exponent - 23);
+    return gp_uint128(0, fraction_bits >> (23 - exponent));
+}
+GPInt128 gp_int128_convert_f32(float a)
+{
+    gp_db_assert( ! isnanf(a), "Nan cannot be represented as an integral type.");
+    gp_db_assert( ! isinff(a), "Inf cannot be represented as an integral type.");
+
+    uint32_t a_bits;
+    memcpy(&a_bits, &a, sizeof a);
+    uint32_t sign_bit = a_bits & (1u << 31);
+    uint32_t abs_a = a_bits & (-1u >> 1);
+    int exponent = (abs_a >> 23) - 127;
+    if (exponent <= 0)
+        return gp_int128(0, 0);
+    gp_db_assert(exponent < 127, "Value too big to be represented as an 128-bit signed int.");
+
+    uint32_t fraction_bits = (abs_a & ((1llu << 23) - 1)) | (1llu << 23); // = fraction bits | implicit 1
+    GPUInt128 u = exponent > 23 ?
+        gp_uint128_shift_left(gp_uint128(0, fraction_bits), exponent - 23)
+      : gp_uint128(0, fraction_bits >> (23 - exponent));
+    if (sign_bit)
+        return gp_int128_u128(gp_uint128_negate(u));
+    return gp_int128_u128(u);
+}
+
+// From Mara's blog post
+// https://blog.m-ou.se/floats/
+double gp_f64_convert_uint128(GPUInt128 x)
+{
+    if (gp_uint128_hi(x) == 0)
+        return gp_uint128_lo(x);
+
+    #if __SIZEOF_INT128__ // optimize for 64-bit targets if __uint128_t available
+    // https://github.com/m-ou-se/floatconv/blob/main/src/special.rs
+    union punner { double f; uint64_t u; } A, B, C, D, l, h;
+    A.u = 0x4330000000000000; // (double)(__uint128_t)1 << 52
+    B.u = 0x4670000000000000; // (double)(__uint128_t)1 << 104
+    C.u = 0x44b0000000000000; // (double)(__uint128_t)1 << 76
+    D.u = 0x47f0000000000000; // (double)(__uint128_t)-1
+    if (gp_uint128_hi(x) < 1llu << (104-64)) {
+        l.u = A.u | (gp_uint128_lo(x) << 12) >> 12; l.f -= A.f;
+        h.u = B.u | gp_uint128_lo(gp_uint128_shift_right(x, 52)); h.f -= B.f;
+    } else {
+        l.u = C.u | (gp_uint128_lo(gp_uint128_shift_right(x, 12)) >> 12) | (gp_uint128_lo(x) & 0xFFFFFF); l.f -= C.f;
+        h.u = D.u | gp_uint128_lo(gp_uint128_shift_right(x, 76)); h.f -= D.f;
+    }
+    return l.f + h.f;
+    #else
+    // https://github.com/m-ou-se/floatconv/blob/main/src/soft.rs
+    size_t n = gp_leading_zeros_u64(gp_uint128_hi(x));
+    GPUInt128 y = gp_uint128_shift_left(x, n); // 0 handled, no need for wrapping_shl()
+    uint64_t a = gp_uint128_lo(gp_uint128_shift_right(y, 75)); // Significant bits, with bit 53 still intact
+    uint64_t b = gp_uint128_lo(gp_uint128_shift_right(y, 11)) | (gp_uint128_lo(y) & 0xFFFFFFFF); // Insignificant bits, only relevant for rounding.
+    uint64_t m = a + ((b - (b >> 63 & !a)) >> 63); // Add one when we need to round up. Break ties to even.
+    uint64_t e = 1149 - n; // Exponent plus 1023, minus one.
+    union punner { double f; uint64_t u; } ret;
+    ret.u = (e << 52) + m; // + not |, so the mantissa can overflow into the exponent.
+    return ret.f;
+    #endif
+}
+double gp_f64_convert_int128(GPInt128 x)
+{
+    if (gp_int128_hi(x) >= 0)
+        return gp_f64_convert_uint128(gp_uint128_i128(x));
+    return -gp_f64_convert_uint128(gp_uint128_negate(gp_uint128_i128(x)));
+}
+float gp_f32_convert_uint128(GPUInt128 x)
+{
+    if (gp_uint128_hi(x) == 0)
+        return gp_uint128_lo(x);
+
+    // https://github.com/m-ou-se/floatconv/blob/main/src/soft.rs
+    size_t n = gp_leading_zeros_u64(gp_uint128_hi(x));
+    GPUInt128 y = gp_uint128_shift_left(x, n); // 0 handled, no need for wrapping_shl()
+    uint32_t a = gp_uint128_lo(gp_uint128_shift_right(y, 104)); // Significant bits, with bit 24 still intact
+    uint32_t b = (uint32_t)gp_uint128_lo(gp_uint128_shift_right(y, 72))
+        | (uint32_t)!!gp_uint128_lo(gp_uint128_shift_right(
+            gp_uint128_shift_left(y, 32),
+            32)); // Insignificant bits, only relevant for rounding.
+    uint32_t m = a + ((b - (b >> 31 & !a)) >> 31); // Add one when we need to round up. Break ties to even.
+    uint32_t e = 253 - n; // Exponent plus 127, minus one.
+    union punner { float f; uint32_t u; } ret;
+    ret.u = (e << 23) + m; // + not |, so the mantissa can overflow into the exponent.
+    return ret.f;
+}
+float gp_f32_convert_int128(GPInt128 x)
+{
+    if (gp_int128_hi(x) >= 0)
+        return gp_f32_convert_uint128(gp_uint128_i128(x));
+    return -gp_f32_convert_uint128(gp_uint128_negate(gp_uint128_i128(x)));
 }

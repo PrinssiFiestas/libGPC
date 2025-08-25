@@ -258,15 +258,15 @@ static inline uint64_t gp_hash64(const void* bytes, size_t bytes_length)
 {
     return gp_bytes_hash64(bytes, bytes_length);
 }
-static inline GPUint128 gp_hash128(const char* str)
+static inline GPUInt128 gp_hash128(const char* str)
 {
     return gp_bytes_hash128(str, strlen(str));
 }
-static inline GPUint128 gp_hash128(GPString str)
+static inline GPUInt128 gp_hash128(GPString str)
 {
     return gp_bytes_hash128(str, gp_str_length(str));
 }
-static inline GPUint128 gp_hash128(const void* bytes, size_t bytes_length)
+static inline GPUInt128 gp_hash128(const void* bytes, size_t bytes_length)
 {
     return gp_bytes_hash128(bytes, bytes_length);
 }
@@ -2630,7 +2630,7 @@ static inline uint64_t gp_hash64_99(GPStrIn key)
 {
     return gp_bytes_hash64(key.data, key.length);
 }
-static inline GPUint128 gp_hash128_99(GPStrIn key)
+static inline GPUInt128 gp_hash128_99(GPStrIn key)
 {
     return gp_bytes_hash128(key.data, key.length);
 }

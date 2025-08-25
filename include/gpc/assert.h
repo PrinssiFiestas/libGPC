@@ -76,7 +76,7 @@ extern "C" {
  */
 #define gp_assert(/* bool condition, variables*/...) \
     (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
-        (GP_FAIL(__VA_ARGS__), exit(1), false))
+        (GP_FAIL(__VA_ARGS__), exit(1), false)) // TODO should we use GP_BREAKPOINT instead of exit(1)?
 
 /** Non-fatal assertion.
  * @return true if condition is true. If condition is false prints fail message,

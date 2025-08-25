@@ -136,14 +136,14 @@ size_t pf_Xtoa(const size_t n, char* out, unsigned long long x)
 
 // ---------------------------------------------------------------------------
 
-static unsigned
+static size_t
 pf_d2fixed_buffered_n(
     char* result,
     size_t n,
     PFFormatSpecifier fmt,
     double d);
 
-static unsigned
+static size_t
 pf_d2exp_buffered_n(
     char* result,
     const size_t n,
@@ -418,9 +418,9 @@ pf__append_nine_digits(uint32_t digits, char* const result)
     for (uint32_t i = 0; i < 5; i += 4)
     {
         #ifdef __clang__ // https://bugs.llvm.org/show_bug.cgi?id=38217
-            const uint32_t c = digits - 10000 * (digits / 10000);
+        const uint32_t c = digits - 10000 * (digits / 10000);
         #else
-            const uint32_t c = digits % 10000;
+        const uint32_t c = digits % 10000;
         #endif
         digits /= 10000;
         const uint32_t c0 = (c % 100) << 1;
@@ -458,7 +458,7 @@ pf_append_utoa(struct pf_string* out, uint32_t digits)
     else // write only as much as fits
     {
         char buf[12];
-        unsigned buf_len = pf_utoa(sizeof(buf), buf, digits);
+        size_t buf_len = pf_utoa(sizeof(buf), buf, digits);
         pf_concat(out, buf, buf_len);
     }
 }
@@ -483,7 +483,7 @@ static inline uint32_t pf_lengthForIndex(const uint32_t idx)
 //
 // START OF MODIFIED RYU
 
-static inline unsigned
+static inline size_t
 pf_copy_special_str_printf(
     struct pf_string*const out,
     const uint64_t mantissa,
@@ -505,7 +505,7 @@ pf_copy_special_str_printf(
     }
 }
 
-static unsigned
+static size_t
 pf_d2fixed_buffered_n(
     char* const result,
     const size_t n,
@@ -850,7 +850,7 @@ pf_d2fixed_buffered_n(
     return out.length;
 }
 
-static unsigned
+static size_t
 pf_d2exp_buffered_n(
     char* const result,
     const size_t n,

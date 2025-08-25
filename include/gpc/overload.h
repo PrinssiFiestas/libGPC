@@ -9,6 +9,7 @@
 #ifndef GP_OVERLOAD_INCLUDED
 #define GP_OVERLOAD_INCLUDED 1
 
+#include "attributes.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -149,7 +150,7 @@ typedef enum gp_type
     GP_PTR,
 } GPType;
 
-static inline size_t gp_sizeof(const GPType T) {
+static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
     switch (T) {
         case GP_CHAR: case GP_SIGNED_CHAR: case GP_UNSIGNED_CHAR:
             return sizeof(char);
@@ -192,7 +193,7 @@ static inline size_t gp_sizeof(const GPType T) {
 // - GP_C11_GENERIC_SIGNED_TYPE: signed primitive integers, GPInt128, and plain
 //   char if signed.
 //
-// - GP_C11_GENERIC_UNSIGNED_TYPE: unsigned primitive integers, GPUint128, bool,
+// - GP_C11_GENERIC_UNSIGNED_TYPE: unsigned primitive integers, GPUInt128, bool,
 //   and plain char if unsigned.
 //
 // - GP_C11_GENERIC_FLOAT: float, double and long double if available.
@@ -200,7 +201,7 @@ static inline size_t gp_sizeof(const GPType T) {
 // - GP_C11_GENERIC_NUMBER: all of the above.
 //
 // - GP_C11_GENERIC_INTEGRAL_TYPE: signed primitive integers, unsigned primitive
-//   integers, GPInt128, GPUint128, bool, and plain char.
+//   integers, GPInt128, GPUInt128, bool, and plain char.
 //
 // - GP_C11_GENERIC_SIGNED_INTEGER: signed primitive integers. Plain char is not
 //   considered as integer by this macro since it is most commonly used to
@@ -280,7 +281,7 @@ static inline size_t gp_sizeof(const GPType T) {
 #define GP_C11_GENERIC_STRING(A) char*: (A), const char*: (A), struct gp_char*: (A)
 
 // GP_TYPE(): basic reflection
-// User structs currently not supported. // TODO we want these!
+// User types currently not supported. // TODO we want these!
 #if __cplusplus // defined with overloads
 #elif __GNUC__ // long double supported
 #define GP_TYPE(VAR)                              \
@@ -731,24 +732,24 @@ _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, RESOLVED, ...) 
 #define GP_TYPEOF(...) decltype(__VA_ARGS__)
 #endif
 
-static inline GPType GP_TYPE(bool               x) { (void)x; return GP_BOOL;               }
-static inline GPType GP_TYPE(short              x) { (void)x; return GP_SHORT;              }
-static inline GPType GP_TYPE(int                x) { (void)x; return GP_INT;                }
-static inline GPType GP_TYPE(long               x) { (void)x; return GP_LONG;               }
-static inline GPType GP_TYPE(long long          x) { (void)x; return GP_LONG_LONG;          }
-static inline GPType GP_TYPE(unsigned short     x) { (void)x; return GP_UNSIGNED_SHORT;     }
-static inline GPType GP_TYPE(unsigned           x) { (void)x; return GP_UNSIGNED;           }
-static inline GPType GP_TYPE(unsigned long      x) { (void)x; return GP_UNSIGNED_LONG;      }
-static inline GPType GP_TYPE(unsigned long long x) { (void)x; return GP_UNSIGNED_LONG_LONG; }
-static inline GPType GP_TYPE(float              x) { (void)x; return GP_FLOAT;              }
-static inline GPType GP_TYPE(double             x) { (void)x; return GP_DOUBLE;             }
-static inline GPType GP_TYPE(char               x) { (void)x; return GP_CHAR;               }
-static inline GPType GP_TYPE(unsigned char      x) { (void)x; return GP_UNSIGNED_CHAR;      }
-static inline GPType GP_TYPE(signed char        x) { (void)x; return GP_SIGNED_CHAR;        }
-static inline GPType GP_TYPE(char*              x) { (void)x; return GP_CHAR_PTR;           }
-static inline GPType GP_TYPE(const char*        x) { (void)x; return GP_CHAR_PTR;           }
-static inline GPType GP_TYPE(struct gp_char*    x) { (void)x; return GP_STRING;             }
-static inline GPType GP_TYPE(const void*        x) { (void)x; return GP_PTR;                }
+static inline constexpr GPType GP_TYPE(bool               x) { (void)x; return GP_BOOL;               }
+static inline constexpr GPType GP_TYPE(short              x) { (void)x; return GP_SHORT;              }
+static inline constexpr GPType GP_TYPE(int                x) { (void)x; return GP_INT;                }
+static inline constexpr GPType GP_TYPE(long               x) { (void)x; return GP_LONG;               }
+static inline constexpr GPType GP_TYPE(long long          x) { (void)x; return GP_LONG_LONG;          }
+static inline constexpr GPType GP_TYPE(unsigned short     x) { (void)x; return GP_UNSIGNED_SHORT;     }
+static inline constexpr GPType GP_TYPE(unsigned           x) { (void)x; return GP_UNSIGNED;           }
+static inline constexpr GPType GP_TYPE(unsigned long      x) { (void)x; return GP_UNSIGNED_LONG;      }
+static inline constexpr GPType GP_TYPE(unsigned long long x) { (void)x; return GP_UNSIGNED_LONG_LONG; }
+static inline constexpr GPType GP_TYPE(float              x) { (void)x; return GP_FLOAT;              }
+static inline constexpr GPType GP_TYPE(double             x) { (void)x; return GP_DOUBLE;             }
+static inline constexpr GPType GP_TYPE(char               x) { (void)x; return GP_CHAR;               }
+static inline constexpr GPType GP_TYPE(unsigned char      x) { (void)x; return GP_UNSIGNED_CHAR;      }
+static inline constexpr GPType GP_TYPE(signed char        x) { (void)x; return GP_SIGNED_CHAR;        }
+static inline constexpr GPType GP_TYPE(char*              x) { (void)x; return GP_CHAR_PTR;           }
+static inline constexpr GPType GP_TYPE(const char*        x) { (void)x; return GP_CHAR_PTR;           }
+static inline constexpr GPType GP_TYPE(struct gp_char*    x) { (void)x; return GP_STRING;             }
+static inline constexpr GPType GP_TYPE(const void*        x) { (void)x; return GP_PTR;                }
 
 #endif
 
