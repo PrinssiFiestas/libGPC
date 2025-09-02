@@ -13,11 +13,11 @@ int main(void)
     gp_suite("Format parsing");
     {
         PFFormatSpecifier fmt =
-            pf_scan_format_string("blah blah %#035.721hhg blah", NULL);
+            pf_scan_format_string("blah blah %#035.721hhx blah", NULL);
 
         gp_test("Format string");
         {
-            const char* _fmt = "%#035.721hhg";
+            const char* _fmt = "%#035.721hhx";
             gp_expect(strncmp(fmt.string, _fmt, fmt.string_length) == 0,
                 "%.12s", fmt.string);
 
@@ -45,7 +45,26 @@ int main(void)
         gp_test("Type");
         {
             gp_expect(fmt.length_modifier == 2 * 'h', (fmt.length_modifier));
-            gp_expect(fmt.conversion_format == 'g');
+            gp_expect(fmt.conversion_format == 'x');
+        }
+
+        gp_test("Fixed width modifiers");
+        {
+            PFFormatSpecifier fmt;
+            fmt = pf_scan_format_string("%w8x", NULL);
+            gp_expect(fmt.length_modifier == 'B'); // byte
+
+            fmt = pf_scan_format_string("%w16x", NULL);
+            gp_expect(fmt.length_modifier == 'W'); // word
+
+            fmt = pf_scan_format_string("%w32x", NULL);
+            gp_expect(fmt.length_modifier == 'D'); // double word
+
+            fmt = pf_scan_format_string("%w64x", NULL);
+            gp_expect(fmt.length_modifier == 'Q'); // quar word
+
+            fmt = pf_scan_format_string("%w128x", NULL);
+            gp_expect(fmt.length_modifier == 'O'); // octa word
         }
     }
 }
