@@ -9,65 +9,93 @@
 
 #include <gpc/string.h>
 #include <gpc/unicode.h>
+#include "common.h"
 
 #include <stdlib.h>
 #include <inttypes.h>
 #include <math.h>
 #include <limits.h>
 
-struct pf_misc_data
+typedef struct pf_misc_data
 {
     bool has_sign;
     bool has_0x;
     bool is_nan_or_inf;
-};
+} PFMiscData;
 
-static uintmax_t pf_get_uint(pf_va_list* args, const PFFormatSpecifier fmt)
+typedef struct pf_uint
+{
+    union {
+        unsigned long long u;
+        GPUInt128 u128;
+    };
+    bool is_128;
+} PFUInt;
+
+static PFUInt pf_get_uint(
+    pf_va_list* args, const PFFormatSpecifier fmt)
 {
     if (fmt.conversion_format == 'p')
-        return va_arg(args->list, uintptr_t);
+        return (PFUInt){.u = va_arg(args->list, uintptr_t)};
 
     switch (fmt.length_modifier)
     {
-        case 0:
-            return va_arg(args->list, unsigned);
+    case 0:
+        return (PFUInt){.u = va_arg(args->list, unsigned)};
 
-        case 'j':
-            return va_arg(args->list, uintmax_t);
+    case 'j':
+        return (PFUInt){.u = va_arg(args->list, uintmax_t)};
 
-        case 'l' * 2:
-            return va_arg(args->list, unsigned long long);
+    case 'l' * 2:
+        return (PFUInt){.u = va_arg(args->list, unsigned long long)};
 
-        case 'l':
-            return va_arg(args->list, unsigned long);
+    case 'l':
+        return (PFUInt){.u = va_arg(args->list, unsigned long)};
 
-        case 'h':
-            return (unsigned short)va_arg(args->list, unsigned);
+    case 'h':
+        return (PFUInt){.u = (unsigned short)va_arg(args->list, unsigned)};
 
-        case 'h' * 2:
-            return (unsigned char)va_arg(args->list, unsigned);
+    case 'h' * 2:
+        return (PFUInt){.u = (unsigned char)va_arg(args->list, unsigned)};
 
-        case 'z':
-            return (size_t)va_arg(args->list, size_t);
+    case 'z':
+        return (PFUInt){.u = (size_t)va_arg(args->list, size_t)};
 
-        case 'B': // byte
-            return (uint8_t)va_arg(args->list, unsigned);
+    case 'B': // byte
+        return (PFUInt){.u = (uint8_t)va_arg(args->list, unsigned)};
 
-        case 'W': // word
-            return (uint16_t)va_arg(args->list, unsigned);
+    case 'W': // word
+        return (PFUInt){.u = (uint16_t)va_arg(args->list, unsigned)};
 
-        case 'D': // double word
-            return (uint32_t)va_arg(args->list, uint32_t);
+    case 'D': // double word
+        return (PFUInt){.u = (uint32_t)va_arg(args->list, uint32_t)};
 
-        case 'Q': // quad word
-            return (uint64_t)va_arg(args->list, uint64_t);
+    case 'Q': // quad word
+        return (PFUInt){.u = (uint64_t)va_arg(args->list, uint64_t)};
+
+    case 'O': // octa word
+        return (PFUInt){.u128 = va_arg(args->list, GPUInt128), .is_128 = true};
+
+    case 'B'+'f': // fast byte
+        return (PFUInt){.u = (uint_fast8_t)va_arg(args->list, unsigned)};
+
+    case 'W'+'f': // fast word
+        return (PFUInt){.u = (uint_fast16_t)va_arg(args->list, unsigned)};
+
+    case 'D'+'f': // fast double word
+        return (PFUInt){.u = (uint_fast32_t)va_arg(args->list, uint_fast32_t)};
+
+    case 'Q'+'f': // fast quad word
+        return (PFUInt){.u = (uint_fast64_t)va_arg(args->list, uint_fast64_t)};
+
+    // fast octa word does not exist
     }
-    GP_UNREACHABLE;
-    return 0;
+    GP_UNREACHABLE("");
+    return (PFUInt){0};
 }
 
 static size_t pf_write_wc(
-    struct pf_string* out,
+    PFString* out,
     pf_va_list* args)
 {
     size_t gp_utf8_decode(void*, uint32_t);
@@ -78,7 +106,7 @@ static size_t pf_write_wc(
 }
 
 static void pf_c_string_padding(
-    struct pf_string* out,
+    PFString* out,
     const PFFormatSpecifier fmt,
     const void* string,
     const size_t length)
@@ -100,7 +128,7 @@ static void pf_c_string_padding(
 }
 
 static size_t pf_write_s(
-    struct pf_string* out,
+    PFString* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
@@ -112,14 +140,14 @@ static size_t pf_write_s(
         cstr_len = strlen(cstr);
     else // who knows if null-terminated
         while (cstr_len < fmt.precision.width && cstr[cstr_len] != '\0')
-            cstr_len++;
+            ++cstr_len;
 
     pf_c_string_padding(out, fmt, cstr, cstr_len);
     return out->length - original_length;
 }
 
 static void pf_utf8_string_padding(
-    struct pf_string* out,
+    PFString* out,
     const PFFormatSpecifier fmt,
     const void* bytes,
     const size_t bytes_length,
@@ -142,7 +170,7 @@ static void pf_utf8_string_padding(
 }
 
 static size_t pf_write_S(
-    struct pf_string* out,
+    PFString* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
@@ -159,13 +187,13 @@ static size_t pf_write_S(
     while (true)
     {
         if (i > length) {
-            codepoint_count--;
+            --codepoint_count;
             length = i - last_cp_length;
             break;
         } else if (i == length) {
             break;
         }
-        codepoint_count++;
+        ++codepoint_count;
         i += last_cp_length = gp_utf8_codepoint_length(str, i);
     }
     pf_utf8_string_padding(out, fmt, str, length, codepoint_count);
@@ -173,7 +201,7 @@ static size_t pf_write_S(
 }
 
 static void pf_write_leading_zeroes(
-    struct pf_string* out,
+    PFString* out,
     const size_t written_by_utoa,
     const PFFormatSpecifier fmt)
 {
@@ -188,103 +216,150 @@ static void pf_write_leading_zeroes(
             pf_limit(*out, written_by_utoa));
         memset(out->data + out->length, '0', pf_limit(*out, diff));
         out->length += written_by_utoa + diff;
-    }
-    else
-    {
+    } else
         out->length += written_by_utoa;
-    }
 }
 
 static size_t pf_write_i(
-    struct pf_string* out,
-    struct pf_misc_data* md,
+    PFString* out,
+    PFMiscData* md,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
-    intmax_t i;
+    long long i;
+    GPInt128 i128;
+    bool is_128 = false;
+
     switch (fmt.length_modifier)
     {
-        case 0:
-            i = va_arg(args->list, int);
-            break;
+    case 0:
+        i = va_arg(args->list, int);
+        break;
 
-        case 'j':
-            i = va_arg(args->list, intmax_t);
-            break;
+    case 'j':
+        i = va_arg(args->list, intmax_t);
+        break;
 
-        case 'l' * 2:
-            i = va_arg(args->list, long long);
-            break;
+    case 'l' * 2:
+        i = va_arg(args->list, long long);
+        break;
 
-        case 'l':
-            i = va_arg(args->list, long);
-            break;
+    case 'l':
+        i = va_arg(args->list, long);
+        break;
 
-        case 'h':
-            i = (short)va_arg(args->list, int);
-            break;
+    case 'h':
+        i = (short)va_arg(args->list, int);
+        break;
 
-        case 'h' * 2: // signed char is NOT char!
-            i = (signed char)va_arg(args->list, int);
-            break;
+    case 'h' * 2: // signed char is NOT char!
+        i = (signed char)va_arg(args->list, int);
+        break;
 
-        case 't':
-            i = (ptrdiff_t)va_arg(args->list, ptrdiff_t);
-            break;
+    // We currently "support" ssize_t only because GNUC type checker accept
+    // this, which may affect user expectations. Do NOT document this until
+    // GP_HAS_SSIZE_T gets fixed.
+    #if GP_HAS_SSIZE_T
+    case 'z':
+        i = va_arg(args->list, ssize_t);
+        break;
+    #else // we DON'T want to try to guess, even the assumption that it's
+          // the same size as size_t doesn't always hold. Maybe we could
+          // provide GPSSize instead? But only if it turns out to be useful.
+    case 'z':
+        gp_assert(false,
+            "%zi for ssize_t not supported. Cast to intmax_t and use %ji instead.");
+        break;
+    #endif
 
-        case 'B': // byte
-            i = (int8_t)va_arg(args->list, int);
-            break;
+    case 't':
+        i = (ptrdiff_t)va_arg(args->list, ptrdiff_t);
+        break;
 
-        case 'W': // word
-            i = (int16_t)va_arg(args->list, int);
-            break;
+    case 'B': // byte
+        i = (int8_t)va_arg(args->list, int);
+        break;
 
-        case 'D': // double word
-            i = (int32_t)va_arg(args->list, int32_t);
-            break;
+    case 'W': // word
+        i = (int16_t)va_arg(args->list, int);
+        break;
 
-        case 'Q': // quad word
-            i = (int64_t)va_arg(args->list, int64_t);
-            break;
+    case 'D': // double word
+        i = (int32_t)va_arg(args->list, int32_t);
+        break;
 
-        default:
-            GP_UNREACHABLE;
+    case 'Q': // quad word
+        i = (int64_t)va_arg(args->list, int64_t);
+        break;
+
+    case 'O': // octa word
+        i128 = va_arg(args->list, GPInt128);
+        is_128 = true;
+        break;
+
+    case 'B'+'f': // fast byte
+        i = (int_fast8_t)va_arg(args->list, int);
+        break;
+
+    case 'W'+'f': // fast word
+        i = (int_fast16_t)va_arg(args->list, int);
+        break;
+
+    case 'D'+'f': // fast double word
+        i = (int_fast32_t)va_arg(args->list, int_fast32_t);
+        break;
+
+    case 'Q'+'f': // fast quad word
+        i = (int_fast64_t)va_arg(args->list, int_fast64_t);
+        break;
+
+    // fast octa word does not exist
+
+    default:
+        GP_UNREACHABLE("");
     }
 
     const size_t original_length = out->length;
 
-    const char sign = i < 0 ? '-' : fmt.flag.plus ? '+' : fmt.flag.space ? ' ' : 0;
+    bool is_negative = is_128 ? gp_int128_hi(i128) < 0 : i < 0;
+    const char sign = is_negative ? '-' : fmt.flag.plus ? '+' : fmt.flag.space ? ' ' : 0;
     if (sign)
     {
         pf_push_char(out, sign);
         md->has_sign = true;
     }
-
-    const size_t max_written = pf_utoa(
-        pf_capacity_left(*out), out->data + out->length, imaxabs(i));
+    const size_t max_written = is_128 ?
+        pf_u128toa(
+            pf_capacity_left(*out),
+            out->data + out->length,
+            gp_uint128_negate(gp_uint128_i128(i128)))
+      : pf_utoa(
+            pf_capacity_left(*out), out->data + out->length, llabs(i));
 
     pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
 static size_t pf_write_o(
-    struct pf_string* out,
+    PFString* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const uintmax_t u = pf_get_uint(args, fmt);
+    const PFUInt u = pf_get_uint(args, fmt);
 
     bool zero_written = false;
-    if (fmt.flag.hash && u > 0)
+    if (fmt.flag.hash && gp_u128_not_equal(u.u128, gp_u128(0, 0)))
     {
         pf_push_char(out, '0');
         zero_written = true;
     }
 
-    const size_t max_written = pf_otoa(
-        pf_capacity_left(*out), out->data + out->length, u);
+    const size_t max_written = u.is_128 ?
+        pf_o128toa(
+            pf_capacity_left(*out), out->data + out->length, u.u128)
+      : pf_otoa(
+            pf_capacity_left(*out), out->data + out->length, u.u);
 
     // zero_written tells pad_zeroes() to add 1 less '0'
     pf_write_leading_zeroes(out, zero_written + max_written, fmt);
@@ -295,69 +370,78 @@ static size_t pf_write_o(
 }
 
 static size_t pf_write_x(
-    struct pf_string* out,
-    struct pf_misc_data* md,
+    PFString* out,
+    PFMiscData* md,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const uintmax_t u = pf_get_uint(args, fmt);
+    PFUInt u = pf_get_uint(args, fmt);
 
-    if (fmt.flag.hash && u > 0)
+    if (fmt.flag.hash && gp_uint128_not_equal(u.u128, gp_uint128(0, 0)))
     {
         pf_concat(out, "0x", strlen("0x"));
         md->has_0x = true;
     }
 
-    const size_t max_written = pf_xtoa(
-        pf_capacity_left(*out), out->data + out->length, u);
+    const size_t max_written = u.is_128 ?
+        pf_x128toa(
+            pf_capacity_left(*out), out->data + out->length, u.u128)
+      : pf_xtoa(
+            pf_capacity_left(*out), out->data + out->length, u.u);
 
     pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
 static size_t pf_write_X(
-    struct pf_string* out,
-    struct pf_misc_data* md,
+    PFString* out,
+    PFMiscData* md,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const uintmax_t u = pf_get_uint(args, fmt);
+    const PFUInt u = pf_get_uint(args, fmt);
 
-    if (fmt.flag.hash && u > 0)
+    if (fmt.flag.hash && gp_uint128_not_equal(u.u128, gp_uint128(0, 0)))
     {
         pf_concat(out, "0X", strlen("0X"));
         md->has_0x = true;
     }
 
-    const size_t max_written = pf_Xtoa(
-        pf_capacity_left(*out), out->data + out->length, u);
+    const size_t max_written = u.is_128 ?
+        pf_X128toa(
+            pf_capacity_left(*out), out->data + out->length, u.u128)
+      : pf_Xtoa(
+            pf_capacity_left(*out), out->data + out->length, u.u);
 
     pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
 static size_t pf_write_u(
-    struct pf_string* out,
+    PFString* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const uintmax_t u = pf_get_uint(args, fmt);
-    const size_t max_written = pf_utoa(
-        pf_capacity_left(*out), out->data + out->length, u);
+    const PFUInt u = pf_get_uint(args, fmt);
+    const size_t max_written = u.is_128 ?
+        pf_u128toa(
+            pf_capacity_left(*out), out->data + out->length, u.u128)
+      : pf_utoa(
+            pf_capacity_left(*out), out->data + out->length, u.u);
     pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
 
 static size_t pf_write_p(
-    struct pf_string* out,
+    PFString* out,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const uintmax_t u = pf_get_uint(args, fmt);
+    const unsigned long long u = pf_get_uint(args, fmt).u;
 
     if (u > 0)
     {
@@ -399,12 +483,23 @@ static inline int pf_signbit(double x)
 #endif // __COMPCERT__
 
 static size_t pf_write_f(
-    struct pf_string* out,
-    struct pf_misc_data* md,
+    PFString* out,
+    PFMiscData* md,
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
+    #if GP_HAS_LONG_DOUBLE
+    // We don't have Ruy implementation for long double for now, we'll just
+    // truncate for now, which is still better than reading from incorrect
+    // registers. TODO if we decide to use libc, keep in mind that MINGW uses
+    // UCRT which assumes long double to be the same as double, but GNUC uses
+    // extended precision!
+    const double f = fmt.length_modifier != 'L' ?
+        va_arg(args->list, double)
+      : va_arg(args->list, long double);
+    #else
     const double f = va_arg(args->list, double);
+    #endif
     const size_t written_by_conversion = pf_strfromd(
         out->data + out->length, out->capacity, fmt, f);
     out->length += written_by_conversion;
@@ -416,9 +511,9 @@ static size_t pf_write_f(
 }
 
 static size_t pf_add_padding(
-    struct pf_string* out,
+    PFString* out,
     const size_t written,
-    const struct pf_misc_data md,
+    const PFMiscData md,
     const PFFormatSpecifier fmt)
 {
     size_t start = out->length - written;
@@ -462,13 +557,13 @@ static size_t pf_add_padding(
 // ------------------------------
 // String functtions
 
-size_t pf_vsnprintf_consuming(
+size_t pf_vsnprintf_consuming_no_null_termination(
     char*restrict out_buf,
     const size_t max_size,
     const char* format,
     pf_va_list* args)
 {
-    struct pf_string out = { out_buf ? out_buf : "", .capacity = max_size };
+    PFString out = { out_buf ? out_buf : "", .capacity = max_size };
 
     while (1)
     {
@@ -482,60 +577,60 @@ size_t pf_vsnprintf_consuming(
         format = fmt.string + fmt.string_length;
 
         size_t written_by_conversion = 0;
-        struct pf_misc_data misc = {0};
+        PFMiscData misc = {0};
 
         switch (fmt.conversion_format)
         {
-            case 'c':
-                if (fmt.length_modifier != 'l') {
-                    pf_push_char(&out, (char)va_arg(args->list, int));
-                    written_by_conversion = 1;
-                } else {
-                    written_by_conversion += pf_write_wc(&out, args);
-                } break;
+        case 'c':
+            if (fmt.length_modifier != 'l') {
+                pf_push_char(&out, (char)va_arg(args->list, int));
+                written_by_conversion = 1;
+            } else {
+                written_by_conversion += pf_write_wc(&out, args);
+            } break;
 
-            case 's':
-                written_by_conversion += pf_write_s(&out, args, fmt);
-                break;
+        case 's': // TODO wide strings!!!!!!!!!
+            written_by_conversion += pf_write_s(&out, args, fmt);
+            break;
 
-            case 'S':
-                written_by_conversion += pf_write_S(&out, args, fmt);
-                break;
+        case 'S':
+            written_by_conversion += pf_write_S(&out, args, fmt);
+            break;
 
-            case 'd':
-            case 'i':
-                written_by_conversion += pf_write_i(&out, &misc, args, fmt);
-                break;
+        case 'd':
+        case 'i':
+            written_by_conversion += pf_write_i(&out, &misc, args, fmt);
+            break;
 
-            case 'o':
-                written_by_conversion += pf_write_o(&out, args, fmt);
-                break;
+        case 'o':
+            written_by_conversion += pf_write_o(&out, args, fmt);
+            break;
 
-            case 'x':
-                written_by_conversion += pf_write_x(&out, &misc, args, fmt);
-                break;
+        case 'x':
+            written_by_conversion += pf_write_x(&out, &misc, args, fmt);
+            break;
 
-            case 'X':
-                written_by_conversion += pf_write_X(&out, &misc, args, fmt);
-                break;
+        case 'X':
+            written_by_conversion += pf_write_X(&out, &misc, args, fmt);
+            break;
 
-            case 'u':
-                written_by_conversion += pf_write_u(&out, args, fmt);
-                break;
+        case 'u':
+            written_by_conversion += pf_write_u(&out, args, fmt);
+            break;
 
-            case 'p':
-                written_by_conversion += pf_write_p(&out, args, fmt);
-                break;
+        case 'p':
+            written_by_conversion += pf_write_p(&out, args, fmt);
+            break;
 
-            case 'f': case 'F':
-            case 'e': case 'E':
-            case 'g': case 'G':
-                written_by_conversion += pf_write_f(&out, &misc, args, fmt);
-                break;
+        case 'f': case 'F':
+        case 'e': case 'E':
+        case 'g': case 'G':
+            written_by_conversion += pf_write_f(&out, &misc, args, fmt);
+            break;
 
-            case '%':
-                pf_push_char(&out, '%');
-                break;
+        case '%':
+            pf_push_char(&out, '%');
+            break;
         }
 
         if (written_by_conversion < fmt.field.width)
@@ -544,13 +639,22 @@ size_t pf_vsnprintf_consuming(
                 written_by_conversion,
                 misc,
                 fmt);
-    }
+    } // while (1)
 
-    // Write what's left in format string
-    pf_concat(&out, format, strlen(format));
-    if (out.length < out.capacity)
-        out.data[out.length] = '\0';
+    pf_concat(&out, format, strlen(format)); // write what's left in format
     return out.length;
+}
+
+size_t pf_vsnprintf_consuming(
+    char*restrict out_buf,
+    const size_t max_size,
+    const char* format,
+    pf_va_list* args)
+{
+    size_t length = pf_vsnprintf_consuming_no_null_termination(out_buf, max_size, format, args);
+    if (max_size > 0)
+        out_buf[length < max_size ? length : max_size - 1] = '\0';
+    return length;
 }
 
 size_t pf_vsnprintf(
@@ -606,9 +710,16 @@ size_t pf_vfprintf(
     va_copy(args_copy, args);
 
     const size_t out_length = pf_vsnprintf(buf, BUF_SIZE, fmt, args);
-    if (out_length >= BUF_SIZE) // try again
-    {
+    if (out_length >= BUF_SIZE) // try again from the very beginning. Why not
+    {                           // flush and continue where we left off? Because
+                                // we don't where to continue from without state,
+                                // which would make average case slower, this
+                                // has worst case of 2x slowdown, usually less.
+                                // I you have a better idea, feel free to implement.
+        // TODO TODO WHY IS MALLOC HERE?? WE **DO NOT** USE MALLOC!!!!!
+        // Also, why do we bother with null-termination when using fwrite() anyway??
         pbuf = malloc(out_length + sizeof(""));
+
         pf_vsprintf(pbuf, fmt, args_copy);
     }
     fwrite(pbuf, sizeof(char), out_length, stream);

@@ -5,6 +5,7 @@
 // (c) 2014 M.E. O'Neill / pcg-random.org
 // Licensed under Apache License 2.0 (NO WARRANTY, etc. see website)
 
+#include <gpc/assert.h>
 #include <gpc/utils.h>
 #include "pcg_basic.h"
 #include <string.h>
@@ -63,11 +64,11 @@ double gp_frandom(GPRandomState* state)
 }
 
 int32_t gp_random_range(GPRandomState* state, int32_t min, int32_t max)
-{
-    if (max - min > 0)
-        return  (int32_t)pcg32_boundedrand_r((pcg32_random_t*)state,(uint32_t)( max - min + 1)) + min;
-    else
-        return -(int32_t)pcg32_boundedrand_r((pcg32_random_t*)state,(uint32_t)(-max + min - 1)) + min;
+{ // TODO optimize for power of 2 ranges (avoid integer modulus)
+    gp_db_assert(max > min, "Invalid range.");
+    union punner { uint32_t u; int32_t i; } r; // avoid implementation defined cast when u>INT32_MAX
+    r.u = pcg32_boundedrand_r((pcg32_random_t*)state, max - min) + min;
+    return r.i;
 }
 
 void gp_random_bytes(GPRandomState* state, void* buffer, size_t buffer_size)
@@ -84,11 +85,12 @@ void gp_random_bytes(GPRandomState* state, void* buffer, size_t buffer_size)
         buffer_size -= remainder;
     }
 
-    uint32_t* data = buffer; // TODO is this access UB??
     size_t data_length = buffer_size/sizeof(uint32_t);
     size_t i = 0;
-    for (; i < data_length; ++i)
-        data[i] = gp_random(state);
+    for (; i < data_length; ++i) {
+        uint32_t rand = gp_random(state);
+        memcpy((uint32_t*)buffer + i, &rand, sizeof rand);
+    }
 
     remainder = buffer_size & (sizeof(uint32_t)-1);
     if (remainder != 0) {

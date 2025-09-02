@@ -43,7 +43,7 @@ const char* gp_set_utf8_global_locale(int category, const char* locale_code);
 // https://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html
 #if _WIN32 || _XOPEN_SOURCE >= 700 || defined(_GNU_SOURCE) || defined(_DEFAULT_SOURCE)
 
-#define GP_LOCALE_AVAILABLE 1
+#define GP_HAS_LOCALE 1
 
 #if _WIN32
 typedef _locale_t GPLocale;
@@ -72,7 +72,7 @@ GPLocale gp_locale(const char* optional_locale_code);
 #else // only global locale available
 
 typedef void* GPLocale;
-#define gp_get_locale() ((GPLocale)0)
+static inline GPLocale gp_locale(const char* _) { (void)_; return NULL }
 
 #endif // _WIN32 || _XOPEN_SOURCE >= 700 || defined(_GNU_SOURCE) || defined(_DEFAULT_SOURCE)
 

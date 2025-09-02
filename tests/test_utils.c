@@ -34,14 +34,14 @@ int main(void)
         GPRandomState s = gp_random_state((uint64_t)time(NULL));
         gp_test("range");
         {
-            for (int i = 0; i < 32; i++)
+            for (int i = 0; i < 2048; i++)
             {
                 int32_t n = gp_random_range(&s, 4, 7);
-                gp_assert(4 <= n && n <= 7);
+                gp_assert(4 <= n && n <= 7, "%w32i", n);
                 n = gp_random_range(&s, -12, -3);
-                gp_assert(-12 <= n && n <= -3);
+                gp_assert(-12 <= n && n <= -3, "%w32i", n);
                 n = gp_random_range(&s, -3, 3);
-                gp_assert(-3 <= n && n <= 3);
+                gp_assert(-3 <= n && n <= 3, "%w32i", n);
             }
         }
     }

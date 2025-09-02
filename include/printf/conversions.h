@@ -6,7 +6,7 @@
 #define CONVERSIONS_H_INCLUDED 1
 
 #include <printf/format_scanning.h>
-#include <stddef.h>
+#include <gpc/int128.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,6 +25,11 @@ size_t pf_etoa(size_t n, char* buf, double x);
 size_t pf_Etoa(size_t n, char* buf, double x);
 size_t pf_gtoa(size_t n, char* buf, double x);
 size_t pf_Gtoa(size_t n, char* buf, double x);
+size_t pf_u128toa(size_t n, char* buf, GPUInt128 x);
+size_t pf_o128toa(size_t n, char* buf, GPUInt128 x);
+size_t pf_x128toa(size_t n, char* buf, GPUInt128 x);
+size_t pf_X128toa(size_t n, char* buf, GPUInt128 x);
+size_t pf_i128toa(size_t n, char* buf, GPInt128  x);
 
 // fmt determines conversion format. Fields that control the conversion:
 // .conversion_format = any of 'f', 'F', 'e', 'E', 'g', or 'G'. REQUIRED

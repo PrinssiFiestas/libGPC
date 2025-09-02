@@ -310,7 +310,7 @@ GPArray(void) gp_arr_reallocate(
 #pragma warning(disable : 4034)
 #endif
 
-#ifdef __clang__ // Allow {0} for any type
+#ifdef __clang__ // Allow {0} for any type, which is the only portable 0 init before C23
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
 

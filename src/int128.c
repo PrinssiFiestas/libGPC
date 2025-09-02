@@ -12,10 +12,12 @@ GPUInt128 gp_u128_c99_ctor(size_t size, ...)
     va_list args;
     va_start(args, size);
     switch (size) {
-        case sizeof(GPInt128): u =               va_arg(args, GPUInt128); break;
-        case sizeof(uint64_t): u = gp_uint128(0, va_arg(args, uint64_t)); break;
-        case sizeof(uint32_t): u = gp_uint128(0, va_arg(args, uint32_t)); break;
-        default: GP_UNREACHABLE;
+    case sizeof(GPInt128): u =               va_arg(args, GPUInt128); break;
+    case sizeof(uint64_t): u = gp_uint128(0, va_arg(args, uint64_t)); break;
+    case sizeof(uint32_t): u = gp_uint128(0, va_arg(args, uint32_t)); break;
+    case sizeof(uint16_t): u = gp_uint128(0, va_arg(args, unsigned)); break;
+    case sizeof(uint8_t):  u = gp_uint128(0, va_arg(args, unsigned)); break;
+    default: GP_UNREACHABLE("gp_u128(): invalid argument.");
     }
     va_end(args);
     return u;
@@ -25,13 +27,13 @@ GPInt128 gp_i128_c99_ctor(size_t size, ...)
     GPInt128 i;
     va_list args;
     va_start(args, size);
-    if (size == sizeof(GPInt128))
-        i = va_arg(args, GPInt128);
-    else {
-        int64_t i64 = size == sizeof(int64_t) ?
-            va_arg(args, int64_t)
-          : va_arg(args, int32_t);
-        i = gp_int128(-(i64<0), i64);
+    switch (size) {
+    case sizeof(GPInt128): i =              va_arg(args, GPInt128 ); break;
+    case sizeof(int64_t):  i = gp_int128(0, va_arg(args, uint64_t)); break;
+    case sizeof(int32_t):  i = gp_int128(0, va_arg(args, uint32_t)); break;
+    case sizeof(int16_t):  i = gp_int128(0, va_arg(args, unsigned)); break;
+    case sizeof(int8_t):   i = gp_int128(0, va_arg(args, unsigned)); break;
+    default: GP_UNREACHABLE("gp_i128(): invalid argument.");
     }
     va_end(args);
     return i;
@@ -61,6 +63,8 @@ GPUInt128 gp_uint128_long_mul64(uint64_t a, uint64_t b)
 
 static size_t gp_trailing_zeros_u64(uint64_t u)
 {
+    gp_db_assert(u != 0, "Invalid argument.");
+
     // Note: C23 stdc_trailing_zeros() breaks builds, don't use it!
     #if __GNUC__ && !defined(GP_TEST_INT128)
     GP_STATIC_ASSERT(sizeof u == sizeof(unsigned long long)); // be pedantic and paranoid
@@ -82,6 +86,8 @@ static size_t gp_trailing_zeros_u64(uint64_t u)
 
 static size_t gp_leading_zeros_u64(uint64_t u)
 {
+    gp_db_assert(u != 0, "Invalid argument.");
+
     // Note: C23 stdc_leading_zeros() breaks builds, don't use it!
     #if __GNUC__ && !defined(GP_TEST_INT128)
     GP_STATIC_ASSERT(sizeof u == sizeof(unsigned long long)); // be pedantic and paranoid
@@ -105,6 +111,8 @@ static size_t gp_leading_zeros_u64(uint64_t u)
 // https://github.com/llvm-mirror/compiler-rt/blob/master/lib/builtins/udivmodti4.c
 GPUInt128 gp_uint128_divmod(GPUInt128 a, GPUInt128 b, GPUInt128 *rem)
 {
+    gp_db_assert(gp_uint128_not_equal(b, gp_uint128(0, 0)), "Division by zero.");
+
     const unsigned n_udword_bits = sizeof(uint64_t)  * CHAR_BIT;
     const unsigned n_utword_bits = sizeof(GPUInt128) * CHAR_BIT;
     GPUInt128 n = a;

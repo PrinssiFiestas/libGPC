@@ -2,6 +2,11 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
 
+// Currently integer conversions use naïve algorithm with integer division and
+// modulus. All major compilers optimize the expensivie div/mod out, GCC even
+// does that with -O0. However, this is not always true for GP[U]Int128, which
+// has even more expensive division, so it should be optimized. // TODO
+
 #include <printf/conversions.h>
 #include <stdint.h>
 #include "d2s_full_table.h"
@@ -9,6 +14,7 @@
 #include "ryu_common.h"
 #include "digit_table.h"
 #include "d2fixed_full_table.h"
+// TODO use GPUInt128 to reduce duplication, it is slightly better optimized anyway
 #include "d2s_intrinsics.h"
 #include "pfstring.h"
 
@@ -22,7 +28,7 @@
 
 #define PF_POW10_ADDITIONAL_BITS 120
 
-#define PF_MAX_DIGITS 24
+#define PF_MAX_DIGITS 24 // for buffer sizes, not precise, has extra
 
 static void pf_str_reverse_copy(
     char* restrict out,
@@ -129,6 +135,91 @@ size_t pf_Xtoa(const size_t n, char* out, unsigned long long x)
         buf[i++] = _x < 10 ? _x + '0' : _x - 10 + 'A';
         x /= 16;
     } while(x);
+
+    pf_str_reverse_copy(out, buf, i, n);
+    return i;
+}
+
+size_t pf_u128toa(const size_t n, char* out, GPUInt128 x)
+{
+    char buf[2*PF_MAX_DIGITS];
+    size_t i = 0;
+    do // write all digits from low to high
+    {
+        buf[i++] = gp_uint128_lo(gp_uint128_mod(x, gp_uint128(0, 10))) + '0';
+        x = gp_uint128_div(x, gp_uint128(0, 10));
+    } while(gp_uint128_not_equal(x, gp_uint128(0, 0)));
+
+    pf_str_reverse_copy(out, buf, i, n);
+    return i;
+}
+
+size_t pf_i128toa(size_t n, char* out, const GPInt128 ix)
+{
+    char buf[2*PF_MAX_DIGITS];
+    GPUInt128 x = gp_uint128_i128(ix);
+
+    if (gp_int128_hi(ix) < 0)
+    {
+        if (n > 0)
+        {
+            out[0] = '-';
+            n--;
+        }
+        out++;
+        x = gp_uint128_negate(x);
+    }
+
+    size_t i = 0;
+    do // write all digits from low to high
+    {
+        buf[i++] = gp_uint128_lo(gp_uint128_mod(x, gp_uint128(0, 10))) + '0';
+        x = gp_uint128_div(x, gp_uint128(0, 10));
+    } while(gp_uint128_not_equal(x, gp_uint128(0, 0)));
+
+    pf_str_reverse_copy(out, buf, i, n);
+    return i + (gp_int128_hi(ix) < 0);
+}
+
+size_t pf_o128toa(const size_t n, char* out, GPUInt128 x)
+{
+    char buf[2*PF_MAX_DIGITS];
+    size_t i = 0;
+    do // write all digits from low to high
+    {
+        buf[i++] = (gp_uint128_lo(x) & 0x7) + '0';
+        x = gp_uint128_shift_right(x, 3);
+    } while(gp_uint128_not_equal(x, gp_uint128(0, 0)));
+
+    pf_str_reverse_copy(out, buf, i, n);
+    return i;
+}
+
+size_t pf_x128toa(const size_t n, char* out, GPUInt128 x)
+{
+    char buf[2*PF_MAX_DIGITS];
+    size_t i = 0;
+    do // write all digits from low to high
+    {
+        size_t _x = gp_uint128_lo(x) & 0xF;
+        buf[i++] = _x < 10 ? _x + '0' : _x - 10 + 'a';
+        x = gp_uint128_shift_right(x, 4);
+    } while(gp_uint128_not_equal(x, gp_uint128(0, 0)));
+
+    pf_str_reverse_copy(out, buf, i, n);
+    return i;
+}
+
+size_t pf_X128toa(const size_t n, char* out, GPUInt128 x)
+{
+    char buf[2*PF_MAX_DIGITS];
+    size_t i = 0;
+    do // write all digits from low to high
+    {
+        size_t _x = gp_uint128_lo(x) & 0xF;
+        buf[i++] = _x < 10 ? _x + '0' : _x - 10 + 'A';
+        x = gp_uint128_shift_right(x, 4);
+    } while(gp_uint128_not_equal(x, gp_uint128(0, 0)));
 
     pf_str_reverse_copy(out, buf, i, n);
     return i;

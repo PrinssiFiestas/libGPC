@@ -252,7 +252,7 @@ int main(void)
         }
     }
 
-    #ifndef _WIN32 // gp_print() conversions match glibc
+    #ifdef __GLIBC__ // gp_print() conversions match glibc
     gp_suite("String print");
     {
         gp_test("Numbers");

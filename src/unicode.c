@@ -19,7 +19,7 @@ static GPMutex gp_locale_table_mutex;
 
 static void gp_locale_delete(void* locale)
 {
-    #if GP_LOCALE_AVAILABLE
+    #if GP_HAS_LOCALE
     if ((GPLocale)locale != (GPLocale)0 && (GPLocale)locale != (GPLocale)-1)
         #if _WIN32
         _free_locale((GPLocale)locale);
@@ -51,7 +51,7 @@ static void gp_init_locale_table(void)
     gp_locale_table = gp_map_new(gp_heap, &init);
     gp_mutex_init(&gp_locale_table_mutex);
 
-    #if GP_LOCALE_AVAILABLE
+    #if GP_HAS_LOCALE
     #if !_WIN32
     gp_default_locale = newlocale(LC_ALL_MASK, "C.UTF-8", (locale_t)0);
     #elif __MINGW32__
@@ -59,14 +59,14 @@ static void gp_init_locale_table(void)
     #else
     gp_default_locale = _create_locale(LC_ALL, ".UTF-8");
     #endif
-    #endif // GP_LOCALE_AVAILABLE
+    #endif // GP_HAS_LOCALE
 
     atexit(gp_delete_locale_table); // shut up sanitizer
 }
 
 GPLocale gp_locale(const char* locale_code)
 {
-    #if ! GP_LOCALE_AVAILABLE
+    #if ! GP_HAS_LOCALE
     return NULL;
     #endif
     if (locale_code == NULL)
@@ -103,7 +103,7 @@ GPLocale gp_locale(const char* locale_code)
 
         #if _WIN32
         locale = _create_locale(LC_ALL, full_locale_code);
-        #elif GP_LOCALE_AVAILABLE
+        #elif GP_HAS_LOCALE
         locale = newlocale(LC_ALL_MASK, full_locale_code, (GPLocale)0);
         #endif
         if (locale == (GPLocale)0) // mark the locale as unavailable
@@ -1329,7 +1329,7 @@ static int gp_wcs_collate(const void*_s1, const void*_s2)
         return wcscoll(s1->wide, s2->wide);
     #if _WIN32
     return _wcscoll_l(s1->wide, s2->wide, s1->locale);
-    #elif GP_LOCALE_AVAILABLE
+    #elif GP_HAS_LOCALE
     return wcscoll_l(s1->wide, s2->wide, s1->locale);
     #else
     return wcscoll(s1->wide, s2->wide);
@@ -1426,7 +1426,7 @@ int gp_str_compare(
         else
             #if _WIN32
             result = _wcscoll_l(wcs1, wcs2, gp_locale(locale_code));
-            #elif GP_LOCALE_AVAILABLE
+            #elif GP_HAS_LOCALE
             result = wcscoll_l(wcs1, wcs2, gp_locale(locale_code));
             #else
             result = wcscoll(wcs1, wcs2);

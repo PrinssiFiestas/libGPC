@@ -125,6 +125,8 @@ int main(void)
 #define GP_TYPEOF(X) __typeof__(X)
 #endif
 
+// ----------------------------------------------------------------------------
+
 // Use in variadic function arguments with GP_TYPE() macro
 typedef enum gp_type
 {
@@ -169,7 +171,7 @@ static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
         case GP_FLOAT:
             return sizeof(float);
         case GP_LONG_DOUBLE:
-            #if __GNUC__
+            #if GP_HAS_LONG_DOUBLE
             return sizeof(long double);
             #endif
         case GP_DOUBLE:
@@ -180,8 +182,9 @@ static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
     return 0;
 }
 
+// ----------------------------------------------------------------------------
 // Helper macros for C11 _Generic() selection // TODO TEST THESE!!!!!!!!!!!!!
-//
+
 // C11 _Generic() requires specifying all types explicitly and does not do
 // implicit conversions. This gives good control, but is inconvenient in some
 // cases e.g. you just want to differentiate between an integer and a float. It
@@ -196,7 +199,7 @@ static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
 // - GP_C11_GENERIC_UNSIGNED_TYPE: unsigned primitive integers, GPUInt128, bool,
 //   and plain char if unsigned.
 //
-// - GP_C11_GENERIC_FLOAT: float, double and long double if available.
+// - GP_C11_GENERIC_FLOAT: float, double, and long double.
 //
 // - GP_C11_GENERIC_NUMBER: all of the above.
 //
@@ -259,7 +262,9 @@ static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
        unsigned long: (A), unsigned long long: (A)
 #  endif
 #endif
-#if __GNUC__
+#if __SDCC // double not supported
+#  define GP_C11_GENERIC_FLOAT(A) float: (A)
+#elif GP_HAS_DIFFERENTIATED_LONG_DOUBLE
 #  define GP_C11_GENERIC_FLOAT(A) float: (A), double: (A), long double: (A)
 #else
 #  define GP_C11_GENERIC_FLOAT(A) float: (A), double: (A)
@@ -283,7 +288,7 @@ static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
 // GP_TYPE(): basic reflection
 // User types currently not supported. // TODO we want these!
 #if __cplusplus // defined with overloads
-#elif __GNUC__ // long double supported
+#elif GP_HAS_DIFFERENTIATED_LONG_DOUBLE
 #define GP_TYPE(VAR)                              \
 _Generic(VAR,                                     \
     bool:                  GP_BOOL,               \
@@ -737,10 +742,12 @@ static inline constexpr GPType GP_TYPE(short              x) { (void)x; return G
 static inline constexpr GPType GP_TYPE(int                x) { (void)x; return GP_INT;                }
 static inline constexpr GPType GP_TYPE(long               x) { (void)x; return GP_LONG;               }
 static inline constexpr GPType GP_TYPE(long long          x) { (void)x; return GP_LONG_LONG;          }
+static inline constexpr GPType GP_TYPE(GPInt128           x) { (void)x; return GP_INT128;             }
 static inline constexpr GPType GP_TYPE(unsigned short     x) { (void)x; return GP_UNSIGNED_SHORT;     }
 static inline constexpr GPType GP_TYPE(unsigned           x) { (void)x; return GP_UNSIGNED;           }
 static inline constexpr GPType GP_TYPE(unsigned long      x) { (void)x; return GP_UNSIGNED_LONG;      }
 static inline constexpr GPType GP_TYPE(unsigned long long x) { (void)x; return GP_UNSIGNED_LONG_LONG; }
+static inline constexpr GPType GP_TYPE(GPUInt128          x) { (void)x; return GP_UINT128;            }
 static inline constexpr GPType GP_TYPE(float              x) { (void)x; return GP_FLOAT;              }
 static inline constexpr GPType GP_TYPE(double             x) { (void)x; return GP_DOUBLE;             }
 static inline constexpr GPType GP_TYPE(char               x) { (void)x; return GP_CHAR;               }

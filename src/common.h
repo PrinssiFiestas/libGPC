@@ -35,6 +35,14 @@
 #  define GP_HAS_SANITIZER 0
 #endif
 
+#define GP_FORMAT_SPECIFIERS "csSdioxXufFeEgGp"
+
+size_t pf_vsnprintf_consuming_no_null_termination(
+    char*restrict out_buf,
+    const size_t max_size,
+    const char* format,
+    pf_va_list* args);
+
 void gp_arena_dealloc(GPAllocator*, void*);
 void gp_carena_dealloc(GPAllocator*, void*);
 
@@ -72,15 +80,15 @@ GP_NONNULL_ARGS()
 inline size_t gp_count_fmt_specs(const char* fmt)
 {
     size_t i = 0;
-    for (; (fmt = strchr(fmt, '%')) != NULL; fmt++)
+    for (; (fmt = strchr(fmt, '%')) != NULL; ++fmt)
     {
         if (fmt[1] == '%') {
-            fmt++;
+            ++fmt;
         } else  { // consuming more args
-            const char* fmt_spec = strpbrk(fmt, "csSdioxXufFeEgGp");
-            for (const char* c = fmt; c < fmt_spec; c++) if (*c == '*')
-                i++; // consume asterisks as well
-            i++;
+            const char* fmt_spec = strpbrk(fmt, GP_FORMAT_SPECIFIERS);
+            for (const char* c = fmt; c < fmt_spec; ++c) if (*c == '*')
+                ++i; // consume asterisks as well
+            ++i;
         }
     }
     return i;
@@ -108,7 +116,19 @@ size_t gp_bytes_print_objects(
 #error CHAR_BIT != 8: Crazy machines not supported.
 #endif
 #if ~1 == -1
-#error Ones' complement integer arithmetic not supported. C23 deprecates it anyway.
+#error Ones complement integer arithmetic not supported. C23 deprecates it anyway.
+#endif
+
+// ----------------------------------------------------------------------------
+// ssize_t
+
+// Desperately try to detect if ssize_t exist using mostly undocumented macros.
+// Avoid using this, you can use `#if _POSIX_VERSION >= 200112L` for something
+// more robust.
+#if _POSIX_VERSION >= 200112L || defined(ssize_t) \
+|| defined(__ssize_t_defined) || defined(_SSIZE_T_DEFINED) \
+|| defined(_SSIZE_T) || defined(_SSIZE_T_DECLARED)
+#define GP_HAS_SSIZE_T 1
 #endif
 
 #endif // GP_COMMON_INCLUDED

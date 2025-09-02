@@ -102,14 +102,17 @@
 #endif
 
 // ----------------------------------------------------------------------------
-// Printf format string type checking
+// Printf Format String Type Checking
 
-#if __GNUC__
+// User can #define GP_NO_FORMAT_STRING_CHECK before including this header to
+// disable format string checking, which may be useful with custom formats.
+
+#if __GNUC__ && !defined(GP_NO_FORMAT_STRING_CHECK)
 // Type checking for format strings
-#  define GP_PRINTF(FORMAT_STRING_INDEX, FIRST_TO_CHECK) \
+#  define GP_CHECK_FORMAT_STRING(FORMAT_STRING_INDEX, FIRST_TO_CHECK) \
       __attribute__((format(printf, FORMAT_STRING_INDEX, FIRST_TO_CHECK)))
 #else
-#  define GP_PRINTF(...)
+#  define GP_CHECK_FORMAT_STRING(...)
 #endif
 
 // ----------------------------------------------------------------------------
@@ -183,5 +186,23 @@
 #  define GP_CONSTEXPR_VARIABLE
 #  define GP_CONST static const
 #endif
+
+// ----------------------------------------------------------------------------
+// Long Double Support
+
+// Compilers not supporting long double should be explicitly listed here,
+// because long double has been in C standards since C89, so it is assumed to be
+// supported by default.
+#if !defined(__COMPCERT__) && !defined(__SDCC)
+
+// Code using long double compiles. Doesn't mean that it is larger than double.
+#  define GP_HAS_LONG_DOUBLE 1
+
+// Code using long double compiles and type system differentiates between double
+// and long double. This is important for C11 _Generic() selection, which does
+// not allow duplicate types.
+#  define GP_HAS_DIFFERENTIATED_LONG_DOUBLE 1
+
+#endif // compilers (not) supporting long double
 
 #endif // GP_ATTRIBUTES_INCLUDED

@@ -23,15 +23,6 @@ typedef struct PFFormatSpecifier
     const char* string;
     size_t string_length;
 
-    struct // flag
-    {
-        bool dash;
-        bool plus;
-        bool space;
-        bool hash;
-        bool zero;
-    } flag;
-
     struct // field
     {
         unsigned width;
@@ -49,8 +40,17 @@ typedef struct PFFormatSpecifier
         } option;
     } precision;
 
-    unsigned char length_modifier;   // any of "hljztL" or 2*'h' or 2*'l' // TODO C23 fixed width modifiers
-    unsigned char conversion_format; // any of "csSdioxXufFeEgGp". 'n' not supported.
+    struct // flag
+    {
+        bool dash;
+        bool plus;
+        bool space;
+        bool hash;
+        bool zero;
+    } flag;
+
+    unsigned char length_modifier;   // any of "hljztLwBWDQO" or 2*'h' or 2*'l' or any of "BWDQO"+'f'
+    unsigned char conversion_format; // any of GP_FORMAT_SPECIFIERS. 'n' not supported.
 } PFFormatSpecifier;
 
 // Portability wrapper.

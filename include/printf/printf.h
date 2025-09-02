@@ -2,16 +2,47 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/printf/blob/main/LICENSE.md
 
-// This library is modified to suit the needs of libGPC. Most notably
-// pf_snprintf() does not null-terminate if n is exceeded and custom formats and
-// portable attributes and restrict are added. Also, return types are size_t
-// instead of int. Currently no error checking TODO
+// Original library:
+// https://github.com/PrinssiFiestas/printf
 //
-// Use %S for GPString
+// This library is modified to suit the needs of libGPC. Most notably, custom
+// formats and portable attributes and restrict are added. Also, return types
+// are size_t instead of int. Invalid format strings are asserted in debug
+// builds, undefined otherwise.
 //
-// Use B (byte 8 bits), W (word 16 bits), D (double word 32 bits), and
-// Q (quad word 64 bits) as length specifier for fixed width integers.
-// Example: "%Wi" for int16_t and "%Qx" for uint64_t in hex.
+// %n is not supported due to security issues, it is not useful anyway since you
+// can just split the calls and read the return value. Long double is also not
+// currently supported due to it's inconsistent host support. Other than these
+// limitations and the modifications mentioned above, `pf_printf()` is fully
+// ANSI C compatible with the following extensions:
+//
+// S conversion specifier for GPString. Note that GNUC interprets %S as %ls, but
+// since it's use as %ls is discouraged anyway, we use it for our purposes.
+// However, the compiler may issue a warning, which can be silenced by casting
+// the GPString input to wchar_t*. Another option is to disable compiler format
+// string checking as described below.
+//
+// Use B (byte 8 bits), W (word 16 bits), D (double word 32 bits),
+// Q (quad word 64 bits), and O (octa word 128 bits for GP[U]Int128) as length
+// specifier for fixed width integers. C23 wN ([u]int_N_t) and wfN
+// ([u]int_fastN_t), where N is 8, 16, 32, or 128, is also supported and
+// recommended over non-standard BWDQO.
+//
+// At the time of writing, C23 wN and wfN length specifiers are not widely
+// supported by compilers. Also casting GPString to wchar_t* can be misleading
+// to the reader, and BWDQO are not recognized by compilers at all. To disable
+// potential compiler warnings, user can #define GP_NO_FORMAT_STRING_CHECK
+// before including this header to disable compiler checks. Disabling the checks
+// is discouraged, but sometimes necessary.
+//
+// Extensions examples:
+// - "%S":     GPString
+// - "%Wi":    int16_t
+// - "%Qx":    uint64_t hex
+// - "%w128u": GPUInt128
+// - "%w16x":  uint16_t hex
+//
+// TODO C23 %b binary conversion specifier
 
 #ifndef PRINTF_H_INCLUDED
 #define PRINTF_H_INCLUDED 1
@@ -41,18 +72,18 @@ GP_NONNULL_ARGS(3)
 size_t pf_vsnprintf(
     char*GP_RESTRICT buf, size_t n, const char*GP_RESTRICT fmt, va_list args);
 
-GP_PRINTF(1, 2)
+GP_CHECK_FORMAT_STRING(1, 2)
 size_t pf_printf(
     const char*GP_RESTRICT fmt, ...);
 
-GP_NONNULL_ARGS() GP_PRINTF(2, 3)
+GP_NONNULL_ARGS() GP_CHECK_FORMAT_STRING(2, 3)
 size_t pf_fprintf(
     FILE*GP_RESTRICT stream, const char*GP_RESTRICT fmt, ...);
 
-GP_NONNULL_ARGS() GP_PRINTF(2, 3)
+GP_NONNULL_ARGS() GP_CHECK_FORMAT_STRING(2, 3)
 size_t pf_sprintf(char*GP_RESTRICT buf, const char*GP_RESTRICT fmt, ...);
 
-GP_NONNULL_ARGS(3) GP_PRINTF(3, 4)
+GP_NONNULL_ARGS(3) GP_CHECK_FORMAT_STRING(3, 4)
 size_t pf_snprintf(
     char*GP_RESTRICT buf, size_t n, const char*GP_RESTRICT fmt, ...);
 

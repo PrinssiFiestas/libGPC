@@ -147,104 +147,96 @@ size_t gp_convert_va_arg(
     size_t length = 0;
     switch (type)
     {
-        case GP_CHAR:
-        case GP_SIGNED_CHAR:
-        case GP_UNSIGNED_CHAR:
-            length++;
-            if (limit > 0)
-                *(uint8_t*)out = (char)va_arg(args->list, int);
-            break;
+    case GP_CHAR:
+    case GP_SIGNED_CHAR:
+    case GP_UNSIGNED_CHAR:
+        length++;
+        if (limit > 0)
+            *(uint8_t*)out = (char)va_arg(args->list, int);
+        break;
 
-        case GP_UNSIGNED_SHORT:
-        case GP_UNSIGNED:
-            length += pf_utoa(
-                limit,
-                out,
-                va_arg(args->list, unsigned));
-            break;
+    case GP_UNSIGNED_SHORT:
+    case GP_UNSIGNED:
+        length += pf_utoa(limit, out, va_arg(args->list, unsigned));
+        break;
 
-        case GP_UNSIGNED_LONG:
-            length += pf_utoa(
-                limit,
-                out,
-                va_arg(args->list, unsigned long));
-            break;
+    case GP_UNSIGNED_LONG:
+        length += pf_utoa(limit, out, va_arg(args->list, unsigned long));
+        break;
 
-        case GP_UNSIGNED_LONG_LONG:
-            length += pf_utoa(
-                limit,
-                out,
-                va_arg(args->list, unsigned long long));
-            break;
+    case GP_UNSIGNED_LONG_LONG:
+        length += pf_utoa(limit, out, va_arg(args->list, unsigned long long));
+        break;
 
-        // TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        case GP_UINT128: case GP_INT128: case GP_LONG_DOUBLE: GP_UNREACHABLE; break;
+    case GP_UINT128:
+        length += pf_u128toa(limit, out, va_arg(args->list, GPUInt128));
+        break;
 
-        case GP_BOOL:
-            if (va_arg(args->list, int)) {
-                length += strlen("true");
-                memcpy(out, "true", gp_min(4llu, limit));
-            } else {
-                length += strlen("false");
-                memcpy(out, "false", gp_min(5llu, limit));
-            } break;
+    case GP_BOOL:
+        if (va_arg(args->list, int)) {
+            length += strlen("true");
+            memcpy(out, "true", gp_min(4llu, limit));
+        } else {
+            length += strlen("false");
+            memcpy(out, "false", gp_min(5llu, limit));
+        } break;
 
-        case GP_SHORT:
-        case GP_INT:
-            length += pf_itoa(
-                limit,
-                out,
-                va_arg(args->list, int));
-            break;
+    case GP_SHORT:
+    case GP_INT:
+        length += pf_itoa(limit, out, va_arg(args->list, int));
+        break;
 
-        case GP_LONG:
-            length += pf_itoa(
-                limit,
-                out,
-                va_arg(args->list, long int));
-            break;
+    case GP_LONG:
+        length += pf_itoa(limit, out, va_arg(args->list, long int));
+        break;
 
-        case GP_LONG_LONG:
-            length += pf_itoa(
-                limit,
-                out,
-                va_arg(args->list, long long int));
-            break;
+    case GP_LONG_LONG:
+        length += pf_itoa(limit, out, va_arg(args->list, long long int));
+        break;
 
-        case GP_FLOAT:
-        case GP_DOUBLE:
-            length += pf_gtoa(
-                limit,
-                out,
-                va_arg(args->list, double));
-            break;
+    case GP_INT128:
+        length += pf_i128toa(limit, out, va_arg(args->list, GPInt128));
+        break;
 
-        char* p;
-        size_t p_len;
-        case GP_CHAR_PTR:
-            p = va_arg(args->list, char*);
-            p_len = strlen(p);
-            memcpy(out, p, gp_min(p_len, limit));
-            length += p_len;
-            break;
+    case GP_FLOAT:
+    case GP_DOUBLE:
+        length += pf_gtoa(limit, out, va_arg(args->list, double));
+        break;
 
-        GPString s;
-        case GP_STRING:
-            s = va_arg(args->list, GPString);
-            memcpy(out, s, gp_min(gp_arr_length(s), limit));
-            length += gp_arr_length(s);
-            break;
+    #if GP_HAS_LONG_DOUBLE // pf_Lgtoa() missing, may lose precision, but better than nothing
+    case GP_LONG_DOUBLE:
+        length += pf_gtoa(limit, out, va_arg(args->list, long double));
+        break;
+    #else
+    case GP_LONG_DOUBLE: GP_UNREACHABLE("long double not supported.");
+    #endif
 
-        case GP_PTR:
-            p = va_arg(args->list, void*);
-            if (p != NULL) {
-                memcpy(out, "0x", gp_min(2llu, limit));
-                length += strlen("0x") + pf_xtoa(
-                    limit > 2 ? limit - 2 : 0, (char*)out + strlen("0x"), (uintptr_t)p);
-            } else {
-                length += strlen("(nil)");
-                memcpy(out, "(nil)", gp_min(strlen("(nil)"), limit));
-            } break;
+    char* p;
+    size_t p_len;
+    case GP_CHAR_PTR:
+        p = va_arg(args->list, char*);
+        p_len = strlen(p);
+        memcpy(out, p, gp_min(p_len, limit));
+        length += p_len;
+        break;
+
+    GPString s;
+    case GP_STRING:
+        s = va_arg(args->list, GPString);
+        memcpy(out, s, gp_min(gp_arr_length(s), limit));
+        length += gp_arr_length(s);
+        break;
+
+    case GP_PTR:
+        p = va_arg(args->list, void*);
+        if (p != NULL) {
+            memcpy(out, "0x", gp_min(2llu, limit));
+            length += strlen("0x") + pf_xtoa(
+                limit > 2 ? limit - 2 : 0, (char*)out + strlen("0x"), (uintptr_t)p);
+        } else {
+            length += strlen("(nil)");
+            memcpy(out, "(nil)", gp_min(strlen("(nil)"), limit));
+        } break;
     }
     return length;
 }
@@ -262,13 +254,9 @@ size_t gp_bytes_print_objects(
         const char* fmt = va_arg(args->list, char*);
         *i += gp_count_fmt_specs(fmt);
 
-        length += pf_vsnprintf_consuming(
-            out,
-            limit,
-            fmt,
-            args);
-    } else {
+        length += pf_vsnprintf_consuming_no_null_termination(out, limit, fmt, args);
+    } else
         length += gp_convert_va_arg(limit, out, args, obj.type);
-    }
+
     return length;
 }

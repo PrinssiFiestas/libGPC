@@ -14,6 +14,7 @@
 #include <gpc/bytes.h>
 #include <gpc/overload.h>
 #include <gpc/attributes.h>
+#include <gpc/breakpoint.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -76,7 +77,7 @@ extern "C" {
  */
 #define gp_assert(/* bool condition, variables*/...) \
     (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
-        (GP_FAIL(__VA_ARGS__), exit(1), false)) // TODO should we use GP_BREAKPOINT instead of exit(1)?
+        (GP_FAIL(__VA_ARGS__), GP_DEBUG_BREAKPOINT_TRAP, exit(1), false))
 
 /** Non-fatal assertion.
  * @return true if condition is true. If condition is false prints fail message,
@@ -93,7 +94,7 @@ extern "C" {
  */
 #define gp_db_assert(/* bool condition, variables*/...) \
     (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
-        (GP_FAIL(__VA_ARGS__), exit(1), false))
+        (GP_FAIL(__VA_ARGS__), GP_DEBUG_BREAKPOINT_TRAP, exit(1), false))
 
 /** Non-fatal assertion that can be disabled.
  * @return true if condition is true. If condition is false prints fail message,
@@ -116,13 +117,13 @@ static inline bool gp_dummy_bool(bool _) { return _; } // prevent -Wunused-value
  * elimination.
  */
 #ifndef NDEBUG
-#define GP_UNREACHABLE do { bool unreachable = 0; gp_db_assert(unreachable); } while (0)
+#define GP_UNREACHABLE(...) do { bool unreachable = 0; gp_db_assert(unreachable, __VA_ARGS__); } while (0)
 #elif __GNUC__
-#define GP_UNREACHABLE __builtin_unreachable()
+#define GP_UNREACHABLE(...) __builtin_unreachable()
 #elif _MSC_VER
-#define GP_UNREACHABLE __assume(0)
+#define GP_UNREACHABLE(...) __assume(0)
 #else
-#define GP_UNREACHABLE do { bool unreachable = 0; gp_assert(unreachable); } while (0)
+#define GP_UNREACHABLE(...) do { bool unreachable = 0; gp_assert(unreachable, __VA_ARGS__); } while (0)
 #endif
 
 /** Start test.

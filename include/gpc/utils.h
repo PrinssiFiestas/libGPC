@@ -53,9 +53,6 @@ uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary)
 #define gp_max(x, y) gp_generic_max(x, y)
 #endif
 
-/** Set breakpoint on supported systems.*/
-#define GP_BREAKPOINT GP_BREAKPOINT_INTERNAL
-
 /** Float comparison.
  * Use this instead of == to accommodate for floating point precision issues.
  */
@@ -94,7 +91,7 @@ typedef struct gp_random_state
 GPRandomState gp_random_state(uint64_t seed) GP_NODISCARD;
 uint32_t gp_random      (GPRandomState*) GP_NONNULL_ARGS() GP_NODISCARD;
 double   gp_frandom     (GPRandomState*) GP_NONNULL_ARGS() GP_NODISCARD;
-int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max) GP_NONNULL_ARGS() GP_NODISCARD;
+int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max_non_inclusive) GP_NONNULL_ARGS() GP_NODISCARD;
 void     gp_random_bytes(GPRandomState*, void* buffer, size_t buffer_size) GP_NONNULL_ARGS();
 
 
@@ -190,17 +187,6 @@ _Generic(X, \
 #define gp_generic_min(X, Y) ((X) < (Y) ? (X) : (Y))
 #define gp_generic_max(X, Y) ((X) > (Y) ? (X) : (Y))
 #endif // gp_min() and gp_max() implementations
-
-// Set breakpoint
-#ifdef _WIN32
-#define GP_BREAKPOINT_INTERNAL __debugbreak()
-#elif defined(SIGTRAP)
-#define GP_BREAKPOINT_INTERNAL raise(SIGTRAP)
-#elif (__GNUC__ && __i386__) || (__GNUC__ && __x86_64__)
-#define GP_BREAKPOINT_INTERNAL __asm__("int $3")
-#else // no breakpoints for you
-#define GP_BREAKPOINT_INTERNAL
-#endif // breakpoint
 
 #ifdef __cplusplus
 } // extern "C"

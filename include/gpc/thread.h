@@ -44,10 +44,12 @@ void* gp_thread_wrapper_arg(int(*f)(void*), void*);
 
 // Use this only when atomics are desirable but not necessary.
 #if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
+#define GP_HAS_ATOMICS 1
 #define GP_MAYBE_ATOMIC _Atomic
 #else
-#define GP_MAYBE_ATOMIC
-#define GP_NO_ATOMICS
+// Not atomic by any means, but at least prevents some catastrophic compiler
+// optimizations.
+#define GP_MAYBE_ATOMIC volatile
 #endif
 
 #if __STDC_VERSION__ >= 201112L && \

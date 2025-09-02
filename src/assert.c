@@ -2,6 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#define GP_NO_FORMAT_STRING_CHECK // "%w128i" on older versions GNUC compilers
+
 #include <gpc/assert.h>
 #include <gpc/terminal.h>
 #include <gpc/string.h>
@@ -230,7 +232,7 @@ void gp_fail_internal(
                     c++;
                 } else {
                     fmt_spec_count++;
-                    fmt_spec = strpbrk(c, "csSdioxXufFeEgGp");
+                    fmt_spec = strpbrk(c, GP_FORMAT_SPECIFIERS);
                     for (const char* _c = c; _c < fmt_spec; _c++) if (*_c == '*')
                         asterisk_count++;
 
@@ -250,7 +252,7 @@ void gp_fail_internal(
             {
                 // Static analyzer false positive for buffer overflow
                 if (i + 1 >= arg_count)
-                    GP_UNREACHABLE;
+                    GP_UNREACHABLE("");
 
                 pf_fprintf(stderr,
                     GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ",
@@ -272,14 +274,14 @@ void gp_fail_internal(
             {
                 if (brace != NULL) {
                     fputc(*brace, stderr);
-                    printed++;
+                    ++printed;
                     if (fmt[1] == ' ') {
                         fputc(' ', stderr);
-                        printed++;
+                        ++printed;
                     }
                 }
                 const char* _fmt = fmt; // must detect and skip asterisks
-                for (size_t j = 0; j < fmt_spec_count + asterisk_count - 1;)
+                for (size_t j = 0; j < fmt_spec_count + asterisk_count - 1; )
                 {
                     while (true) {
                         _fmt = strchr(_fmt, '%');
@@ -287,14 +289,14 @@ void gp_fail_internal(
                         if (_fmt[1] != '%')
                             break;
                     }
-                    const char* spec = strpbrk(_fmt, "csdioxXufFeEgGp");
+                    const char* spec = strpbrk(_fmt, GP_FORMAT_SPECIFIERS);
                     for (const char* _c = _fmt; _c < spec; _c++) if (*_c == '*')
-                        j++;
+                        ++j;
                     if (j >= fmt_spec_count + asterisk_count - 1)
                         break;
                     printed += pf_fprintf(stderr,"%s, ",objs[i + 1 + j].identifier);
-                    j++;
-                    _fmt++;
+                    ++j;
+                    ++_fmt;
                 }
                 printed += pf_fprintf(stderr,
                     "%s", objs[i + fmt_spec_count + asterisk_count].identifier);
@@ -357,8 +359,10 @@ void gp_fail_internal(
                     GP_BRIGHT_BLUE "%llu", va_arg(args.list, unsigned long long));
                 break;
 
-            // TODO!!!!!!!!!!!!!!!!!!!!!!
-            case GP_UINT128: case GP_INT128: case GP_LONG_DOUBLE: GP_UNREACHABLE; break;
+            case GP_UINT128:
+                pf_fprintf(stderr,
+                    GP_BRIGHT_BLUE, "%w128u", va_arg(args.list, GPUInt128));
+                break;
 
             case GP_BOOL:
                 pf_fprintf(stderr, va_arg(args.list, int) ? "true" : "false");
@@ -377,6 +381,11 @@ void gp_fail_internal(
                 pf_fprintf(stderr, GP_BRIGHT_BLUE "%lli", va_arg(args.list, long long));
                 break;
 
+            case GP_INT128:
+                pf_fprintf(stderr,
+                    GP_BRIGHT_BLUE, "%w128i", va_arg(args.list, GPInt128));
+                break;
+
             double f;
             case GP_FLOAT:
             case GP_DOUBLE:
@@ -386,6 +395,19 @@ void gp_fail_internal(
                     (int64_t)f < 100000) { // not printed using %e style
                     pf_fprintf(stderr, ".0");
                 } break;
+
+            #if GP_HAS_LONG_DOUBLE
+            long double lf;
+            case GP_LONG_DOUBLE:
+                lf = va_arg(args.list, long double);
+                pf_fprintf(stderr, GP_BRIGHT_MAGENTA "%Lg", lf);
+                if (lf - (int64_t)lf == lf/* whole number */&&
+                    (int64_t)lf < 100000) { // not printed using %e style
+                    pf_fprintf(stderr, ".0");
+                } break;
+            #else
+            case GP_LONG_DOUBLE: GP_UNREACHABLE("long double not supported.");
+            #endif
 
             const char* char_ptr;
             case GP_CHAR_PTR:
