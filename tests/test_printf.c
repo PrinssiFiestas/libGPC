@@ -295,13 +295,13 @@ int main(void)
         {
             for (unsigned iteration = 1; iteration <= loop_count; iteration++)
             {
-                uintmax_t random_bytes; // bit width assumed to be multiple of 32
-                for (uint32_t* i = (uint32_t*)&random_bytes;
-                    (uintmax_t*)i < &random_bytes + 1;
-                    i++) {
-                    *i = gp_random(&g_rs);
-                }
-                const char* all_specs = "diouxXeEfFgGcsp"; // exept 'n' // TODO use GP_FORMAT_SPECIFIERS and add missing tests for GPString
+                uintmax_t random_bytes;
+                gp_random_bytes(&g_rs, &random_bytes, sizeof random_bytes);
+
+                const char* all_specs = "diouxXeEfFgGcsp"; // exept unsupported
+                                                           // 'n' and 'S' that
+                                                           // differs from glibc
+                                                           // snprintf().
                 const char random_specifier =
                     all_specs[gp_random_range(&g_rs, 0, strlen(all_specs))];
                 const char* fmt = random_format(random_specifier);
@@ -345,7 +345,7 @@ int main(void)
                 else // integer
                 {
                     size_t len = strlen(fmt);
-                    if (fmt[len - 3] == 'h')
+                    if (len >= 3 && fmt[len - 3] == 'h')
                     {
                         _my_buf_return_value = pf_snprintf(
                             buf, size, fmt, (char)random_bytes);
@@ -359,7 +359,7 @@ int main(void)
                         buf_std_return_value = snprintf(
                             buf_std, size, fmt, (short)random_bytes);
                     }
-                    else if (fmt[len - 3] == 'l')
+                    else if (len >= 3 && fmt[len - 3] == 'l')
                     {
                         _my_buf_return_value = pf_snprintf(
                             buf, size, fmt, (long long)random_bytes);
@@ -536,7 +536,8 @@ const char* random_format(char conversion_type)
     {
         // The capital ones are for convinience and will be turned into "hh"
         // and "ll" respectively. 'z' will be turned into 't' if signed.
-        const char modifiers[] = "hHlLhz";
+        const char modifiers[] = "hHlLhz"; // not including extensions, we
+                                           // compare against glibc snprintf()
         const char modifier = modifiers[gp_random_range(&g_rs, 0, strlen(modifiers))];
         if (modifier == 'H')
         {

@@ -2,7 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#define FUZZ_COUNT 128
+#define FUZZ_COUNT 4096
 
 #if __GNUC__ && __SIZEOF_INT128__ && !__clang__
 
