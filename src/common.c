@@ -152,7 +152,7 @@ size_t gp_convert_va_arg(
     case GP_UNSIGNED_CHAR:
         length++;
         if (limit > 0)
-            *(uint8_t*)out = (char)va_arg(args->list, int);
+            *(uint8_t*)out = va_arg(args->list, gp_promoted_arg_char_t);
         break;
 
     case GP_UNSIGNED_SHORT:
@@ -173,11 +173,11 @@ size_t gp_convert_va_arg(
         break;
 
     case GP_BOOL:
-        if (va_arg(args->list, int)) {
-            length += strlen("true");
+        if (va_arg(args->list, gp_promoted_arg_bool_t)) {
+            length += sizeof"true"-sizeof"";
             memcpy(out, "true", gp_min(4llu, limit));
         } else {
-            length += strlen("false");
+            length += sizeof"false"-sizeof"";
             memcpy(out, "false", gp_min(5llu, limit));
         } break;
 
@@ -199,8 +199,11 @@ size_t gp_convert_va_arg(
         break;
 
     case GP_FLOAT:
+        length += pf_gtoa(limit, out, va_arg(args->list, gp_promoted_arg_float_t));
+        break;
+
     case GP_DOUBLE:
-        length += pf_gtoa(limit, out, va_arg(args->list, double));
+        length += pf_gtoa(limit, out, va_arg(args->list, gp_promoted_arg_double_t));
         break;
 
     #if GP_HAS_LONG_DOUBLE // pf_Lgtoa() missing, may lose precision, but better than nothing
@@ -231,12 +234,17 @@ size_t gp_convert_va_arg(
         p = va_arg(args->list, void*);
         if (p != NULL) {
             memcpy(out, "0x", gp_min(2llu, limit));
-            length += strlen("0x") + pf_xtoa(
-                limit > 2 ? limit - 2 : 0, (char*)out + strlen("0x"), (uintptr_t)p);
+            length += sizeof"0x"-sizeof"" + pf_xtoa(
+                limit > 2 ? limit - 2 : 0,
+                (char*)out + sizeof"0x"-sizeof"", (uintptr_t)p);
         } else {
-            length += strlen("(nil)");
-            memcpy(out, "(nil)", gp_min(strlen("(nil)"), limit));
+            length += sizeof"(nil)"-sizeof"";
+            memcpy(out, "(nil)", gp_min(sizeof"(nil)"-sizeof"", limit));
         } break;
+
+    case GP_NO_TYPE:
+    case GP_TYPE_LENGTH:
+        GP_UNREACHABLE("");
     }
     return length;
 }

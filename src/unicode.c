@@ -92,7 +92,7 @@ GPLocale gp_locale(const char* locale_code)
             return locale != (GPLocale)-1 ? locale : (GPLocale)0;
         }
         char full_locale_code[16] = "";
-        strncpy(full_locale_code, locale_code, strlen("xxx_XX"));
+        strncpy(full_locale_code, locale_code, sizeof"xxx_XX"-sizeof"");
         #ifndef _WIN32
         if (locale_code[0] == '\0')
             full_locale_code[0] = 'C';
@@ -119,7 +119,7 @@ GPLocale gp_locale(const char* locale_code)
 const char* gp_set_utf8_global_locale(int category, const char* locale_code)
 {
     char full_locale_code[16] = "";
-    strncpy(full_locale_code, locale_code, strlen("xx_XX"));
+    strncpy(full_locale_code, locale_code, sizeof"xx_XX"-sizeof"");
     #ifndef _WIN32
     if (locale_code[0] == '\0')
         full_locale_code[0] = 'C';
@@ -1036,7 +1036,7 @@ void gp_str_capitalize(
             diatricals_length += cp_length;
         }
         memmove(*str, *str + first_length, diatricals_length);
-        memcpy(*str + diatricals_length, "\u0399", strlen("\u0399"));
+        memcpy(*str + diatricals_length, "\u0399", sizeof"\u0399"-sizeof"");
         return;
     }
 

@@ -10,14 +10,14 @@
 do { \
     const char *_str_a = (str_a), *_str_b = (str_b); \
     bool is_true = strcmp(_str_a, _str_b) == 0; \
-    gp_expect(!!#str_a " equals " #str_b == is_true, (_str_a), (_str_b)); \
+    gp_expect(!!#str_a " equals " #str_b == is_true, "%s", _str_a, "%s", _str_b); \
 } while (0)
 
 #define assert_str(str_a, str_b) \
 do { \
     const char *_str_a = (str_a), *_str_b = (str_b); \
     bool is_true = strcmp(_str_a, _str_b) == 0; \
-    gp_assert(!!#str_a " equals " #str_b == is_true, (_str_a), (_str_b)); \
+    gp_assert(!!#str_a " equals " #str_b == is_true, "%s", _str_a, "%s", _str_b); \
 } while (0)
 
 #ifndef FUZZ_COUNT
@@ -32,77 +32,101 @@ GPRandomState g_rs;
 
 int main(void)
 {
-    char buf[512] = "";
-    char buf_std[512] = "";
+    char buf[512];
+    char buf_std[512];
+    size_t ret;
+    size_t ret_std;
+
+    gp_expect(gp_set_utf8_global_locale(LC_ALL, ""));
 
     gp_suite("Basic type conversions");
     {
         gp_test("%c");
         {
-            pf_sprintf(buf, "blah %c blah %lc", 'x', L'ö');
+            ret =  pf_sprintf(buf,     "blah %c blah %lc", 'x', L'ö');
+            ret_std = sprintf(buf_std, "blah %c blah %lc", 'x', L'ö');
             expect_str(buf, "blah x blah ö");
+            expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
 
         gp_test("%s");
         {
-            pf_sprintf(buf, "blah %s blah", "bloink");
+            ret =  pf_sprintf(buf,     "blah %s blah", "bloink");
+            ret_std = sprintf(buf_std, "blah %s blah", "bloink");
             expect_str(buf, "blah bloink blah");
+            expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
 
         gp_test("%d and %i");
         {
-            pf_sprintf(buf, "blah %d blah", 15);
+            ret =  pf_sprintf(buf,     "blah %d blah", 15);
+            ret_std = sprintf(buf_std, "blah %d blah", 15);
             expect_str(buf, "blah 15 blah");
 
-            pf_sprintf(buf, "blah %ti blah", (ptrdiff_t)-953);
+            ret =  pf_sprintf(buf,     "blah %ti blah", (ptrdiff_t)-953);
+            ret_std = sprintf(buf_std, "blah %ti blah", (ptrdiff_t)-953);
             expect_str(buf, "blah -953 blah");
+            expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "blah %lli blah", -LLONG_MAX + 5);
-            sprintf(buf_std, "blah %lli blah", -LLONG_MAX + 5);
+            ret =  pf_sprintf(buf,     "blah %lli blah", -LLONG_MAX + 5);
+            ret_std = sprintf(buf_std, "blah %lli blah", -LLONG_MAX + 5);
             expect_str(buf, buf_std);
         }
 
         gp_test("%o, %x, and %X");
         {
-            pf_sprintf(buf,  "blah %o blah", 384);
-            sprintf(buf_std, "blah %o blah", 384);
+            ret =  pf_sprintf(buf,     "blah %o blah", 384);
+            ret_std = sprintf(buf_std, "blah %o blah", 384);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "blah %lx blah", 0xfeedl);
-            sprintf(buf_std, "blah %lx blah", 0xfeedl);
+            ret =  pf_sprintf(buf,     "blah %lx blah", 0xfeedl);
+            ret_std = sprintf(buf_std, "blah %lx blah", 0xfeedl);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "blah %zX blah", (size_t)0xBEEF);
-            sprintf(buf_std, "blah %zX blah", (size_t)0xBEEF);
+            ret =  pf_sprintf(buf,     "blah %zX blah", (size_t)0xBEEF);
+            ret_std = sprintf(buf_std, "blah %zX blah", (size_t)0xBEEF);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
 
         gp_test("Floats");
         {
-            pf_sprintf(buf,  "blah %f blah", 124.647);
-            sprintf(buf_std, "blah %f blah", 124.647);
+            ret =  pf_sprintf(buf,     "blah %f blah", 124.647);
+            ret_std = sprintf(buf_std, "blah %f blah", 124.647);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "blah %E blah", -42e6);
-            sprintf(buf_std, "blah %E blah", -42e6);
+            ret =  pf_sprintf(buf,     "blah %E blah", -42e6);
+            ret_std = sprintf(buf_std, "blah %E blah", -42e6);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "blah %g blah", -13.1);
-            sprintf(buf_std, "blah %g blah", -13.1);
+            ret =  pf_sprintf(buf,     "blah %g blah", -13.1);
+            ret_std = sprintf(buf_std, "blah %g blah", -13.1);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "%f", 0.);
-            sprintf(buf_std, "%f", 0.);
+            ret =  pf_sprintf(buf,     "%f", 0.);
+            ret_std = sprintf(buf_std, "%f", 0.);
             expect_str(buf, buf_std);
-            pf_sprintf(buf,  "%e", 0.);
-            sprintf(buf_std, "%e", 0.);
+            gp_expect(ret == ret_std);
+            ret =  pf_sprintf(buf,     "%e", 0.);
+            ret_std = sprintf(buf_std, "%e", 0.);
             expect_str(buf, buf_std);
-            pf_sprintf(buf,  "%g", 0.);
-            sprintf(buf_std, "%g", 0.);
+            gp_expect(ret == ret_std);
+            ret =  pf_sprintf(buf,     "%g", 0.);
+            ret_std = sprintf(buf_std, "%g", 0.);
             expect_str(buf, buf_std);
-            pf_sprintf(buf,  "%#g", 0.);
-            sprintf(buf_std, "%#g", 0.);
+            gp_expect(ret == ret_std);
+            ret =  pf_sprintf(buf,     "%#g", 0.);
+            ret_std = sprintf(buf_std, "%#g", 0.);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
 
         gp_test("%p");
@@ -113,9 +137,10 @@ int main(void)
             const char* fmt =
                 UINTPTR_MAX == ULLONG_MAX ? "%#llx" :
                 UINTPTR_MAX == ULONG_MAX  ? "%#lx"  : "%#x";
-            sprintf(_buf, fmt, u);
-            pf_sprintf(buf, "%p", p);
+            ret_std = sprintf(_buf, fmt, u);
+            ret = pf_sprintf(buf, "%p", p);
             expect_str(buf, _buf);
+            gp_expect(ret == ret_std);
         }
     } // gp_suite("Basic type conversions");
 
@@ -123,40 +148,48 @@ int main(void)
     {
         gp_test("Unsigned integers");
         {
-            pf_sprintf(buf,  "%.4u", 3);
-            sprintf(buf_std, "%.4u", 3);
+            ret =  pf_sprintf(buf,     "%.4u", 3);
+            ret_std = sprintf(buf_std, "%.4u", 3);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "%.24x", 0xe);
-            sprintf(buf_std, "%.24x", 0xe);
+            ret =  pf_sprintf(buf,     "%.24x", 0xe);
+            ret_std = sprintf(buf_std, "%.24x", 0xe);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "%.*X", 3, 0XD);
-            sprintf(buf_std, "%.*X", 3, 0XD);
+            ret =  pf_sprintf(buf,     "%.*X", 3, 0XD);
+            ret_std = sprintf(buf_std, "%.*X", 3, 0XD);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
 
         gp_test("Signed integers");
         {
-            pf_sprintf(buf,  "%.3i", 2);
-            sprintf(buf_std, "%.3i", 2);
+            ret =  pf_sprintf(buf,     "%.3i", 2);
+            ret_std = sprintf(buf_std, "%.3i", 2);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "%.3i", -2);
-            sprintf(buf_std, "%.3i", -2);
+            ret =  pf_sprintf(buf,     "%.3i", -2);
+            ret_std = sprintf(buf_std, "%.3i", -2);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
 
         gp_test("Strings");
         {
-            pf_sprintf(buf, "%.5s", "str");
+            ret = pf_sprintf(buf, "%.5s", "str");
             expect_str(buf, "str");
+            gp_expect(ret == strlen("str"));
 
-            pf_sprintf(buf, "%.5s", "String loger than 5 chars");
+            ret = pf_sprintf(buf, "%.5s", "String loger than 5 chars");
             expect_str(buf, "Strin");
+            gp_expect(ret == strlen("Strin"));
 
-            pf_sprintf(buf, "%.*s", 4, "String loger than 5 chars");
+            ret = pf_sprintf(buf, "%.*s", 4, "String loger than 5 chars");
             expect_str(buf, "Stri");
+            gp_expect(ret == strlen("Stri"));
         }
     } // gp_suite("Precision");
 
@@ -164,55 +197,78 @@ int main(void)
     {
         gp_test("-: Left justification");
         {
-            pf_sprintf(buf, "|%-8i|", -2);
+            ret =  pf_sprintf(buf,     "|%-8i|", -2);
+            ret_std = sprintf(buf_std, "|%-8i|", -2);
             expect_str(buf, "|-2      |");
+            expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
 
         gp_test("+: Add plus to signed positives");
         {
-            pf_sprintf(buf, "%+i", 35);
+            ret =  pf_sprintf(buf,     "%+i", 35);
+            ret_std = sprintf(buf_std, "%+i", 35);
             expect_str(buf, "+35");
+            expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf, "%+g", 1.41);
+            ret =  pf_sprintf(buf,     "%+g", 1.41);
+            ret_std = sprintf(buf_std, "%+g", 1.41);
             expect_str(buf, "+1.41");
+            expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
 
         gp_test(" : Add space to signed positives");
         {
-            pf_sprintf(buf, "% i", 35);
+            ret  = pf_sprintf(buf,     "% i", 35);
+            ret_std = sprintf(buf_std, "% i", 35);
             expect_str(buf, " 35");
+            expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf, "% g", 1.41);
+            ret  = pf_sprintf(buf,     "% g", 1.41);
+            ret_std = sprintf(buf_std, "% g", 1.41);
             expect_str(buf, " 1.41");
+            expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
 
         gp_test("0: Zero padding");
         {
-            pf_sprintf(buf, "|%08i|", -1);
+            ret  = pf_sprintf(buf,     "|%08i|", -1);
+            ret_std = sprintf(buf_std, "|%08i|", -1);
             expect_str(buf, "|-0000001|");
+            expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
 
         gp_test("#: Alternative form");
         {
-            pf_sprintf(buf,  "%#x", 0);
-            sprintf(buf_std, "%#x", 0);
+            ret  = pf_sprintf(buf,     "%#x", 0);
+            ret_std = sprintf(buf_std, "%#x", 0);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "%#.3X", 0xa);
-            sprintf(buf_std, "%#.3X", 0xa);
+            ret  = pf_sprintf(buf,     "%#.3X", 0xa);
+            ret_std = sprintf(buf_std, "%#.3X", 0xa);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "%#.f", 1.0);
-            sprintf(buf_std, "%#.f", 1.0);
+            ret  = pf_sprintf(buf,     "%#.f", 1.0);
+            ret_std = sprintf(buf_std, "%#.f", 1.0);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "%#g", 700.1);
-            sprintf(buf_std, "%#g", 700.1);
+            ret  = pf_sprintf(buf,     "%#g", 700.1);
+            ret_std = sprintf(buf_std, "%#g", 700.1);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "%#g", 123456.0);
-            sprintf(buf_std, "%#g", 123456.0);
+            ret  = pf_sprintf(buf,     "%#g", 123456.0);
+            ret_std = sprintf(buf_std, "%#g", 123456.0);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
     } // gp_suite("Flags");
 
@@ -220,8 +276,10 @@ int main(void)
     {
         gp_test("Basic field");
         {
-            pf_sprintf(buf, "|%#8x|", 0x3);
+            ret  = pf_sprintf(buf, "|%#8x|", 0x3);
+            ret_std = sprintf(buf, "|%#8x|", 0x3);
             expect_str(buf, "|     0x3|");
+            gp_expect(ret == ret_std);
         }
     }
 
@@ -229,52 +287,53 @@ int main(void)
     {
         gp_test("Return value");
         {
-            unsigned chars_written = 0;
-            unsigned chars_written_std = 0;
+            ret     = pf_sprintf(buf,  "%s blah", "bloink");
+            ret_std = sprintf(buf_std, "%s blah", "bloink");
+            gp_expect(ret == ret_std);
 
-            chars_written     = pf_sprintf(buf,  "%s blah", "bloink");
-            chars_written_std = sprintf(buf_std, "%s blah", "bloink");
-            gp_expect(chars_written == chars_written_std,
-                (chars_written), (chars_written_std));
-
-            chars_written     = pf_sprintf(buf,  "blah %g", -2./9.);
-            chars_written_std = sprintf(buf_std, "blah %g", -2./9.);
-            gp_expect(chars_written == chars_written_std,
-                (buf), (buf_std),
-                (chars_written), (chars_written_std));
+            ret     = pf_sprintf(buf,  "blah %g", -2./9.);
+            ret_std = sprintf(buf_std, "blah %g", -2./9.);
+            gp_expect(ret == ret_std);
         }
 
         gp_test("Combinations");
         {
-            pf_sprintf(buf,  "blah %f, %#0x", .5, 0x2);
-            sprintf(buf_std, "blah %f, %#0x", .5, 0x2);
+            ret  = pf_sprintf(buf,     "blah %f, %#0x", .5, 0x2);
+            ret_std = sprintf(buf_std, "blah %f, %#0x", .5, 0x2);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "%.3s, %+4i", "bloink", 63);
-            sprintf(buf_std, "%.3s, %+4i", "bloink", 63);
+            ret  = pf_sprintf(buf,     "%.3s, %+4i", "bloink", 63);
+            ret_std = sprintf(buf_std, "%.3s, %+4i", "bloink", 63);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
 
-            pf_sprintf(buf,  "% 04i", 21);
-            sprintf(buf_std, "% 04i", 21);
+            ret  = pf_sprintf(buf,     "% 04i", 21);
+            ret_std = sprintf(buf_std, "% 04i", 21);
             expect_str(buf, buf_std);
+            gp_expect(ret == ret_std);
         }
 
         gp_test("No format specifier");
         {
-            pf_sprintf(buf, "Whatever");
+            ret = pf_sprintf(buf, "Whatever");
             expect_str(buf, "Whatever");
+            gp_expect(ret == strlen("Whatever"));
         }
 
         gp_test("%%");
         {
-            pf_sprintf(buf, "%% blah");
+            ret = pf_sprintf(buf, "%% blah");
             expect_str(buf, "% blah");
+            gp_expect(ret == strlen("% blah"));
 
-            pf_sprintf(buf, "blah %%");
+            ret = pf_sprintf(buf, "blah %%");
             expect_str(buf, "blah %");
+            gp_expect(ret == strlen("blah %"));
 
-            pf_sprintf(buf, "bl%%ah");
+            ret = pf_sprintf(buf, "bl%%ah");
             expect_str(buf, "bl%ah");
+            gp_expect(ret == strlen("bl%ah"));
         }
     } // gp_suite("Misc");
 
@@ -307,39 +366,36 @@ int main(void)
                 const char* fmt = random_format(random_specifier);
                 uint32_t size = gp_random_range(&g_rs, 0, sizeof(buf));
 
-                int _my_buf_return_value = 0;
-                int buf_std_return_value = 0;
-
                 // The important part is to pass a right sized argument, the
                 // actual type isn't important.
                 if (random_specifier == 's') // treat random_bytes as string
                 {
                     ((char*)&random_bytes)[sizeof(uintmax_t) - 1] = '\0';
-                    _my_buf_return_value = pf_snprintf(
+                    ret = pf_snprintf(
                         buf, size, fmt, &random_bytes);
-                    buf_std_return_value = snprintf(
+                    ret_std = snprintf(
                         buf_std, size, fmt, &random_bytes);
                 }
                 else if (random_specifier == 'c')
                 {
-                    _my_buf_return_value = pf_snprintf(
+                    ret = pf_snprintf(
                         buf, size, fmt, (char)random_bytes);
-                    buf_std_return_value = snprintf(
+                    ret_std = snprintf(
                         buf_std, size, fmt, (char)random_bytes);
                 }
                 else if (random_specifier == 'p') // pointer
                 {
-                    _my_buf_return_value = pf_snprintf(
+                    ret = pf_snprintf(
                         buf, size, fmt, (intptr_t)random_bytes);
-                    buf_std_return_value = snprintf(
+                    ret_std = snprintf(
                         buf_std, size, fmt, (intptr_t)random_bytes);
                 }
                 else if (strchr("eEfFgG", random_specifier) != NULL) // float
                 {
                     union { uint64_t u; double f; } punner = {.u = random_bytes };
-                    _my_buf_return_value = pf_snprintf(
+                    ret = pf_snprintf(
                         buf, size, fmt, punner.f);
-                    buf_std_return_value = snprintf(
+                    ret_std = snprintf(
                         buf_std, size, fmt, punner.f);
                 }
                 else // integer
@@ -347,58 +403,58 @@ int main(void)
                     size_t len = strlen(fmt);
                     if (len >= 3 && fmt[len - 3] == 'h')
                     {
-                        _my_buf_return_value = pf_snprintf(
+                        ret = pf_snprintf(
                             buf, size, fmt, (char)random_bytes);
-                        buf_std_return_value = snprintf(
+                        ret_std = snprintf(
                             buf_std, size, fmt, (char)random_bytes);
                     }
                     else if (fmt[len - 2] == 'h')
                     {
-                        _my_buf_return_value = pf_snprintf(
+                        ret = pf_snprintf(
                             buf, size, fmt, (short)random_bytes);
-                        buf_std_return_value = snprintf(
+                        ret_std = snprintf(
                             buf_std, size, fmt, (short)random_bytes);
                     }
                     else if (len >= 3 && fmt[len - 3] == 'l')
                     {
-                        _my_buf_return_value = pf_snprintf(
+                        ret = pf_snprintf(
                             buf, size, fmt, (long long)random_bytes);
-                        buf_std_return_value = snprintf(
+                        ret_std = snprintf(
                             buf_std, size, fmt, (long long)random_bytes);
                     }
                     else if (fmt[len - 2] == 'l')
                     {
-                        _my_buf_return_value = pf_snprintf(
+                        ret = pf_snprintf(
                             buf, size, fmt, (long)random_bytes);
-                        buf_std_return_value = snprintf(
+                        ret_std = snprintf(
                             buf_std, size, fmt, (long)random_bytes);
                     }
                     else if (fmt[len - 2] == 'j')
                     {
-                        _my_buf_return_value = pf_snprintf(
+                        ret = pf_snprintf(
                             buf, size, fmt, (uintmax_t)random_bytes);
-                        buf_std_return_value = snprintf(
+                        ret_std = snprintf(
                             buf_std, size, fmt, (uintmax_t)random_bytes);
                     }
                     else if (fmt[len - 2] == 'z')
                     {
-                        _my_buf_return_value = pf_snprintf(
+                        ret = pf_snprintf(
                             buf, size, fmt, (size_t)random_bytes);
-                        buf_std_return_value = snprintf(
+                        ret_std = snprintf(
                             buf_std, size, fmt, (size_t)random_bytes);
                     }
                     else if (fmt[len - 2] == 't')
                     {
-                        _my_buf_return_value = pf_snprintf(
+                        ret = pf_snprintf(
                             buf, size, fmt, (ptrdiff_t)random_bytes);
-                        buf_std_return_value = snprintf(
+                        ret_std = snprintf(
                             buf_std, size, fmt, (ptrdiff_t)random_bytes);
                     }
                     else // no modifier
                     {
-                        _my_buf_return_value = pf_snprintf(
+                        ret = pf_snprintf(
                             buf, size, fmt, (int)random_bytes);
-                        buf_std_return_value = snprintf(
+                        ret_std = snprintf(
                             buf_std, size, fmt, (int)random_bytes);
                     }
                 }
@@ -413,11 +469,11 @@ int main(void)
                     buf_std,
                     iteration);
 
-                gp_assert(_my_buf_return_value == buf_std_return_value,
+                gp_assert(ret == ret_std,
                     fmt,
                     size,
-                    _my_buf_return_value,
-                    buf_std_return_value,
+                    ret,
+                    ret_std,
                     iteration);
             }
         }

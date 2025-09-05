@@ -4,6 +4,9 @@
 
 GPC_VERSION = 0.3.0
 
+# TODO make -std=c99 the default, have dedicated tests for -std=gnu11.
+# Alternatively, get the tests running with CompCert or other C99 compiler.
+
 override CFLAGS += -Wall -Wextra -Werror -Wpedantic
 override CFLAGS += -DGP_PEDANTIC
 override CFLAGS += -D_GNU_SOURCE # memmem(), stat64(), locale_t
@@ -97,7 +100,7 @@ run_cl_tests: $(CL_TESTS)
 cl_tests: $(CL_OBJS) $(CL_TESTS) run_cl_tests
 
 cpp_tests: build/libgpcd.so
-	g++ -Wall -Wextra -Werror -std=c++17 -no-pie -Iinclude -ggdb3 tests/test_generic.c -fsanitize=address -fsanitize=undefined -fsanitize=leak -lm -lpthread -lasan build/libgpcd.so \
+	g++ -Wall -Wextra -Werror -std=c++11 -no-pie -Iinclude -ggdb3 tests/test_generic.c -fsanitize=address -fsanitize=undefined -fsanitize=leak -lm -lpthread -lasan build/libgpcd.so \
 	&& ./a.out && rm a.out
 
 ifneq ($(OS), Windows_NT)

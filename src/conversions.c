@@ -443,13 +443,13 @@ pf_append_d_digits(
     {
         pf__append_d_digits(
             maximum, digits, out->data + out->length);
-        out->length += maximum + strlen(".");
+        out->length += maximum + sizeof"."-sizeof"";
     }
     else // write only as much as fits
     {
         char buf[10];
         pf__append_d_digits(maximum, digits, buf);
-        pf_concat(out, buf, maximum + strlen("."));
+        pf_concat(out, buf, maximum + sizeof"."-sizeof"");
     }
 }
 
@@ -582,14 +582,14 @@ pf_copy_special_str_printf(
 {
     if (mantissa != 0)
     {
-        pf_concat(out, uppercase ? "NAN" : "nan", strlen("nan"));
+        pf_concat(out, uppercase ? "NAN" : "nan", sizeof"nan"-sizeof"");
         if (pf_capacity_left(*out))
             out->data[out->length] = '\0';
         return out->length;
     }
     else
     {
-        pf_concat(out, uppercase ? "INF" : "inf", strlen("inf"));
+        pf_concat(out, uppercase ? "INF" : "inf", sizeof"inf"-sizeof"");
         if (pf_capacity_left(*out))
             out->data[out->length] = '\0';
         return out->length;
@@ -1008,9 +1008,9 @@ pf_d2exp_buffered_n(
         }
 
         if (fmt.conversion_format == 'e')
-            pf_concat(&out, "e+00", strlen("e+00"));
+            pf_concat(&out, "e+00", sizeof"e+00"-sizeof"");
         else if (fmt.conversion_format == 'E')
-            pf_concat(&out, "E+00", strlen("E+00"));
+            pf_concat(&out, "E+00", sizeof"E+00"-sizeof"");
 
         if (pf_capacity_left(out))
             out.data[out.length] = '\0';

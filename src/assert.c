@@ -99,7 +99,7 @@ static void gp_init_testing(void)
         valid_ascii = ~prog_name_buf[i] & 0x80;
     if (valid_ascii) {
         const char* trimmed = strrchr(prog_name_buf, '\\');
-        prog_name = trimmed ? trimmed + strlen("\\") : prog_name_buf;
+        prog_name = trimmed ? trimmed + sizeof"\\"-sizeof"" : prog_name_buf;
     }
     #endif
 
@@ -193,10 +193,14 @@ void gp_fail_internal(
     }
 
     const char* condition = objs[0].identifier;
-    if (gp_sizeof(objs[0].type) == sizeof(uint64_t))
-        (void)va_arg(args.list, uint64_t);
-    else
-        (void)va_arg(args.list, uint32_t);
+    switch (gp_sizeof(objs[0].type)) {
+    case  1: (void)va_arg(args.list, gp_promoted_arg_int8_t ); break;
+    case  2: (void)va_arg(args.list, gp_promoted_arg_int16_t); break;
+    case  4: (void)va_arg(args.list, gp_promoted_arg_int32_t); break;
+    case  8: (void)va_arg(args.list, gp_promoted_arg_int64_t); break;
+    case 16: (void)va_arg(args.list, GPInt128               ); break;
+    default : GP_UNREACHABLE("Invalid GPPrintable passed to gp_assert()");
+    }
 
     const char* indent = gp_current_test != NULL ? "\t" : "";
 
@@ -311,7 +315,7 @@ void gp_fail_internal(
                     printed++;
                 }
                 pf_fprintf(stderr, GP_RESET_TERMINAL " = " GP_BRIGHT_CYAN);
-                printed += strlen(" = ");
+                printed += sizeof" = "-sizeof"";
             }
 
             size_t required_capacity = pf_vsnprintf(NULL, 0, fmt, args.list) + 1;
@@ -341,7 +345,7 @@ void gp_fail_internal(
             case GP_SIGNED_CHAR:
             case GP_UNSIGNED_CHAR:
                 pf_fprintf(stderr,
-                    GP_YELLOW "\'%c\'", (char)va_arg(args.list, int));
+                    GP_YELLOW "\'%c\'", va_arg(args.list, gp_promoted_arg_char_t));
                 break;
 
             case GP_UNSIGNED_SHORT:
@@ -365,7 +369,7 @@ void gp_fail_internal(
                 break;
 
             case GP_BOOL:
-                pf_fprintf(stderr, va_arg(args.list, int) ? "true" : "false");
+                pf_fprintf(stderr, va_arg(args.list, gp_promoted_arg_bool_t) ? "true" : "false");
                 break;
 
             case GP_SHORT:
@@ -389,7 +393,7 @@ void gp_fail_internal(
             double f;
             case GP_FLOAT:
             case GP_DOUBLE:
-                f = va_arg(args.list, double);
+                f = va_arg(args.list, gp_promoted_arg_double_t);
                 pf_fprintf(stderr, GP_BRIGHT_MAGENTA "%g", f);
                 if (f - (int64_t)f == f/* whole number */&&
                     (int64_t)f < 100000) { // not printed using %e style
@@ -431,6 +435,10 @@ void gp_fail_internal(
             case GP_PTR:
                 pf_fprintf(stderr, GP_BLUE "%p", va_arg(args.list, void*));
                 break;
+
+            case GP_NO_TYPE:
+            case GP_TYPE_LENGTH:
+                GP_UNREACHABLE("");
         }
         pf_fprintf(stderr, GP_RESET_TERMINAL "\n");
     } // end for args

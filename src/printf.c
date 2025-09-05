@@ -35,8 +35,12 @@ typedef struct pf_uint
 static PFUInt pf_get_uint(
     pf_va_list* args, const PFFormatSpecifier fmt)
 {
+    // IMPORTANT!
+    // All potentially promoted args must be casted back to the original type to
+    // truncate potential sign extension caused by default argument promotion.
+
     if (fmt.conversion_format == 'p')
-        return (PFUInt){.u = va_arg(args->list, uintptr_t)};
+        return (PFUInt){.u = (uintptr_t)va_arg(args->list, gp_promoted_arg_uintptr_t)};
 
     switch (fmt.length_modifier)
     {
@@ -53,40 +57,40 @@ static PFUInt pf_get_uint(
         return (PFUInt){.u = va_arg(args->list, unsigned long)};
 
     case 'h':
-        return (PFUInt){.u = (unsigned short)va_arg(args->list, unsigned)};
+        return (PFUInt){.u = (unsigned short)va_arg(args->list, gp_promoted_arg_unsigned_short_t)};
 
     case 'h' * 2:
-        return (PFUInt){.u = (unsigned char)va_arg(args->list, unsigned)};
+        return (PFUInt){.u = (unsigned char)va_arg(args->list, gp_promoted_arg_unsigned_char_t)};
 
     case 'z':
-        return (PFUInt){.u = (size_t)va_arg(args->list, size_t)};
+        return (PFUInt){.u = (size_t)va_arg(args->list, gp_promoted_arg_size_t)};
 
     case 'B': // byte
-        return (PFUInt){.u = (uint8_t)va_arg(args->list, unsigned)};
+        return (PFUInt){.u = (uint8_t)va_arg(args->list, gp_promoted_arg_uint8_t)};
 
     case 'W': // word
-        return (PFUInt){.u = (uint16_t)va_arg(args->list, unsigned)};
+        return (PFUInt){.u = (uint16_t)va_arg(args->list, gp_promoted_arg_uint16_t)};
 
     case 'D': // double word
-        return (PFUInt){.u = (uint32_t)va_arg(args->list, uint32_t)};
+        return (PFUInt){.u = (uint32_t)va_arg(args->list, gp_promoted_arg_uint32_t)};
 
     case 'Q': // quad word
-        return (PFUInt){.u = (uint64_t)va_arg(args->list, uint64_t)};
+        return (PFUInt){.u = (uint64_t)va_arg(args->list, gp_promoted_arg_uint64_t)};
 
     case 'O': // octa word
         return (PFUInt){.u128 = va_arg(args->list, GPUInt128), .is_128 = true};
 
     case 'B'+'f': // fast byte
-        return (PFUInt){.u = (uint_fast8_t)va_arg(args->list, unsigned)};
+        return (PFUInt){.u = (uint_fast8_t)va_arg(args->list, gp_promoted_arg_uint_fast8_t)};
 
     case 'W'+'f': // fast word
-        return (PFUInt){.u = (uint_fast16_t)va_arg(args->list, unsigned)};
+        return (PFUInt){.u = (uint_fast16_t)va_arg(args->list, gp_promoted_arg_uint_fast16_t)};
 
     case 'D'+'f': // fast double word
-        return (PFUInt){.u = (uint_fast32_t)va_arg(args->list, uint_fast32_t)};
+        return (PFUInt){.u = (uint_fast32_t)va_arg(args->list, gp_promoted_arg_uint_fast32_t)};
 
     case 'Q'+'f': // fast quad word
-        return (PFUInt){.u = (uint_fast64_t)va_arg(args->list, uint_fast64_t)};
+        return (PFUInt){.u = (uint_fast64_t)va_arg(args->list, gp_promoted_arg_uint_fast64_t)};
 
     // fast octa word does not exist
     }
@@ -100,7 +104,7 @@ static size_t pf_write_wc(
 {
     size_t gp_utf8_decode(void*, uint32_t);
     char decoding[4];
-    const size_t length = gp_utf8_decode(decoding, (wchar_t)va_arg(args->list, unsigned));
+    const size_t length = gp_utf8_decode(decoding, va_arg(args->list, gp_promoted_arg_wint_t));
     pf_concat(out, decoding, length);
     return length;
 }
@@ -133,7 +137,7 @@ static size_t pf_write_s(
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const char* cstr = va_arg(args->list, const char*);
+    const char* cstr = va_arg(args->list, char*);
 
     size_t cstr_len = 0;
     if (fmt.precision.option == PF_NONE) // should be null-terminated
@@ -226,6 +230,10 @@ static size_t pf_write_i(
     pf_va_list* args,
     const PFFormatSpecifier fmt)
 {
+    // IMPORTANT!
+    // All potentially promoted args must be casted back to the original type to
+    // truncate potential sign extension caused by default argument promotion.
+
     long long i;
     GPInt128 i128;
     bool is_128 = false;
@@ -249,23 +257,23 @@ static size_t pf_write_i(
         break;
 
     case 'h':
-        i = (short)va_arg(args->list, int);
+        i = (short)va_arg(args->list, gp_promoted_arg_short_t);
         break;
 
     case 'h' * 2: // signed char is NOT char!
-        i = (signed char)va_arg(args->list, int);
+        i = (signed char)va_arg(args->list, gp_promoted_arg_signed_char_t);
         break;
 
-    // We currently "support" ssize_t only because GNUC type checker accept
-    // this, which may affect user expectations. Do NOT document this until
-    // GP_HAS_SSIZE_T gets fixed.
-    #if GP_HAS_SSIZE_T
+    // We currently support ssize_t only because GNUC type checker accept this,
+    // which may affect user expectations. Do NOT document this until proven
+    // useful.
+    #ifdef SSIZE_MAX
     case 'z':
-        i = va_arg(args->list, ssize_t);
+        i = (ssize_t)va_arg(args->list, gp_promoted_arg_ssize_t);
         break;
     #else // we DON'T want to try to guess, even the assumption that it's
           // the same size as size_t doesn't always hold. Maybe we could
-          // provide GPSSize instead? But only if it turns out to be useful.
+          // provide gp_ssize_t instead? But only if it turns out to be useful.
     case 'z':
         gp_assert(false,
             "%zi for ssize_t not supported. Cast to intmax_t and use %ji instead.");
@@ -273,23 +281,23 @@ static size_t pf_write_i(
     #endif
 
     case 't':
-        i = (ptrdiff_t)va_arg(args->list, ptrdiff_t);
+        i = (ptrdiff_t)va_arg(args->list, gp_promoted_arg_ptrdiff_t);
         break;
 
     case 'B': // byte
-        i = (int8_t)va_arg(args->list, int);
+        i = (int8_t)va_arg(args->list, gp_promoted_arg_int8_t);
         break;
 
     case 'W': // word
-        i = (int16_t)va_arg(args->list, int);
+        i = (int16_t)va_arg(args->list, gp_promoted_arg_int16_t);
         break;
 
     case 'D': // double word
-        i = (int32_t)va_arg(args->list, int32_t);
+        i = (int32_t)va_arg(args->list, gp_promoted_arg_int32_t);
         break;
 
     case 'Q': // quad word
-        i = (int64_t)va_arg(args->list, int64_t);
+        i = (int64_t)va_arg(args->list, gp_promoted_arg_int64_t);
         break;
 
     case 'O': // octa word
@@ -298,19 +306,19 @@ static size_t pf_write_i(
         break;
 
     case 'B'+'f': // fast byte
-        i = (int_fast8_t)va_arg(args->list, int);
+        i = (int_fast8_t)va_arg(args->list, gp_promoted_arg_int_fast8_t);
         break;
 
     case 'W'+'f': // fast word
-        i = (int_fast16_t)va_arg(args->list, int);
+        i = (int_fast16_t)va_arg(args->list, gp_promoted_arg_int_fast16_t);
         break;
 
     case 'D'+'f': // fast double word
-        i = (int_fast32_t)va_arg(args->list, int_fast32_t);
+        i = (int_fast32_t)va_arg(args->list, gp_promoted_arg_int_fast32_t);
         break;
 
     case 'Q'+'f': // fast quad word
-        i = (int_fast64_t)va_arg(args->list, int_fast64_t);
+        i = (int_fast64_t)va_arg(args->list, gp_promoted_arg_int_fast64_t);
         break;
 
     // fast octa word does not exist
@@ -380,7 +388,7 @@ static size_t pf_write_x(
 
     if (fmt.flag.hash && gp_uint128_not_equal(u.u128, gp_uint128(0, 0)))
     {
-        pf_concat(out, "0x", strlen("0x"));
+        pf_concat(out, "0x", sizeof"0x"-sizeof"");
         md->has_0x = true;
     }
 
@@ -405,7 +413,7 @@ static size_t pf_write_X(
 
     if (fmt.flag.hash && gp_uint128_not_equal(u.u128, gp_uint128(0, 0)))
     {
-        pf_concat(out, "0X", strlen("0X"));
+        pf_concat(out, "0X", sizeof"0X"-sizeof"");
         md->has_0x = true;
     }
 
@@ -445,14 +453,14 @@ static size_t pf_write_p(
 
     if (u > 0)
     {
-        pf_concat(out, "0x", strlen("0x"));
+        pf_concat(out, "0x", sizeof"0x"-sizeof"");
         const size_t max_written = pf_xtoa(
             pf_capacity_left(*out), out->data + out->length, u);
         pf_write_leading_zeroes(out, max_written, fmt);
     }
     else
     {
-        pf_concat(out, "(nil)", strlen("(nil)"));
+        pf_concat(out, "(nil)", sizeof"(nil)"-sizeof"");
     }
     return out->length - original_length;
 }
@@ -498,7 +506,7 @@ static size_t pf_write_f(
         va_arg(args->list, double)
       : va_arg(args->list, long double);
     #else
-    const double f = va_arg(args->list, double);
+    const double f = va_arg(args->list, gp_promoted_arg_double_t);
     #endif
     const size_t written_by_conversion = pf_strfromd(
         out->data + out->length, out->capacity, fmt, f);
@@ -583,49 +591,49 @@ size_t pf_vsnprintf_consuming_no_null_termination(
         {
         case 'c':
             if (fmt.length_modifier != 'l') {
-                pf_push_char(&out, (char)va_arg(args->list, int));
+                pf_push_char(&out, va_arg(args->list, gp_promoted_arg_char_t));
                 written_by_conversion = 1;
             } else {
-                written_by_conversion += pf_write_wc(&out, args);
+                written_by_conversion = pf_write_wc(&out, args);
             } break;
 
         case 's': // TODO wide strings!!!!!!!!!
-            written_by_conversion += pf_write_s(&out, args, fmt);
+            written_by_conversion = pf_write_s(&out, args, fmt);
             break;
 
         case 'S':
-            written_by_conversion += pf_write_S(&out, args, fmt);
+            written_by_conversion = pf_write_S(&out, args, fmt);
             break;
 
         case 'd':
         case 'i':
-            written_by_conversion += pf_write_i(&out, &misc, args, fmt);
+            written_by_conversion = pf_write_i(&out, &misc, args, fmt);
             break;
 
         case 'o':
-            written_by_conversion += pf_write_o(&out, args, fmt);
+            written_by_conversion = pf_write_o(&out, args, fmt);
             break;
 
         case 'x':
-            written_by_conversion += pf_write_x(&out, &misc, args, fmt);
+            written_by_conversion = pf_write_x(&out, &misc, args, fmt);
             break;
 
         case 'X':
-            written_by_conversion += pf_write_X(&out, &misc, args, fmt);
+            written_by_conversion = pf_write_X(&out, &misc, args, fmt);
             break;
 
         case 'u':
-            written_by_conversion += pf_write_u(&out, args, fmt);
+            written_by_conversion = pf_write_u(&out, args, fmt);
             break;
 
         case 'p':
-            written_by_conversion += pf_write_p(&out, args, fmt);
+            written_by_conversion = pf_write_p(&out, args, fmt);
             break;
 
         case 'f': case 'F':
         case 'e': case 'E':
         case 'g': case 'G':
-            written_by_conversion += pf_write_f(&out, &misc, args, fmt);
+            written_by_conversion = pf_write_f(&out, &misc, args, fmt);
             break;
 
         case '%':
@@ -634,11 +642,7 @@ size_t pf_vsnprintf_consuming_no_null_termination(
         }
 
         if (written_by_conversion < fmt.field.width)
-            pf_add_padding(
-                &out,
-                written_by_conversion,
-                misc,
-                fmt);
+            pf_add_padding(&out, written_by_conversion, misc, fmt);
     } // while (1)
 
     pf_concat(&out, format, strlen(format)); // write what's left in format

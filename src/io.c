@@ -143,7 +143,7 @@ static size_t gp_print_va_arg(
     case GP_SIGNED_CHAR:
     case GP_UNSIGNED_CHAR:
         length = 1;
-        fputc(va_arg(args->list, int), out);
+        fputc(va_arg(args->list, gp_promoted_arg_char_t), out);
         break;
 
     char buf[64];
@@ -169,11 +169,11 @@ static size_t gp_print_va_arg(
         break;
 
     case GP_BOOL:
-        if (va_arg(args->list, int)) {
-            length = strlen("true");
+        if (va_arg(args->list, gp_promoted_arg_bool_t)) {
+            length = sizeof"true"-sizeof"";
             fputs("true", out);
         } else {
-            length = strlen("false");
+            length = sizeof"false"-sizeof"";
             fputs("false", out);
         }
         break;
@@ -209,11 +209,16 @@ static size_t gp_print_va_arg(
             length = pf_strfromd(buf, sizeof buf, fmt, va_arg(args->list, long double));
         else
         #endif
-            length = pf_strfromd(buf, sizeof buf, fmt, va_arg(args->list, double));
+            length = pf_strfromd(
+                buf,
+                sizeof buf,
+                fmt,
+                va_arg(args->list, gp_promoted_arg_double_t));
+
         fwrite(buf, 1, length, out);
         } break;
 
-    case GP_CHAR_PTR: {
+    case GP_CHAR_PTR: { // TODO wide strings!
         const char* cstr = va_arg(args->list, char*);
         length = strlen(cstr);
         fwrite(cstr, 1, length, out);
@@ -221,21 +226,26 @@ static size_t gp_print_va_arg(
 
     case GP_STRING: {
         GPString s = va_arg(args->list, GPString);
-        length = gp_arr_length(s);
+        length = gp_str_length(s);
         fwrite(s, 1, length, out);
         } break;
 
     case GP_PTR: {
-        const uintptr_t p = va_arg(args->list, uintptr_t);
+        const uintptr_t p = (uintptr_t)va_arg(args->list, void*);
         if (p != 0) {
             strcpy(buf, "0x");
-            length = strlen("0x") + pf_xtoa(sizeof buf - strlen("0x"), buf + strlen("0x"), p);
+            const size_t strlen0x = sizeof"0x"-sizeof"";
+            length = strlen0x + pf_xtoa(sizeof buf - strlen0x, buf + strlen0x, p);
             fwrite(buf, 1, length, out);
         } else {
-            length = strlen("(nil)");
+            length = sizeof"(nil)"-sizeof"";
             fwrite("(nil)", 1, length, out);
         }
         } break;
+
+    case GP_NO_TYPE:
+    case GP_TYPE_LENGTH:
+        GP_UNREACHABLE("");
     }
     return length;
 }
@@ -255,27 +265,34 @@ static void gp_va_list_dummy_consume(
 
         switch (fmt.conversion_format)
         {
-        case 'c': va_arg(args->list, int); break;
+        case 'c':
+            if (fmt.length_modifier != 'l')
+                (void)va_arg(args->list, gp_promoted_arg_char_t);
+            else
+                (void)va_arg(args->list, gp_promoted_arg_wint_t);
+            break;
 
         case 'i': case 'd': switch (fmt.length_modifier)
             {
-            case 2 * 'h':
-            case 'h':
-            case 'B': case 'B'+'f':
-            case 'W':
-            case  0 :     va_arg(args->list, int         ); break;
-            case 'D':     va_arg(args->list, int32_t     ); break;
-            case 'Q':     va_arg(args->list, int64_t     ); break;
-            case 'O':     va_arg(args->list, GPInt128    ); break;
-            case 'l':     va_arg(args->list, long        ); break;
-            case 2 * 'l': va_arg(args->list, long long   ); break;
-            case 'j':     va_arg(args->list, ptrdiff_t   ); break;
-            case 'W'+'f': va_arg(args->list, int_fast16_t); break;
-            case 'D'+'f': va_arg(args->list, int_fast32_t); break;
-            case 'Q'+'f': va_arg(args->list, int_fast64_t); break;
-            #if GP_HAS_SSIZE_T
-            case 'z':     va_arg(args->list, ssize_t     ); break;
+            case 2 * 'h': (void)va_arg(args->list, gp_promoted_arg_signed_char_t); break;
+            case 'h':     (void)va_arg(args->list, gp_promoted_arg_short_t      ); break;
+            case  0 :     (void)va_arg(args->list, gp_promoted_arg_int_t        ); break;
+            case 'l':     (void)va_arg(args->list, gp_promoted_arg_long_t       ); break;
+            case 2 * 'l': (void)va_arg(args->list, gp_promoted_arg_long_long_t  ); break;
+            case 'B':     (void)va_arg(args->list, gp_promoted_arg_int8_t       ); break;
+            case 'W':     (void)va_arg(args->list, gp_promoted_arg_int16_t      ); break;
+            case 'D':     (void)va_arg(args->list, gp_promoted_arg_int32_t      ); break;
+            case 'Q':     (void)va_arg(args->list, gp_promoted_arg_int64_t      ); break;
+            case 'O':     (void)va_arg(args->list, GPInt128                     ); break;
+            case 'j':     (void)va_arg(args->list, gp_promoted_arg_ptrdiff_t    ); break;
+            case 'B'+'f': (void)va_arg(args->list, gp_promoted_arg_int_fast8_t  ); break;
+            case 'W'+'f': (void)va_arg(args->list, gp_promoted_arg_int_fast16_t ); break;
+            case 'D'+'f': (void)va_arg(args->list, gp_promoted_arg_int_fast32_t ); break;
+            case 'Q'+'f': (void)va_arg(args->list, gp_promoted_arg_int_fast64_t ); break;
+            #ifdef SSIZE_MAX
+            case 'z':     (void)va_arg(args->list, gp_promoted_arg_ssize_t      ); break;
             #endif
+            default: GP_UNREACHABLE("");
             }
             break;
 
@@ -283,36 +300,41 @@ static void gp_va_list_dummy_consume(
         case 'x': case 'X':
         case 'u': switch (fmt.length_modifier)
             {
-            case 2 * 'h':
-            case 'h':
-            case 'B': case 'B'+'f':
-            case 'W':
-            case 'D':
-            case 0:       va_arg(args->list, unsigned          ); break;
-            case 'Q':     va_arg(args->list, uint64_t          ); break;
-            case 'O':     va_arg(args->list, GPUInt128         ); break;
-            case 'l':     va_arg(args->list, unsigned long     ); break;
-            case 2 * 'l': va_arg(args->list, unsigned long long); break;
-            case 'z':     va_arg(args->list, size_t            ); break;
-            case 'W'+'f': va_arg(args->list, uint_fast16_t     ); break;
-            case 'D'+'f': va_arg(args->list, uint_fast32_t     ); break;
-            case 'Q'+'f': va_arg(args->list, uint_fast64_t     ); break;
+            case 2 * 'h': (void)va_arg(args->list, gp_promoted_arg_unsigned_char_t     ); break;
+            case 'h':     (void)va_arg(args->list, gp_promoted_arg_unsigned_short_t    ); break;
+            case  0:      (void)va_arg(args->list, gp_promoted_arg_unsigned_t          ); break;
+            case 'l':     (void)va_arg(args->list, gp_promoted_arg_unsigned_long_t     ); break;
+            case 2 * 'l': (void)va_arg(args->list, gp_promoted_arg_unsigned_long_long_t); break;
+            case 'B':     (void)va_arg(args->list, gp_promoted_arg_uint8_t             ); break;
+            case 'W':     (void)va_arg(args->list, gp_promoted_arg_uint16_t            ); break;
+            case 'D':     (void)va_arg(args->list, gp_promoted_arg_uint32_t            ); break;
+            case 'Q':     (void)va_arg(args->list, gp_promoted_arg_uint64_t            ); break;
+            case 'O':     (void)va_arg(args->list, GPUInt128                           ); break;
+            case 'z':     (void)va_arg(args->list, gp_promoted_arg_size_t              ); break;
+            case 'B'+'f': (void)va_arg(args->list, gp_promoted_arg_uint_fast8_t        ); break;
+            case 'W'+'f': (void)va_arg(args->list, gp_promoted_arg_uint_fast16_t       ); break;
+            case 'D'+'f': (void)va_arg(args->list, gp_promoted_arg_uint_fast32_t       ); break;
+            case 'Q'+'f': (void)va_arg(args->list, gp_promoted_arg_uint_fast64_t       ); break;
+            default: GP_UNREACHABLE("");
             }
             break;
 
         case 's': case 'S':
-        case 'p': va_arg(args->list, void*); break;
+        case 'p': (void)va_arg(args->list, void*); break;
 
         case 'f': case 'F':
         case 'e': case 'E':
         case 'g': case 'G':
             #if GP_HAS_LONG_DOUBLE
             if (fmt.length_modifier == 'L')
-                va_arg(args->list, long double);
+                (void)va_arg(args->list, long double);
             else
             #endif
-                va_arg(args->list, double);
+                (void)va_arg(args->list, gp_promoted_arg_double_t);
             break;
+
+        default:
+            GP_UNREACHABLE("");
         }
     }
 }
@@ -373,7 +395,7 @@ size_t gp_file_println_internal(
     size_t length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        length += strlen(" ") + gp_print_objects(out, &args, &i, objs[i]);
+        length += sizeof" "-sizeof"" + gp_print_objects(out, &args, &i, objs[i]);
 
         if (i < arg_count - 1)
             fputs(" ",  out);

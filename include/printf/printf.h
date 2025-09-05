@@ -11,10 +11,10 @@
 // builds, undefined otherwise.
 //
 // %n is not supported due to security issues, it is not useful anyway since you
-// can just split the calls and read the return value. Long double is also not
-// currently supported due to it's inconsistent host support. Other than these
-// limitations and the modifications mentioned above, `pf_printf()` is fully
-// ANSI C compatible with the following extensions:
+// can just split the calls and read the return value. Long double may also lose
+// precision at the time of writing. Other than these limitations and the
+// modifications mentioned above, `pf_printf()` is fully ANSI C compatible with
+// the following extensions:
 //
 // S conversion specifier for GPString. Note that GNUC interprets %S as %ls, but
 // since it's use as %ls is discouraged anyway, we use it for our purposes.
@@ -24,7 +24,7 @@
 //
 // Use B (byte 8 bits), W (word 16 bits), D (double word 32 bits),
 // Q (quad word 64 bits), and O (octa word 128 bits for GP[U]Int128) as length
-// specifier for fixed width integers. C23 wN ([u]int_N_t) and wfN
+// specifier for fixed width integers. C23 wN ([u]intN_t) and wfN
 // ([u]int_fastN_t), where N is 8, 16, 32, or 128, is also supported and
 // recommended over non-standard BWDQO.
 //

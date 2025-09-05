@@ -130,6 +130,7 @@ int main(void)
 // Use in variadic function arguments with GP_TYPE() macro
 typedef enum gp_type
 {
+    GP_NO_TYPE,
     GP_BOOL,
     GP_UNSIGNED_CHAR,
     GP_UNSIGNED_SHORT,
@@ -150,6 +151,7 @@ typedef enum gp_type
     GP_CHAR_PTR,
     GP_STRING,
     GP_PTR,
+    GP_TYPE_LENGTH
 } GPType;
 
 static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
@@ -178,6 +180,9 @@ static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
             return sizeof(double);
         case GP_CHAR_PTR: case GP_STRING: case GP_PTR:
             return sizeof(char*);
+
+        case GP_NO_TYPE:
+        case GP_TYPE_LENGTH:;
     }
     return 0;
 }
@@ -273,14 +278,14 @@ static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
 #define GP_C11_GENERIC_NUMBER(A) \
     GP_C11_GENERIC_SIGNED_TYPE(A), GP_C11_GENERIC_UNSIGNED_TYPE(A), GP_C11_GENERIC_FLOAT(A)
 #define GP_C11_GENERIC_SIGNED_INTEGER(A) \
-    signed char: (A), short: (A), int (A), long: (A), long long: (A)
+    signed char: (A), short: (A), int: (A), long: (A), long long: (A)
 #define GP_C11_GENERIC_UNSIGNED_INTEGER(A) \
     unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A)
 #define GP_C11_GENERIC_INTEGER(A) \
-    signed char: (A), short: (A), int (A), long: (A), long long: (A), \
+    signed char: (A), short: (A), int: (A), long: (A), long long: (A), \
     unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A)
 #define GP_C11_GENERIC_ARITHMETIC_TYPE(A) \
-    signed char: (A), short: (A), int (A), long: (A), long long: (A), \
+    signed char: (A), short: (A), int: (A), long: (A), long long: (A), \
     unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A), \
     GP_C11_GENERIC_FLOAT(A)
 #define GP_C11_GENERIC_STRING(A) char*: (A), const char*: (A), struct gp_char*: (A)
@@ -750,7 +755,9 @@ static inline constexpr GPType GP_TYPE(unsigned long long x) { (void)x; return G
 static inline constexpr GPType GP_TYPE(GPUInt128          x) { (void)x; return GP_UINT128;            }
 static inline constexpr GPType GP_TYPE(float              x) { (void)x; return GP_FLOAT;              }
 static inline constexpr GPType GP_TYPE(double             x) { (void)x; return GP_DOUBLE;             }
+#if !_MSC_VER
 static inline constexpr GPType GP_TYPE(char               x) { (void)x; return GP_CHAR;               }
+#endif
 static inline constexpr GPType GP_TYPE(unsigned char      x) { (void)x; return GP_UNSIGNED_CHAR;      }
 static inline constexpr GPType GP_TYPE(signed char        x) { (void)x; return GP_SIGNED_CHAR;        }
 static inline constexpr GPType GP_TYPE(char*              x) { (void)x; return GP_CHAR_PTR;           }

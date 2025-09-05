@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <limits.h>
+#include <wctype.h>
 
 #ifdef __SANITIZE_ADDRESS__ // GCC and MSVC defines this with -fsanitize=address
 #  include <sanitizer/asan_interface.h>
@@ -45,23 +46,6 @@ size_t pf_vsnprintf_consuming_no_null_termination(
 
 void gp_arena_dealloc(GPAllocator*, void*);
 void gp_carena_dealloc(GPAllocator*, void*);
-
-static inline size_t gp_max_digits_in(const GPType T)
-{
-    switch (T)
-    {
-        case GP_FLOAT: // promoted
-        case GP_DOUBLE: // %g
-            return strlen("-0.111111e-9999");
-
-        case GP_PTR:
-            return strlen("0x") + sizeof(void*) * strlen("ff");
-
-        default: // integers https://www.desmos.com/calculator/c1ftloo5ya
-            return (gp_sizeof(T) * 18) / CHAR_BIT + 2;
-    }
-    return 0;
-}
 
 bool gp_valid_codepoint(uint32_t c);
 
@@ -120,15 +104,168 @@ size_t gp_bytes_print_objects(
 #endif
 
 // ----------------------------------------------------------------------------
-// ssize_t
+// Typedefs for Argument Promoted Integers
 
-// Desperately try to detect if ssize_t exist using mostly undocumented macros.
-// Avoid using this, you can use `#if _POSIX_VERSION >= 200112L` for something
-// more robust.
-#if _POSIX_VERSION >= 200112L || defined(ssize_t) \
-|| defined(__ssize_t_defined) || defined(_SSIZE_T_DEFINED) \
-|| defined(_SSIZE_T) || defined(_SSIZE_T_DECLARED)
-#define GP_HAS_SSIZE_T 1
+// These address portability issues created by default argument promotions, when
+// using va_arg(), which requires promoted types as arguments, which may be
+// platform dependent. Some of these are pedantic, some provided for
+// completeness.
+//
+// Implementation notes: according to C standards, roughly these hold:
+// - bool <= char <= short <= int <= long <= long long
+// - int16_t <= int
+// - Any other type could be almost anything (not really)
+//
+// Using the standard limits interface may not be able to reliably detect
+// underlying typedefs due to short == int in some systems, int == long in
+// others, or even short == int == long, so some of the typedefs may be
+// inaccurate.
+//
+// For any signed T, use T_MAX < INT_MAX when T is more likely to be long than
+// short, use T_MAX <= INT_MAX when T is more likely to be short than long. The
+// former prevents demoting long when int == long and the latter promotes short
+// when short == int, which is more important, so in doubt use T_MAX <= INT_MAX.
+//
+// Sizes are guaranteed to match, so the inaccuracies have neglible impact on
+// program correctness.
+
+typedef int gp_promoted_arg_bool_t;
+typedef int gp_promoted_arg_char_t;
+typedef int gp_promoted_arg_unsigned_char_t;
+typedef int gp_promoted_arg_signed_char_t;
+typedef int gp_promoted_arg_short_t;
+#if USHRT_MAX < INT_MAX
+typedef int gp_promoted_arg_unsigned_short_t;
+#else
+typedef unsigned gp_promoted_arg_unsigned_short_t;
+#endif
+typedef int gp_promoted_arg_int_t;
+typedef unsigned gp_promoted_arg_unsigned_t;
+typedef long gp_promoted_arg_long_t;
+typedef unsigned long gp_promoted_arg_unsigned_long_t;
+typedef long long gp_promoted_arg_long_long_t;
+typedef unsigned long long gp_promoted_arg_unsigned_long_long_t;
+
+#if SIZE_MAX < INT_MAX
+typedef int gp_promoted_arg_size_t;
+#else
+typedef size_t gp_promoted_arg_size_t;
+#endif
+#if defined(SSIZE_MAX) && SSIZE_MAX < INT_MAX
+typedef int gp_promoted_arg_ssize_t;
+#elif defined(SSIZE_MAX)
+typedef ssize_t gp_promoted_arg_ssize_t;
+#endif
+#if PTRDIFF_MAX < INT_MAX
+typedef int gp_promoted_arg_ptrdiff_t;
+#else
+typedef ptrdiff_t gp_promoted_arg_ptrdiff_t;
+#endif
+#if INTPTR_MAX < INT_MAX
+typedef int gp_promoted_arg_intptr_t;
+typedef int gp_promoted_arg_uintptr_t;
+#else
+typedef intptr_t gp_promoted_arg_intptr_t;
+typedef uintptr_t gp_promoted_arg_uintptr_t;
+#endif
+
+typedef int gp_promoted_arg_int8_t;
+typedef int gp_promoted_arg_uint8_t;
+typedef int gp_promoted_arg_int16_t; // int16_t <= int => int16_t assumed short
+                                     // or int, cannot be long since int32_t <= long
+#if UINT16_MAX < INT_MAX
+typedef int gp_promoted_arg_uint16_t;
+#else // uint16_t == unsigned
+typedef unsigned gp_promoted_arg_uint16_t;
+#endif
+#if INT32_MAX < INT_MAX // short most likely 16 bits => int32_t more likely long,
+                        // int most likely not 64 bits
+typedef int gp_promoted_arg_int32_t;
+typedef int gp_promoted_arg_uint32_t;
+#else
+typedef int32_t gp_promoted_arg_int32_t;
+typedef uint32_t gp_promoted_arg_uint32_t;
+#endif
+typedef int64_t gp_promoted_arg_int64_t;
+typedef uint64_t gp_promoted_arg_uint64_t;
+
+typedef int gp_promoted_arg_int_least8_t;
+typedef int gp_promoted_arg_uint_least8_t;
+typedef int gp_promoted_arg_int_least16_t;
+#if UINT_LEAST16_MAX < INT_MAX
+typedef int gp_promoted_arg_uint_least16_t;
+#else // least types are the smallest, so cannot be long, so this is accurate
+typedef unsigned gp_promoted_arg_uint_least16_t;
+#endif
+#if INT_LEAST32_MAX < INT_MAX
+typedef int gp_promoted_arg_int_least32_t;
+typedef int gp_promoted_arg_uint_least32_t;
+#else
+typedef int_least32_t gp_promoted_arg_int_least32_t;
+typedef uint_least32_t gp_promoted_arg_uint_least32_t;
+#endif
+typedef int_least64_t gp_promoted_arg_int_least64_t;
+typedef uint_least64_t gp_promoted_arg_uint_least64_t;
+
+// Fast type extreme cases:
+// - fast types are the same as least types.
+// - all fast types are 64 bits on 64-bit systems
+// Both extremes are unlikely, but possible. Therefore, we have to check all
+// three cases (T_MAX < INT_MAX, T_MAX > INT_MAX, T_MAX == INT_MAX) for most
+// fast types.
+#if INT_FAST8_MAX < INT_MAX
+typedef int gp_promoted_arg_int_fast8_t;
+typedef int gp_promoted_arg_uint_fast8_t;
+#elif INT_FAST8_MAX > INT_MAX
+typedef int_fast8_t gp_promoted_arg_int_fast8_t;
+typedef uint_fast8_t gp_promoted_arg_uint_fast8_t;
+#else // same size, may demote long (it won't, we're being pedantic)
+typedef int gp_promoted_arg_int_fast8_t;
+typedef unsigned gp_promoted_arg_uint_fast8_t;
+#endif
+#if INT_FAST16_MAX < INT_MAX
+typedef int gp_promoted_arg_int_fast16_t;
+typedef int gp_promoted_arg_uint_fast16_t;
+#elif INT_FAST16_MAX > INT_MAX
+typedef int_fast16_t gp_promoted_arg_int_fast16_t;
+typedef uint_fast16_t gp_promoted_arg_uint_fast16_t;
+#else
+typedef int gp_promoted_arg_int_fast16_t;
+typedef unsigned gp_promoted_arg_uint_fast16_t;
+#endif
+#if INT_FAST32_MAX < INT_MAX // int may be 64 bits (probably not)
+typedef int gp_promoted_arg_int_fast32_t;
+typedef int gp_promoted_arg_uint_fast32_t;
+#elif INT_FAST32_MAX > INT_MAX
+typedef int_fast32_t gp_promoted_arg_int_fast32_t;
+typedef uint_fast32_t gp_promoted_arg_uint_fast32_t;
+#else
+typedef int gp_promoted_arg_int_fast32_t;
+typedef unsigned gp_promoted_arg_uint_fast32_t;
+#endif
+typedef int_fast64_t gp_promoted_arg_int_fast64_t;
+typedef uint_fast64_t gp_promoted_arg_uint_fast64_t;
+
+typedef intmax_t gp_promoted_arg_intmax_t;
+typedef uintmax_t gp_promoted_arg_uintmax_t;
+
+#if WCHAR_MAX <= INT_MAX // may demote (probably not, known to be short in Windows)
+typedef int gp_promoted_arg_wchar_t;
+#else
+typedef wchar_t gp_promoted_arg_wchar_t;
+#endif
+#if WINT_MAX <= INT_MAX // may demote (probably not, known to be short in Windows)
+typedef int gp_promoted_arg_wint_t;
+#else
+typedef wint_t gp_promoted_arg_wint_t;
+#endif
+
+#if !defined(__SDCC)
+typedef double gp_promoted_arg_float_t;
+typedef double gp_promoted_arg_double_t;
+#else // SDCC doesn't have double
+typedef float gp_promoted_arg_float_t;
+typedef float gp_promoted_arg_double_t;
 #endif
 
 #endif // GP_COMMON_INCLUDED

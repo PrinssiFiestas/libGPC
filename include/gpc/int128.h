@@ -35,9 +35,9 @@
 #    define GP_HAS_TETRA_INT 1
 #  endif
 /** __uint128_t but more portable with Clang */
-typedef unsigned GPTetraUInt __attribute__((mode(TI)));
+typedef unsigned gp_tetra_uint_t __attribute__((mode(TI)));
 /** __int128_t but more portable with Clang */
-typedef int      GPTetraInt  __attribute__((mode(TI)));
+typedef int      gp_tetra_int_t  __attribute__((mode(TI)));
 #endif
 
 
@@ -63,8 +63,8 @@ typedef int      GPTetraInt  __attribute__((mode(TI)));
 // with gp_is_big_endian() and gp_is_little_endian().
 #ifndef GP_ENDIAN
 // Detect with C23. stdbit.h is missing during time of writing even with
-// std=c23. We can still check the macro, but do NOT include the header, even if
-// the header pops up to support older libc versions.
+// -std=c23. We can still check the macro, but do NOT include the header, even
+// if the header pops up to support older libc versions.
 #  ifdef __STDC_ENDIAN_NATIVE__
 #    if __STDC_ENDIAN_NATIVE__ == __STDC_ENDIAN_LITTLE__
 #      define GP_ENDIAN GP_ENDIAN_LITTLE
@@ -170,7 +170,7 @@ typedef union gp_uint128
     } big_endian;
 
     #if GP_HAS_TETRA_INT || GP_TEST_INT128
-    GPTetraUInt u128;
+    gp_tetra_uint_t u128;
     #endif
 } GPUInt128;
 
@@ -202,7 +202,7 @@ typedef union gp_int128
     } big_endian;
 
     #if GP_HAS_TETRA_INT || defined(GP_TEST_INT128)
-    GPTetraInt i128;
+    gp_tetra_int_t i128;
     #endif
 } GPInt128;
 
@@ -213,9 +213,9 @@ typedef union gp_int128
 #define GP_INT128_MAX  gp_int128(0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF)
 #define GP_INT128_MIN  gp_int128(INT64_MIN, 0)
 
-#define GP_TETRA_UINT_MAX ((GPTetraUInt)-1)
-#define GP_TETRA_INT_MAX  ((GPTetraInt)((GPTetraUInt)-1 >> 1))
-#define GP_TETRA_INT_MIN  ((GPTetraInt)-1 << 127)
+#define GP_TETRA_UINT_MAX ((gp_tetra_uint_t)-1)
+#define GP_TETRA_INT_MAX  ((gp_tetra_int_t)((gp_tetra_uint_t)-1 >> 1))
+#define GP_TETRA_INT_MIN  ((gp_tetra_int_t)-1 << 127)
 
 // ----------------------------------------------------------------------------
 // Constructors and Accessors
@@ -320,13 +320,13 @@ static inline int64_t* gp_int128_hi_addr(GPInt128* i)
 }
 
 #if GP_HAS_TETRA_INT || defined(GP_TEST_INT128)
-GP_NODISCARD static inline GPUInt128 gp_uint128_tetra_uint(GPTetraUInt _u)
+GP_NODISCARD static inline GPUInt128 gp_uint128_tetra_uint(gp_tetra_uint_t _u)
 {
     GPUInt128 u;
     u.u128 = _u;
     return u;
 }
-GP_NODISCARD static inline GPInt128 gp_int128_tetra_int(GPTetraInt _i)
+GP_NODISCARD static inline GPInt128 gp_int128_tetra_int(gp_tetra_int_t _i)
 {
     GPInt128 i;
     i.i128 = _i;
@@ -337,7 +337,7 @@ GP_NODISCARD static inline GPInt128 gp_int128_tetra_int(GPTetraInt _i)
 GP_NODISCARD static inline GPUInt128 gp_uint128_f64(double d)
 {
     #if GP_HAS_TETRA_INT
-    return gp_uint128_tetra_uint((GPTetraUInt)d);
+    return gp_uint128_tetra_uint((gp_tetra_uint_t)d);
     #else
     GPUInt128 gp_uint128_convert_f64(double);
     return gp_uint128_convert_f64(d);
@@ -346,7 +346,7 @@ GP_NODISCARD static inline GPUInt128 gp_uint128_f64(double d)
 GP_NODISCARD static inline GPInt128 gp_int128_f64(double d)
 {
     #if GP_HAS_TETRA_INT
-    return gp_int128_tetra_int((GPTetraUInt)d);
+    return gp_int128_tetra_int((gp_tetra_uint_t)d);
     #else
     GPInt128 gp_int128_convert_f64(double);
     return gp_int128_convert_f64(d);
@@ -355,7 +355,7 @@ GP_NODISCARD static inline GPInt128 gp_int128_f64(double d)
 GP_NODISCARD static inline GPUInt128 gp_uint128_f32(float f)
 {
     #if GP_HAS_TETRA_INT
-    return gp_uint128_tetra_uint((GPTetraUInt)f);
+    return gp_uint128_tetra_uint((gp_tetra_uint_t)f);
     #else
     GPUInt128 gp_uint128_convert_f32(float);
     return gp_uint128_convert_f32(f);
@@ -364,7 +364,7 @@ GP_NODISCARD static inline GPUInt128 gp_uint128_f32(float f)
 GP_NODISCARD static inline GPInt128 gp_int128_f32(float f)
 {
     #if GP_HAS_TETRA_INT
-    return gp_int128_tetra_int((GPTetraUInt)f);
+    return gp_int128_tetra_int((gp_tetra_uint_t)f);
     #else
     GPInt128 gp_int128_convert_f32(float);
     return gp_int128_convert_f32(f);
@@ -438,8 +438,8 @@ typename std::enable_if<std::is_integral<T>::value, GPInt128>::type
 gp_i128(T i) { return gp_int128(-(i<0), i); }
 
 #  if GP_HAS_TETRA_INT
-GP_NODISCARD static inline GPUInt128 gp_u128(GPTetraUInt u) { return gp_uint128_tetra_uint(u); }
-GP_NODISCARD static inline GPInt128  gp_i128(GPTetraInt  i) { return gp_int128_tetra_int(i);   }
+GP_NODISCARD static inline GPUInt128 gp_u128(gp_tetra_uint_t u) { return gp_uint128_tetra_uint(u); }
+GP_NODISCARD static inline GPInt128  gp_i128(gp_tetra_int_t  i) { return gp_int128_tetra_int(i);   }
 #  endif
 
 #else // C
@@ -725,7 +725,7 @@ GP_NODISCARD static inline GPInt128 gp_int128_negate(GPInt128 a)
 GP_NODISCARD static inline GPUInt128 gp_uint128_mul64(uint64_t a, uint64_t b)
 {
     #if GP_HAS_TETRA_INT
-    return gp_uint128_tetra_uint((GPTetraUInt)a * b);
+    return gp_uint128_tetra_uint((gp_tetra_uint_t)a * b);
     #elif _MSC_VER
     DWORD64 lo, hi;
     lo = UnsignedMultiply128(a, b, &hi);
@@ -750,7 +750,7 @@ GP_NODISCARD static inline GPUInt128 gp_uint128_mul(GPUInt128 a, GPUInt128 b)
 GP_NODISCARD static inline GPInt128 gp_int128_mul64(int64_t a, int64_t b)
 {
     #if GP_HAS_TETRA_INT
-    return gp_int128_tetra_int((GPTetraInt)a * b);
+    return gp_int128_tetra_int((gp_tetra_int_t)a * b);
     #elif _MSC_VER
     LONG64 lo, hi;
     lo = Multiply128(a, b, &hi);
@@ -1045,8 +1045,8 @@ static inline GP_MAYBE_CONSTEXPR GPType GP_TYPE(GPInt128  x) { (void)x; return G
 GP_NODISCARD static inline GPUInt128 gp_uint128_uint128(GPUInt128 u) { return u; }
 GP_NODISCARD static inline GPInt128  gp_int128_int128(GPInt128 i) { return i;    }
 #  if GP_HAS_TETRA_INT // use implicit integer conversions
-#    define GP_U128_CTOR(A) _Generic(A, GPUInt128: gp_uint128_uint128, GPInt128: gp_uint128_i128, default: gp_uint128_tetra_uint)(A)
-#    define GP_I128_CTOR(A) _Generic(A, GPUInt128: gp_int128_u128,  GPInt128: gp_int128_int128,  default: gp_int128_tetra_int)(A)
+#    define GP_U128_CTOR(A) _Generic(A, GPUInt128: gp_uint128_uint128, GPInt128: gp_uint128_i128,  default: gp_uint128_tetra_uint)(A)
+#    define GP_I128_CTOR(A) _Generic(A, GPUInt128: gp_int128_u128,     GPInt128: gp_int128_int128, default: gp_int128_tetra_int)(A)
 #  else
 #    define GP_U128_CTOR(A) _Generic(A, \
          GP_C11_GENERIC_SIGNED_INTEGER(gp_uint128_i64), \

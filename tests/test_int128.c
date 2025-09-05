@@ -4,11 +4,11 @@
 
 #define FUZZ_COUNT 4096
 
-#if __GNUC__ && __SIZEOF_INT128__ && !__clang__
+#if _WIN32 && ((__GNUC__ && __SIZEOF_INT128__) || (_MSC_VER && _M_X64))
 
-// Force int128.h implementations to not use GPTIInt/GPTIUint, we want to test
-// against that. This is very hacky and finicky, a potential bug might be that
-// we end up testing GPTIInt implementations against GPTIInt always passing the
+// Force int128.h implementations to not use gp_tetra_int_t, we want to test against
+// that. This is very hacky and finicky, a potential bug might be that we end up
+// testing gp_tetra_int_t implementations against gp_tetra_int_t always passing the
 // tests, so make sure to manually break a test to see that they still work on
 // changes!
 #define GP_TEST_INT128 1
@@ -18,20 +18,26 @@
 #include <gpc/io.h>
 #include <gpc/utils.h>
 
-#if _WIN32 && !__cplusplus // write result to file that we can use for MSVC tests
-#define WRITE_RESULT(...) do { \
-    GP_TYPEOF(__VA_ARGS__) _result = (__VA_ARGS__); \
-    fwrite(&_result, sizeof _result, 1, msvc_test_file); \
-} while(0)
-#else
-#define WRITE_RESULT(...) ((void)0)
-#endif
+#if __GNUC__
 
-#define EXPECT_EQ(A, B, ...) \
-    (WRITE_RESULT(B), gp_expect((A) == (B)__VA_OPT__(,)__VA_ARGS__))
+#  if !__cplusplus // write result to file that we can use for MSVC tests
+#    define WRITE_RESULT(A) \
+        fwrite(&(gp_tetra_uint_t){A}, sizeof(A), 1, msvc_test_file)
+#  else
+#    define WRITE_RESULT(...) ((void)0)
+#  endif // !__cplusplus
 
-#define ASSERT_EQ(A, B, ...) \
-(WRITE_RESULT(B), gp_assert((A) == (B)__VA_OPT__(,)__VA_ARGS__))
+#  define EXPECT_EQ(A, B, ...) \
+      (WRITE_RESULT(B), gp_expect(gp_i128(A).i128 == (B)__VA_OPT__(,)__VA_ARGS__))
+
+#  define ASSERT_EQ(A, B, ...) \
+      (WRITE_RESULT(B), gp_assert(gp_i128(A).i128 == (B)__VA_OPT__(,)__VA_ARGS__))
+
+#else // MSVC
+
+// TODO
+
+#endif // __GNUC__
 
 GPUInt128 uint128_random(GPRandomState* rs)
 {
@@ -67,8 +73,6 @@ GPInt128 int128_random_negative(GPRandomState* rs)
 
 int main(void)
 {
-    return 0; // TODO TODO TODO TODO TODO
-
     gp_suite("Endianness"); // the very prerequisite for anything
     {
         uint16_t u16 = 1;
@@ -499,7 +503,7 @@ int main(void)
     gp_suite("Float conversions");
     {
         // https://github.com/m-ou-se/floatconv/blob/main/src/test.rs
-        static const GPTetraUInt u128s[] = {
+        static const gp_tetra_uint_t u128s[] = {
             0, 1, 2, 3, 1234,
             GP_TETRA_UINT_MAX, // Overflows the mantissa, should increment the exponent (which will be odd).
             GP_TETRA_UINT_MAX / 2, // Overflows the mantissa, should increment the exponent (which will be even).
@@ -509,57 +513,57 @@ int main(void)
             0x8000000000000C, // Tie, round to even (up)
             0x80000000000004, // Tie, round to even (down)
             // Round to closest (up), with tie-breaking bit further than 64 bits away.
-            ((GPTetraUInt)0x8000000000000400 << 64) | 0x0000000000000001,
+            ((gp_tetra_uint_t)0x8000000000000400 << 64) | 0x0000000000000001,
             // Round to closest (down), with 1-bit in 63rd position (which should be insignificant).
-            ((GPTetraUInt)0x8000000000000000 << 64) | 0x8000000000000000,
+            ((gp_tetra_uint_t)0x8000000000000000 << 64) | 0x8000000000000000,
             // Round to closest (down), with 1-bits in all insignificant positions.
-            ((GPTetraUInt)0x80000000000003FF << 64) | 0xFFFFFFFFFFFFFFFF,
+            ((gp_tetra_uint_t)0x80000000000003FF << 64) | 0xFFFFFFFFFFFFFFFF,
             // Mantissa of 2*52 bits, with last 32 bits set.
-            ((GPTetraUInt)0x10000000000      << 64) | 0x00000000FFFFFFFF,
+            ((gp_tetra_uint_t)0x10000000000      << 64) | 0x00000000FFFFFFFF,
             // Mantissa of 2*52 bits, with bit 23 set.
-            ((GPTetraUInt)0x10000000000      << 64) | 0x0000000000800000,
+            ((gp_tetra_uint_t)0x10000000000      << 64) | 0x0000000000800000,
             // Mantissa of 2*52 bits, with last 23 bits set.
-            ((GPTetraUInt)0x10000000000      << 64) | 0x00000000007FFFFF,
+            ((gp_tetra_uint_t)0x10000000000      << 64) | 0x00000000007FFFFF,
             // Mantissa of 128-32 bits, with last 24 bits set.
-            ((GPTetraUInt)0x100000000        << 64) | 0x0000000000FFFFFF,
-            (GPTetraUInt)1 << 127,
-            (GPTetraUInt)2 << 126,
-            (GPTetraUInt)3 << 126,
-            (GPTetraUInt)1 << 64,
-            (GPTetraUInt)1 << 63,
-            (GPTetraUInt)1 << 54,
-            (GPTetraUInt)1 << 53,
-            (GPTetraUInt)1 << 52,
-            (GPTetraUInt)1 << 51,
-            ((GPTetraUInt)1 << 54) - 1,
-            ((GPTetraUInt)1 << 53) - 1,
-            ((GPTetraUInt)1 << 52) - 1,
-            ((GPTetraUInt)1 << 51) - 1,
-            ((GPTetraUInt)1 << 54) + 1,
-            ((GPTetraUInt)1 << 53) + 1,
-            ((GPTetraUInt)1 << 52) + 1,
-            ((GPTetraUInt)1 << 51) + 1,
+            ((gp_tetra_uint_t)0x100000000        << 64) | 0x0000000000FFFFFF,
+            (gp_tetra_uint_t)1 << 127,
+            (gp_tetra_uint_t)2 << 126,
+            (gp_tetra_uint_t)3 << 126,
+            (gp_tetra_uint_t)1 << 64,
+            (gp_tetra_uint_t)1 << 63,
+            (gp_tetra_uint_t)1 << 54,
+            (gp_tetra_uint_t)1 << 53,
+            (gp_tetra_uint_t)1 << 52,
+            (gp_tetra_uint_t)1 << 51,
+            ((gp_tetra_uint_t)1 << 54) - 1,
+            ((gp_tetra_uint_t)1 << 53) - 1,
+            ((gp_tetra_uint_t)1 << 52) - 1,
+            ((gp_tetra_uint_t)1 << 51) - 1,
+            ((gp_tetra_uint_t)1 << 54) + 1,
+            ((gp_tetra_uint_t)1 << 53) + 1,
+            ((gp_tetra_uint_t)1 << 52) + 1,
+            ((gp_tetra_uint_t)1 << 51) + 1,
             UINT64_MAX,
-            (GPTetraUInt)UINT64_MAX << 64,
-            (GPTetraUInt)UINT64_MAX << 63,
-            (GPTetraUInt)UINT64_MAX << 53,
-            (GPTetraUInt)UINT64_MAX << 52,
-            (GPTetraUInt)UINT64_MAX << 51,
-            (GPTetraUInt)(UINT64_MAX >> 13) << 64,
-            (GPTetraUInt)(UINT64_MAX >> 13) << 63,
-            (GPTetraUInt)(UINT64_MAX >> 13) << 53,
-            (GPTetraUInt)(UINT64_MAX >> 13) << 52,
-            (GPTetraUInt)(UINT64_MAX >> 13) << 51,
-            (GPTetraUInt)(UINT64_MAX >> 12) << 64,
-            (GPTetraUInt)(UINT64_MAX >> 12) << 63,
-            (GPTetraUInt)(UINT64_MAX >> 12) << 53,
-            (GPTetraUInt)(UINT64_MAX >> 12) << 52,
-            (GPTetraUInt)(UINT64_MAX >> 12) << 51,
-            (GPTetraUInt)(UINT64_MAX >> 11) << 64,
-            (GPTetraUInt)(UINT64_MAX >> 11) << 63,
-            (GPTetraUInt)(UINT64_MAX >> 11) << 53,
-            (GPTetraUInt)(UINT64_MAX >> 11) << 52,
-            (GPTetraUInt)(UINT64_MAX >> 11) << 51,
+            (gp_tetra_uint_t)UINT64_MAX << 64,
+            (gp_tetra_uint_t)UINT64_MAX << 63,
+            (gp_tetra_uint_t)UINT64_MAX << 53,
+            (gp_tetra_uint_t)UINT64_MAX << 52,
+            (gp_tetra_uint_t)UINT64_MAX << 51,
+            (gp_tetra_uint_t)(UINT64_MAX >> 13) << 64,
+            (gp_tetra_uint_t)(UINT64_MAX >> 13) << 63,
+            (gp_tetra_uint_t)(UINT64_MAX >> 13) << 53,
+            (gp_tetra_uint_t)(UINT64_MAX >> 13) << 52,
+            (gp_tetra_uint_t)(UINT64_MAX >> 13) << 51,
+            (gp_tetra_uint_t)(UINT64_MAX >> 12) << 64,
+            (gp_tetra_uint_t)(UINT64_MAX >> 12) << 63,
+            (gp_tetra_uint_t)(UINT64_MAX >> 12) << 53,
+            (gp_tetra_uint_t)(UINT64_MAX >> 12) << 52,
+            (gp_tetra_uint_t)(UINT64_MAX >> 12) << 51,
+            (gp_tetra_uint_t)(UINT64_MAX >> 11) << 64,
+            (gp_tetra_uint_t)(UINT64_MAX >> 11) << 63,
+            (gp_tetra_uint_t)(UINT64_MAX >> 11) << 53,
+            (gp_tetra_uint_t)(UINT64_MAX >> 11) << 52,
+            (gp_tetra_uint_t)(UINT64_MAX >> 11) << 51,
             GP_TETRA_UINT_MAX - (GP_TETRA_UINT_MAX >> 24),
             GP_TETRA_UINT_MAX - (GP_TETRA_UINT_MAX >> 23),
             GP_TETRA_UINT_MAX - (GP_TETRA_UINT_MAX >> 22)

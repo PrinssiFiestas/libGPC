@@ -292,7 +292,7 @@ size_t gp_str_replace_all(
     return replacement_count;
 }
 
-static size_t gp_str_print_object_size(GPPrintable object, pf_va_list _args)
+static size_t gp_printable_max_allocation_size(GPPrintable object, pf_va_list _args)
 {
     va_list args;
     va_copy(args, _args.list);
@@ -301,40 +301,57 @@ static size_t gp_str_print_object_size(GPPrintable object, pf_va_list _args)
     if (object.identifier[0] == '\"')
     {
         const char* fmt = va_arg(args, char*);
-        length = pf_vsnprintf(
-            NULL,
-            0,
-            fmt,
-            args);
-    } else {
+        length = pf_vsnprintf(NULL, 0, fmt, args);
+    }
+    else {
         switch (object.type)
         {
-            case GP_CHAR:
-            case GP_SIGNED_CHAR:
-            case GP_UNSIGNED_CHAR:
-                length = 1;
-                break;
+        case GP_CHAR:
+        case GP_SIGNED_CHAR:
+        case GP_UNSIGNED_CHAR:
+            length = 1;
+            break;
 
-            case GP_BOOL:
-                length = strlen("false");
-                break;
+        case GP_BOOL:
+            length = sizeof"false"-sizeof"";
+            break;
 
-            char* p;
-            size_t p_len;
-            case GP_CHAR_PTR:
-                p = va_arg(args, char*);
-                p_len = strlen(p);
-                length = p_len;
-                break;
+        char* p;
+        size_t p_len;
+        case GP_CHAR_PTR:
+            p = va_arg(args, char*);
+            p_len = strlen(p);
+            length = p_len;
+            break;
 
-            GPString s;
-            case GP_STRING:
-                s = va_arg(args, GPString);
-                length = gp_str_length(s);
-                break;
+        GPString s;
+        case GP_STRING:
+            s = va_arg(args, GPString);
+            length = gp_str_length(s);
+            break;
 
-            default:
-                length = gp_max_digits_in(object.type);
+        case GP_FLOAT:
+        case GP_DOUBLE: // %g
+            length = sizeof"-0.111111e-9999"-sizeof"";
+            break;
+
+        case GP_PTR:
+            length = sizeof"0x"-sizeof"" + sizeof(void*) * (sizeof"FF"-sizeof"");
+            break;
+
+        case GP_INT128:
+            length = sizeof"-170141183460469231731687303715884105728"-sizeof"";
+            break;
+
+        case GP_UINT128:
+            length = sizeof"340282366920938463463374607431768211455"-sizeof"";
+            break;
+
+        // Integers: https://www.desmos.com/calculator/c1ftloo5ya
+        // Will not be accurate for 128-bit integers, they should be handled above.
+        default:
+            length = (gp_sizeof(object.type) * 18) / CHAR_BIT + 2;
+            break;
         }
     }
     va_end(args);
@@ -359,7 +376,10 @@ size_t gp_str_print_internal(
     gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        gp_str_reserve(out, gp_str_length(*out) + gp_str_print_object_size(objs[i], args));
+        gp_str_reserve(
+            out,
+            gp_str_length(*out) + gp_printable_max_allocation_size(objs[i], args));
+
         gp_str_header(*out)->length += gp_bytes_print_objects(
             (size_t)-1,
             *out + gp_str_length(*out),
@@ -423,8 +443,10 @@ size_t gp_str_println_internal(
     gp_str_header(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        gp_str_reserve(out,
-            gp_str_length(*out) + strlen(" ") + gp_str_print_object_size(objs[i], args));
+        gp_str_reserve(
+            out,
+            gp_str_length(*out) + sizeof" "-sizeof"" + gp_printable_max_allocation_size(
+                objs[i], args));
 
         gp_str_header(*out)->length += gp_bytes_print_objects(
             (size_t)-1,

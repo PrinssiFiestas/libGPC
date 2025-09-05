@@ -5,6 +5,7 @@
 #include <gpc/int128.h>
 #include <gpc/assert.h>
 #include <stdarg.h>
+#include "common.h"
 
 GPUInt128 gp_u128_c99_ctor(size_t size, ...)
 {
@@ -13,10 +14,10 @@ GPUInt128 gp_u128_c99_ctor(size_t size, ...)
     va_start(args, size);
     switch (size) {
     case sizeof(GPInt128): u =               va_arg(args, GPUInt128); break;
-    case sizeof(uint64_t): u = gp_uint128(0, va_arg(args, uint64_t)); break;
-    case sizeof(uint32_t): u = gp_uint128(0, va_arg(args, uint32_t)); break;
-    case sizeof(uint16_t): u = gp_uint128(0, va_arg(args, unsigned)); break;
-    case sizeof(uint8_t):  u = gp_uint128(0, va_arg(args, unsigned)); break;
+    case sizeof(uint64_t): u = gp_uint128(0, va_arg(args, gp_promoted_arg_uint64_t)); break;
+    case sizeof(uint32_t): u = gp_uint128(0, va_arg(args, gp_promoted_arg_uint32_t)); break;
+    case sizeof(uint16_t): u = gp_uint128(0, va_arg(args, gp_promoted_arg_uint16_t)); break;
+    case sizeof(uint8_t) : u = gp_uint128(0, va_arg(args, gp_promoted_arg_uint8_t )); break;
     default: GP_UNREACHABLE("gp_u128(): invalid argument.");
     }
     va_end(args);
@@ -28,11 +29,11 @@ GPInt128 gp_i128_c99_ctor(size_t size, ...)
     va_list args;
     va_start(args, size);
     switch (size) {
-    case sizeof(GPInt128): i =              va_arg(args, GPInt128 ); break;
-    case sizeof(int64_t):  i = gp_int128(0, va_arg(args, uint64_t)); break;
-    case sizeof(int32_t):  i = gp_int128(0, va_arg(args, uint32_t)); break;
-    case sizeof(int16_t):  i = gp_int128(0, va_arg(args, unsigned)); break;
-    case sizeof(int8_t):   i = gp_int128(0, va_arg(args, unsigned)); break;
+    case sizeof(GPInt128): i =              va_arg(args, GPInt128); break;
+    case sizeof(int64_t):  i = gp_int128(0, va_arg(args, gp_promoted_arg_int64_t)); break;
+    case sizeof(int32_t):  i = gp_int128(0, va_arg(args, gp_promoted_arg_int32_t)); break;
+    case sizeof(int16_t):  i = gp_int128(0, va_arg(args, gp_promoted_arg_int16_t)); break;
+    case sizeof(int8_t) :  i = gp_int128(0, va_arg(args, gp_promoted_arg_int8_t )); break;
     default: GP_UNREACHABLE("gp_i128(): invalid argument.");
     }
     va_end(args);
@@ -366,8 +367,8 @@ GPInt128 gp_int128_convert_f64(double a)
 }
 GPUInt128 gp_uint128_convert_f32(float a)
 {
-    gp_db_assert( ! isnanf(a), "Nan cannot be represented as an integral type.");
-    gp_db_assert( ! isinff(a), "Inf cannot be represented as an integral type.");
+    gp_db_assert( ! isnan(a), "Nan cannot be represented as an integral type.");
+    gp_db_assert( ! isinf(a), "Inf cannot be represented as an integral type.");
     gp_db_assert(a >= 0.f, "Negative value cannot be represented as an unsigned type.");
 
     uint32_t a_bits;
@@ -384,8 +385,8 @@ GPUInt128 gp_uint128_convert_f32(float a)
 }
 GPInt128 gp_int128_convert_f32(float a)
 {
-    gp_db_assert( ! isnanf(a), "Nan cannot be represented as an integral type.");
-    gp_db_assert( ! isinff(a), "Inf cannot be represented as an integral type.");
+    gp_db_assert( ! isnan(a), "Nan cannot be represented as an integral type.");
+    gp_db_assert( ! isinf(a), "Inf cannot be represented as an integral type.");
 
     uint32_t a_bits;
     memcpy(&a_bits, &a, sizeof a);

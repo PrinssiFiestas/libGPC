@@ -130,11 +130,19 @@ static inline int gp_debugger_detached(void) { return gp_debugger_is_detached();
 #define GP_BREAKPOINT_USE_DEBUGBREAK        5 // __debugbreak()
 #define GP_BREAKPOINT_INVALID_METHOD        6
 
+#ifdef __has_builtin
+#define GP_HAS_BUILTIN(...) __has_builtin(__VA_ARGS__)
+#else
+#define GP_HAS_BUILTIN(...) 0
+#endif
+
 #ifdef _MSC_VER
     #define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_DEBUGBREAK
 // ----------------------------------------------------------------------------
 // Not present in original library
-#elif defined(__FILC__)
+#elif GP_HAS_BUILTIN(__builtin_debugtrap)
+    #define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_BUILTIN_DEBUGTRAP
+#elif defined(__FILC__) // inline assembly not supported
     #define GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_BUILTIN_TRAP
 #elif defined(__DMC__) && defined (_M_IX86)
 	#define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_TRAP_INSTRUCTION
@@ -186,8 +194,8 @@ static inline int gp_debugger_detached(void) { return gp_debugger_is_detached();
     	/* Known problem:
     	 * Same problem and workaround as Thumb mode */
         #define GP_TRAP_INSTRUCTION  volatile(".inst 0xe7f001f0")
-    #elif (defined(__aarch64__) && defined(__APPLE__)
-    	#define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_BUILTIN_DEBUGTRAP
+    // #elif (defined(__aarch64__) && defined(__APPLE__) // from original library, we use __has_builtin()
+    // 	#define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_BUILTIN_DEBUGTRAP
     #elif defined(__aarch64__)
     	#define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_TRAP_INSTRUCTION
     	/* See 'aarch64-tdep.c' in GDB source,
