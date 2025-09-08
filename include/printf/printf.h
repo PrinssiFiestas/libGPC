@@ -12,9 +12,9 @@
 //
 // %n is not supported due to security issues, it is not useful anyway since you
 // can just split the calls and read the return value. Long double may also lose
-// precision at the time of writing. Other than these limitations and the
-// modifications mentioned above, `pf_printf()` is fully ANSI C compatible with
-// the following extensions:
+// precision at the time of writing. Numeric conversions ignore the global
+// locale. Other than these limitations and the modifications mentioned above,
+// `pf_printf()` is fully ANSI C compatible with the following extensions:
 //
 // S conversion specifier for GPString. Note that GNUC interprets %S as %ls, but
 // since it's use as %ls is discouraged anyway, we use it for our purposes.

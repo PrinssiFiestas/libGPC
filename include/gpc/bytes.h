@@ -30,8 +30,15 @@ size_t pf_snprintf(char*GP_RESTRICT, size_t, const char*GP_RESTRICT, ...);
 // ----------------------------------------------------------------------------
 
 
-// None of these functions null-terminate! Also, unlike GPString, these are
-// assumed ASCII.
+// The bytes interface is meant to be used for lower level operations. It is
+// inherently unsafe and static by nature. For dynamic memory or bounds
+// checking, use GPString or GPArray instead.
+//
+// None of these functions null-terminate! Non of these functions bounds check
+// either! `dest_size`, when present, indicates the data length already present
+// in `dest`, not the buffer size!
+//
+// Unlike GPString, these are not assumed UTF-8, but ASCII or raw bytes instead.
 
 /** Copy or remove characters.
  * Copies characters from @p src starting from @p start_index to @p end_index

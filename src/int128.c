@@ -69,8 +69,9 @@ static size_t gp_trailing_zeros_u64(uint64_t u)
     // Note: C23 stdc_trailing_zeros() breaks builds, don't use it!
     #if __GNUC__ && !defined(GP_TEST_INT128)
     GP_STATIC_ASSERT(sizeof u == sizeof(unsigned long long)); // be pedantic and paranoid
-    return __builtin_ctzll(u);
+    return __builtin_ctzll(u); // note: generic ctz() not available in older GCC
     #else // https://graphics.stanford.edu/~seander/bithacks.html
+    u &= -u;
     // u==0 is undefined with ctz(), we know it's not 0 anyway
     // size_t c = 64;
     // if (u) c--;
@@ -92,19 +93,19 @@ static size_t gp_leading_zeros_u64(uint64_t u)
     // Note: C23 stdc_leading_zeros() breaks builds, don't use it!
     #if __GNUC__ && !defined(GP_TEST_INT128)
     GP_STATIC_ASSERT(sizeof u == sizeof(unsigned long long)); // be pedantic and paranoid
-    return __builtin_clzll(u);
+    return __builtin_clzll(u); // note: generic clz() not available in older GCC
     #else // https://graphics.stanford.edu/~seander/bithacks.html
-    // u==0 is undefined with clz(), we know it's not 0 anyway
-    // size_t c = 64;
-    // if (u) c--;
-    size_t c = 63;
-    if (u & 0xFFFFFFFF00000000) c -= 32;
-    if (u & 0xFFFF0000FFFF0000) c -= 16;
-    if (u & 0xFF00FF00FF00FF00) c -=  8;
-    if (u & 0xF0F0F0F0F0F0F0F0) c -=  4;
-    if (u & 0xCCCCCCCCCCCCCCCC) c -=  2;
-    if (u & 0xAAAAAAAAAAAAAAAA) c -=  1;
-    return c;
+    uint64_t v = u;
+    uint64_t r;
+    uint64_t shift;
+
+    r =     (v > 0xFFFFFFFF) << 5; v >>= r;
+    shift = (v > 0xFFFF    ) << 4; v >>= shift; r |= shift;
+    shift = (v > 0xFF      ) << 3; v >>= shift; r |= shift;
+    shift = (v > 0xF       ) << 2; v >>= shift; r |= shift;
+    shift = (v > 0x3       ) << 1; v >>= shift; r |= shift;
+                                                r |= (v >> 1);
+    return 63 - r;
     #endif
 }
 

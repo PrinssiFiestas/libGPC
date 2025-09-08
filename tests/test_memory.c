@@ -244,7 +244,7 @@ static int test1(void*_)
         test1_ps[11] = gp_mem_alloc(&scope->base, 32);
         return 0;
     GP_END;
-    GP_UNREACHABLE;
+    GP_UNREACHABLE("");
     #else
     gp_scope_defer(scope1, deferred_dealloc, test1_ps[8]);
     gp_scope_defer(scope1, deferred_dealloc, test1_ps[9]);

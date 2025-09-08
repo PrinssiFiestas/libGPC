@@ -8,6 +8,8 @@
 
 // Note to everybody: Compiler Explorer is your friend.
 
+// TODO generic macros and operator overloads are not well tested, TEST THEM!
+
 #ifndef GP_INT128_INCLUDED
 #define GP_INT128_INCLUDED 1
 
@@ -15,7 +17,6 @@
 #include "overload.h"
 #include <stdint.h>
 #include <stdbool.h>
-#include <limits.h>
 #include <string.h>
 
 #if _MSC_VER
@@ -33,6 +34,8 @@
 #if (__GNUC__ && defined(__SIZEOF_INT128__)) || __clang__ || GP_TEST_INT128
 #  ifndef GP_TEST_INT128
 #    define GP_HAS_TETRA_INT 1
+#  else
+#    include <limits.h>
 #  endif
 /** __uint128_t but more portable with Clang */
 typedef unsigned gp_tetra_uint_t __attribute__((mode(TI)));
@@ -1044,16 +1047,16 @@ static inline GP_MAYBE_CONSTEXPR GPType GP_TYPE(GPInt128  x) { (void)x; return G
 #if __STDC_VERSION__ >= 201112L
 GP_NODISCARD static inline GPUInt128 gp_uint128_uint128(GPUInt128 u) { return u; }
 GP_NODISCARD static inline GPInt128  gp_int128_int128(GPInt128 i) { return i;    }
-#  if GP_HAS_TETRA_INT // use implicit integer conversions
-#    define GP_U128_CTOR(A) _Generic(A, GPUInt128: gp_uint128_uint128, GPInt128: gp_uint128_i128,  default: gp_uint128_tetra_uint)(A)
-#    define GP_I128_CTOR(A) _Generic(A, GPUInt128: gp_int128_u128,     GPInt128: gp_int128_int128, default: gp_int128_tetra_int)(A)
+#  if GP_HAS_TETRA_INT || defined(GP_TEST_INT128) // use implicit integer conversions
+#    define GP_U128_CTOR(A) _Generic(A, GPUInt128: gp_uint128_uint128, GPInt128: gp_uint128_i128, default: gp_uint128_tetra_uint)(A)
+#    define GP_I128_CTOR(A) _Generic(A, GPUInt128: gp_int128_u128, GPInt128: gp_int128_int128, default: gp_int128_tetra_int)(A)
 #  else
 #    define GP_U128_CTOR(A) _Generic(A, \
          GP_C11_GENERIC_SIGNED_INTEGER(gp_uint128_i64), \
          GP_C11_GENERIC_UNSIGNED_INTEGER(gp_uint128_u64), \
          GPUInt128: gp_uint128_uint128, GPInt128: gp_uint128_i128)(A)
 #    define GP_I128_CTOR(A) _Generic(A, \
-         GP_C11_GENERIC_SIGNED_INTEGER(gp_int128_i64), \
+         GP_C11_GENERIC_SIGNED_INTEGER(gp_int128_i64) \
          GP_C11_GENERIC_UNSIGNED_INTEGER(gp_int128_u64), \
          GPUInt128: gp_int128_u128, GPInt128: gp_int128_int128)(A)
 #  endif

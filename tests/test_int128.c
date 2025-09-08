@@ -4,7 +4,7 @@
 
 #define FUZZ_COUNT 4096
 
-#if _WIN32 && ((__GNUC__ && __SIZEOF_INT128__) || (_MSC_VER && _M_X64))
+#if (__GNUC__ && __SIZEOF_INT128__) || (_MSC_VER && _M_X64)
 
 // Force int128.h implementations to not use gp_tetra_int_t, we want to test against
 // that. This is very hacky and finicky, a potential bug might be that we end up
@@ -20,22 +20,36 @@
 
 #if __GNUC__
 
-#  if !__cplusplus // write result to file that we can use for MSVC tests
+#  if _WIN32 && !__cplusplus// write result to file that we can use for MSVC tests
 #    define WRITE_RESULT(A) \
         fwrite(&(gp_tetra_uint_t){A}, sizeof(A), 1, msvc_test_file)
 #  else
 #    define WRITE_RESULT(...) ((void)0)
 #  endif // !__cplusplus
 
-#  define EXPECT_EQ(A, B, ...) \
-      (WRITE_RESULT(B), gp_expect(gp_i128(A).i128 == (B)__VA_OPT__(,)__VA_ARGS__))
+#  define expect_eq128(A, B, ...) \
+      (WRITE_RESULT(B), gp_expect(gp_i128(A).i128 == (gp_tetra_int_t)(B)__VA_OPT__(,)__VA_ARGS__))
 
-#  define ASSERT_EQ(A, B, ...) \
-      (WRITE_RESULT(B), gp_assert(gp_i128(A).i128 == (B)__VA_OPT__(,)__VA_ARGS__))
+#  define assert_eq128(A, B, ...) \
+      (WRITE_RESULT(B), gp_assert(gp_i128(A).i128 == (gp_tetra_int_t)(B)__VA_OPT__(,)__VA_ARGS__))
 
 #else // MSVC
 
-// TODO
+#include <stdarg.h>
+bool confirm_result(FILE* msvc_test_file, ...)
+{
+    va_list arg;
+    va_start(arg, msvc_test_file);
+    GPUInt128 u0, u1 = va_arg(arg, GPUInt128);
+    fread(&u0, sizeof u0, 1, msvc_test_file);
+    va_end(arg);
+    return memcmp(&u0, &u1, sizeof u0) == 0;
+}
+#  define expect_eq128(A, ...) \
+      gp_expect(confirm_result(msvc_test_file, A))
+
+#  define assert_eq128(A, ...) \
+      gp_assert(confirm_result(msvc_test_file, A))
 
 #endif // __GNUC__
 
@@ -77,10 +91,12 @@ int main(void)
     {
         uint16_t u16 = 1;
         uint8_t* p = (uint8_t*)&u16;
+        #if __GNUC__
         GPUInt128 u128;
         u128.u128 = 1;
         gp_assert(gp_uint128_hi(u128) == 0);
         gp_assert(gp_uint128_lo(u128) == 1);
+        #endif
         if (gp_is_big_endian()) {
             gp_assert( ! gp_is_little_endian());
             gp_assert(p[0] == 0);
@@ -94,12 +110,18 @@ int main(void)
     } // gp_suite("Endianness");
 
     #if _WIN32
-    #  if __GNUC__
-    FILE* msvc_test_file = gp_file_open("../build/gnu_int128_result.bin", "write");
-    #  else // MSVC
-    FILE* msvc_test_file = gp_file_open("../build/gnu_int128_result.bin", "read");
-    #  endif
+    #  if __GNUC__ && !__cplusplus
+    FILE* msvc_test_file = gp_file_open("./build/gnu_int128_result.bin", "write");
     gp_assert(msvc_test_file != NULL, strerror(errno));
+    #  else // MSVC
+    FILE* msvc_test_file = gp_file_open("./build/gnu_int128_result.bin", "read");
+    if (msvc_test_file == NULL) {
+        gp_println(GP_YELLOW
+            "[WARNING] could not open MSVC test file in test_int128.c, skipping GPInt128 tests."
+            GP_RESET_TERMINAL);
+        exit(0);
+    }
+    #  endif
     #endif
 
     static GPRandomState rs; // Seed random state with date
@@ -109,6 +131,40 @@ int main(void)
         gp_assert(tm != NULL);
         rs = gp_random_state(tm->tm_yday + 1000*tm->tm_year);
     }
+
+    gp_suite("Leading/trailing zeroes"); // internal test, but prerequisite
+    {
+        uint64_t u64;
+
+        gp_random_bytes(&rs, &u64, sizeof u64);
+        gp_test("Leading zeroes"); for (unsigned n = 0; n < 64; ++n)
+        {
+            if ((u64 >> n) == 0)
+                continue;
+            gp_assert((int)gp_leading_zeros_u64(u64 >> n) == (int)__builtin_clzll(u64 >> n),
+                "%w64X", u64,
+                n,
+                gp_leading_zeros_u64(u64 >> n),
+                __builtin_clzll(u64 >> n));
+            gp_assert(gp_leading_zeros_u64(u64 >> n) >= n);
+            gp_random_bytes(&rs, &u64, sizeof u64);
+        }
+
+        gp_random_bytes(&rs, &u64, sizeof u64);
+        gp_test("Trailing zeroes"); for (unsigned n = 0; n < 64; ++n)
+        {
+            if ((u64 << n) == 0)
+                continue;
+            gp_assert((int)gp_trailing_zeros_u64(u64 << n) == (int)__builtin_ctzll(u64 << n),
+                "%w64X", u64,
+                n,
+                gp_trailing_zeros_u64(u64 >> n),
+                __builtin_ctzll(u64 >> n));
+
+            gp_assert(gp_trailing_zeros_u64(u64 << n) >= n, "%zu", n);
+            gp_random_bytes(&rs, &u64, sizeof u64);
+        }
+    } // gp_suite("Leading/trailing zeroes");
 
     GPUInt128 ua, ub;
     GPInt128  ia, ib;
@@ -183,19 +239,19 @@ int main(void)
             ia = int128_random(&rs);
             ib = int128_random(&rs);
 
-            EXPECT_EQ(gp_uint128_not(ua).u128, ~ua.u128);
-            EXPECT_EQ(gp_uint128_not(ub).u128, ~ub.u128);
-            EXPECT_EQ(gp_int128_not(ia).i128,  ~ia.i128);
-            EXPECT_EQ(gp_int128_not(ib).i128,  ~ib.i128);
+            expect_eq128(gp_uint128_not(ua), ~ua.u128);
+            expect_eq128(gp_uint128_not(ub), ~ub.u128);
+            expect_eq128(gp_int128_not(ia),  ~ia.i128);
+            expect_eq128(gp_int128_not(ib),  ~ib.i128);
 
-            EXPECT_EQ(gp_uint128_and(ua, ub).u128, ua.u128 & ub.u128);
-            EXPECT_EQ(gp_int128_and(ia, ib).i128,  ia.i128 & ib.i128);
+            expect_eq128(gp_uint128_and(ua, ub), ua.u128 & ub.u128);
+            expect_eq128(gp_int128_and(ia, ib),  ia.i128 & ib.i128);
 
-            EXPECT_EQ(gp_uint128_or(ua, ub).u128, ua.u128 | ub.u128);
-            EXPECT_EQ(gp_int128_or(ia, ib).i128,  ia.i128 | ib.i128);
+            expect_eq128(gp_uint128_or(ua, ub), ua.u128 | ub.u128);
+            expect_eq128(gp_int128_or(ia, ib),  ia.i128 | ib.i128);
 
-            EXPECT_EQ(gp_uint128_xor(ua, ub).u128, ua.u128 ^ ub.u128);
-            EXPECT_EQ(gp_int128_xor(ia, ib).i128,  ia.i128 ^ ib.i128);
+            expect_eq128(gp_uint128_xor(ua, ub), ua.u128 ^ ub.u128);
+            expect_eq128(gp_int128_xor(ia, ib),  ia.i128 ^ ib.i128);
         }
 
         // Note: n larger or equal to 128 is undefined.
@@ -207,13 +263,13 @@ int main(void)
             // Shifting big signed numbers left cannot be represented in
             // __int128_t, which is undefined, use mask to limit the size of
             // the numbers.
-            GPInt128 mask = {.i128 = GP_INT128_MAX.i128 >> n };
+            GPInt128 mask = gp_int128_shift_right(GP_INT128_MAX, n);
 
-            ASSERT_EQ(gp_uint128_shift_left(ua, n).u128,  ua.u128 << n, "%hhu", n);
-            ASSERT_EQ(gp_uint128_shift_right(ua, n).u128, ua.u128 >> n, "%hhu", n);
-            ASSERT_EQ(gp_int128_shift_right(ia, n).i128,  ia.i128 >> n, "%hhu", n);
-            ASSERT_EQ(
-                gp_int128_shift_left(gp_int128_and(ia, mask), n).i128,
+            assert_eq128(gp_uint128_shift_left(ua, n),  ua.u128 << n, "%hhu", n);
+            assert_eq128(gp_uint128_shift_right(ua, n), ua.u128 >> n, "%hhu", n);
+            assert_eq128(gp_int128_shift_right(ia, n),  ia.i128 >> n, "%hhu", n);
+            assert_eq128(
+                gp_int128_shift_left(gp_int128_and(ia, mask), n),
                 (ia.i128 & mask.i128) << n,
                 "%hhu", n);
         }
@@ -226,18 +282,18 @@ int main(void)
             // Carry propagation
             ua = gp_uint128(0, UINT64_MAX);
             ub = gp_uint128(0, 1);
-            gp_expect(gp_uint128_add(ua, ub).u128 ==  gp_uint128(1, 0).u128);
-            EXPECT_EQ(gp_uint128_add(ua, ub).u128, ua.u128 + ub.u128);
+            gp_expect(gp_uint128_equal(gp_uint128_add(ua, ub), gp_uint128(1, 0)));
+            expect_eq128(gp_uint128_add(ua, ub), ua.u128 + ub.u128);
             ua = gp_uint128(1, 0);
-            gp_expect(gp_uint128_sub(ua, ub).u128 == gp_uint128(0, UINT64_MAX).u128);
-            EXPECT_EQ(gp_uint128_sub(ua, ub).u128, ua.u128 - ub.u128);
+            gp_expect(gp_uint128_equal(gp_uint128_sub(ua, ub), gp_uint128(0, UINT64_MAX)));
+            expect_eq128(gp_uint128_sub(ua, ub), ua.u128 - ub.u128);
 
             // Overflow
             ua = GP_UINT128_MAX;
             ub = uint128_random(&rs);
-            EXPECT_EQ(gp_uint128_add(ua, ub).u128, ua.u128 + ub.u128);
+            expect_eq128(gp_uint128_add(ua, ub), ua.u128 + ub.u128);
             ua = gp_uint128(0, 0);
-            EXPECT_EQ(gp_uint128_sub(ua, ub).u128, ua.u128 - ub.u128);
+            expect_eq128(gp_uint128_sub(ua, ub), ua.u128 - ub.u128);
         }
 
         gp_test("Signed +-");
@@ -245,25 +301,25 @@ int main(void)
             // Carry propagation
             ia = gp_int128(0, UINT64_MAX);
             ib = gp_int128(0, 1);
-            gp_expect(gp_int128_add(ia, ib).i128 == gp_int128(1, 0).i128);
-            EXPECT_EQ(gp_int128_add(ia, ib).i128, ia.i128 + ib.i128);
+            gp_expect(gp_int128_equal(gp_int128_add(ia, ib), gp_int128(1, 0)));
+            expect_eq128(gp_int128_add(ia, ib), ia.i128 + ib.i128);
             ia = gp_int128(1, 0);
-            gp_expect(gp_int128_sub(ia, ib).i128 == gp_int128(0, UINT64_MAX).i128);
-            EXPECT_EQ(gp_int128_sub(ia, ib).i128, ia.i128 - ib.i128);
+            gp_expect(gp_int128_equal(gp_int128_sub(ia, ib), gp_int128(0, UINT64_MAX)));
+            expect_eq128(gp_int128_sub(ia, ib), ia.i128 - ib.i128);
 
             // Overflow is undefined
 
             // Positive + negative carry ((UINT64_MAX+1) + -1 == UINT64_MAX)
             ia = gp_int128(1, 0);
             ib = gp_int128(-1, -1);
-            gp_expect(gp_int128_add(ia, ib).i128 == gp_int128(0, UINT64_MAX).i128);
-            EXPECT_EQ(gp_int128_add(ia, ib).i128, ia.i128 + ib.i128);
+            gp_expect(gp_int128_equal(gp_int128_add(ia, ib), gp_int128(0, UINT64_MAX)));
+            expect_eq128(gp_int128_add(ia, ib), ia.i128 + ib.i128);
 
             // Negative + negative (-1 + -1 == -2)
             ia = gp_int128(-1, -1);
             ib = gp_int128(-1, -1);
-            gp_expect(gp_int128_add(ia, ib).i128 == gp_int128(-1, -2).i128);
-            EXPECT_EQ(gp_int128_add(ia, ib).i128, ia.i128 + ib.i128);
+            gp_expect(gp_int128_equal(gp_int128_add(ia, ib), gp_int128(-1, -2)));
+            expect_eq128(gp_int128_add(ia, ib), ia.i128 + ib.i128);
         }
 
         gp_test("+- fuzz"); for (size_t fuzz_count = 0; fuzz_count < FUZZ_COUNT; ++fuzz_count)
@@ -273,18 +329,18 @@ int main(void)
             ia = int128_random(&rs);
             ib = int128_random(&rs);
 
-            ASSERT_EQ(gp_uint128_add(ua, ub).u128, ua.u128 + ub.u128, "%zu", fuzz_count);
-            ASSERT_EQ(gp_uint128_sub(ua, ub).u128, ua.u128 - ub.u128, "%zu", fuzz_count);
+            assert_eq128(gp_uint128_add(ua, ub), ua.u128 + ub.u128, "%zu", fuzz_count);
+            assert_eq128(gp_uint128_sub(ua, ub), ua.u128 - ub.u128, "%zu", fuzz_count);
 
             // Again, overflow is UB!
             if (ib.i128 >= 0 && ia.i128 <= GP_INT128_MAX.i128 - ib.i128)
-                ASSERT_EQ(gp_int128_add(ia, ib).i128, ia.i128 + ib.i128, "%zu", fuzz_count);
+                assert_eq128(gp_int128_add(ia, ib), ia.i128 + ib.i128, "%zu", fuzz_count);
             if (ib.i128  < 0 && ia.i128 >= GP_INT128_MIN.i128 - ib.i128)
-                ASSERT_EQ(gp_int128_add(ia, ib).i128, ia.i128 + ib.i128, "%zu", fuzz_count);
+                assert_eq128(gp_int128_add(ia, ib), ia.i128 + ib.i128, "%zu", fuzz_count);
             if (ib.i128 >= 0 && ia.i128 >= GP_INT128_MIN.i128 + ib.i128)
-                ASSERT_EQ(gp_int128_sub(ia, ib).i128, ia.i128 - ib.i128, "%zu", fuzz_count);
+                assert_eq128(gp_int128_sub(ia, ib), ia.i128 - ib.i128, "%zu", fuzz_count);
             if (ib.i128  < 0 && ia.i128 <= GP_INT128_MAX.i128 + ib.i128)
-                ASSERT_EQ(gp_int128_sub(ia, ib).i128, ia.i128 - ib.i128, "%zu", fuzz_count);
+                assert_eq128(gp_int128_sub(ia, ib), ia.i128 - ib.i128, "%zu", fuzz_count);
         }
     } // gp_suite("Addition & Subtraction");
 
@@ -296,75 +352,77 @@ int main(void)
             ia = gp_int128(0, 0);
             gp_expect(gp_uint128_equal(gp_uint128_negate(ua), gp_uint128(0, 0)));
             gp_expect(gp_int128_equal(gp_int128_negate(ia), gp_int128(0, 0)));
-            EXPECT_EQ(gp_uint128_negate(ua).u128, -ua.u128);
-            EXPECT_EQ(gp_int128_negate(ia).i128, -ia.i128);
+            expect_eq128(gp_uint128_negate(ua), -ua.u128);
+            expect_eq128(gp_int128_negate(ia), -ia.i128);
 
             ua = gp_uint128(0, UINT64_MAX);
             ia = gp_int128(0, UINT64_MAX);
             gp_expect(gp_uint128_equal(gp_uint128_negate(ua), gp_uint128(UINT64_MAX, 1)));
             gp_expect(gp_int128_equal(gp_int128_negate(ia), gp_int128(-1, 1)));
-            EXPECT_EQ(gp_uint128_negate(ua).u128, -ua.u128);
-            EXPECT_EQ(gp_int128_negate(ia).i128, -ia.i128);
+            expect_eq128(gp_uint128_negate(ua), -ua.u128);
+            expect_eq128(gp_int128_negate(ia), -ia.i128);
 
             ua = gp_uint128(UINT64_MAX, 0);
             ia = gp_int128(-1, 0);
             gp_expect(gp_uint128_equal(gp_uint128_negate(ua), gp_uint128(1, 0)));
             gp_expect(gp_int128_equal(gp_int128_negate(ia), gp_int128(1, 0)));
-            EXPECT_EQ(gp_uint128_negate(ua).u128, -ua.u128);
-            EXPECT_EQ(gp_int128_negate(ia).i128, -ia.i128);
+            expect_eq128(gp_uint128_negate(ua), -ua.u128);
+            expect_eq128(gp_int128_negate(ia), -ia.i128);
 
             ua = gp_uint128(UINT64_MAX, UINT64_MAX);
             ia = gp_int128(-1, -1);
             gp_expect(gp_uint128_equal(gp_uint128_negate(ua), gp_uint128(0, 1)));
             gp_expect(gp_int128_equal(gp_int128_negate(ia), gp_int128(0, 1)));
-            EXPECT_EQ(gp_uint128_negate(ua).u128, -ua.u128);
-            EXPECT_EQ(gp_int128_negate(ia).i128, -ia.i128);
+            expect_eq128(gp_uint128_negate(ua), -ua.u128);
+            expect_eq128(gp_int128_negate(ia), -ia.i128);
 
             ua = uint128_random(&rs);
             ia = int128_random(&rs);
-            EXPECT_EQ(gp_uint128_negate(ua).u128, -ua.u128);
-            EXPECT_EQ(gp_int128_negate(ia).i128, -ia.i128);
+            expect_eq128(gp_uint128_negate(ua), -ua.u128);
+            expect_eq128(gp_int128_negate(ia), -ia.i128);
         }
 
         gp_test("Multiply 64-bit unsigned integers to 128-bit unsigned integer");
         {
             uint64_t a = gp_random(&rs), b = gp_random(&rs);
             gp_expect(gp_uint128_less_than(gp_uint128_mul64(a, b), gp_uint128(1, 0)));
-            EXPECT_EQ(gp_uint128_mul64(a, b).u128, (__uint128_t)a * b);
+            expect_eq128(gp_uint128_mul64(a, b), (__uint128_t)a * b);
 
-            gp_expect(gp_uint128_mul64(UINT64_MAX, 2).u128 == gp_uint128(1, UINT64_MAX - 1).u128);
-            EXPECT_EQ(gp_uint128_mul64(UINT64_MAX, 2).u128, (__uint128_t)UINT64_MAX * 2);
+            gp_expect(gp_uint128_equal(
+                gp_uint128_mul64(UINT64_MAX, 2), gp_uint128(1, UINT64_MAX - 1)));
+            expect_eq128(gp_uint128_mul64(UINT64_MAX, 2), (__uint128_t)UINT64_MAX * 2);
 
-            gp_expect(gp_uint128_mul64(UINT64_MAX, UINT64_MAX).u128 == gp_uint128(-2, 1).u128);
-            EXPECT_EQ(gp_uint128_mul64(UINT64_MAX, UINT64_MAX).u128, (__uint128_t)UINT64_MAX * UINT64_MAX);
+            gp_expect(gp_uint128_equal(
+                gp_uint128_mul64(UINT64_MAX, UINT64_MAX), gp_uint128(-2, 1)));
+            expect_eq128(gp_uint128_mul64(UINT64_MAX, UINT64_MAX), (__uint128_t)UINT64_MAX * UINT64_MAX);
 
             ua = uint128_random(&rs);
-            EXPECT_EQ(gp_uint128_mul64(ua.little_endian.lo, ua.little_endian.hi).u128, (__uint128_t)ua.little_endian.lo * ua.little_endian.hi,
+            expect_eq128(gp_uint128_mul64(ua.little_endian.lo, ua.little_endian.hi), (__uint128_t)ua.little_endian.lo * ua.little_endian.hi,
                 "%llx", ua.little_endian.lo, "%llx", ua.little_endian.hi);
         }
 
         gp_test("Multiply 64-bit signed integers to 128-bit signed integer");
         {
             int64_t a = gp_random(&rs), b = gp_random(&rs);
-            EXPECT_EQ(gp_int128_mul64(a,   b).i128, (__int128_t)a  *  b);
-            EXPECT_EQ(gp_int128_mul64(-a,  b).i128, (__int128_t)-a *  b);
-            EXPECT_EQ(gp_int128_mul64(a,  -b).i128, (__int128_t)a  * -b);
-            EXPECT_EQ(gp_int128_mul64(-a, -b).i128, (__int128_t)-a * -b);
+            expect_eq128(gp_int128_mul64(a,   b), (__int128_t)a  *  b);
+            expect_eq128(gp_int128_mul64(-a,  b), (__int128_t)-a *  b);
+            expect_eq128(gp_int128_mul64(a,  -b), (__int128_t)a  * -b);
+            expect_eq128(gp_int128_mul64(-a, -b), (__int128_t)-a * -b);
             a <<= 30;
-            EXPECT_EQ(gp_int128_mul64(a,   b).i128, (__int128_t)a  *  b);
-            EXPECT_EQ(gp_int128_mul64(-a,  b).i128, (__int128_t)-a *  b);
-            EXPECT_EQ(gp_int128_mul64(a,  -b).i128, (__int128_t)a  * -b);
-            EXPECT_EQ(gp_int128_mul64(-a, -b).i128, (__int128_t)-a * -b);
+            expect_eq128(gp_int128_mul64(a,   b), (__int128_t)a  *  b);
+            expect_eq128(gp_int128_mul64(-a,  b), (__int128_t)-a *  b);
+            expect_eq128(gp_int128_mul64(a,  -b), (__int128_t)a  * -b);
+            expect_eq128(gp_int128_mul64(-a, -b), (__int128_t)-a * -b);
             a >>= 30; b <<= 30;
-            EXPECT_EQ(gp_int128_mul64(a,   b).i128, (__int128_t)a  *  b);
-            EXPECT_EQ(gp_int128_mul64(-a,  b).i128, (__int128_t)-a *  b);
-            EXPECT_EQ(gp_int128_mul64(a,  -b).i128, (__int128_t)a  * -b);
-            EXPECT_EQ(gp_int128_mul64(-a, -b).i128, (__int128_t)-a * -b);
+            expect_eq128(gp_int128_mul64(a,   b), (__int128_t)a  *  b);
+            expect_eq128(gp_int128_mul64(-a,  b), (__int128_t)-a *  b);
+            expect_eq128(gp_int128_mul64(a,  -b), (__int128_t)a  * -b);
+            expect_eq128(gp_int128_mul64(-a, -b), (__int128_t)-a * -b);
             a <<= 30;
-            EXPECT_EQ(gp_int128_mul64(a,   b).i128, (__int128_t)a  *  b);
-            EXPECT_EQ(gp_int128_mul64(-a,  b).i128, (__int128_t)-a *  b);
-            EXPECT_EQ(gp_int128_mul64(a,  -b).i128, (__int128_t)a  * -b);
-            EXPECT_EQ(gp_int128_mul64(-a, -b).i128, (__int128_t)-a * -b);
+            expect_eq128(gp_int128_mul64(a,   b), (__int128_t)a  *  b);
+            expect_eq128(gp_int128_mul64(-a,  b), (__int128_t)-a *  b);
+            expect_eq128(gp_int128_mul64(a,  -b), (__int128_t)a  * -b);
+            expect_eq128(gp_int128_mul64(-a, -b), (__int128_t)-a * -b);
         }
 
         size_t overflow_count = 0;
@@ -374,12 +432,12 @@ int main(void)
             // Absolutely massive numbers, practically always overflow
             ua = uint128_random(&rs);
             ub = uint128_random(&rs);
-            ASSERT_EQ(gp_uint128_mul(ua, ub).u128, ua.u128 * ub.u128, "%zu", fuzz_count);
+            assert_eq128(gp_uint128_mul(ua, ub), ua.u128 * ub.u128, "%zu", fuzz_count);
 
             // Huge numbers, should overflow sometimes
             ua = gp_uint128_and(ua, gp_uint128(0x00000005FFFFFFFF, 0xFFFFFFFFFFFFFFFF));
             ub = gp_uint128(0, gp_random(&rs));
-            ASSERT_EQ(gp_uint128_mul(ua, ub).u128, ua.u128 * ub.u128, "%zu", fuzz_count);
+            assert_eq128(gp_uint128_mul(ua, ub), ua.u128 * ub.u128, "%zu", fuzz_count);
             overflow_count += ua.u128 >= GP_UINT128_MAX.u128 / ub.u128;
         }
         gp_println("\toverflow ratio: %g", (double)overflow_count/FUZZ_COUNT); // ≈ 0.5
@@ -392,17 +450,17 @@ int main(void)
             // Positive * negative
             ia = gp_int128_and(int128_random_positive(&rs), gp_int128(1, 0xFFFFFFFFFFFFFFFF));
             ib = gp_int128(-1, 0xFFFFFFFF00000000 | gp_random(&rs));
-            ASSERT_EQ(gp_int128_mul(ia, ib).i128, ia.i128 * ib.i128, "%zu", fuzz_count);
+            assert_eq128(gp_int128_mul(ia, ib), ia.i128 * ib.i128, "%zu", fuzz_count);
 
             // Negative * positive
             ia = gp_int128_or(int128_random_negative(&rs), gp_int128(-2, 0));
             ib = gp_int128(0, gp_random(&rs));
-            ASSERT_EQ(gp_int128_mul(ia, ib).i128, ia.i128 * ib.i128, "%zu", fuzz_count);
+            assert_eq128(gp_int128_mul(ia, ib), ia.i128 * ib.i128, "%zu", fuzz_count);
 
             // Negative * negative
             ia = gp_int128_or(int128_random_negative(&rs), gp_int128(-2, 0));
             ib = gp_int128(-1, 0xFFFFFFFF00000000 | gp_random(&rs));
-            ASSERT_EQ(gp_int128_mul(ia, ib).i128, ia.i128 * ib.i128, "%zu", fuzz_count);
+            assert_eq128(gp_int128_mul(ia, ib), ia.i128 * ib.i128, "%zu", fuzz_count);
         }
     } // gp_suite("Multiplication");
 
@@ -416,16 +474,16 @@ int main(void)
             u64s = uint128_random(&rs);
             ua = gp_uint128(0, u64s.little_endian.lo);
             ub = gp_uint128(0, u64s.little_endian.hi);
-            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
-            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+            expect_eq128(gp_uint128_divmod(ua, ub, &remainder), ua.u128 / ub.u128);
+            expect_eq128(remainder, ua.u128 % ub.u128);
         }
 
         gp_test("0X/XX");
         {
             ua = gp_uint128(0, gp_uint128_lo(uint128_random(&rs)));
             ub = uint128_random(&rs);
-            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
-            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+            expect_eq128(gp_uint128_divmod(ua, ub, &remainder), ua.u128 / ub.u128);
+            expect_eq128(remainder, ua.u128 % ub.u128);
         }
 
         gp_test("X0/X0");
@@ -433,32 +491,35 @@ int main(void)
             u64s = uint128_random(&rs);
             ua = gp_uint128(u64s.little_endian.lo, 0);
             ub = gp_uint128(u64s.little_endian.hi, 0);
-            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
-            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+            expect_eq128(gp_uint128_divmod(ua, ub, &remainder), ua.u128 / ub.u128);
+            expect_eq128(remainder, ua.u128 % ub.u128);
         }
 
         gp_test("XX/X0");
         {
             ua = uint128_random(&rs);
             ub = gp_uint128(gp_uint128_hi(uint128_random(&rs)), 0);
-            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
-            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+            expect_eq128(gp_uint128_divmod(ua, ub, &remainder), ua.u128 / ub.u128);
+            expect_eq128(remainder, ua.u128 % ub.u128);
         }
 
         gp_test("XX/0X");
         {
             ua = uint128_random(&rs);
             ub = gp_uint128(0, gp_uint128_lo(uint128_random(&rs)));
-            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
-            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+            expect_eq128(gp_uint128_divmod(ua, ub, &remainder), ua.u128 / ub.u128);
+            expect_eq128(remainder, ua.u128 % ub.u128);
         }
 
         gp_test("XX/XX");
         {
             ua = uint128_random(&rs);
             ub = uint128_random(&rs);
-            EXPECT_EQ(gp_uint128_divmod(ua, ub, &remainder).u128, ua.u128 / ub.u128);
-            EXPECT_EQ(remainder.u128, ua.u128 % ub.u128);
+            expect_eq128(gp_uint128_divmod(ua, ub, &remainder), ua.u128 / ub.u128,
+                "%w128X", ua, "%w128X", ub,
+                "%w128X", gp_uint128_divmod(ua, ub, &remainder),
+                "%w128X", ua.u128 / ub.u128);
+            expect_eq128(remainder, ua.u128 % ub.u128);
         }
 
         // Signed div/mod uses gp_uint128_divmod under the hood, just sanity
@@ -469,33 +530,34 @@ int main(void)
             do {
                 ib = gp_int128_shift_right(int128_random_positive(&rs), gp_random_range(&rs, 64, 127));
             } while (gp_int128_equal(ib, gp_int128(0, 0)));
-            gp_expect(gp_int128_idiv(ia, ib).i128 >= 0);
-            EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
-            EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
+            gp_expect(gp_int128_greater_than_equal(
+                gp_int128_idiv(ia, ib), gp_int128(0, 0)));
+            expect_eq128(gp_int128_idiv(ia, ib), ia.i128 / ib.i128);
+            expect_eq128(gp_int128_imod(ia, ib), ia.i128 % ib.i128);
 
             ia = int128_random_negative(&rs);
             do {
                 ib = gp_int128_shift_right(int128_random_positive(&rs), gp_random_range(&rs, 64, 127));
             } while (gp_int128_equal(ib, gp_int128(0, 0)));
-            gp_expect(gp_int128_idiv(ia, ib).i128  < 0);
-            EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
-            EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
+            gp_expect(gp_int128_less_than(gp_int128_idiv(ia, ib), gp_int128(0, 0)));
+            expect_eq128(gp_int128_idiv(ia, ib), ia.i128 / ib.i128);
+            expect_eq128(gp_int128_imod(ia, ib), ia.i128 % ib.i128);
 
             ia = int128_random_positive(&rs);
             do {
                 ib = gp_int128_shift_right(int128_random_negative(&rs), gp_random_range(&rs, 64, 127));
             } while (gp_int128_equal(ib, gp_int128(0, 0)));
-            gp_expect(gp_int128_idiv(ia, ib).i128  < 0);
-            EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
-            EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
+            gp_expect(gp_int128_less_than(gp_int128_idiv(ia, ib), gp_int128(0, 0)));
+            expect_eq128(gp_int128_idiv(ia, ib), ia.i128 / ib.i128);
+            expect_eq128(gp_int128_imod(ia, ib), ia.i128 % ib.i128);
 
             ia = int128_random_negative(&rs);
             do {
                 ib = gp_int128_shift_right(int128_random_negative(&rs), gp_random_range(&rs, 64, 127));
             } while (gp_int128_equal(ib, gp_int128(0, 0)));
-            gp_expect(gp_int128_idiv(ia, ib).i128 >= 0);
-            EXPECT_EQ(gp_int128_idiv(ia, ib).i128, ia.i128 / ib.i128);
-            EXPECT_EQ(gp_int128_imod(ia, ib).i128, ia.i128 % ib.i128);
+            gp_expect(gp_int128_greater_than_equal(gp_int128_idiv(ia, ib), gp_int128(0, 0)));
+            expect_eq128(gp_int128_idiv(ia, ib), ia.i128 / ib.i128);
+            expect_eq128(gp_int128_imod(ia, ib), ia.i128 % ib.i128);
         }
     } // gp_suite("Division/modulus");
 

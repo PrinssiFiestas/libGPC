@@ -2,6 +2,11 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#if __MINGW32__
+// Apparently %ti and %zX are not recognized?? What???
+#define GP_NO_FORMAT_STRING_CHECK 1
+#endif
+
 #include <gpc/assert.h>
 #include "../src/printf.c"
 #include <time.h>
@@ -37,17 +42,14 @@ int main(void)
     size_t ret;
     size_t ret_std;
 
-    gp_expect(gp_set_utf8_global_locale(LC_ALL, ""));
-
     gp_suite("Basic type conversions");
     {
         gp_test("%c");
         {
-            ret =  pf_sprintf(buf,     "blah %c blah %lc", 'x', L'ö');
-            ret_std = sprintf(buf_std, "blah %c blah %lc", 'x', L'ö');
+            ret = pf_sprintf(buf, "blah %c blah %lc", 'x', L'ö');
             expect_str(buf, "blah x blah ö");
-            expect_str(buf, buf_std);
-            gp_expect(ret == ret_std);
+            gp_expect(ret == strlen("blah x blah ö"));
+            // No comparison against std due to locale and wchar_t issues.
         }
 
         gp_test("%s");
@@ -347,12 +349,12 @@ int main(void)
             g_rs = gp_random_state(
                 gmt->tm_mday + 100*gmt->tm_mon + 10000*gmt->tm_year + FUZZ_SEED_OFFSET);
         }
-        const unsigned loop_count = FUZZ_COUNT;
+        const size_t loop_count = FUZZ_COUNT;
         const char* random_format(char conversion_type);
 
         gp_test("Random formats with random values");
         {
-            for (unsigned iteration = 1; iteration <= loop_count; iteration++)
+            for (size_t iteration = 1; iteration <= loop_count; iteration++)
             {
                 uintmax_t random_bytes;
                 gp_random_bytes(&g_rs, &random_bytes, sizeof random_bytes);
@@ -364,6 +366,12 @@ int main(void)
                 const char random_specifier =
                     all_specs[gp_random_range(&g_rs, 0, strlen(all_specs))];
                 const char* fmt = random_format(random_specifier);
+                #if ! defined(__GLIBC__)
+                // Skip implementation defined conversion, this is known to
+                // differ in Microsoft UCRT (0x prefix).
+                if (random_specifier == 'p')
+                    continue;
+                #endif
                 uint32_t size = gp_random_range(&g_rs, 0, sizeof(buf));
 
                 // The important part is to pass a right sized argument, the
@@ -393,6 +401,10 @@ int main(void)
                 else if (strchr("eEfFgG", random_specifier) != NULL) // float
                 {
                     union { uint64_t u; double f; } punner = {.u = random_bytes };
+                    #if _WIN32 // UCRT has a NAN sign bug
+                    if (isnan(punner.f))
+                        continue;
+                    #endif
                     ret = pf_snprintf(
                         buf, size, fmt, punner.f);
                     ret_std = snprintf(
@@ -475,9 +487,9 @@ int main(void)
                     ret,
                     ret_std,
                     iteration);
-            }
+            } // for (fuzzing)
         }
-    }
+    } // gp_suite("Fuzz test");
 
     // -------- INTERNAL ----------------- //
 

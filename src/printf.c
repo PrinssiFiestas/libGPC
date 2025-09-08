@@ -104,7 +104,7 @@ static size_t pf_write_wc(
 {
     size_t gp_utf8_decode(void*, uint32_t);
     char decoding[4];
-    const size_t length = gp_utf8_decode(decoding, va_arg(args->list, gp_promoted_arg_wint_t));
+    const size_t length = gp_utf8_decode(decoding, (wint_t)va_arg(args->list, gp_promoted_arg_wint_t));
     pf_concat(out, decoding, length);
     return length;
 }
@@ -591,7 +591,7 @@ size_t pf_vsnprintf_consuming_no_null_termination(
         {
         case 'c':
             if (fmt.length_modifier != 'l') {
-                pf_push_char(&out, va_arg(args->list, gp_promoted_arg_char_t));
+                pf_push_char(&out, (char)va_arg(args->list, gp_promoted_arg_char_t));
                 written_by_conversion = 1;
             } else {
                 written_by_conversion = pf_write_wc(&out, args);
@@ -684,7 +684,7 @@ size_t pf_sprintf(char*restrict buf, const char*restrict fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    size_t written = pf_vsnprintf(buf, INT_MAX, fmt, args);
+    size_t written = pf_vsnprintf(buf, SIZE_MAX, fmt, args);
     va_end(args);
     return written;
 }
