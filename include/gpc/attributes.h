@@ -173,6 +173,9 @@
 // ----------------------------------------------------------------------------
 // Constexpr
 
+// Use sparingly!
+// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2043r0.pdf
+
 #if __cplusplus
 #  define GP_CONSTEXPR_FUNCTION constexpr
 #  define GP_CONSTEXPR_VARIABLE constexpr

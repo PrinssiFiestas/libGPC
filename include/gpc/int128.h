@@ -19,8 +19,9 @@
 #include <stdbool.h>
 #include <string.h>
 
-#if _MSC_VER
-#include <winnt.h>
+#if _MSC_VER && defined(_M_X64)
+#include <intrin.h>
+#pragma intrinsic (__shiftleft128, __shiftright128, _umul128, _mul128)
 #endif
 
 #if __cplusplus
@@ -224,7 +225,8 @@ typedef union gp_int128
 // Constructors and Accessors
 
 /** Create 128-bit unsigned integer.*/
-GP_NODISCARD static inline GPUInt128 gp_uint128(uint64_t hi_bits, uint64_t lo_bits)
+GP_NODISCARD GP_CONSTEXPR_FUNCTION
+static inline GPUInt128 gp_uint128(uint64_t hi_bits, uint64_t lo_bits)
 {
     GPUInt128 u128;
     if (gp_is_big_endian()) {
@@ -237,7 +239,8 @@ GP_NODISCARD static inline GPUInt128 gp_uint128(uint64_t hi_bits, uint64_t lo_bi
     return u128;
 }
 /** Create 128-bit signed integer.*/
-GP_NODISCARD static inline GPInt128 gp_int128(int64_t hi_bits, uint64_t lo_bits)
+GP_NODISCARD GP_CONSTEXPR_FUNCTION
+static inline GPInt128 gp_int128(int64_t hi_bits, uint64_t lo_bits)
 {
     GPInt128 i128;
     if (gp_is_big_endian()) {
@@ -584,8 +587,8 @@ GP_NODISCARD static inline GPUInt128 gp_uint128_shift_left(GPUInt128 a, uint8_t 
         return a;
     if (b >= 64)
         return gp_uint128(gp_uint128_lo(a) << (b-64), 0);
-    #  if _MSC_VER
-    DWORD64 hi = ShiftLeft128(gp_uint128_lo(a), gp_uint128_hi(a), b);
+    #  if _MSC_VER && defined(_M_X64)
+    uint64_t hi = __shiftleft128(gp_uint128_lo(a), gp_uint128_hi(a), b);
     return gp_uint128(hi, gp_uint128_lo(a) << b);
     #  else
     return gp_uint128(
@@ -624,8 +627,8 @@ GP_NODISCARD static inline GPUInt128 gp_uint128_shift_right(GPUInt128 a, uint8_t
         return a;
     if (b >= 64)
         return gp_uint128(0, gp_uint128_hi(a) >> (b-64));
-    #  if _MSC_VER
-    DWORD64 lo = ShiftRight128(gp_uint128_lo(a), gp_uint128_hi(a), b);
+    #  if _MSC_VER && defined(_M_X64)
+    uint64_t lo = __shiftright128(gp_uint128_lo(a), gp_uint128_hi(a), b);
     return gp_uint128(gp_uint128_hi(a) >> b, lo);
     #  else
     return gp_uint128(
@@ -729,9 +732,9 @@ GP_NODISCARD static inline GPUInt128 gp_uint128_mul64(uint64_t a, uint64_t b)
 {
     #if GP_HAS_TETRA_INT
     return gp_uint128_tetra_uint((gp_tetra_uint_t)a * b);
-    #elif _MSC_VER
-    DWORD64 lo, hi;
-    lo = UnsignedMultiply128(a, b, &hi);
+    #elif _MSC_VER && defined(_M_X64)
+    uint64_t lo, hi;
+    lo = _umul128(a, b, &hi);
     return gp_uint128(hi, lo);
     #else
     GPUInt128 gp_uint128_long_mul64(uint64_t a, uint64_t b);
@@ -754,9 +757,9 @@ GP_NODISCARD static inline GPInt128 gp_int128_mul64(int64_t a, int64_t b)
 {
     #if GP_HAS_TETRA_INT
     return gp_int128_tetra_int((gp_tetra_int_t)a * b);
-    #elif _MSC_VER
-    LONG64 lo, hi;
-    lo = Multiply128(a, b, &hi);
+    #elif _MSC_VER && defined(_M_X64)
+    __int64 lo, hi;
+    lo = _mul128(a, b, &hi);
     return gp_int128(hi, lo);
     #else
     return gp_int128_u128(gp_uint128_mul(gp_uint128(-(a<0), a), gp_uint128(-(b<0), b)));
@@ -1056,7 +1059,7 @@ GP_NODISCARD static inline GPInt128  gp_int128_int128(GPInt128 i) { return i;   
          GP_C11_GENERIC_UNSIGNED_INTEGER(gp_uint128_u64), \
          GPUInt128: gp_uint128_uint128, GPInt128: gp_uint128_i128)(A)
 #    define GP_I128_CTOR(A) _Generic(A, \
-         GP_C11_GENERIC_SIGNED_INTEGER(gp_int128_i64) \
+         GP_C11_GENERIC_SIGNED_INTEGER(gp_int128_i64), \
          GP_C11_GENERIC_UNSIGNED_INTEGER(gp_int128_u64), \
          GPUInt128: gp_int128_u128, GPInt128: gp_int128_int128)(A)
 #  endif

@@ -4,19 +4,22 @@
 
 #define FUZZ_COUNT 4096
 
-#if (__GNUC__ && __SIZEOF_INT128__) || (_MSC_VER && _M_X64)
+#if (__GNUC__ && __SIZEOF_INT128__) || _MSC_VER
 
 // Force int128.h implementations to not use gp_tetra_int_t, we want to test against
 // that. This is very hacky and finicky, a potential bug might be that we end up
 // testing gp_tetra_int_t implementations against gp_tetra_int_t always passing the
 // tests, so make sure to manually break a test to see that they still work on
 // changes!
-#define GP_TEST_INT128 1
+#  if __GNUC__
+#    define GP_TEST_INT128 1
+#  endif
 
 #include "../src/int128.c"
 #include <gpc/assert.h>
 #include <gpc/io.h>
 #include <gpc/utils.h>
+#include <gpc/terminal.h>
 
 #if __GNUC__
 
@@ -141,11 +144,13 @@ int main(void)
         {
             if ((u64 >> n) == 0)
                 continue;
+            #if __GNUC__
             gp_assert((int)gp_leading_zeros_u64(u64 >> n) == (int)__builtin_clzll(u64 >> n),
                 "%w64X", u64,
                 n,
                 gp_leading_zeros_u64(u64 >> n),
                 __builtin_clzll(u64 >> n));
+            #endif
             gp_assert(gp_leading_zeros_u64(u64 >> n) >= n);
             gp_random_bytes(&rs, &u64, sizeof u64);
         }
@@ -155,12 +160,13 @@ int main(void)
         {
             if ((u64 << n) == 0)
                 continue;
+            #if __GNUC__
             gp_assert((int)gp_trailing_zeros_u64(u64 << n) == (int)__builtin_ctzll(u64 << n),
                 "%w64X", u64,
                 n,
                 gp_trailing_zeros_u64(u64 >> n),
                 __builtin_ctzll(u64 >> n));
-
+            #endif
             gp_assert(gp_trailing_zeros_u64(u64 << n) >= n, "%zu", n);
             gp_random_bytes(&rs, &u64, sizeof u64);
         }
@@ -333,13 +339,21 @@ int main(void)
             assert_eq128(gp_uint128_sub(ua, ub), ua.u128 - ub.u128, "%zu", fuzz_count);
 
             // Again, overflow is UB!
-            if (ib.i128 >= 0 && ia.i128 <= GP_INT128_MAX.i128 - ib.i128)
+            //if (ib.i128 >= 0 && ia.i128 <= GP_INT128_MAX.i128 - ib.i128) // TODO remove dead code when works
+            if (gp_i128_greater_than_equal(ib, 0) &&
+                gp_i128_less_than_equal(ia, gp_i128_sub(GP_INT128_MAX, ib)))
                 assert_eq128(gp_int128_add(ia, ib), ia.i128 + ib.i128, "%zu", fuzz_count);
-            if (ib.i128  < 0 && ia.i128 >= GP_INT128_MIN.i128 - ib.i128)
+            //if (ib.i128  < 0 && ia.i128 >= GP_INT128_MIN.i128 - ib.i128)
+            if (gp_i128_less_than(ib, 0) &&
+                gp_i128_greater_than_equal(ia, gp_i128_sub(GP_INT128_MIN, ib)))
                 assert_eq128(gp_int128_add(ia, ib), ia.i128 + ib.i128, "%zu", fuzz_count);
-            if (ib.i128 >= 0 && ia.i128 >= GP_INT128_MIN.i128 + ib.i128)
+            //if (ib.i128 >= 0 && ia.i128 >= GP_INT128_MIN.i128 + ib.i128)
+            if (gp_i128_greater_than_equal(ib, 0) &&
+                gp_i128_greater_than_equal(ia, gp_i128_add(GP_INT128_MIN, ib)))
                 assert_eq128(gp_int128_sub(ia, ib), ia.i128 - ib.i128, "%zu", fuzz_count);
-            if (ib.i128  < 0 && ia.i128 <= GP_INT128_MAX.i128 + ib.i128)
+            //if (ib.i128  < 0 && ia.i128 <= GP_INT128_MAX.i128 + ib.i128)
+            if (gp_i128_less_than(ib, 0) &&
+                gp_i128_less_than_equal(ia, gp_i128_add(GP_INT128_MAX, ib)))
                 assert_eq128(gp_int128_sub(ia, ib), ia.i128 - ib.i128, "%zu", fuzz_count);
         }
     } // gp_suite("Addition & Subtraction");
@@ -425,8 +439,6 @@ int main(void)
             expect_eq128(gp_int128_mul64(-a, -b), (__int128_t)-a * -b);
         }
 
-        size_t overflow_count = 0;
-
         gp_test("Unsigned fuzz"); for (size_t fuzz_count = 0; fuzz_count < FUZZ_COUNT; ++fuzz_count)
         {
             // Absolutely massive numbers, practically always overflow
@@ -438,9 +450,7 @@ int main(void)
             ua = gp_uint128_and(ua, gp_uint128(0x00000005FFFFFFFF, 0xFFFFFFFFFFFFFFFF));
             ub = gp_uint128(0, gp_random(&rs));
             assert_eq128(gp_uint128_mul(ua, ub), ua.u128 * ub.u128, "%zu", fuzz_count);
-            overflow_count += ua.u128 >= GP_UINT128_MAX.u128 / ub.u128;
         }
-        gp_println("\toverflow ratio: %g", (double)overflow_count/FUZZ_COUNT); // ≈ 0.5
 
         gp_test("Signed fuzz"); for (size_t fuzz_count = 0; fuzz_count < FUZZ_COUNT; ++fuzz_count)
         {

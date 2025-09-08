@@ -14,6 +14,12 @@
 // Unless required by applicable law or agreed to in writing, this software
 // is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.
+//
+// libGPC changes:
+// - removed RYU_32_BIT_PLATFORM for 32-bit platform detection, we use SIZE_MAX,
+//   which is more general. Obviously this style is less accurate, but it is
+//   good enough and will not affect correctness.
+
 #ifndef RYU_COMMON_H
 #define RYU_COMMON_H
 
@@ -22,8 +28,10 @@
 #include <string.h>
 #include <stdbool.h>
 
+#if 0 // libGPC edit
 #if defined(_M_IX86) || defined(_M_ARM)
 #define RYU_32_BIT_PLATFORM
+#endif
 #endif
 
 // Returns the number of decimal digits in v, which must not contain more than 9 digits.

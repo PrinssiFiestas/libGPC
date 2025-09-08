@@ -14,30 +14,41 @@
 // Unless required by applicable law or agreed to in writing, this software
 // is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.
+//
+// libGPC changes:
+// - Use more portable gp_tetra_uint_t instead of __uint128_t.
+// - Use winnt.h functions instead of intrinsics, which require compiler flags.
+//   We anyway use those only with MSVC only.
+// - Use SIZE_MAX instead of RYU_32_BIT_PLATFORM, more general and good enough.
+
 #ifndef RYU_D2S_INTRINSICS_H
 #define RYU_D2S_INTRINSICS_H
 
 #include <assert.h>
 #include <stdint.h>
+#include <limits.h>
 
 // Defines RYU_32_BIT_PLATFORM if applicable.
 #include "ryu_common.h"
 
-// ABSL avoids uint128_t on Win32 even if __SIZEOF_INT128__ is defined.
-// Let's do the same for now.
-#if defined(__SIZEOF_INT128__) && !defined(_MSC_VER) && !defined(RYU_ONLY_64_BIT_OPS)
-#define HAS_UINT128
-#elif defined(_MSC_VER) && !defined(RYU_ONLY_64_BIT_OPS) && defined(_M_X64)
+// libGPC edit: use gp_tetra_uint_t, which solves __SIZEOF_INT128__ portability
+// problems
+// // ABSL avoids uint128_t on Win32 even if __SIZEOF_INT128__ is defined.
+// // Let's do the same for now.
+// #if defined(__SIZEOF_INT128__) && !defined(_MSC_VER) && !defined(RYU_ONLY_64_BIT_OPS)
+// #define HAS_UINT128
+// #elif defined(_MSC_VER) && !defined(RYU_ONLY_64_BIT_OPS) && defined(_M_X64)
+#if !GP_HAS_TETRA_INT && _MSC_VER && defined(_M_X64)
 #define HAS_64_BIT_INTRINSICS
 #endif
 
-#if defined(HAS_UINT128)
-typedef __uint128_t uint128_t;
-#endif
+// #if defined(HAS_UINT128)
+// typedef __uint128_t uint128_t;
+// #endif
 
 #if defined(HAS_64_BIT_INTRINSICS)
 
-#include <intrin.h>
+// #include <intrin.h>
 
 static inline uint64_t umul128(const uint64_t a, const uint64_t b, uint64_t* const productHi) {
   return _umul128(a, b, productHi);
@@ -100,7 +111,8 @@ static inline uint64_t shiftright128(const uint64_t lo, const uint64_t hi, const
 
 #endif // defined(HAS_64_BIT_INTRINSICS)
 
-#if defined(RYU_32_BIT_PLATFORM)
+// #if defined(RYU_32_BIT_PLATFORM)
+#if SIZE_MAX == UINT32_MAX
 
 // Returns the high 64 bits of the 128-bit product of a and b.
 static inline uint64_t umulh(const uint64_t a, const uint64_t b) {
@@ -253,28 +265,28 @@ static inline bool multipleOfPowerOf2(const uint64_t value, const uint32_t p) {
 //    c. Split only the first factor into 31-bit pieces, which also guarantees
 //       no internal overflow, but requires extra work since the intermediate
 //       results are not perfectly aligned.
-#if defined(HAS_UINT128)
+#if GP_HAS_TETRA_INT
 
 // Best case: use 128-bit type.
 static inline uint64_t mulShift64(const uint64_t m, const uint64_t* const mul, const int32_t j) {
-  const uint128_t b0 = ((uint128_t) m) * mul[0];
-  const uint128_t b2 = ((uint128_t) m) * mul[1];
+  const gp_tetra_uint_t b0 = ((gp_tetra_uint_t) m) * mul[0];
+  const gp_tetra_uint_t b2 = ((gp_tetra_uint_t) m) * mul[1];
   return (uint64_t) (((b0 >> 64) + b2) >> (j - 64));
 }
 
 static inline uint64_t mulShiftAll64(const uint64_t m, const uint64_t* const mul, const int32_t j,
   uint64_t* const vp, uint64_t* const vm, const uint32_t mmShift) {
 //  m <<= 2;
-//  uint128_t b0 = ((uint128_t) m) * mul[0]; // 0
-//  uint128_t b2 = ((uint128_t) m) * mul[1]; // 64
+//  gp_tetra_uint_t b0 = ((gp_tetra_uint_t) m) * mul[0]; // 0
+//  gp_tetra_uint_t b2 = ((gp_tetra_uint_t) m) * mul[1]; // 64
 //
-//  uint128_t hi = (b0 >> 64) + b2;
-//  uint128_t lo = b0 & 0xffffffffffffffffull;
-//  uint128_t factor = (((uint128_t) mul[1]) << 64) + mul[0];
-//  uint128_t vpLo = lo + (factor << 1);
+//  gp_tetra_uint_t hi = (b0 >> 64) + b2;
+//  gp_tetra_uint_t lo = b0 & 0xffffffffffffffffull;
+//  gp_tetra_uint_t factor = (((gp_tetra_uint_t) mul[1]) << 64) + mul[0];
+//  gp_tetra_uint_t vpLo = lo + (factor << 1);
 //  *vp = (uint64_t) ((hi + (vpLo >> 64)) >> (j - 64));
-//  uint128_t vmLo = lo - (factor << mmShift);
-//  *vm = (uint64_t) ((hi + (vmLo >> 64) - (((uint128_t) 1ull) << 64)) >> (j - 64));
+//  gp_tetra_uint_t vmLo = lo - (factor << mmShift);
+//  *vm = (uint64_t) ((hi + (vmLo >> 64) - (((gp_tetra_uint_t) 1ull) << 64)) >> (j - 64));
 //  return (uint64_t) (hi >> (j - 64));
   *vp = mulShift64(4 * m + 2, mul, j);
   *vm = mulShift64(4 * m - 1 - mmShift, mul, j);
@@ -303,7 +315,7 @@ static inline uint64_t mulShiftAll64(const uint64_t m, const uint64_t* const mul
   return mulShift64(4 * m, mul, j);
 }
 
-#else // !defined(HAS_UINT128) && !defined(HAS_64_BIT_INTRINSICS)
+#else
 
 static inline uint64_t mulShift64(const uint64_t m, const uint64_t* const mul, const int32_t j) {
   // m is maximum 55 bits

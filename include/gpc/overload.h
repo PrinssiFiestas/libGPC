@@ -293,6 +293,28 @@ static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
 // GP_TYPE(): basic reflection
 // User types currently not supported. // TODO we want these!
 #if __cplusplus // defined with overloads
+#elif _MSC_VER // MSVC doesn't differentiate between char and [un]signed char
+#define GP_TYPE(VAR)                              \
+_Generic(VAR,                                     \
+    bool:                  GP_BOOL,               \
+    short:                 GP_SHORT,              \
+    int:                   GP_INT,                \
+    long:                  GP_LONG,               \
+    long long:             GP_LONG_LONG,          \
+    GP_INT128_SELECTION(GP_INT128,)               \
+    unsigned short:        GP_UNSIGNED_LONG,      \
+    unsigned int:          GP_UNSIGNED,           \
+    unsigned long:         GP_UNSIGNED_LONG,      \
+    unsigned long long:    GP_UNSIGNED_LONG_LONG, \
+    GP_UINT128_SELECTION(GP_UINT128,)             \
+    float:                 GP_FLOAT,              \
+    double:                GP_DOUBLE,             \
+    unsigned char:         GP_UNSIGNED_CHAR,      \
+    signed char:           GP_SIGNED_CHAR,        \
+    char*:                 GP_CHAR_PTR,           \
+    const char*:           GP_CHAR_PTR,           \
+    struct gp_char*:       GP_STRING,             \
+    default:               GP_PTR)
 #elif GP_HAS_DIFFERENTIATED_LONG_DOUBLE
 #define GP_TYPE(VAR)                              \
 _Generic(VAR,                                     \
@@ -317,7 +339,7 @@ _Generic(VAR,                                     \
     const char*:           GP_CHAR_PTR,           \
     struct gp_char*:       GP_STRING,             \
     default:               GP_PTR)
-#elif !_MSC_VER
+#else
 #define GP_TYPE(VAR)                              \
 _Generic(VAR,                                     \
     bool:                  GP_BOOL,               \
@@ -334,28 +356,6 @@ _Generic(VAR,                                     \
     float:                 GP_FLOAT,              \
     double:                GP_DOUBLE,             \
     char:                  GP_CHAR,               \
-    unsigned char:         GP_UNSIGNED_CHAR,      \
-    signed char:           GP_SIGNED_CHAR,        \
-    char*:                 GP_CHAR_PTR,           \
-    const char*:           GP_CHAR_PTR,           \
-    struct gp_char*:       GP_STRING,             \
-    default:               GP_PTR)
-#else // MSVC doesn't differentiate between char and [un]signed char
-#define GP_TYPE(VAR)                              \
-_Generic(VAR,                                     \
-    bool:                  GP_BOOL,               \
-    short:                 GP_SHORT,              \
-    int:                   GP_INT,                \
-    long:                  GP_LONG,               \
-    long long:             GP_LONG_LONG,          \
-    GP_INT128_SELECTION(GP_INT128,)               \
-    unsigned short:        GP_UNSIGNED_LONG,      \
-    unsigned int:          GP_UNSIGNED,           \
-    unsigned long:         GP_UNSIGNED_LONG,      \
-    unsigned long long:    GP_UNSIGNED_LONG_LONG, \
-    GP_UINT128_SELECTION(GP_UINT128,)             \
-    float:                 GP_FLOAT,              \
-    double:                GP_DOUBLE,             \
     unsigned char:         GP_UNSIGNED_CHAR,      \
     signed char:           GP_SIGNED_CHAR,        \
     char*:                 GP_CHAR_PTR,           \

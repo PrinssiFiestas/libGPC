@@ -4,8 +4,9 @@
 
 GPC_VERSION = 0.3.0
 
-# TODO make -std=c99 the default, have dedicated tests for -std=gnu11.
-# Alternatively, get the tests running with CompCert or other C99 compiler.
+# TODO we want to leverage modern C features and compiler extensions. Therefore,
+# -std=c99 should not be the default. What we should do instead, is to get the
+# tests running in C99 compilers like CompCert.
 
 override CFLAGS += -Wall -Wextra -Werror -Wpedantic
 override CFLAGS += -DGP_PEDANTIC

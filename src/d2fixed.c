@@ -14,7 +14,10 @@
 // Unless required by applicable law or agreed to in writing, this software
 // is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.
-
+//
+// libGPC edit: compiler options below REMOVED, gp_tetra_uint_t used where
+// applicable.
+//
 // Runtime compiler options:
 // -DRYU_DEBUG Generate verbose debugging output to stdout.
 //
@@ -47,47 +50,47 @@
 
 #define POW10_ADDITIONAL_BITS 120
 
-#if defined(HAS_UINT128)
-static inline uint128_t umul256(const uint128_t a, const uint64_t bHi, const uint64_t bLo, uint128_t* const productHi) {
+#if GP_HAS_TETRA_INT
+static inline gp_tetra_uint_t umul256(const gp_tetra_uint_t a, const uint64_t bHi, const uint64_t bLo, gp_tetra_uint_t* const productHi) {
   const uint64_t aLo = (uint64_t)a;
   const uint64_t aHi = (uint64_t)(a >> 64);
 
-  const uint128_t b00 = (uint128_t)aLo * bLo;
-  const uint128_t b01 = (uint128_t)aLo * bHi;
-  const uint128_t b10 = (uint128_t)aHi * bLo;
-  const uint128_t b11 = (uint128_t)aHi * bHi;
+  const gp_tetra_uint_t b00 = (gp_tetra_uint_t)aLo * bLo;
+  const gp_tetra_uint_t b01 = (gp_tetra_uint_t)aLo * bHi;
+  const gp_tetra_uint_t b10 = (gp_tetra_uint_t)aHi * bLo;
+  const gp_tetra_uint_t b11 = (gp_tetra_uint_t)aHi * bHi;
 
   const uint64_t b00Lo = (uint64_t)b00;
   const uint64_t b00Hi = (uint64_t)(b00 >> 64);
 
-  const uint128_t mid1 = b10 + b00Hi;
+  const gp_tetra_uint_t mid1 = b10 + b00Hi;
   const uint64_t mid1Lo = (uint64_t)(mid1);
   const uint64_t mid1Hi = (uint64_t)(mid1 >> 64);
 
-  const uint128_t mid2 = b01 + mid1Lo;
+  const gp_tetra_uint_t mid2 = b01 + mid1Lo;
   const uint64_t mid2Lo = (uint64_t)(mid2);
   const uint64_t mid2Hi = (uint64_t)(mid2 >> 64);
 
-  const uint128_t pHi = b11 + mid1Hi + mid2Hi;
-  const uint128_t pLo = ((uint128_t)mid2Lo << 64) | b00Lo;
+  const gp_tetra_uint_t pHi = b11 + mid1Hi + mid2Hi;
+  const gp_tetra_uint_t pLo = ((gp_tetra_uint_t)mid2Lo << 64) | b00Lo;
 
   *productHi = pHi;
   return pLo;
 }
 
 // Returns the high 128 bits of the 256-bit product of a and b.
-static inline uint128_t umul256_hi(const uint128_t a, const uint64_t bHi, const uint64_t bLo) {
+static inline gp_tetra_uint_t umul256_hi(const gp_tetra_uint_t a, const uint64_t bHi, const uint64_t bLo) {
   // Reuse the umul256 implementation.
   // Optimizers will likely eliminate the instructions used to compute the
   // low part of the product.
-  uint128_t hi;
+  gp_tetra_uint_t hi;
   umul256(a, bHi, bLo, &hi);
   return hi;
 }
 
 // Unfortunately, gcc/clang do not automatically turn a 128-bit integer division
 // into a multiplication, so we have to do it manually.
-static inline uint32_t uint128_mod1e9(const uint128_t v) {
+static inline uint32_t uint128_mod1e9(const gp_tetra_uint_t v) {
   // After multiplying, we're going to shift right by 29, then truncate to uint32_t.
   // This means that we need only 29 + 32 = 61 bits, so we can truncate to uint64_t before shifting.
   const uint64_t multiplied = (uint64_t) umul256_hi(v, 0x89705F4136B4A597u, 0x31680A88F8953031u);
@@ -100,9 +103,9 @@ static inline uint32_t uint128_mod1e9(const uint128_t v) {
 
 // Best case: use 128-bit type.
 static inline uint32_t mulShift_mod1e9(const uint64_t m, const uint64_t* const mul, const int32_t j) {
-  const uint128_t b0 = ((uint128_t) m) * mul[0]; // 0
-  const uint128_t b1 = ((uint128_t) m) * mul[1]; // 64
-  const uint128_t b2 = ((uint128_t) m) * mul[2]; // 128
+  const gp_tetra_uint_t b0 = ((gp_tetra_uint_t) m) * mul[0]; // 0
+  const gp_tetra_uint_t b1 = ((gp_tetra_uint_t) m) * mul[1]; // 64
+  const gp_tetra_uint_t b2 = ((gp_tetra_uint_t) m) * mul[2]; // 128
 #ifdef RYU_DEBUG
   if (j < 128 || j > 180) {
     printf("%d\n", j);
@@ -111,12 +114,12 @@ static inline uint32_t mulShift_mod1e9(const uint64_t m, const uint64_t* const m
   assert(j >= 128);
   assert(j <= 180);
   // j: [128, 256)
-  const uint128_t mid = b1 + (uint64_t) (b0 >> 64); // 64
-  const uint128_t s1 = b2 + (uint64_t) (mid >> 64); // 128
+  const gp_tetra_uint_t mid = b1 + (uint64_t) (b0 >> 64); // 64
+  const gp_tetra_uint_t s1 = b2 + (uint64_t) (mid >> 64); // 128
   return uint128_mod1e9(s1 >> (j - 128));
 }
 
-#else // HAS_UINT128
+#else // GP_HAS_TETRA_INT
 
 #if defined(HAS_64_BIT_INTRINSICS)
 // Returns the low 64 bits of the high 128 bits of the 256-bit product of a and b.
@@ -190,7 +193,7 @@ static inline uint32_t mulShift_mod1e9(const uint64_t m, const uint64_t* const m
   }
 #endif // HAS_64_BIT_INTRINSICS
 }
-#endif // HAS_UINT128
+#endif // GP_HAS_TETRA_INT
 
 // Convert `digits` to a sequence of decimal digits. Append the digits to the result.
 // The caller has to guarantee that:

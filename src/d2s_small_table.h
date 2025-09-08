@@ -14,6 +14,9 @@
 // Unless required by applicable law or agreed to in writing, this software
 // is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 // KIND, either express or implied.
+//
+// libGPC edit: use gp_tetra_uint_t where applicable
+
 #ifndef RYU_D2S_SMALL_TABLE_H
 #define RYU_D2S_SMALL_TABLE_H
 
@@ -80,7 +83,7 @@ static const uint64_t DOUBLE_POW5_TABLE[POW5_TABLE_SIZE] = {
 298023223876953125ull //, 1490116119384765625ull
 };
 
-#if defined(HAS_UINT128)
+#if GP_HAS_TETRA_INT
 
 // Computes 5^i in the form required by Ryu, and stores it in the given pointer.
 static inline void double_computePow5(const uint32_t i, uint64_t* const result) {
@@ -94,10 +97,10 @@ static inline void double_computePow5(const uint32_t i, uint64_t* const result) 
     return;
   }
   const uint64_t m = DOUBLE_POW5_TABLE[offset];
-  const uint128_t b0 = ((uint128_t) m) * mul[0];
-  const uint128_t b2 = ((uint128_t) m) * mul[1];
+  const gp_tetra_uint_t b0 = ((gp_tetra_uint_t) m) * mul[0];
+  const gp_tetra_uint_t b2 = ((gp_tetra_uint_t) m) * mul[1];
   const uint32_t delta = pow5bits(i) - pow5bits(base2);
-  const uint128_t shiftedSum = (b0 >> delta) + (b2 << (64 - delta)) + ((POW5_OFFSETS[i / 16] >> ((i % 16) << 1)) & 3);
+  const gp_tetra_uint_t shiftedSum = (b0 >> delta) + (b2 << (64 - delta)) + ((POW5_OFFSETS[i / 16] >> ((i % 16) << 1)) & 3);
   result[0] = (uint64_t) shiftedSum;
   result[1] = (uint64_t) (shiftedSum >> 64);
 }
@@ -114,16 +117,16 @@ static inline void double_computeInvPow5(const uint32_t i, uint64_t* const resul
     return;
   }
   const uint64_t m = DOUBLE_POW5_TABLE[offset]; // 5^offset
-  const uint128_t b0 = ((uint128_t) m) * (mul[0] - 1);
-  const uint128_t b2 = ((uint128_t) m) * mul[1]; // 1/5^base2 * 5^offset = 1/5^(base2-offset) = 1/5^i
+  const gp_tetra_uint_t b0 = ((gp_tetra_uint_t) m) * (mul[0] - 1);
+  const gp_tetra_uint_t b2 = ((gp_tetra_uint_t) m) * mul[1]; // 1/5^base2 * 5^offset = 1/5^(base2-offset) = 1/5^i
   const uint32_t delta = pow5bits(base2) - pow5bits(i);
-  const uint128_t shiftedSum =
+  const gp_tetra_uint_t shiftedSum =
     ((b0 >> delta) + (b2 << (64 - delta))) + 1 + ((POW5_INV_OFFSETS[i / 16] >> ((i % 16) << 1)) & 3);
   result[0] = (uint64_t) shiftedSum;
   result[1] = (uint64_t) (shiftedSum >> 64);
 }
 
-#else // defined(HAS_UINT128)
+#else // GP_HAS_TETRA_INT
 
 // Computes 5^i in the form required by Ryu, and stores it in the given pointer.
 static inline void double_computePow5(const uint32_t i, uint64_t* const result) {
@@ -177,6 +180,6 @@ static inline void double_computeInvPow5(const uint32_t i, uint64_t* const resul
   result[1] = shiftright128(sum, high1, delta);
 }
 
-#endif // defined(HAS_UINT128)
+#endif // GP_HAS_TETRA_INT
 
 #endif // RYU_D2S_SMALL_TABLE_H
