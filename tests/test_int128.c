@@ -127,6 +127,8 @@ int main(void)
     #  endif
     #endif
 
+    // WARNING: do NOT conditionally compile any uses of random numbers, MSVC
+    // tests expect the same set of random numbers that was given to GCC.
     static GPRandomState rs; // Seed random state with date
     {
         time_t t = time(NULL);
@@ -140,7 +142,7 @@ int main(void)
         uint64_t u64;
 
         gp_random_bytes(&rs, &u64, sizeof u64);
-        gp_test("Leading zeroes"); for (unsigned n = 0; n < 64; ++n)
+        gp_test("Leading zeroes"); for (size_t n = 0; n < 64; ++n)
         {
             if ((u64 >> n) == 0)
                 continue;
@@ -156,7 +158,7 @@ int main(void)
         }
 
         gp_random_bytes(&rs, &u64, sizeof u64);
-        gp_test("Trailing zeroes"); for (unsigned n = 0; n < 64; ++n)
+        gp_test("Trailing zeroes"); for (size_t n = 0; n < 64; ++n)
         {
             if ((u64 << n) == 0)
                 continue;
@@ -339,19 +341,15 @@ int main(void)
             assert_eq128(gp_uint128_sub(ua, ub), ua.u128 - ub.u128, "%zu", fuzz_count);
 
             // Again, overflow is UB!
-            //if (ib.i128 >= 0 && ia.i128 <= GP_INT128_MAX.i128 - ib.i128) // TODO remove dead code when works
             if (gp_i128_greater_than_equal(ib, 0) &&
                 gp_i128_less_than_equal(ia, gp_i128_sub(GP_INT128_MAX, ib)))
                 assert_eq128(gp_int128_add(ia, ib), ia.i128 + ib.i128, "%zu", fuzz_count);
-            //if (ib.i128  < 0 && ia.i128 >= GP_INT128_MIN.i128 - ib.i128)
             if (gp_i128_less_than(ib, 0) &&
                 gp_i128_greater_than_equal(ia, gp_i128_sub(GP_INT128_MIN, ib)))
                 assert_eq128(gp_int128_add(ia, ib), ia.i128 + ib.i128, "%zu", fuzz_count);
-            //if (ib.i128 >= 0 && ia.i128 >= GP_INT128_MIN.i128 + ib.i128)
             if (gp_i128_greater_than_equal(ib, 0) &&
                 gp_i128_greater_than_equal(ia, gp_i128_add(GP_INT128_MIN, ib)))
                 assert_eq128(gp_int128_sub(ia, ib), ia.i128 - ib.i128, "%zu", fuzz_count);
-            //if (ib.i128  < 0 && ia.i128 <= GP_INT128_MAX.i128 + ib.i128)
             if (gp_i128_less_than(ib, 0) &&
                 gp_i128_less_than_equal(ia, gp_i128_add(GP_INT128_MAX, ib)))
                 assert_eq128(gp_int128_sub(ia, ib), ia.i128 - ib.i128, "%zu", fuzz_count);
@@ -572,9 +570,8 @@ int main(void)
     } // gp_suite("Division/modulus");
 
     #ifdef __SIZEOF_INT128__
-    gp_suite("Float conversions");
+    gp_suite("Float conversions"); // https://github.com/m-ou-se/floatconv/blob/main/src/test.rs
     {
-        // https://github.com/m-ou-se/floatconv/blob/main/src/test.rs
         static const gp_tetra_uint_t u128s[] = {
             0, 1, 2, 3, 1234,
             GP_TETRA_UINT_MAX, // Overflows the mantissa, should increment the exponent (which will be odd).
@@ -640,7 +637,18 @@ int main(void)
             GP_TETRA_UINT_MAX - (GP_TETRA_UINT_MAX >> 23),
             GP_TETRA_UINT_MAX - (GP_TETRA_UINT_MAX >> 22)
         };
-        (void)u128s;
+        gp_test("GPUint128 <-> float/double"); for (
+            size_t i = 0; i < sizeof u128s/sizeof u128s[0]; ++i)
+        {
+            GPUInt128 u = gp_u128(u128s[i]);
+            gp_assert(gp_f32_uint128(u) == (float)u128s[i]);
+            gp_assert(gp_f64_uint128(u) == (double)u128s[i]);
+            if ( ! isinf((float)u128s[i]))
+                gp_assert(gp_uint128_f32((float)u128s[i]).u128 == (gp_tetra_uint_t)(float)u128s[i],
+                    i, gp_uint128_f32((float)u128s[i]), (gp_tetra_uint_t)(float)u128s[i]);
+            if ( ! isinf((double)u128s[i]))
+                gp_assert(gp_uint128_f64((double)u128s[i]).u128 == (gp_tetra_uint_t)(double)u128s[i]);
+        }
     } // gp_suite("Float conversions");
     #endif // __SIZEOF_INT128__
 

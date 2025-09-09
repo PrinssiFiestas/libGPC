@@ -365,7 +365,7 @@ void gp_fail_internal(
 
             case GP_UINT128:
                 pf_fprintf(stderr,
-                    GP_BRIGHT_BLUE, "%w128u", va_arg(args.list, GPUInt128));
+                    GP_BRIGHT_BLUE "%w128u", va_arg(args.list, GPUInt128));
                 break;
 
             case GP_BOOL:
@@ -387,7 +387,7 @@ void gp_fail_internal(
 
             case GP_INT128:
                 pf_fprintf(stderr,
-                    GP_BRIGHT_BLUE, "%w128i", va_arg(args.list, GPInt128));
+                    GP_BRIGHT_BLUE "%w128i", va_arg(args.list, GPInt128));
                 break;
 
             double f;

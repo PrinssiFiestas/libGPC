@@ -1041,11 +1041,19 @@ static inline GP_MAYBE_CONSTEXPR GPType GP_TYPE(GPInt128  x) { (void)x; return G
 #endif
 
 #ifdef GP_INT128_SELECTION
-#undef GP_INT128_SELECTION
-#undef GP_UINT128_SELECTION
+#  undef GP_INT128_SELECTION
+#  undef GP_UINT128_SELECTION
 #endif
 #define GP_INT128_SELECTION(...)  GPInt128:  __VA_ARGS__
 #define GP_UINT128_SELECTION(...) GPUInt128: __VA_ARGS__
+#if GP_HAS_TETRA_INT || defined(GP_TEST_INT128)
+#  ifdef GP_TETRA_INT_SELECTION
+#    undef GP_TETRA_INT_SELECTION
+#    undef GP_TETRA_UINT_SELECTION
+#  endif
+#  define GP_TETRA_INT_SELECTION(...)  gp_tetra_int_t:  __VA_ARGS__
+#  define GP_TETRA_UINT_SELECTION(...) gp_tetra_uint_t: __VA_ARGS__
+#endif
 
 #if __STDC_VERSION__ >= 201112L
 GP_NODISCARD static inline GPUInt128 gp_uint128_uint128(GPUInt128 u) { return u; }

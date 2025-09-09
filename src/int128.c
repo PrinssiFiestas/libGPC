@@ -326,6 +326,10 @@ GPInt128 gp_int128_imod(GPInt128 a, GPInt128 b)
 // ----------------------------------------------------------------------------
 // Floating Point Conversions
 
+// TODO some of the assertions are a bit harsh. LLVM saturates, which is what
+// user may expect. It might be a good idea to provide 'safe' alternatives that
+// return boolean if saturated and only assert NAN.
+
 GPUInt128 gp_uint128_convert_f64(double a)
 {
     gp_db_assert( ! isnan(a), "Nan cannot be represented as an integral type.");
@@ -335,9 +339,10 @@ GPUInt128 gp_uint128_convert_f64(double a)
     uint64_t a_bits;
     memcpy(&a_bits, &a, sizeof a);
     int exponent = (a_bits >> 52) - 1023;
-    if (exponent <= 0)
+    if (exponent < 0)
         return gp_uint128(0, 0);
-    gp_db_assert(exponent < 128, "Value too big to be represented as an 128-bit unsigned int.");
+    gp_db_assert(exponent < 128 + 52, // failing this cause UB anyway
+        "Value too big to be represented as an 128-bit unsigned int.");
 
     uint64_t fraction_bits = (a_bits & ((1llu << 52) - 1)) | (1llu << 52); // = fraction bits | implicit 1
     if (exponent > 52)
@@ -356,7 +361,8 @@ GPInt128 gp_int128_convert_f64(double a)
     int exponent = (abs_a >> 52) - 1023;
     if (exponent <= 0)
         return gp_int128(0, 0);
-    gp_db_assert(exponent < 127, "Value too big to be represented as an 128-bit signed int.");
+    gp_db_assert(exponent < 127 + 52, // failing this cause UB anyway
+        "Value too big to be represented as an 128-bit signed int.");
 
     uint64_t fraction_bits = (abs_a & ((1llu << 52) - 1)) | (1llu << 52); // = fraction bits | implicit 1
     GPUInt128 u = exponent > 52 ?
@@ -375,7 +381,7 @@ GPUInt128 gp_uint128_convert_f32(float a)
     uint32_t a_bits;
     memcpy(&a_bits, &a, sizeof a);
     int exponent = (a_bits >> 23) - 127;
-    if (exponent <= 0)
+    if (exponent < 0)
         return gp_uint128(0, 0);
     // always fits, no need to assert it
 
@@ -396,7 +402,7 @@ GPInt128 gp_int128_convert_f32(float a)
     int exponent = (abs_a >> 23) - 127;
     if (exponent <= 0)
         return gp_int128(0, 0);
-    gp_db_assert(exponent < 127, "Value too big to be represented as an 128-bit signed int.");
+    // always fits, no need to assert it
 
     uint32_t fraction_bits = (abs_a & ((1llu << 23) - 1)) | (1llu << 23); // = fraction bits | implicit 1
     GPUInt128 u = exponent > 23 ?

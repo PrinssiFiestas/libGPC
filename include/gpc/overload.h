@@ -316,6 +316,9 @@ _Generic(VAR,                                     \
     struct gp_char*:       GP_STRING,             \
     default:               GP_PTR)
 #elif GP_HAS_DIFFERENTIATED_LONG_DOUBLE
+// Note: we don't differentiate between gp_tetra_uint_t and GPUInt128 here. This
+// is because gp_tetra_uint_t is supposed to be internal implementation detail,
+// we only added it here so it can be printed for debugging purposes.
 #define GP_TYPE(VAR)                              \
 _Generic(VAR,                                     \
     bool:                  GP_BOOL,               \
@@ -324,11 +327,13 @@ _Generic(VAR,                                     \
     long:                  GP_LONG,               \
     long long:             GP_LONG_LONG,          \
     GP_INT128_SELECTION(GP_INT128,)               \
+    GP_TETRA_INT_SELECTION(GP_INT128,)            \
     unsigned short:        GP_UNSIGNED_SHORT,     \
     unsigned int:          GP_UNSIGNED,           \
     unsigned long:         GP_UNSIGNED_LONG,      \
     unsigned long long:    GP_UNSIGNED_LONG_LONG, \
     GP_UINT128_SELECTION(GP_UINT128,)             \
+    GP_TETRA_UINT_SELECTION(GP_UINT128,)          \
     float:                 GP_FLOAT,              \
     double:                GP_DOUBLE,             \
     long double:           GP_LONG_DOUBLE,        \
@@ -391,6 +396,10 @@ static inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T
 #ifndef GP_INT128_SELECTION
 #define GP_INT128_SELECTION(...)
 #define GP_UINT128_SELECTION(...)
+#endif
+#ifndef GP_TETRA_INT_SELECTION
+#define GP_TETRA_INT_SELECTION(...)
+#define GP_TETRA_UINT_SELECTION(...)
 #endif
 
 #if __clang__
