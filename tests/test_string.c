@@ -71,7 +71,7 @@ int main(void)
 
         gp_test("somewhere else than stack");
         {
-            GPString str = gp_str_new(gp_heap, 1, "");
+            GPString str = gp_str_new(gp_heap, 1);
             gp_expect(gp_arr_allocation(str) != NULL);
 
             gp_str_repeat(&str, gp_arr_capacity(str), "X", strlen("X"));
@@ -430,7 +430,7 @@ int main(void)
 
     gp_suite("Validate");
     {
-        GPString str = gp_str_new(gp_heap, 32, "");
+        GPString str = gp_str_new(gp_heap, 32);
 
         gp_test("Valids");
         {

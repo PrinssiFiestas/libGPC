@@ -58,12 +58,39 @@ typedef struct gp_string_header
     uintptr_t    length;
 } GPStringHeader;
 
-/** Create and initialize a new string.*/
+/** Getters */
+GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_str_length    (GPString str) { return ((GPStringHeader*)str - 1)->length;     }
+GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_str_capacity  (GPString str) { return ((GPStringHeader*)str - 1)->capacity;   }
+GP_NONNULL_ARGS() GP_NODISCARD static inline GPAllocator* gp_str_allocator (GPString str) { return ((GPStringHeader*)str - 1)->allocator;  }
+GP_NONNULL_ARGS() GP_NODISCARD static inline void*        gp_str_allocation(GPString str) { return ((GPStringHeader*)str - 1)->allocation; }
+
+// TODO document better!
+/** Setter */
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
+static inline GPStringHeader* gp_str_header(GPString str)
+{
+    return (GPStringHeader*)str - 1;
+}
+
+/** Create a new string */
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 GPString gp_str_new(
     GPAllocator*,
-    size_t      capacity,
-    const char* init);
+    size_t capacity);
+
+/** Create and initialize a new string */
+GP_NONNULL_ARGS_AND_RETURN
+static inline GPString gp_str_new_init(
+    GPAllocator* alc,
+    size_t       capacity,
+    const char*  init)
+{
+    size_t len = strlen(init);
+    GPString s = gp_str_new(alc, gp_max(capacity, len));
+    memcpy(s, init, len);
+    gp_str_header(s)->length = len;
+    return s;
+}
 
 /** Create a new dynamic string on stack.
  * @p allocator_ptr determines how the string will be reallocated if length
@@ -94,12 +121,6 @@ GPString gp_str_new(
     str_mem.h = (GPStringHeader){.capacity = 2048 };
     GPString str = str_mem.data;
 */
-
-/** Getters */
-GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_str_length    (GPString str) { return ((GPStringHeader*)str - 1)->length;     }
-GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_str_capacity  (GPString str) { return ((GPStringHeader*)str - 1)->capacity;   }
-GP_NONNULL_ARGS() GP_NODISCARD static inline GPAllocator* gp_str_allocator (GPString str) { return ((GPStringHeader*)str - 1)->allocator;  }
-GP_NONNULL_ARGS() GP_NODISCARD static inline void*        gp_str_allocation(GPString str) { return ((GPStringHeader*)str - 1)->allocation; }
 
 /** Free string memory.
  * Passing strings on stack is safe too.

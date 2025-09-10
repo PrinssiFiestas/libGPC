@@ -75,9 +75,9 @@ static void init_globals(void)
     include_paths = gp_arr_new(gmem, sizeof*include_paths, 16);
     headers       = gp_arr_new(gmem, sizeof*headers, 64);
     sources       = gp_arr_new(gmem, sizeof*sources, 64);
-    line          = gp_str_new(gmem, 1024, "");
+    line          = gp_str_new(gmem, 1024);
 
-    implementation = gp_str_new(gmem, 32, "");
+    implementation = gp_str_new(gmem, 32);
     { // e.g. gpc.h -> GPC_IMPLEMENTATION
         const char* out_name;
         if ((out_name = strrchr(out_path, '/')) != NULL)

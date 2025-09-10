@@ -643,11 +643,16 @@ int main(void)
             GPUInt128 u = gp_u128(u128s[i]);
             gp_assert(gp_f32_uint128(u) == (float)u128s[i]);
             gp_assert(gp_f64_uint128(u) == (double)u128s[i]);
-            if ( ! isinf((float)u128s[i]))
-                gp_assert(gp_uint128_f32((float)u128s[i]).u128 == (gp_tetra_uint_t)(float)u128s[i],
-                    i, gp_uint128_f32((float)u128s[i]), (gp_tetra_uint_t)(float)u128s[i]);
-            if ( ! isinf((double)u128s[i]))
-                gp_assert(gp_uint128_f64((double)u128s[i]).u128 == (gp_tetra_uint_t)(double)u128s[i]);
+
+            // isinf((float)u128s[i]) fails to detect inf for whatever reason,
+            // converting it first trough a variable fixes this. Compiler bug?
+            float  f32 = u128s[i];
+            double f64 = u128s[i];
+            if ( ! isinf(f32))
+                gp_assert(gp_uint128_f32(f32).u128 == (gp_tetra_uint_t)f32,
+                    i, gp_uint128_f32(f32), (gp_tetra_uint_t)f32);
+            if ( ! isinf(f64))
+                gp_assert(gp_uint128_f64(f64).u128 == (gp_tetra_uint_t)f64);
         }
     } // gp_suite("Float conversions");
     #endif // __SIZEOF_INT128__

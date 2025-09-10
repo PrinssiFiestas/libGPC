@@ -65,6 +65,9 @@
 
 // https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html
 
+// TODO rename to GP_ATTRIB_ALLOC_ALIGN for a clearer distinction between
+// GP_ALLOC_ALIGNMENT (or the other way around) to fix autocomplete.
+
 #ifdef __GNUC__
 #  define GP_ALLOC_ALIGN(...) __attribute__((alloc_align(__VA_ARGS__)))
 #else

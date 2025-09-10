@@ -61,7 +61,7 @@ int main(void)
             // \u0345 is iota subscript which gets capitalized to Ι. The
             // \u0307's are combining dots which are supposed to be combined
             // with omega.
-            GPString str = gp_str_new(arena, 32, "ω\u0345\u0307\u0307");
+            GPString str = gp_str_new_init(arena, 32, "ω\u0345\u0307\u0307");
             const char* result = "Ω\u0307\u0307Ι";
             gp_str_to_upper_full(&str, "");
             gp_expect(gp_str_equal(str, result, strlen(result)));
@@ -84,7 +84,7 @@ int main(void)
 
         gp_test("To lower full Unicode mapping");
         {
-            GPString str = gp_str_new(arena, 128, "ὈΔΥΣΣΕΎΣ ὈΔΥΣΣΕΎΣ. ὈΔΥΣΣΕΎΣ3 ΣΣ\tΣ ΣΣ\u0301Σ\u0301");
+            GPString str = gp_str_new_init(arena, 128, "ὈΔΥΣΣΕΎΣ ὈΔΥΣΣΕΎΣ. ὈΔΥΣΣΕΎΣ3 ΣΣ\tΣ ΣΣ\u0301Σ\u0301");
             gp_str_to_lower_full(&str, "");
             const char* result = "ὀδυσσεύς ὀδυσσεύς. ὀδυσσεύς3 σς\tσ σσ\u0301ς\u0301";
             gp_expect(gp_str_equal(str, result, strlen(result)), str);
@@ -102,7 +102,7 @@ int main(void)
 
         gp_test("Capitalize");
         {
-            GPString str = gp_str_new(arena, 64, "blah blah blah");
+            GPString str = gp_str_new_init(arena, 64, "blah blah blah");
             gp_str_capitalize(&str, "");
             gp_expect(gp_str_equal(str, "Blah blah blah", strlen("Blah blah blah")));
 
@@ -127,7 +127,7 @@ int main(void)
 
         gp_test("Split and join");
         {
-            GPString str = gp_str_new(arena, 64, "\t\tHello, I'm  the Prince!\r\n");
+            GPString str = gp_str_new_init(arena, 64, "\t\tHello, I'm  the Prince!\r\n");
             GPArray(GPString) substrs = gp_str_split(gp_heap, str, gp_str_length(str), GP_WHITESPACE);
             gp_expect(gp_arr_length(substrs) == 4);
             gp_expect(gp_str_equal(substrs[0], "Hello,",  strlen("Hello,")));

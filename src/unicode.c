@@ -605,8 +605,8 @@ GPArray(GPString) gp_str_split(
         {
             substrs[gp_arr_length(substrs) + j] = gp_str_new(
                 allocator,
-                gp_next_power_of_2(indices[j].end - indices[j].start),
-                "");
+                gp_next_power_of_2(indices[j].end - indices[j].start));
+
             ((GPStringHeader*)(substrs[gp_arr_length(substrs) + j]) - 1)->length =
                 indices[j].end - indices[j].start;
             memcpy(

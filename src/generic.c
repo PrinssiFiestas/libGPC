@@ -21,7 +21,7 @@ bool gp_is_valid99(GPStrIn s, size_t*i)
 
 GPString gp_replace_new(GPAllocator* a, GPStrIn b, GPStrIn c, GPStrIn d, const size_t start)
 {
-    GPString out = gp_str_new(a, b.length + c.length + d.length, "");
+    GPString out = gp_str_new(a, b.length + c.length + d.length);
     const size_t pos = gp_bytes_find_first(b.data, b.length, c.data, c.length, start);
     if (pos == GP_NOT_FOUND) {
         memcpy(out, b.data, b.length);
@@ -49,7 +49,7 @@ GPString gp_replace99(
 GPString gp_replace_all_new(void* alc, GPStrIn hay, GPStrIn ndl, GPStrIn repl)
 {
     // TODO don't copy and replace all, just copy what's needed
-    GPString out = gp_str_new(alc, 3 * hay.length / 2, "");
+    GPString out = gp_str_new(alc, 3 * hay.length / 2);
     gp_str_copy(&out, hay.data, hay.length);
     gp_str_replace_all(&out, ndl.data, ndl.length, repl.data, repl.length);
     return out;
@@ -67,7 +67,7 @@ GPString gp_replace_all99(
 
 GPString gp_str_trim_new(void* alc, GPStrIn str, const char* char_set, const int flags)
 {
-    GPString out = gp_str_new(alc, str.length, "");
+    GPString out = gp_str_new(alc, str.length);
     // TODO don't copy and trim, just copy what's needed!
     gp_str_copy(&out, str.data, str.length);
     gp_str_trim(&out, char_set, flags);
@@ -86,7 +86,7 @@ GPString gp_trim99(
 
 GPString gp_to_upper_new(GPAllocator* alc, GPStrIn str)
 { // TODO don't copy and process. Read char, process, and write to out
-    GPString out = gp_str_new(alc, str.length, "");
+    GPString out = gp_str_new(alc, str.length);
     memcpy(out, str.data, str.length);
     ((GPStringHeader*)out - 1)->length = str.length;
     gp_str_to_upper(&out);
@@ -95,7 +95,7 @@ GPString gp_to_upper_new(GPAllocator* alc, GPStrIn str)
 
 GPString gp_to_upper_full_new(GPAllocator* alc, GPStrIn str, const char* locale)
 { // TODO don't copy and process. Read char, process, and write to out
-    GPString out = gp_str_new(alc, str.length, "");
+    GPString out = gp_str_new(alc, str.length);
     memcpy(out, str.data, str.length);
     ((GPStringHeader*)out - 1)->length = str.length;
     gp_str_to_upper_full(&out, locale);
@@ -104,7 +104,7 @@ GPString gp_to_upper_full_new(GPAllocator* alc, GPStrIn str, const char* locale)
 
 GPString gp_to_lower_new(GPAllocator* alc, GPStrIn str)
 { // TODO don't copy and process. Read char, process, and write to out
-    GPString out = gp_str_new(alc, str.length, "");
+    GPString out = gp_str_new(alc, str.length);
     memcpy(out, str.data, str.length);
     ((GPStringHeader*)out - 1)->length = str.length;
     gp_str_to_lower(&out);
@@ -113,7 +113,7 @@ GPString gp_to_lower_new(GPAllocator* alc, GPStrIn str)
 
 GPString gp_to_lower_full_new(GPAllocator* alc, GPStrIn str, const char* locale)
 { // TODO don't copy and process. Read char, process, and write to out
-    GPString out = gp_str_new(alc, str.length, "");
+    GPString out = gp_str_new(alc, str.length);
     memcpy(out, str.data, str.length);
     ((GPStringHeader*)out - 1)->length = str.length;
     gp_str_to_lower_full(&out, locale);
@@ -123,7 +123,7 @@ GPString gp_to_lower_full_new(GPAllocator* alc, GPStrIn str, const char* locale)
 GPString gp_to_valid_new(
     GPAllocator* alc, GPStrIn str, const char*const replacement)
 { // TODO don't copy and process. Read char, process, and write to out
-    GPString out = gp_str_new(alc, str.length, "");
+    GPString out = gp_str_new(alc, str.length);
     memcpy(out, str.data, str.length);
     ((GPStringHeader*)out - 1)->length = str.length;
     gp_str_to_valid(&out, replacement);
@@ -132,7 +132,7 @@ GPString gp_to_valid_new(
 
 GPString gp_capitalize_new(GPAllocator* alc, GPStrIn str)
 { // TODO don't copy and process. Read char, process, and write to out
-    GPString out = gp_str_new(alc, str.length, "");
+    GPString out = gp_str_new(alc, str.length);
     memcpy(out, str.data, str.length);
     ((GPStringHeader*)out - 1)->length = str.length;
     gp_str_capitalize(&out, "");
@@ -141,7 +141,7 @@ GPString gp_capitalize_new(GPAllocator* alc, GPStrIn str)
 
 GPString gp_capitalize_locale_new(GPAllocator* alc, GPStrIn str, const char* locale)
 { // TODO don't copy and process. Read char, process, and write to out
-    GPString out = gp_str_new(alc, str.length, "");
+    GPString out = gp_str_new(alc, str.length);
     memcpy(out, str.data, str.length);
     ((GPStringHeader*)out - 1)->length = str.length;
     gp_str_capitalize(&out, locale);
@@ -154,14 +154,14 @@ GPString gp_capitalize_locale_new(GPAllocator* alc, GPStrIn str, const char* loc
 GPString gp_join_new(GPAllocator* allocator, const GPArray(GPString) strs, const char* separator)
 {
     if (gp_arr_length(strs) == 0)
-        return gp_str_new(allocator, 0, "");
+        return gp_str_new(allocator, 0);
 
     const size_t separator_length = strlen(separator);
     size_t required_capacity = -separator_length;
     for (size_t i = 0; i < gp_arr_length(strs); ++i)
         required_capacity += gp_str_length(strs[i]) + separator_length;
 
-    GPString out = gp_str_new(allocator, required_capacity, "");
+    GPString out = gp_str_new(allocator, required_capacity);
     for (size_t i = 0; i < gp_arr_length(strs) - 1; ++i)
     {
         memcpy(out + gp_str_length(out), strs[i], gp_str_length(strs[i]));

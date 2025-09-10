@@ -80,7 +80,7 @@ int main(void)
             f_contents = "Here\t is some" GP_WHITESPACE "words. Yeah.";
             gp_file_println(f, f_contents);
             rewind(f);
-            GPString contents = gp_str_new(arena, 1, f_contents);
+            GPString contents = gp_str_new_init(arena, 1, f_contents);
             GPString str = gp_str_on_stack(arena, 1, "");
             while (gp_file_read_strip(&str, f, NULL)) // NULL defaults to GP_WHITESPACE
             {

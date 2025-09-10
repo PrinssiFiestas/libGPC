@@ -19,25 +19,21 @@
 #include <sys/stat.h>
 
 GPString gp_str_new(
-    GPAllocator*const allocator,
-    size_t capacity,
-    const char*const init)
+    GPAllocator* allocator,
+    size_t       capacity)
 {
-    const size_t init_length = strlen(init);
-    capacity = gp_max(init_length, capacity);
-    GPStringHeader* me = gp_mem_alloc(allocator, sizeof*me + capacity + sizeof"");
+    capacity = gp_round_to_aligned( // blocks are aligned anyway
+        capacity + sizeof"",
+        GP_ALLOC_ALIGNMENT);
+
+    GPStringHeader* me = gp_mem_alloc(allocator, sizeof*me + capacity);
     *me = (GPStringHeader) {
-        .length     = init_length,
-        .capacity   = capacity,
+        .length     = 0,
+        .capacity   = capacity - sizeof"",
         .allocator  = allocator,
         .allocation = me
     };
-    return memcpy(me + 1, init, init_length);
-}
-
-static GPStringHeader* gp_str_header(const GPString str)
-{
-    return (GPStringHeader*)str - 1;
+    return (GPString)(me + 1);
 }
 
 size_t gp_str_find_first(

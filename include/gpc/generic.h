@@ -191,7 +191,11 @@ static inline GPAllocator* gp_alc_cpp(GPScope* a)          { return (GPAllocator
 template <typename T_ALLOCATOR>
 static inline GPString gp_str(T_ALLOCATOR* allocator, const char* init = "")
 {
-    return gp_str_new(gp_alc_cpp(allocator), 16, init);
+    size_t len = strlen(init);
+    GPString s = gp_str_new(gp_alc_cpp(allocator), len);
+    memcpy(s, init, len);
+    gp_str_header(s)->length = len;
+    return s;
 }
 template <typename T_ALLOCATOR>
 static inline GPString gp_str(
@@ -199,7 +203,11 @@ static inline GPString gp_str(
     const size_t capacity,
     const char*  init)
 {
-    return gp_str_new(gp_alc_cpp(allocator), capacity, init);
+    size_t len = strlen(init);
+    GPString s = gp_str_new(gp_alc_cpp(allocator), gp_max(capacity, len), init);
+    memcpy(s, init, len);
+    gp_str_header(s)->length = len;
+    return s;
 }
 
 template <typename T_ALLOCATOR>
@@ -358,7 +366,7 @@ template <typename T_ALLOCATOR, typename T_STRING>
 static inline GPString gp_repeat(
     T_ALLOCATOR* allocator, const size_t count, T_STRING src)
 {
-    GPString out = gp_str_new(gp_alc_cpp(allocator), count * gp_str_length_cpp(src), "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), count * gp_str_length_cpp(src));
     ((GPStringHeader*)out - 1)->length = gp_bytes_repeat(out, count, src, gp_str_length_cpp(src));
     return out;
 }
@@ -366,7 +374,7 @@ template <typename T_ALLOCATOR>
 static inline GPString gp_repeat(
     T_ALLOCATOR* allocator, const size_t count, const void*const src, const size_t src_length)
 {
-    GPString out = gp_str_new(gp_alc_cpp(allocator), count * src_length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), count * src_length);
     ((GPStringHeader*)out - 1)->length = gp_bytes_repeat(out, count, src, src_length);
     return out;
 }
@@ -740,7 +748,12 @@ template <typename T_ALLOCATOR>
 static inline GPString gp_copy(
     T_ALLOCATOR* allocator, const char*const src)
 {
-    return gp_str_new(gp_alc_cpp(allocator), strlen(src), src);
+    size_t len = strlen(src);
+    GPString s = gp_str_new(gp_alc_cpp(allocator), strlen(src));
+    memcpy(s, src, len);
+    gp_str_header(s)->length = len;
+    return s;
+
 }
 template <typename T_ALLOCATOR, typename T_STRING_OR_ARRAY>
 static inline T_STRING_OR_ARRAY gp_copy(
@@ -768,7 +781,7 @@ template <typename T_ALLOCATOR>
 static inline GPString gp_copy(
     T_ALLOCATOR* allocator, const char*const src, const size_t src_length)
 {
-    GPString out = gp_str_new(gp_alc_cpp(allocator), src_length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), src_length);
     ((GPStringHeader*)out - 1)->length = src_length;
     return (GPString)memcpy(out, src, src_length);
 }
@@ -814,7 +827,7 @@ static inline GPString gp_slice(
     T_ALLOCATOR* allocator, const GPString src, const size_t start, const size_t end)
 {
     const size_t length = end - start;
-    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length);
     ((GPStringHeader*)out - 1)->length = length;
     return (GPString)memcpy(out, src + start, length);
 }
@@ -823,7 +836,7 @@ static inline GPString gp_slice(
     T_ALLOCATOR* allocator, const char*const src, const size_t start, const size_t end)
 {
     const size_t length = end - start;
-    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length);
     ((GPStringHeader*)out - 1)->length = length;
     return (GPString)memcpy(out, src + start, length);
 }
@@ -876,7 +889,7 @@ static inline GPString gp_append(
     const size_t str1_length = gp_str_length_cpp(str1);
     const size_t str2_length = gp_str_length_cpp(str2);
     const size_t length = str1_length + str2_length;
-    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length);
     ((GPStringHeader*)out - 1)->length = length;
     memcpy(out + str1_length, str2, str2_length);
     return (GPString)memcpy(out, str1, str1_length);
@@ -888,7 +901,7 @@ static inline GPString gp_append(
     const size_t str1_length = gp_str_length_cpp(str1);
     const size_t str2_length = gp_str_length_cpp(str2);
     const size_t length = str1_length + str2_length;
-    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length);
     ((GPStringHeader*)out - 1)->length = length;
     memcpy(out + str1_length, str2, str2_length);
     return (GPString)memcpy(out, str1, str1_length);
@@ -900,7 +913,7 @@ static inline GPString gp_append(
     const size_t str1_length = gp_str_length_cpp(str1);
     const size_t str2_length = gp_str_length_cpp(str2);
     const size_t length = str1_length + str2_length;
-    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length);
     ((GPStringHeader*)out - 1)->length = length;
     memcpy(out + str1_length, str2, str2_length);
     return (GPString)memcpy(out, str1, str1_length);
@@ -912,7 +925,7 @@ static inline GPString gp_append(
     const size_t str1_length = gp_str_length_cpp(str1);
     const size_t str2_length = gp_str_length_cpp(str2);
     const size_t length = str1_length + str2_length;
-    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length);
     ((GPStringHeader*)out - 1)->length = length;
     memcpy(out + str1_length, str2, str2_length);
     return (GPString)memcpy(out, str1, str1_length);
@@ -938,7 +951,7 @@ static inline GPString gp_append(
 {
     const size_t str1_length = gp_str_length_cpp(str1);
     const size_t length = str1_length + str2_length;
-    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length);
     ((GPStringHeader*)out - 1)->length = length;
     memcpy(out + str1_length, str2, str2_length);
     return (GPString)memcpy(out, str1, str1_length);
@@ -952,7 +965,7 @@ static inline GPString gp_append(
     const size_t     str2_length)
 {
     const size_t length = str1_length + str2_length;
-    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length);
     ((GPStringHeader*)out - 1)->length = length;
     memcpy(out + str1_length, str2, str2_length);
     return (GPString)memcpy(out, str1, str1_length);
@@ -966,7 +979,7 @@ static inline GPString gp_append(
     const size_t     str2_length)
 {
     const size_t length = str1_length + str2_length;
-    GPString out = gp_str_new(gp_alc_cpp(allocator), length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), length);
     ((GPStringHeader*)out - 1)->length = length;
     memcpy(out + str1_length, str2, str2_length);
     return (GPString)memcpy(out, str1, str1_length);
@@ -1032,7 +1045,7 @@ static inline GPString gp_insert(
 {
     const size_t str1_length = gp_str_length_cpp(str1);
     const size_t str2_length = gp_str_length_cpp(str2);
-    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length);
     return (GPString)gp_insert_cpp(sizeof out[0], out, index, str1, str1_length, str2, str2_length);
 }
 template <typename T_ALLOCATOR>
@@ -1041,7 +1054,7 @@ static inline GPString gp_insert(
 {
     const size_t str1_length = gp_str_length_cpp(str1);
     const size_t str2_length = gp_str_length_cpp(str2);
-    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length);
     return (GPString)gp_insert_cpp(sizeof out[0], out, index, str1, str1_length, str2, str2_length);
 }
 template <typename T_ALLOCATOR>
@@ -1050,7 +1063,7 @@ static inline GPString gp_insert(
 {
     const size_t str1_length = gp_str_length_cpp(str1);
     const size_t str2_length = gp_str_length_cpp(str2);
-    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length);
     return (GPString)gp_insert_cpp(sizeof out[0], out, index, str1, str1_length, str2, str2_length);
 }
 template <typename T_ALLOCATOR>
@@ -1059,7 +1072,7 @@ static inline GPString gp_insert(
 {
     const size_t str1_length = gp_str_length_cpp(str1);
     const size_t str2_length = gp_str_length_cpp(str2);
-    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length);
     return (GPString)gp_insert_cpp(sizeof out[0], out, index, str1, str1_length, str2, str2_length);
 }
 template <typename T_ALLOCATOR, typename T>
@@ -1080,7 +1093,7 @@ static inline GPString gp_insert(
     const size_t     str2_length)
 {
     const size_t str1_length = gp_str_length_cpp(str1);
-    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length);
     return (GPString)gp_insert_cpp(sizeof out[0], out, index, str1, str1_length, str2, str2_length);
 }
 template <typename T_ALLOCATOR>
@@ -1092,7 +1105,7 @@ static inline GPString gp_insert(
     const void*const str2,
     const size_t     str2_length)
 {
-    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length);
     return (GPString)gp_insert_cpp(sizeof out[0], out, index, str1, str1_length, str2, str2_length);
 }
 template <typename T_ALLOCATOR>
@@ -1104,7 +1117,7 @@ static inline GPString gp_insert(
     const void*const str2,
     const size_t     str2_length)
 {
-    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length, "");
+    GPString out = gp_str_new(gp_alc_cpp(allocator), str1_length + str2_length);
     return (GPString)gp_insert_cpp(sizeof out[0], out, index, str1, str1_length, str2, str2_length);
 }
 template <typename T_ALLOCATOR, typename T>
@@ -1412,7 +1425,7 @@ template <typename T_ALLOCATOR>
 static inline GPString gp_file(
     T_ALLOCATOR* allocator, const char*const path, const char*const mode)
 {
-    GPString str = gp_str_new(gp_alc_cpp(allocator), 128, "");
+    GPString str = gp_str_new(gp_alc_cpp(allocator), 128);
     if (gp_str_file(&str, path, mode) == 0)
         return str;
     gp_str_delete(str);
@@ -1686,7 +1699,7 @@ static inline size_t gp_length_in11(const GPType T_unused, const size_t length, 
 GP_NONNULL_ARGS_AND_RETURN
 static inline GPString gp_str_repeat_new(void* alc, const size_t count, GPStrIn in)
 {
-    GPString out = gp_str_new(alc, count * in.length, "");
+    GPString out = gp_str_new(alc, count * in.length);
     ((GPStringHeader*)out - 1)->length = gp_bytes_repeat(out, count, in.data, in.length);
     return out;
 }
@@ -2113,7 +2126,7 @@ static inline GPString gp_file_to_str11(GPString* dest, const char*const path, c
 GP_NONNULL_ARGS()
 static inline GPString gp_file_to_new_str11(void* alc, const char*const path, const char*const mode)
 {
-    GPString str = gp_str_new(alc, 128, "");
+    GPString str = gp_str_new(alc, 128);
     if (gp_str_file(&str, path, mode) == 0)
         return str;
     gp_str_delete(str);
@@ -2172,9 +2185,9 @@ static inline GPArray(void) gp_arr99(GPAllocator* alc,
     (T const *)(gp_arr_on_stack(NULL, GP_COUNT_ARGS(__VA_ARGS__), T, __VA_ARGS__))
 #endif
 
-#define GP_STR_NEW1(ALC)            gp_str_new(GP_ALC(ALC), 16, "")
-#define GP_STR_NEW2(ALC, INIT)      gp_str_new(GP_ALC(ALC), 16, INIT)
-#define GP_STR_NEW3(ALC, CAP, INIT) gp_str_new(GP_ALC(ALC), CAP, INIT)
+#define GP_STR_NEW1(ALC)            gp_str_new(GP_ALC(ALC), 0)
+#define GP_STR_NEW2(ALC, INIT)      gp_str_new_init(GP_ALC(ALC), 0, INIT)
+#define GP_STR_NEW3(ALC, CAP, INIT) gp_str_new_init(GP_ALC(ALC), CAP, INIT)
 #define GP_STR_NEW(...) \
     GP_OVERLOAD3(__VA_ARGS__, GP_STR_NEW3, GP_STR_NEW2, GP_STR_NEW1)(__VA_ARGS__)
 
@@ -2248,7 +2261,7 @@ static inline GPString gp_repeat99(
         gp_str_repeat((GPString*)a, count, in.data, in.length);
         return *(GPString*)a;
     }
-    GPString out = gp_str_new(a, count * in.length, "");
+    GPString out = gp_str_new(a, count * in.length);
     gp_str_repeat(&out, count, in.data, in.length);
     return out;
 }
@@ -2306,7 +2319,7 @@ static inline GPString gp_to_upper99(const size_t a_size, void* a, const void* b
         return (GPString)a;
     } // TODO don't copy and process, just write to output!
     const size_t b_length = b_id[0] == '"' ? strlen(b) : gp_str_length((GPString)b);
-    GPString out = gp_str_new(a, b_length, "");
+    GPString out = gp_str_new(a, b_length);
     memcpy(out, b, b_length);
     ((GPStringHeader*)out - 1)->length = b_length;
     gp_str_to_upper(&out);
@@ -2326,7 +2339,7 @@ static inline GPString gp_to_lower99(const size_t a_size, void* a, const void* b
         return (GPString)a;
     } // TODO don't copy and process, just write to output!
     const size_t b_length = b_id[0] == '"' ? strlen(b) : gp_str_length((GPString)b);
-    GPString out = gp_str_new(a, b_length, "");
+    GPString out = gp_str_new(a, b_length);
     memcpy(out, b, b_length);
     ((GPStringHeader*)out - 1)->length = b_length;
     gp_str_to_lower(&out);
@@ -2352,7 +2365,7 @@ static inline GPString gp_capitalize99(const size_t a_size, void* a, const void*
         return (GPString)a;
     } // TODO don't copy and process, just write to output!
     const size_t b_length = b_id[0] == '"' ? strlen(b) : gp_str_length((GPString)b);
-    GPString out = gp_str_new(a, b_length, "");
+    GPString out = gp_str_new(a, b_length);
     memcpy(out, b, b_length);
     ((GPStringHeader*)out - 1)->length = b_length;
     gp_str_capitalize(&out, "");
@@ -2679,7 +2692,7 @@ static inline GPString gp_file99(size_t a_size, void* a, const char* path, const
 
         GPString str;
         default: // read from path to a new string
-            str = gp_str_new(a, 128, "");
+            str = gp_str_new(a, 128);
             if (gp_str_file(&str, path, mode) == 0)
                 return str;
             gp_str_delete(str);

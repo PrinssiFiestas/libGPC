@@ -46,6 +46,20 @@ typedef struct gp_array_header
     uintptr_t    length;
 } GPArrayHeader;
 
+/** Getters */
+GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_arr_length    (const GPArray(void) arr) { return ((GPArrayHeader*)arr - 1)->length;     }
+GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_arr_capacity  (const GPArray(void) arr) { return ((GPArrayHeader*)arr - 1)->capacity;   }
+GP_NONNULL_ARGS() GP_NODISCARD static inline void*        gp_arr_allocation(const GPArray(void) arr) { return ((GPArrayHeader*)arr - 1)->allocation; }
+GP_NONNULL_ARGS() GP_NODISCARD static inline GPAllocator* gp_arr_allocator (const GPArray(void) arr) { return ((GPArrayHeader*)arr - 1)->allocator;  }
+
+// TODO document better!
+/** Setter */
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
+static inline GPArrayHeader* gp_arr_header(GPArray(void) arr)
+{
+    return (GPArrayHeader*)arr - 1;
+}
+
 #define GP_ARR_ATTRS(...) \
     GP_NONNULL_RETURN GP_NODISCARD GP_NONNULL_ARGS(__VA_ARGS__)
 
@@ -89,12 +103,6 @@ GPArray(void) gp_arr_new(
     arr_mem.h = (GPArrayHeader){.capacity = 2048 };
     GPArray(int) arr = arr_mem.data;
 */
-
-/** Getters */
-GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_arr_length    (const GPArray(void) arr) { return ((GPArrayHeader*)arr - 1)->length;     }
-GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_arr_capacity  (const GPArray(void) arr) { return ((GPArrayHeader*)arr - 1)->capacity;   }
-GP_NONNULL_ARGS() GP_NODISCARD static inline void*        gp_arr_allocation(const GPArray(void) arr) { return ((GPArrayHeader*)arr - 1)->allocation; }
-GP_NONNULL_ARGS() GP_NODISCARD static inline GPAllocator* gp_arr_allocator (const GPArray(void) arr) { return ((GPArrayHeader*)arr - 1)->allocator;  }
 
 /** Free array memory.
  * Passing arrays on stack is safe too.
