@@ -35,7 +35,7 @@ static void gp_init_debugger_check_mutex(void) {
 int gp_debugger_was_detached(void)
 {
     static GPThreadOnce checked_once = GP_THREAD_ONCE_INIT;
-    static volatile GP_MAYBE_ATOMIC bool checked;
+    static GP_MAYBE_ATOMIC bool checked;
     static int result = -1;
 
     gp_thread_once(&checked_once, gp_init_debugger_check_mutex);

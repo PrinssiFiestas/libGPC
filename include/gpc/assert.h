@@ -117,7 +117,12 @@ static inline bool gp_dummy_bool(bool _) { return _; } // prevent -Wunused-value
  * elimination.
  */
 #ifndef NDEBUG
-#define GP_UNREACHABLE(...) do { bool unreachable = 0; gp_db_assert(unreachable, __VA_ARGS__); } while (0)
+#define GP_UNREACHABLE(...) \
+do { \
+    bool unreachable = 0; \
+    gp_db_assert(unreachable, __VA_ARGS__); \
+    __builtin_unreachable(); \
+} while (0)
 #elif __GNUC__
 #define GP_UNREACHABLE(...) __builtin_unreachable()
 #elif _MSC_VER

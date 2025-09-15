@@ -117,9 +117,7 @@ int main(void)
 
 // typeof() operator. GNUC and MSVC already covers mostly used compilers, but
 // not all compilers are supported.
-#if __STDC_VERSION__ >= 202311L
-#define GP_TYPEOF(...) typeof(__VA_ARGS__)
-#elif (defined(__GNUC__) || defined(__TINYC__)) && !defined(GP_PEDANTIC)
+#if __STDC_VERSION__ >= 202311L || defined(__TINYC__)
 #define GP_TYPEOF(...) typeof(__VA_ARGS__)
 #elif defined(_MSC_VER) || defined(__GNUC__)
 #define GP_TYPEOF(...) __typeof__(__VA_ARGS__)

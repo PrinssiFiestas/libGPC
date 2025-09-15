@@ -26,9 +26,9 @@ typedef struct pf_misc_data
 typedef struct pf_uint
 {
     union {
-        unsigned long long u;
-        GPUInt128 u128;
-    };
+        unsigned long long ll;
+        GPUInt128 _128;
+    } u;
     bool is_128;
 } PFUInt;
 
@@ -40,57 +40,57 @@ static PFUInt pf_get_uint(
     // truncate potential sign extension caused by default argument promotion.
 
     if (fmt.conversion_format == 'p')
-        return (PFUInt){.u = (uintptr_t)va_arg(args->list, gp_promoted_arg_uintptr_t)};
+        return (PFUInt){.u.ll = (uintptr_t)va_arg(args->list, gp_promoted_arg_uintptr_t)};
 
     switch (fmt.length_modifier)
     {
     case 0:
-        return (PFUInt){.u = va_arg(args->list, unsigned)};
+        return (PFUInt){.u.ll = va_arg(args->list, unsigned)};
 
     case 'j':
-        return (PFUInt){.u = va_arg(args->list, uintmax_t)};
+        return (PFUInt){.u.ll = va_arg(args->list, uintmax_t)};
 
     case 'l' * 2:
-        return (PFUInt){.u = va_arg(args->list, unsigned long long)};
+        return (PFUInt){.u.ll = va_arg(args->list, unsigned long long)};
 
     case 'l':
-        return (PFUInt){.u = va_arg(args->list, unsigned long)};
+        return (PFUInt){.u.ll = va_arg(args->list, unsigned long)};
 
     case 'h':
-        return (PFUInt){.u = (unsigned short)va_arg(args->list, gp_promoted_arg_unsigned_short_t)};
+        return (PFUInt){.u.ll = (unsigned short)va_arg(args->list, gp_promoted_arg_unsigned_short_t)};
 
     case 'h' * 2:
-        return (PFUInt){.u = (unsigned char)va_arg(args->list, gp_promoted_arg_unsigned_char_t)};
+        return (PFUInt){.u.ll = (unsigned char)va_arg(args->list, gp_promoted_arg_unsigned_char_t)};
 
     case 'z':
-        return (PFUInt){.u = (size_t)va_arg(args->list, gp_promoted_arg_size_t)};
+        return (PFUInt){.u.ll = (size_t)va_arg(args->list, gp_promoted_arg_size_t)};
 
     case 'B': // byte
-        return (PFUInt){.u = (uint8_t)va_arg(args->list, gp_promoted_arg_uint8_t)};
+        return (PFUInt){.u.ll = (uint8_t)va_arg(args->list, gp_promoted_arg_uint8_t)};
 
     case 'W': // word
-        return (PFUInt){.u = (uint16_t)va_arg(args->list, gp_promoted_arg_uint16_t)};
+        return (PFUInt){.u.ll = (uint16_t)va_arg(args->list, gp_promoted_arg_uint16_t)};
 
     case 'D': // double word
-        return (PFUInt){.u = (uint32_t)va_arg(args->list, gp_promoted_arg_uint32_t)};
+        return (PFUInt){.u.ll = (uint32_t)va_arg(args->list, gp_promoted_arg_uint32_t)};
 
     case 'Q': // quad word
-        return (PFUInt){.u = (uint64_t)va_arg(args->list, gp_promoted_arg_uint64_t)};
+        return (PFUInt){.u.ll = (uint64_t)va_arg(args->list, gp_promoted_arg_uint64_t)};
 
     case 'O': // octa word
-        return (PFUInt){.u128 = va_arg(args->list, GPUInt128), .is_128 = true};
+        return (PFUInt){.u._128 = va_arg(args->list, GPUInt128), .is_128 = true};
 
     case 'B'+'f': // fast byte
-        return (PFUInt){.u = (uint_fast8_t)va_arg(args->list, gp_promoted_arg_uint_fast8_t)};
+        return (PFUInt){.u.ll = (uint_fast8_t)va_arg(args->list, gp_promoted_arg_uint_fast8_t)};
 
     case 'W'+'f': // fast word
-        return (PFUInt){.u = (uint_fast16_t)va_arg(args->list, gp_promoted_arg_uint_fast16_t)};
+        return (PFUInt){.u.ll = (uint_fast16_t)va_arg(args->list, gp_promoted_arg_uint_fast16_t)};
 
     case 'D'+'f': // fast double word
-        return (PFUInt){.u = (uint_fast32_t)va_arg(args->list, gp_promoted_arg_uint_fast32_t)};
+        return (PFUInt){.u.ll = (uint_fast32_t)va_arg(args->list, gp_promoted_arg_uint_fast32_t)};
 
     case 'Q'+'f': // fast quad word
-        return (PFUInt){.u = (uint_fast64_t)va_arg(args->list, gp_promoted_arg_uint_fast64_t)};
+        return (PFUInt){.u.ll = (uint_fast64_t)va_arg(args->list, gp_promoted_arg_uint_fast64_t)};
 
     // fast octa word does not exist
     }
@@ -357,7 +357,7 @@ static size_t pf_write_o(
     const PFUInt u = pf_get_uint(args, fmt);
 
     bool zero_written = false;
-    if (fmt.flag.hash && gp_u128_not_equal(u.u128, gp_u128(0, 0)))
+    if (fmt.flag.hash && gp_u128_not_equal(u.u._128, gp_uint128(0, 0)))
     {
         pf_push_char(out, '0');
         zero_written = true;
@@ -365,9 +365,9 @@ static size_t pf_write_o(
 
     const size_t max_written = u.is_128 ?
         pf_o128toa(
-            pf_capacity_left(*out), out->data + out->length, u.u128)
+            pf_capacity_left(*out), out->data + out->length, u.u._128)
       : pf_otoa(
-            pf_capacity_left(*out), out->data + out->length, u.u);
+            pf_capacity_left(*out), out->data + out->length, u.u.ll);
 
     // zero_written tells pad_zeroes() to add 1 less '0'
     pf_write_leading_zeroes(out, zero_written + max_written, fmt);
@@ -386,7 +386,7 @@ static size_t pf_write_x(
     const size_t original_length = out->length;
     PFUInt u = pf_get_uint(args, fmt);
 
-    if (fmt.flag.hash && gp_uint128_not_equal(u.u128, gp_uint128(0, 0)))
+    if (fmt.flag.hash && gp_uint128_not_equal(u.u._128, gp_uint128(0, 0)))
     {
         pf_concat(out, "0x", sizeof"0x"-sizeof"");
         md->has_0x = true;
@@ -394,9 +394,9 @@ static size_t pf_write_x(
 
     const size_t max_written = u.is_128 ?
         pf_x128toa(
-            pf_capacity_left(*out), out->data + out->length, u.u128)
+            pf_capacity_left(*out), out->data + out->length, u.u._128)
       : pf_xtoa(
-            pf_capacity_left(*out), out->data + out->length, u.u);
+            pf_capacity_left(*out), out->data + out->length, u.u.ll);
 
     pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
@@ -411,7 +411,7 @@ static size_t pf_write_X(
     const size_t original_length = out->length;
     const PFUInt u = pf_get_uint(args, fmt);
 
-    if (fmt.flag.hash && gp_uint128_not_equal(u.u128, gp_uint128(0, 0)))
+    if (fmt.flag.hash && gp_uint128_not_equal(u.u._128, gp_uint128(0, 0)))
     {
         pf_concat(out, "0X", sizeof"0X"-sizeof"");
         md->has_0x = true;
@@ -419,9 +419,9 @@ static size_t pf_write_X(
 
     const size_t max_written = u.is_128 ?
         pf_X128toa(
-            pf_capacity_left(*out), out->data + out->length, u.u128)
+            pf_capacity_left(*out), out->data + out->length, u.u._128)
       : pf_Xtoa(
-            pf_capacity_left(*out), out->data + out->length, u.u);
+            pf_capacity_left(*out), out->data + out->length, u.u.ll);
 
     pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
@@ -436,9 +436,9 @@ static size_t pf_write_u(
     const PFUInt u = pf_get_uint(args, fmt);
     const size_t max_written = u.is_128 ?
         pf_u128toa(
-            pf_capacity_left(*out), out->data + out->length, u.u128)
+            pf_capacity_left(*out), out->data + out->length, u.u._128)
       : pf_utoa(
-            pf_capacity_left(*out), out->data + out->length, u.u);
+            pf_capacity_left(*out), out->data + out->length, u.u.ll);
     pf_write_leading_zeroes(out, max_written, fmt);
     return out->length - original_length;
 }
@@ -449,7 +449,7 @@ static size_t pf_write_p(
     const PFFormatSpecifier fmt)
 {
     const size_t original_length = out->length;
-    const unsigned long long u = pf_get_uint(args, fmt).u;
+    const unsigned long long u = pf_get_uint(args, fmt).u.ll;
 
     if (u > 0)
     {

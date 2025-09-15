@@ -72,7 +72,7 @@ GPLocale gp_locale(const char* optional_locale_code);
 #else // only global locale available
 
 typedef void* GPLocale;
-static inline GPLocale gp_locale(const char* _) { (void)_; return NULL }
+#define gp_locale(...) NULL
 
 #endif // _WIN32 || _XOPEN_SOURCE >= 700 || defined(_GNU_SOURCE) || defined(_DEFAULT_SOURCE)
 
@@ -209,9 +209,9 @@ GPArray(GPString) gp_str_split(
 /** Merge array of strings.*/
 GP_NONNULL_ARGS()
 void gp_str_join(
-    GPString*               dest,
-    const GPArray(GPString) srcs,
-    const char*             separator);
+    GPString*         dest,
+    GPArray(GPString) srcs,
+    const char*       separator);
 
 /** Advanced string sorting.
  * Flags: 'f' or GP_CASE_FOLD for full language sensitive but case insensitive

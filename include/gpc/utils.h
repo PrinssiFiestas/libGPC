@@ -185,15 +185,16 @@ _Generic(X, \
     double:             gp_fmax  (X, Y))
 #else // Non-GNU C99
 // Use assert() to detect multiple evaluation bugs e.g. pass i++. Other side
-// effects cannot be detected, so beware!
+// effects cannot be detected, so beware! May also require #inclusion of
+// gpc/assert.h, we cannot include here due to cyclical #include.
 #define gp_generic_min(X, Y) \
 ( \
-    assert((X)==(X) && (Y)==(Y), "gp_min() must not have side effects."), \
+    gp_assert((X)==(X) && (Y)==(Y), "gp_min() must not have side effects."), \
     (X) < (Y) ? (X) : (Y) \
 )
 #define gp_generic_max(X, Y) \
 ( \
-    assert((X)==(X) && (Y)==(Y), "gp_max() must not have side effects."), \
+    gp_assert((X)==(X) && (Y)==(Y), "gp_max() must not have side effects."), \
     (X) > (Y) ? (X) : (Y) \
 )
 #endif // gp_min() and gp_max() implementations

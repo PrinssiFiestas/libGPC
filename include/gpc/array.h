@@ -439,16 +439,24 @@ static inline void gp_arr_filter(
     GPArrayAny* parr = (GPArrayAny*)dest_address;
     bool(*func)(const void* x) = (bool(*)(const void* x))f;
 
-    const void* src = optional_src == NULL ? *parr : optional_src;
     const size_t length = optional_src == NULL ? gp_arr_length(*parr) : optional_src_length;
     gp_arr_header(*parr)->length = 0;
 
-    for (size_t i = 0; i < length; ++i)
-        if (func((uint8_t*)src + i*element_size))
-           memmove(
-               (uint8_t*)*parr + gp_arr_header(*parr)->length++ * element_size,
-               (uint8_t*)src + i*element_size,
-               element_size);
+    if (optional_src == NULL) {
+        for (size_t i = 0; i < length; ++i)
+            if (func((const uint8_t*)*parr + i*element_size))
+               memmove(
+                   (uint8_t*)*parr + gp_arr_header(*parr)->length++ * element_size,
+                   (uint8_t*)*parr + i*element_size,
+                   element_size);
+    } else {
+        for (size_t i = 0; i < length; ++i)
+            if (func((const uint8_t*)optional_src + i*element_size))
+                memcpy(
+                    (uint8_t*)*parr + gp_arr_header(*parr)->length++ * element_size,
+                    (const uint8_t*)optional_src + i*element_size,
+                    element_size);
+    }
 }
 
 

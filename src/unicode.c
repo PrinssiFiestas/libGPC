@@ -14,6 +14,8 @@
 // ----------------------------------------------------------------------------
 // Locale
 
+#if GP_HAS_LOCALE
+
 static GPMap*  gp_locale_table;
 static GPMutex gp_locale_table_mutex;
 
@@ -63,12 +65,17 @@ static void gp_init_locale_table(void)
 
     atexit(gp_delete_locale_table); // shut up sanitizer
 }
+#endif // GP_HAS_LOCALE
 
+#ifdef gp_locale
+#undef gp_locale
+#endif
 GPLocale gp_locale(const char* locale_code)
 {
     #if ! GP_HAS_LOCALE
+    (void)locale_code;
     return NULL;
-    #endif
+    #else
     if (locale_code == NULL)
         return (GPLocale)0;
 
@@ -114,6 +121,7 @@ GPLocale gp_locale(const char* locale_code)
     if (locale == (GPLocale)-1)
         return (GPLocale)0;
     return locale;
+    #endif // GP_HAS_LOCALE
 }
 
 const char* gp_set_utf8_global_locale(int category, const char* locale_code)
@@ -620,7 +628,7 @@ GPArray(GPString) gp_str_split(
     return substrs;
 }
 
-void gp_str_join(GPString* out, const GPArray(GPString) strs, const char* separator)
+void gp_str_join(GPString* out, GPArray(GPString) strs, const char* separator)
 {
     ((GPStringHeader*)*out - 1)->length = 0;
     if (gp_arr_length(strs) == 0)

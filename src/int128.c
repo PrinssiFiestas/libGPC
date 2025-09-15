@@ -332,8 +332,13 @@ GPInt128 gp_int128_imod(GPInt128 a, GPInt128 b)
 
 GPUInt128 gp_uint128_convert_f64(double a)
 {
+    // TODO these assertions are only conditionally compiled due to CompCert
+    // failing to compile. So isinf() and isnan() is not portable, we need to
+    // provide our own.
+    #if __GNUC__ || _MSC_VER
     gp_db_assert( ! isnan(a), "Nan cannot be represented as an integral type.");
     gp_db_assert( ! isinf(a), "Inf cannot be represented as an integral type.");
+    #endif
     gp_db_assert(a >= 0., "Negative value cannot be represented as an unsigned type.");
 
     uint64_t a_bits;
@@ -351,8 +356,10 @@ GPUInt128 gp_uint128_convert_f64(double a)
 }
 GPInt128 gp_int128_convert_f64(double a)
 {
+    #if __GNUC__ || _MSC_VER
     gp_db_assert( ! isnan(a), "Nan cannot be represented as an integral type.");
     gp_db_assert( ! isinf(a), "Inf cannot be represented as an integral type.");
+    #endif
 
     uint64_t a_bits;
     memcpy(&a_bits, &a, sizeof a);
@@ -374,8 +381,10 @@ GPInt128 gp_int128_convert_f64(double a)
 }
 GPUInt128 gp_uint128_convert_f32(float a)
 {
+    #if __GNUC__ || _MSC_VER
     gp_db_assert( ! isnan(a), "Nan cannot be represented as an integral type.");
     gp_db_assert( ! isinf(a), "Inf cannot be represented as an integral type.");
+    #endif
     gp_db_assert(a >= 0.f, "Negative value cannot be represented as an unsigned type.");
 
     uint32_t a_bits;
@@ -392,8 +401,10 @@ GPUInt128 gp_uint128_convert_f32(float a)
 }
 GPInt128 gp_int128_convert_f32(float a)
 {
+    #if __GNUC__ || _MSC_VER
     gp_db_assert( ! isnan(a), "Nan cannot be represented as an integral type.");
     gp_db_assert( ! isinf(a), "Inf cannot be represented as an integral type.");
+    #endif
 
     uint32_t a_bits;
     memcpy(&a_bits, &a, sizeof a);
