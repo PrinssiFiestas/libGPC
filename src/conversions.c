@@ -14,7 +14,6 @@
 #include "ryu_common.h"
 #include "digit_table.h"
 #include "d2fixed_full_table.h"
-// TODO use GPUInt128 to reduce duplication, it is slightly better optimized anyway
 #include "d2s_intrinsics.h"
 #include "pfstring.h"
 

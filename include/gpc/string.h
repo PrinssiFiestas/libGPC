@@ -46,14 +46,14 @@ typedef struct gp_char { uint8_t c; } GPChar;
 typedef GPChar* GPString;
 
 /** String meta-data.
- * You can edit the fields directly with ((GPStringHeader*)my_str - 1)->field.
- * This might be useful for micro-optimizations, but it is mostly recommended to
- * use the provided functions instead.
+ * You can edit the fields directly with gp_str_header(my_str)->field.
+ * This might be useful for optimizations, but it is mostly recommended to use
+ * the provided functions instead.
  */
 typedef struct gp_string_header
 {
     uintptr_t    capacity;
-    void*        allocation; // pointer to self or NULL if on stack
+    void*        allocation; // allocated block start or NULL if on stack
     GPAllocator* allocator;
     uintptr_t    length;
 } GPStringHeader;
@@ -95,7 +95,7 @@ static inline GPString gp_str_new_init(
 /** Create a new dynamic string on stack.
  * @p allocator_ptr determines how the string will be reallocated if length
  * exceeds capacity. If it is known that length will not exceed capacity,
- * @p allocator_ptr can be left NULL.
+ * @p allocator_ptr can be left NULL. // TODO remember to update docs when truncating implemented!
  * Not available in C++.
  */
 #define/* GPString */gp_str_on_stack( \
@@ -150,17 +150,10 @@ static inline char* gp_cstr(GPString str)
     return (char*)str;
 }
 
-/** Set length to 0 without changing capacity. */
-GP_NONNULL_ARGS()
-static inline void gp_str_clear(GPString* str)
-{
-    ((GPStringHeader*)*str - 1)->length = 0;
-}
-
 /** Reserve capacity.
  * If @p capacity > gp_str_capacity(@p *str), reallocates, does nothing
- * otherwise. In case of reallocation, capacity will be rounded up to the next
- * power of two.
+ * otherwise. In case of reallocation, capacity will be rounded up
+ * exponentially.
  */
 GP_NONNULL_ARGS()
 void gp_str_reserve(

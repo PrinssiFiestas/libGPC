@@ -649,8 +649,7 @@ int main(void)
             float  f32 = u128s[i];
             double f64 = u128s[i];
             if ( ! isinf(f32))
-                gp_assert(gp_uint128_f32(f32).u128 == (gp_tetra_uint_t)f32,
-                    i, gp_uint128_f32(f32), (gp_tetra_uint_t)f32);
+                gp_assert(gp_uint128_f32(f32).u128 == (gp_tetra_uint_t)f32);
             if ( ! isinf(f64))
                 gp_assert(gp_uint128_f64(f64).u128 == (gp_tetra_uint_t)f64);
         }

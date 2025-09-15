@@ -72,9 +72,9 @@ static void init_globals(void)
 
     gp_assert(out = fopen(out_path, "wb"), strerror(errno));
 
-    include_paths = gp_arr_new(gmem, sizeof*include_paths, 16);
-    headers       = gp_arr_new(gmem, sizeof*headers, 64);
-    sources       = gp_arr_new(gmem, sizeof*sources, 64);
+    include_paths = gp_arr_new(sizeof*include_paths, gmem, 16);
+    headers       = gp_arr_new(sizeof*headers,       gmem, 64);
+    sources       = gp_arr_new(sizeof*sources,       gmem, 64);
     line          = gp_str_new(gmem, 1024);
 
     implementation = gp_str_new(gmem, 32);
@@ -99,7 +99,7 @@ static void init_globals(void)
 
         char* buf = gp_mem_alloc(gmem, strlen(entry->d_name) + sizeof"/");
         strcat(strcpy(buf, entry->d_name), "/");
-        include_paths = gp_arr_push(sizeof*include_paths, include_paths, &buf);
+        gp_arr_push(sizeof*include_paths, &include_paths, &buf);
     }
     closedir(dir);
 
@@ -130,7 +130,7 @@ static void init_globals(void)
             };
             Assert(header.fp != NULL, strerror(errno));
 
-            headers = gp_arr_push(sizeof*headers, headers, &header);
+            gp_arr_push(sizeof*headers, &headers, &header);
         }
 
         closedir(dir);
@@ -155,9 +155,9 @@ static void init_globals(void)
         Assert(source.fp != NULL, strerror(errno));
 
         if (file_extension[1] == 'c')
-            sources = gp_arr_push(sizeof*sources, sources, &source);
+            gp_arr_push(sizeof*sources, &sources, &source);
         else
-            headers = gp_arr_push(sizeof*headers, headers, &source);
+            gp_arr_push(sizeof*headers, &headers, &source);
     }
     closedir(dir);
 }

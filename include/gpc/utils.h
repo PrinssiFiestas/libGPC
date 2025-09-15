@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <assert.h>
 
 #ifdef _WIN32
 #include <intrin.h>
@@ -183,9 +184,18 @@ _Generic(X, \
     float:              gp_fmaxf (X, Y), \
     double:             gp_fmax  (X, Y))
 #else // Non-GNU C99
-// Not ideal (multiple evaluations), but does the job
-#define gp_generic_min(X, Y) ((X) < (Y) ? (X) : (Y))
-#define gp_generic_max(X, Y) ((X) > (Y) ? (X) : (Y))
+// Use assert() to detect multiple evaluation bugs e.g. pass i++. Other side
+// effects cannot be detected, so beware!
+#define gp_generic_min(X, Y) \
+( \
+    assert((X)==(X) && (Y)==(Y), "gp_min() must not have side effects."), \
+    (X) < (Y) ? (X) : (Y) \
+)
+#define gp_generic_max(X, Y) \
+( \
+    assert((X)==(X) && (Y)==(Y), "gp_max() must not have side effects."), \
+    (X) > (Y) ? (X) : (Y) \
+)
 #endif // gp_min() and gp_max() implementations
 
 #ifdef __cplusplus

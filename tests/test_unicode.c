@@ -22,13 +22,13 @@ int main(void)
     {
         #if __STDC_VERSION__ >= 201112L
         GPString utf8 = gp_str_on_stack(NULL, 32, "zß水🍌");
-        GPArray(uint16_t) utf16 = gp_arr_new(arena, sizeof utf16[0], 32);
+        GPArray(uint16_t) utf16 = gp_arr_new(sizeof utf16[0], arena, 32);
 
         gp_test("UTF-8 to UTF-16");
         {
             const char16_t wcs[] = u"zß水🍌";
-            utf16 = gp_arr_copy(
-                sizeof utf16[0], utf16, wcs, sizeof wcs / sizeof*wcs - sizeof"");
+            gp_arr_copy(
+                sizeof utf16[0], &utf16, wcs, sizeof wcs / sizeof*wcs - sizeof"");
             gp_utf8_to_utf16(&utf16, utf8, gp_str_length(utf8));
             gp_expect(gp_arr_length(utf16) == sizeof wcs / sizeof*wcs - sizeof"",
                 gp_arr_length(utf16), sizeof wcs / sizeof*wcs - sizeof"");

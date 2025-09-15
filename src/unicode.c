@@ -211,7 +211,7 @@ void gp_utf8_to_utf32(
         (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
     }
     size_t gp_bytes_codepoint_count(const void*, size_t);
-    *u32 = gp_arr_reserve(sizeof(*u32)[0], *u32,
+    gp_arr_reserve(sizeof(*u32)[0], u32,
         gp_arr_length(*u32) + gp_bytes_codepoint_count((uint8_t*)u8 + i, u8_length - i));
 
     for (; i < u8_length; i += codepoint_length)
@@ -285,7 +285,7 @@ void gp_utf32_to_utf8(
     }
 
     size_t required_capacity = gp_str_length(*u8);
-    for (size_t j = i; j < gp_arr_length(u32); ++j)
+    for (size_t j = i; j < u32_length; ++j)
     {
         if (u32[j] > 0x7F)
         {
@@ -357,7 +357,7 @@ void gp_utf8_to_utf16(
         codepoint_length = gp_utf8_codepoint_length(u8, j);
         capacity_needed += codepoint_length <= 3 ? 1 : 2;
     }
-    *u16 = gp_arr_reserve(sizeof(*u16)[0], *u16, capacity_needed);
+    gp_arr_reserve(sizeof(*u16)[0], u16, capacity_needed);
 
     for (; i < u8_length; i += codepoint_length)
     {
@@ -433,7 +433,7 @@ void gp_utf16_to_utf8(
     }
 
     size_t required_capacity = gp_str_length(*u8);
-    for (size_t j = i; j < gp_arr_length(u16); ++j)
+    for (size_t j = i; j < u16_length; ++j)
     {
         if (u16[j] > 0x7F)
         {
@@ -490,7 +490,7 @@ void gp_utf8_to_wcs(
         gp_utf8_to_utf32((GPArray(uint32_t)*)wcs, utf8, utf8_length);
     else
         gp_utf8_to_utf16((GPArray(uint16_t)*)wcs, utf8, utf8_length);
-    *wcs = gp_arr_reserve(sizeof(*wcs)[0], *wcs, gp_arr_length(*wcs) + sizeof"");
+    gp_arr_reserve(sizeof(*wcs)[0], wcs, gp_arr_length(*wcs) + sizeof"");
     (*wcs)[gp_arr_length(*wcs)] = L'\0';
 }
 
@@ -562,7 +562,7 @@ GPArray(GPString) gp_str_split(
     GPArray(GPString) substrs = NULL;
     size_t j, i = gp_utf8_find_first_not_of(str, str_length, separators, 0);
     if (i == GP_NOT_FOUND)
-        return gp_arr_new(allocator, sizeof(GPString), 1);
+        return gp_arr_new(sizeof(GPString), allocator, 1);
 
     size_t indices_length = 0;
     struct start_end_pair {
@@ -591,13 +591,14 @@ GPArray(GPString) gp_str_split(
 
         if (substrs == NULL)
             substrs = gp_arr_new(
-                allocator,
                 sizeof(GPString),
+                allocator,
                 i == GP_NOT_FOUND ? indices_length : 2 * indices_length);
         else
-            substrs = gp_arr_reserve(
+            gp_arr_reserve(
                 sizeof(GPString),
-                substrs, i == GP_NOT_FOUND ?
+                &substrs,
+                i == GP_NOT_FOUND ?
                     gp_arr_length(substrs) + indices_length
                   : 3 * gp_arr_length(substrs));
 
@@ -675,9 +676,9 @@ static bool gp_is_diatrical(const uint32_t encoding)
 
 GP_NONNULL_ARGS()
 static size_t gp_u32_append(
-    GPArray(uint32_t)restrict*restrict u32, uint32_t*restrict codepoints, size_t codepoints_length)
+    GPArray(uint32_t)*restrict u32, uint32_t*restrict codepoints, size_t codepoints_length)
 {
-    *u32 = gp_arr_reserve(sizeof (*u32)[0], *u32, gp_arr_capacity(*u32) + codepoints_length - 1);
+    gp_arr_reserve(sizeof (*u32)[0], u32, gp_arr_capacity(*u32) + codepoints_length - 1);
     size_t utf8_length = 0;
     for (size_t i = 0; i < codepoints_length; ++i) {
         (*u32)[gp_arr_length(*u32) + i] = codepoints[i];
@@ -704,7 +705,7 @@ void gp_str_to_upper_full(
     GPArena* scratch = gp_scratch_arena();
     size_t u32_capacity = gp_str_length(*str); // this gets incremented by GP_u32_APPEND()
     GPArray(uint32_t) u32 = gp_arr_new(
-        (GPAllocator*)scratch, sizeof u32[0], u32_capacity);
+        sizeof u32[0], (GPAllocator*)scratch, u32_capacity);
 
     size_t required_capacity = 0; // this gets incremented by GP_u32_APPEND()
     (*str)[gp_str_length(*str)].c = '\0'; // last lookahead
@@ -929,7 +930,7 @@ void gp_str_to_lower_full(
     GPArena* scratch = gp_scratch_arena();
     size_t u32_capacity = gp_str_length(*str); // this gets incremented by GP_u32_APPEND()
     GPArray(uint32_t) u32 = gp_arr_new(
-        (GPAllocator*)scratch, sizeof u32[0], u32_capacity);
+        sizeof u32[0], (GPAllocator*)scratch, u32_capacity);
     size_t required_capacity = 0;
     (*str)[gp_str_length(*str)].c = '\0'; // last lookahead
     uint32_t lookahead;
@@ -1135,9 +1136,9 @@ void gp_str_capitalize(
 
 GP_NONNULL_ARGS()
 static void gp_wcs_append(
-    GPArray(wchar_t)restrict*restrict wcs, wchar_t*restrict codepoints, size_t codepoints_length)
+    GPArray(wchar_t)*restrict wcs, wchar_t*restrict codepoints, size_t codepoints_length)
 {
-    *wcs = gp_arr_reserve(sizeof (*wcs)[0], *wcs, gp_arr_capacity(*wcs) + codepoints_length - 1);
+    gp_arr_reserve(sizeof (*wcs)[0], wcs, gp_arr_capacity(*wcs) + codepoints_length - 1);
     for (size_t i = 0; i < codepoints_length; ++i)
         (*wcs)[gp_arr_length(*wcs) + i] = codepoints[i];
     ((GPArrayHeader*)*wcs - 1)->length += codepoints_length;
@@ -1156,7 +1157,7 @@ void gp_wcs_fold_utf8(
     const uint8_t* str = _str;
     ((GPArrayHeader*)*wcs - 1)->length = 0;
     size_t wcs_capacity = str_length + sizeof"";
-    *wcs = gp_arr_reserve(sizeof(*wcs)[0], *wcs, wcs_capacity);
+    gp_arr_reserve(sizeof(*wcs)[0], wcs, wcs_capacity);
     const bool turkish = strncmp(locale_code, "tr", 2) == 0 || strncmp(locale_code, "az", 2) == 0;
 
     size_t i = 0;
@@ -1360,7 +1361,8 @@ void gp_str_sort(
     for (size_t i = 0; i < gp_arr_length(*strs); ++i) {
         pairs[i].narrow = (*strs)[i];
         pairs[i].locale = gp_locale(locale_code);
-        pairs[i].wide = gp_arr_new((GPAllocator*)scratch, sizeof pairs[i].wide[0], gp_str_length((*strs)[i]));
+        pairs[i].wide = gp_arr_new(
+            sizeof pairs[i].wide[0], (GPAllocator*)scratch, gp_str_length((*strs)[i]));
         if (fold)
             gp_wcs_fold_utf8(&pairs[i].wide, (*strs)[i], gp_str_length((*strs)[i]), locale_code);
         else
@@ -1403,12 +1405,12 @@ int gp_str_compare(
 
     GPArena* scratch = gp_scratch_arena();
     GPArray(wchar_t) wcs1 = gp_arr_new(
-        (GPAllocator*)scratch,
         sizeof wcs1[0],
+        (GPAllocator*)scratch,
         gp_bytes_codepoint_count(s1, gp_str_length(s1)) + sizeof"");
     GPArray(wchar_t) wcs2 = gp_arr_new(
-        (GPAllocator*)scratch,
         sizeof wcs2[0],
+        (GPAllocator*)scratch,
         gp_bytes_codepoint_count(s2, s2_length) + sizeof"");
 
     if (fold) {

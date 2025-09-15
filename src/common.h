@@ -97,10 +97,14 @@ size_t gp_bytes_print_objects(
 // Portability Assumptions
 
 #if CHAR_BIT != 8
-#error CHAR_BIT != 8: Crazy machines not supported.
+#error CHAR_BIT != 8: Crazy bytes not supported.
 #endif
 #if ~1 == -1
 #error Ones complement integer arithmetic not supported. C23 deprecates it anyway.
+#endif
+#if __STDC_VERSION__ >= 201112L
+_Static_assert(sizeof(char*) == sizeof(int*), "");
+_Static_assert(sizeof(void*) == sizeof(void(*)()), "");
 #endif
 
 // ----------------------------------------------------------------------------

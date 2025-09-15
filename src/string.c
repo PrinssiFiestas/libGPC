@@ -165,10 +165,10 @@ void gp_str_reserve(
     if (capacity <= gp_arr_capacity(*pstr))
         return;
 
-    GPString str = gp_arr_reallocate(sizeof**pstr, *pstr, capacity + sizeof"");
-    if (str != *pstr) // allocation happened
-        gp_str_header(str)->capacity -= sizeof"";
-    *pstr = str;
+    GPString old_address = *pstr;
+    gp_arr_reallocate(sizeof**pstr, pstr, capacity + sizeof"");
+    if (old_address != *pstr) // allocation happened
+        gp_str_header(*pstr)->capacity -= sizeof"";
 }
 
 void gp_str_copy(
@@ -559,7 +559,7 @@ void gp_str_trim(
 
 GPArray(uint32_t) gp_utf8_to_utf32_new(GPAllocator* allocator, const GPString u8)
 {
-    GPArray(uint32_t) u32 = gp_arr_new(allocator, sizeof u32[0], gp_str_length(u8));
+    GPArray(uint32_t) u32 = gp_arr_new(sizeof u32[0], allocator, gp_str_length(u8));
     for (size_t i = 0, codepoint_length; i < gp_str_length(u8); i += codepoint_length)
     {
         uint32_t encoding;

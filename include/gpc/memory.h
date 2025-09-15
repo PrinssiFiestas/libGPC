@@ -55,7 +55,7 @@ static inline void* gp_mem_alloc(
     return allocator->alloc(allocator, size, GP_ALLOC_ALIGNMENT);
 }
 
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ALLOC_ALIGN(3)
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ATTRIB_ALLOC_ALIGN(3)
 static inline void* gp_mem_alloc_aligned(
     GPAllocator* allocator,
     size_t size,
@@ -352,7 +352,7 @@ void gp_carena_delete(GPContiguousArena* optional);
  * gp_mem_alloc() is meant to be polymorphic, use this directly to maximize
  * performance.
  */
-GP_NONNULL_ARGS_AND_RETURN GP_ALLOC_ALIGN(3)
+GP_NONNULL_ARGS_AND_RETURN GP_ATTRIB_ALLOC_ALIGN(3)
 static inline void* gp_carena_alloc(
     GPContiguousArena* allocator, const size_t size, const size_t alignment)
 {

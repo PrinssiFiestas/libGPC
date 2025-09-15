@@ -122,7 +122,19 @@ int main(void)
 #elif (defined(__GNUC__) || defined(__TINYC__)) && !defined(GP_PEDANTIC)
 #define GP_TYPEOF(...) typeof(__VA_ARGS__)
 #elif defined(_MSC_VER) || defined(__GNUC__)
-#define GP_TYPEOF(X) __typeof__(X)
+#define GP_TYPEOF(...) __typeof__(__VA_ARGS__)
+#elif __cplusplus
+#define GP_TYPEOF(...) decltype(__VA_ARGS__)
+#endif
+
+// ----------------------------------------------------------------------------
+
+#if __cplusplus
+#define GP_PTR_TO(...) decltype(new(__VA_ARGS__))
+#elif defined(GP_TYPEOF)
+#define GP_PTR_TO(...) GP_TYPEOF(&(__VA_ARGS__){0})
+#else // typedefs may be required for function pointers and such
+#define GP_PTR_TO(...) __VA_ARGS__*
 #endif
 
 // ----------------------------------------------------------------------------
@@ -743,13 +755,6 @@ _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, RESOLVED, ...) 
 
 #ifdef __cplusplus
 } // extern "C"
-
-#if __cpp_decltype
-#ifdef GP_TYPEOF
-#undef GP_TYPEOF
-#endif
-#define GP_TYPEOF(...) decltype(__VA_ARGS__)
-#endif
 
 static inline constexpr GPType GP_TYPE(bool               x) { (void)x; return GP_BOOL;               }
 static inline constexpr GPType GP_TYPE(short              x) { (void)x; return GP_SHORT;              }

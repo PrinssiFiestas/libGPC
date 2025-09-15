@@ -2,7 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#define GP_NO_FORMAT_STRING_CHECK // "%w128i" on older versions GNUC compilers
+#define GP_NO_FORMAT_STRING_CHECK // "%w128i"
 
 #include <gpc/assert.h>
 #include <gpc/terminal.h>
@@ -165,6 +165,10 @@ void gp_suite(const char* name)
 
 // ----------------------------------------------------------------------------
 // Implementations for gp_assert() and gp_expect()
+
+// TODO C99 has no reflection, better to skip printing non-formatted variables
+// than print garbage. This improves portability too, it's okay to leave
+// assertions using reflection in.
 
 void gp_fail_internal(
     const char* file,
