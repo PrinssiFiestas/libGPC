@@ -22,13 +22,18 @@ int main(void)
         gp_test("Arrays on stack");
         {
             // Create array that can hold 4 elements
-            GPArray(int) arr = gp_arr_on_stack(gp_heap, 4, int);
+            GPArrayBuffer(int, 4) buffer;
+            // Passing an allocator makes the array reallocateable
+            GPArray(int) arr = gp_arr_buffered(int, gp_heap, &buffer);
+
             gp_expect(gp_arr_allocation(arr) == NULL,
                 "Stack allocated arrays should not have a allocation.");
 
-            // It's okay not to provide an allocator since this one does not grow.
-            const GPArray(int) arr2 = gp_arr_on_stack(NULL, 8, int,
-                1, 2, 3, 4, 5, 6, 7, 8);
+            GPArrayBuffer(int, 8) buffer2;
+            GPArray(int) arr2 = gp_arr_buffered(int, NULL, &buffer2, 1, 2, 3, 4, 5, 6, 7, 8);
+            gp_expect(gp_arr_length(arr2) == 8);
+            gp_expect(
+                !memcmp(arr2, (int[]){ 1, 2, 3, 4, 5, 6, 7, 8 }, 8*sizeof(int)));
 
             // Copying past capacity is safe; arr uses gp_heap to reallocate.
             gp_arr_copy(sizeof*arr, &arr, arr2, gp_arr_length(arr2));
@@ -120,7 +125,8 @@ int main(void)
 
         gp_test("Copy slice");
         {
-            GPArray(int) arr = gp_arr_on_stack(NULL, 64, int);
+            GPArrayBuffer(int, 64) buffer;
+            GPArray(int) arr = gp_arr_buffered(int, NULL, &buffer);
             const int carr[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
             // Always reassign destination array to self in case of reallocation!
@@ -131,7 +137,9 @@ int main(void)
 
         gp_test("Mutating slice");
         {
-            GPArray(int) arr = gp_arr_on_stack(NULL, 64, int, 0, 1, 2, 3, 4, 5 );
+            GPArrayBuffer(int, 64) buffer;
+            GPArray(int) arr = gp_arr_buffered(int, NULL, &buffer);
+            gp_arr_copy(sizeof(int), &arr, ((int[]){ 0, 1, 2, 3, 4, 5 }), 5);
             gp_arr_slice(sizeof*arr, &arr, NULL, 2, 5);
             const int carr[] = { 2, 3, 4 };
             arr_assert_eq(arr, carr, CARR_LEN(carr));
@@ -183,8 +191,10 @@ int main(void)
         {
             void increment(void* out, const void* in);
 
-            GPArray(int) arr  = gp_arr_on_stack(&scope->base, 2, int);
-            GPArray(int) arr2 = gp_arr_on_stack(&scope->base, 4, int, 1, 2, 3, 4);
+            GPArrayBuffer(int, 2) arr_buf;
+            GPArrayBuffer(int, 4) arr2_buf;
+            GPArray(int) arr  = gp_arr_buffered(int, &scope->base, &arr_buf);
+            GPArray(int) arr2 = gp_arr_buffered(int, &scope->base, &arr2_buf, 1, 2, 3, 4);
             gp_arr_map(sizeof arr[0], &arr, arr2, gp_arr_length(arr2), increment);
             arr_assert_eq(arr, ((int[]){2, 3, 4, 5}), 4);
 
@@ -196,7 +206,8 @@ int main(void)
                 == 0 + 3 + 4 + 5 + 6);
 
             void* append(void* accumulator, const void* element);
-            GPArray(const char*) arr_cstr = gp_arr_on_stack(&scope->base, 4, const char*,
+            GPArrayBuffer(const char*, 4) cstr_buffer;
+            GPArray(const char*) arr_cstr = gp_arr_buffered(const char*, &scope->base, &cstr_buffer,
                 "I", "am", "the", "Walrus");
             char* result = gp_arr_foldr(sizeof*arr_cstr, arr_cstr, NULL, append);
             gp_expect(strcmp(result, "Walrus the am I ") == 0, result);

@@ -12,7 +12,7 @@
 
 #if !_WIN32
 #ifndef __USE_MISC // this should not be used, but _GNU_SOURCE had too many
-#define __USE_MISC // portability related problems
+#define __USE_MISC // portability related problems. Used for MAP_ANONYMOUS
 #define GP_USE_MISC_DEFINED
 #endif
 #include <sys/mman.h>
@@ -132,7 +132,7 @@ void* gp_arena_alloc(GPAllocator* allocator, const size_t size, const size_t ali
     void* block = head->position = (void*)gp_round_to_aligned((uintptr_t)head->position, alignment);
     if ((uint8_t*)block + size + GP_POISON_BOUNDARY_SIZE > (uint8_t*)(head + 1) + arena->head->capacity)
     { // out of memory, create new arena
-        size_t new_cap = arena->growth_coefficient * arena->head->capacity;
+        size_t new_cap = arena->growth_factor * arena->head->capacity;
         block = gp_arena_node_new_alloc(arena->backing, &arena->head, new_cap, size, alignment);
     }
     else {
@@ -182,8 +182,8 @@ GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
     arena->backing = init->backing_allocator != NULL ?
         init->backing_allocator
       : gp_heap;
-    arena->growth_coefficient = init->growth_coefficient != 0. ?
-        init->growth_coefficient
+    arena->growth_factor = init->growth_factor != 0. ?
+        init->growth_factor
       : 2.;
     arena->max_size = init->max_size != 0 ?
         init->max_size
@@ -263,7 +263,7 @@ static GPArena* gp_new_scratch_arena(void)
 {
     GPArenaInitializer init = {
         .max_size           = GP_SCRATCH_ARENA_DEFAULT_MAX_SIZE,
-        .growth_coefficient = GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT,
+        .growth_factor = GP_SCRATCH_ARENA_DEFAULT_GROWTH_COEFFICIENT,
     };
     GPArena* arena = gp_arena_new(&init, GP_SCRATCH_ARENA_DEFAULT_INIT_SIZE);
     gp_thread_local_set(gp_scratch_arena_key, arena);
@@ -521,7 +521,7 @@ GPContiguousArena* gp_carena_new(size_t size)
     gp_db_assert(size != 0, "%zu", size);
     gp_db_assert(size <= PTRDIFF_MAX, "%zu", size, "Possibly negative size detected.");
     gp_db_expect(size >= 4096, "%zu", size,
-        "Virtual allocator is supposed to be used with HUGE arenas. "
+        "Contiguous arenas are supposed to be HUGE. "
         "Are you sure you are allocating enough?");
 
     size = gp_round_to_aligned(size, gp_page_size());
@@ -535,6 +535,14 @@ GPContiguousArena* gp_carena_new(size_t size)
         NULL,
         size,
         PROT_READ | PROT_WRITE,
+        // MAP_NORESERVE: don't reserve swap memory. Arenas tend to be HUGE, we
+        // don't want to waste swap memory especially for virtual machines. If
+        // we run out of swap memory, we might segfault or get killed by OOM,
+        // but at that point the user would deserve to be killed anyway.
+        //
+        // Note: MAP_HUGETLB (huge pages) would improve performance, but raises
+        // SIGBUS if Linux machine not configured appropriately, so we'll leave
+        // it out in interest of portability.
         MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE,
         -1, 0);
     gp_db_expect(arena != NULL && arena != (void*)-1, "mmap():", "%s", strerror(errno));
@@ -579,7 +587,7 @@ void gp_carena_delete(GPContiguousArena* arena)
     #if _WIN32
     BOOL VirtualFree_result = VirtualFree(arena, 0, MEM_RELEASE);
     gp_db_expect(VirtualFree_result != 0, "%lu", GetLastError());
-    #else
+    #else // TODO why are we aligning when munmap() and mmap() allows unaligned sizes?
     int munmap_result = munmap(arena, gp_round_to_aligned(arena->capacity, gp_page_size()));
     gp_db_expect(munmap_result != -1, "%s", strerror(errno));
     #endif

@@ -31,11 +31,20 @@ int main(void)
 {
     // Tiny arena to put address sanitizer to work
     GPArena* _arena = gp_arena_new(NULL, 1);
-    _arena->growth_coefficient = 0.0; // TODO document this
+    _arena->growth_factor = 0.0; // TODO document this
     GPAllocator* arena = (GPAllocator*)_arena;
 
     gp_suite("Hash map");
     {
+        gp_test("FNV_1a Hash");
+        {
+            // https://fnvhash.github.io/fnv-calculator-online/
+            const char* str = "I am the Walrus.";
+            gp_assert(gp_bytes_hash32(str,  strlen(str)) == 0x249f7959);
+            gp_assert(gp_bytes_hash64(str,  strlen(str)) == 0x7a680bab8c51fa39);
+            gp_assert(gp_uint128_equal(gp_bytes_hash128(str, strlen(str)), gp_uint128(0x67dc4bcbf73fe4e5, 0xb72b80a0168bcee1)));
+        }
+
         const char* key = "This is my key!";
         gp_test("Pointer elements");
         {

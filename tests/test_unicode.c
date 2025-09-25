@@ -15,13 +15,14 @@ int main(void)
 {
     // Tiny arena to put address sanitizer to work
     GPArena* _arena = gp_arena_new(NULL, 1);
-    _arena->growth_coefficient = 0.0;
+    _arena->growth_factor = 0.0;
     GPAllocator* arena = (GPAllocator*)_arena;
 
     gp_suite("Conversions");
     {
         #if __STDC_VERSION__ >= 201112L
-        GPString utf8 = gp_str_on_stack(NULL, 32, "zß水🍌");
+        GPStringBuffer(32) buf;
+        GPString utf8 = gp_str_buffered(NULL, &buf, "zß水🍌");
         GPArray(uint16_t) utf16 = gp_arr_new(sizeof utf16[0], arena, 32);
 
         gp_test("UTF-8 to UTF-16");
@@ -41,7 +42,8 @@ int main(void)
 
         gp_test("UTF-16 to UTF-8");
         {
-            GPString decoding = gp_str_on_stack(NULL, 32, "");
+            GPStringBuffer(32) buf;
+            GPString decoding = gp_str_buffered(NULL, &buf);
             gp_utf16_to_utf8(&decoding, utf16, gp_arr_length(utf16));
             gp_expect(gp_str_equal(utf8, decoding, gp_str_length(decoding)), utf8, decoding);
         }
@@ -155,8 +157,10 @@ int main(void)
 
         gp_test("Case insensitive but locale sensitive comparison");
         {
-            GPString str1 = gp_str_on_stack(NULL, 64, "hrnec");
-            GPString str2 = gp_str_on_stack(NULL, 64, "chrt");
+            GPStringBuffer(64) buf1;
+            GPStringBuffer(64) buf2;
+            GPString str1 = gp_str_buffered(NULL, &buf1, "hrnec");
+            GPString str2 = gp_str_buffered(NULL, &buf2, "chrt");
 
             gp_test("Default locale");
             {
@@ -221,12 +225,15 @@ int main(void)
 
         gp_test("Sorting");
         {
-            GPArray(GPString) strs = gp_arr_on_stack(NULL, 16, GPString,
-                gp_str_on_stack(NULL, 16, "sbloink"),
-                gp_str_on_stack(NULL, 16, "i"),
-                gp_str_on_stack(NULL, 16, "asdf"),
-                gp_str_on_stack(NULL, 16, "İ"),
-                gp_str_on_stack(NULL, 16, "Sbloink"));
+            GPArrayBuffer(GPString, 16) arrbuf;
+            GPStringBuffer(16) strbufs[16];
+
+            GPArray(GPString) strs = gp_arr_buffered(GPString, NULL, &arrbuf,
+                gp_str_buffered(NULL, strbufs + 0, "sbloink"),
+                gp_str_buffered(NULL, strbufs + 1, "i"),
+                gp_str_buffered(NULL, strbufs + 2, "asdf"),
+                gp_str_buffered(NULL, strbufs + 3, "İ"),
+                gp_str_buffered(NULL, strbufs + 4, "Sbloink"));
 
             // Lexicographic sorting
             gp_str_sort(&strs, 0, "");

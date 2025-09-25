@@ -29,11 +29,7 @@ extern "C" {
 // ----------------------------------------------------------------------------
 
 
-/** Distinct character type.
- * This should not be used directly. This only exist to make _Generic()
- * selection work in C and overloads in C++. This should only be used to get
- * byte values from GPString e.g. my_string[i].c.
- */
+/** Distinct character type */
 typedef struct gp_char { uint8_t c; } GPChar;
 
 /** Dynamic string.
@@ -58,16 +54,34 @@ typedef struct gp_string_header
     uintptr_t    length;
 } GPStringHeader;
 
+/** Static string buffer.
+ * Used to create a static or stack allocated string. Create a variable of this
+ * type, then pass it by address to @ref gp_str_static() to initialize and
+ * convert it to GPString. It is not recommended to initialize this manually,
+ * @ref gp_str_static() will empty the contents anyway. You also shouldn't use
+ * this directly, you want to convert to GPString and use that instead, so it
+ * can be reallocated if needed. This is only meant to be a static or stack
+ * allocated backing buffer for GPString.
+ */
+#define GPStringBuffer(CAPACITY)    \
+struct GP_ANONYMOUS_STRUCT(__LINE__) \
+{ \
+    uintptr_t    capacity;   \
+    void*        allocation;  \
+    GPAllocator* allocator;    \
+    uintptr_t    length;        \
+    GPChar       data[CAPACITY]; \
+}
+
 /** Getters */
 GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_str_length    (GPString str) { return ((GPStringHeader*)str - 1)->length;     }
 GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_str_capacity  (GPString str) { return ((GPStringHeader*)str - 1)->capacity;   }
 GP_NONNULL_ARGS() GP_NODISCARD static inline GPAllocator* gp_str_allocator (GPString str) { return ((GPStringHeader*)str - 1)->allocator;  }
 GP_NONNULL_ARGS() GP_NODISCARD static inline void*        gp_str_allocation(GPString str) { return ((GPStringHeader*)str - 1)->allocation; }
 
-// TODO document better!
-/** Setter */
+/** Direct access to GPStringHeader fields. */
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
-static inline GPStringHeader* gp_str_header(GPString str)
+static inline GPStringHeader* gp_str_set(GPString str)
 {
     return (GPStringHeader*)str - 1;
 }
@@ -88,39 +102,25 @@ static inline GPString gp_str_new_init(
     size_t len = strlen(init);
     GPString s = gp_str_new(alc, gp_max(capacity, len));
     memcpy(s, init, len);
-    gp_str_header(s)->length = len;
+    gp_str_set(s)->length = len;
     return s;
 }
 
-/** Create a new dynamic string on stack.
- * @p allocator_ptr determines how the string will be reallocated if length
- * exceeds capacity. If it is known that length will not exceed capacity,
- * @p allocator_ptr can be left NULL. // TODO remember to update docs when truncating implemented!
- * Not available in C++.
- */
-#define/* GPString */gp_str_on_stack( \
-    optional_allocator_ptr, \
-    size_t_capacity, \
-    /*optional_cstr_literal_init*/...) (GPString) \
-    \
-    GP_STR_ON_STACK(optional_allocator_ptr, size_t_capacity,__VA_ARGS__)
-
-// If not zeroing memory for performance is desirable and/or macro magic is
-// undesirable, strings can be created on stack manually. This is required in
-// C++ which does not have gp_str_on_stack(). Capacity should be initialized to
-// be actual capacity - 1 for null-termination. Example using memset():
-/*
-    struct optional_name{GPStringHeader header; GPChar data[2048];} my_str_mem;
-    memset(&my_str_mem.header, 0, sizeof my_str_mem.header);
-    my_str_mem.header.capacity = 2048 - sizeof"";
-    GPString my_string = my_str_mem.data;
-*/
-// or more concisely: (C only)
-/*
-    struct { GPStringHeader h; GPChar data[2048];} str_mem;
-    str_mem.h = (GPStringHeader){.capacity = 2048 };
-    GPString str = str_mem.data;
-*/
+/** Create and initialize a string from a static string buffer */
+#define/* GPString */gp_str_buffered(      \
+    GPAllocator_ptr_OPTIONAL,               \
+    GPStringBuffer_ptr_BUFFER,               \
+    /* optional initial string literal */...) \
+( \
+    (GPStringBuffer_ptr_BUFFER)->capacity =                            \
+        sizeof((GPStringBuffer_ptr_BUFFER)->data) - sizeof"",           \
+    (GPStringBuffer_ptr_BUFFER)->allocation = NULL,                      \
+    (GPStringBuffer_ptr_BUFFER)->allocator  = (GPAllocator_ptr_OPTIONAL), \
+    GP_STR_CHECK_INIT_SIZE((GPStringBuffer_ptr_BUFFER)->data, __VA_ARGS__),\
+    (GPStringBuffer_ptr_BUFFER)->length     = sizeof(""__VA_ARGS__)-1,      \
+    strcpy((char*)((GPStringBuffer_ptr_BUFFER)->data), ""__VA_ARGS__),       \
+    /* return */(GPStringBuffer_ptr_BUFFER)->data                             \
+)
 
 /** Free string memory.
  * Passing strings on stack is safe too.
@@ -417,11 +417,6 @@ bool gp_str_is_valid(
 // ----------------------------------------------------------------------------
 
 
-#ifdef _MSC_VER
-// unnamed struct in parenthesis in gp_str_on_stack()
-#pragma warning(disable : 4116)
-#endif
-
 size_t gp_str_print_internal(
     GPString* out,
     size_t arg_count,
@@ -449,19 +444,6 @@ size_t gp_str_n_println_internal(
     ...);
 
 #ifndef __cplusplus
-
-#define/* GPString */GP_STR_ON_STACK( \
-    optional_allocator_ptr, \
-    size_t_capacity, \
-    ...) (GPString) \
-(struct GP_C99_UNIQUE_STRUCT(__LINE__) \
-{ GPStringHeader header; char data[ (size_t_capacity) + sizeof"" ]; }) { \
-{ \
-    .length     = sizeof(""__VA_ARGS__) - 1, \
-    .capacity   = size_t_capacity, \
-    .allocator  = optional_allocator_ptr, \
-    .allocation = NULL \
-}, {""__VA_ARGS__} }.data
 
 #define GP_STR_PRINT(OUT, ...) \
     gp_str_print_internal( \
@@ -497,8 +479,15 @@ size_t gp_str_n_println_internal(
             { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 
+// Portably issue warning. Also gives better error message than strcpy().
+#define GP_STR_CHECK_INIT_SIZE(DATA_BUF, ...) \
+    (char*){0} = (char[sizeof DATA_BUF]){""__VA_ARGS__}
+
 #else // __cplusplus
 } // extern "C"
+
+// Major compilers already know to issue warning based on strcpy() alone.
+#define GP_STR_CHECK_INIT_SIZE(...)
 
 static inline std::ostream& operator<<(std::ostream& out, GPString str)
 {

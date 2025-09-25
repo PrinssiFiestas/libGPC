@@ -67,6 +67,23 @@ typedef struct gp_array_header
     uintptr_t    length;
 } GPArrayHeader;
 
+/** Static array buffer.
+ * Used to create a static or stack allocated GPArray(T). Create a variable of
+ * this type, then pass it by address to @ref gp_arr_static() to initialize and
+ * convert it to GPArray(T). This type is not meant to be used directly, it is
+ * meant to be used as a statically allocated buffer to be converted to
+ * GPArray(T).
+ */
+#define GPArrayBuffer(T, CAPACITY)  \
+struct GP_ANONYMOUS_STRUCT(__LINE__) \
+{ \
+    uintptr_t         capacity;   \
+    void*             allocation;  \
+    GPAllocator*      allocator;    \
+    uintptr_t         length;        \
+    GP_TYPEOF_TYPE(T) data[CAPACITY]; \
+}
+
 #if !__cplusplus && __STDC_VERSION__ < 202311L // empty arg list for BETTER type checks
 typedef void  (*gp_arr_map_callback_t)(/* T* out_element, const T* in_element */);
 typedef void* (*gp_arr_fold_callback_t)(/* Any* accumulator, const T* element */);
@@ -83,10 +100,9 @@ GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_arr_capacity  (GPAr
 GP_NONNULL_ARGS() GP_NODISCARD static inline void*        gp_arr_allocation(GPArrayAny arr) { return ((GPArrayHeader*)arr - 1)->allocation; }
 GP_NONNULL_ARGS() GP_NODISCARD static inline GPAllocator* gp_arr_allocator (GPArrayAny arr) { return ((GPArrayHeader*)arr - 1)->allocator;  }
 
-// TODO document better!
-/** Setter */
+/** Direct access to GPArrayHeader fields. */
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
-static inline GPArrayHeader* gp_arr_header(GPArrayAny arr)
+static inline GPArrayHeader* gp_arr_set(GPArrayAny arr)
 {
     return (GPArrayHeader*)arr - 1;
 }
@@ -109,39 +125,23 @@ static inline GPArrayAny gp_arr_new(
     return me + 1;
 }
 
-/** Create a new dynamic array on stack. Not available in C++.
- * @p allocator determines how the array will be reallocated if length exceeds
- * capacity. If it is known that length will not exceed capacity, @p allocator
- * can be left NULL.
- *     Note that if you compile with Clang without GNU C extensions (with
- * `-std=cXX` or `-Wpedantic`), @p init_values must have at least one argument.
- * This means that to create an empty array, a trailing comma must be used in
- * the argument list.
- *     CompCert will not allow empty arrays, even with trailing comma.
- */
-#define/* GPArray(T) */gp_arr_on_stack( \
-    optional_allocator, \
-    size_t_capacity, \
-    T/*type*/, \
-    /*init_values*/...) \
-    \
-    GP_ARR_ON_STACK(optional_allocator, size_t_capacity, T,__VA_ARGS__)
-
-// If not zeroing memory for performance is desirable and/or macro magic is
-// undesirable, arrays can be created on stack manually. This is required in C++
-// which does not have gp_arr_on_stack(). Example with int using memset():
-/*
-    struct optional_name { GPArrayHeader header; int data[2048]; } my_array_mem;
-    memset(&my_array_mem.header, 0, sizeof my_array_mem.header);
-    my_array_mem.header.capacity = 2048;
-    GPArray(int) my_array = my_array_mem.data;
-*/
-// or more concisely: (C only)
-/*
-    struct { GPArrayHeader h; int data[2048];} arr_mem;
-    arr_mem.h = (GPArrayHeader){.capacity = 2048 };
-    GPArray(int) arr = arr_mem.data;
-*/
+/** Create and initialize an array from a static array buffer */
+#define/* GPArray(T) */gp_arr_buffered( \
+    T,                                  \
+    GPAllocator_ptr_OPTIONAL,           \
+    /* GPArrayBuffer(T, N)* BUFFER, */  \
+    /* optional initial values */...)   \
+( \
+    (GP_1ST_ARG(__VA_ARGS__))->capacity =                                         \
+        sizeof((GP_1ST_ARG(__VA_ARGS__))->data) /                                 \
+            sizeof((GP_1ST_ARG(__VA_ARGS__))->data[0]),                           \
+    (GP_1ST_ARG(__VA_ARGS__))->allocation = NULL,                                 \
+    (GP_1ST_ARG(__VA_ARGS__))->allocator  = (GPAllocator_ptr_OPTIONAL),           \
+    (GP_1ST_ARG(__VA_ARGS__))->length =                                           \
+        GP_ARR_STATIC_OPTIONAL_INITIALIZE_LENGTH(GP_TYPEOF_TYPE(T), __VA_ARGS__), \
+    GP_ARR_STATIC_OPTIONAL_INITIALIZE(GP_TYPEOF_TYPE(T), __VA_ARGS__),            \
+    /* return */(GP_1ST_ARG(__VA_ARGS__))->data                                   \
+)
 
 /** Free array memory.
  * Passing arrays on stack is safe too.
@@ -208,7 +208,7 @@ static inline void gp_arr_copy(
     gp_arr_reserve(element_size, pdest, src_length);
     assert(gp_arr_capacity(*pdest) >= src_length); // analyzer false positive // TODO after testing inlines, try to remove this
     memcpy(*pdest, src, src_length * element_size);
-    gp_arr_header(*pdest)->length = src_length;
+    gp_arr_set(*pdest)->length = src_length;
 }
 
 /** Copy or remove elements.
@@ -234,7 +234,7 @@ static inline void gp_arr_slice(
         gp_arr_reserve(size, pdest, length);
         memcpy(*pdest, (uint8_t*)optional_src + start_index*size, length*size);
     }
-    gp_arr_header(*pdest)->length = length;
+    gp_arr_set(*pdest)->length = length;
 }
 
 
@@ -249,7 +249,7 @@ static inline void gp_arr_push(
     const size_t length = gp_arr_length(*parr);
     gp_arr_reserve(element_size, parr, length + 1);
     memcpy((uint8_t*)*parr + length * element_size, element, element_size);
-    gp_arr_header(*parr)->length++;
+    gp_arr_set(*parr)->length++;
 }
 
 /** Remove element from the end.
@@ -282,7 +282,7 @@ static inline void gp_arr_append(
     const size_t length = gp_arr_length(*parr);
     gp_arr_reserve(element_size, parr, length + src_length);
     memcpy((uint8_t*)*parr + length*element_size, src, src_length*element_size);
-    gp_arr_header(*parr)->length += src_length;
+    gp_arr_set(*parr)->length += src_length;
 }
 
 /** Add elements to specified position.
@@ -307,7 +307,7 @@ static inline void gp_arr_insert(
     memcpy(
         (uint8_t*)*parr +  position*element_size, src, src_length*element_size);
 
-    gp_arr_header(*parr)->length += src_length;
+    gp_arr_set(*parr)->length += src_length;
 }
 
 /** Remove elements.
@@ -375,7 +375,7 @@ static inline void gp_arr_map(
         gp_arr_reserve(element_size, parr, optional_src_length);
         for (size_t i = 0; i < optional_src_length; i++)
             func((uint8_t*)*parr + i*element_size, (uint8_t*)optional_src + i*element_size);
-        gp_arr_header(*parr)->length = optional_src_length;
+        gp_arr_set(*parr)->length = optional_src_length;
     }
 }
 
@@ -440,20 +440,20 @@ static inline void gp_arr_filter(
     bool(*func)(const void* x) = (bool(*)(const void* x))f;
 
     const size_t length = optional_src == NULL ? gp_arr_length(*parr) : optional_src_length;
-    gp_arr_header(*parr)->length = 0;
+    gp_arr_set(*parr)->length = 0;
 
     if (optional_src == NULL) {
         for (size_t i = 0; i < length; ++i)
             if (func((const uint8_t*)*parr + i*element_size))
                memmove(
-                   (uint8_t*)*parr + gp_arr_header(*parr)->length++ * element_size,
+                   (uint8_t*)*parr + gp_arr_set(*parr)->length++ * element_size,
                    (uint8_t*)*parr + i*element_size,
                    element_size);
     } else {
         for (size_t i = 0; i < length; ++i)
             if (func((const uint8_t*)optional_src + i*element_size))
                 memcpy(
-                    (uint8_t*)*parr + gp_arr_header(*parr)->length++ * element_size,
+                    (uint8_t*)*parr + gp_arr_set(*parr)->length++ * element_size,
                     (const uint8_t*)optional_src + i*element_size,
                     element_size);
     }
@@ -469,56 +469,14 @@ static inline void gp_arr_filter(
 // ----------------------------------------------------------------------------
 
 
-#ifdef _MSC_VER
-// unnamed struct in parenthesis in gp_arr_on_stack()
-#pragma warning(disable : 4116)
-// sizeof returns 0 when creating an empty array using gp_arr_on_stack()
-#pragma warning(disable : 4034)
-#endif
-
 #ifdef __clang__
 // Allow {0} for any type, which is the most portable 0 init before C23
 #pragma clang diagnostic ignored "-Wmissing-braces"
-// Silence stupid clang-tidy bugprone-sizeof-expression, which actually just
-// enforces more bugprone and unidiomatic C, what were they thinking??
+// Silence clang-tidy bugprone-sizeof-expression
 #define GP_SIZEOF_VALUE(...) sizeof(GP_TYPEOF(__VA_ARGS__))
 #else
 #define GP_SIZEOF_VALUE(...) sizeof(__VA_ARGS__)
 #endif
-
-#ifndef __cplusplus
-
-#ifndef GP_PEDANTIC
-#define/* GPArray(T) */GP_ARR_ON_STACK( \
-    optional_allocator_ptr, \
-    size_t_capacity, \
-    T, ...) \
-(struct GP_C99_UNIQUE_STRUCT(__LINE__) \
-{ GPArrayHeader header; T data[size_t_capacity]; }) { \
-{ \
-    .length     = sizeof((T[]){(T){0},__VA_ARGS__}) / sizeof(T) - 1, \
-    .capacity   = size_t_capacity, \
-    .allocator  = optional_allocator_ptr, \
-    .allocation = NULL \
-}, {__VA_ARGS__} }.data
-#else
-#include <string.h>
-#define/* GPArray(T) */GP_ARR_ON_STACK( \
-    optional_allocator_ptr, \
-    size_t_capacity, \
-    T, ...) \
-memcpy( \
-    (struct GP_C99_UNIQUE_STRUCT(__LINE__) \
-    { GPArrayHeader header; T data[size_t_capacity]; }) { \
-    { \
-        .length     = sizeof((T[]){(T){0},__VA_ARGS__}) / sizeof(T) - 1, \
-        .capacity   = size_t_capacity, \
-        .allocator  = optional_allocator_ptr, \
-        .allocation = NULL \
-    }, {0} }.data, \
-    (T[]){(T){0},__VA_ARGS__} + 1, \
-    sizeof((T[]){(T){0},__VA_ARGS__}) - sizeof(T))
-#endif // GP_PEDANTIC
 
 // ----------------------------------------------------------------------------
 // Type Safe Macro Shadowing
@@ -766,7 +724,48 @@ memcpy( \
 
 #endif // !defined(GP_NO_TYPE_SAFE_MACRO_SHADOWING) && !defined(GPC_IMPLEMENTATION) && !defined(GP_DOXYGEN)
 
-#else // __cplusplus
+// ----------------------------------------------------------------------------
+
+#if __GNUC__ && !defined(GP_PEDANTIC) && __STDC_VERSION__ >= 201112L
+#  define GP_CHECK_ARR_STATIC_LENGTH(T, ARR, ...) \
+({ \
+    _Static_assert( \
+        sizeof( (T[]){(T){0},__VA_ARGS__} ) - sizeof(T) <= sizeof((ARR)->data), \
+        "Initializer list larger than array capacity."); \
+    (void)0; \
+})
+#else // TODO C++ and C99, we'll just ignore the check for now
+#  define GP_CHECK_ARR_STATIC_LENGTH(T, ARR, ...) (void)0
+#endif
+
+#if !__cplusplus // GP_ARR_STATIC stuff
+
+#  define GP_ARR_STATIC_OPTIONAL_INITIALIZE_LENGTH(T, ARR, ...) \
+( \
+    GP_CHECK_ARR_STATIC_LENGTH(T, ARR, __VA_ARGS__), \
+    sizeof( (T[]){(T){0},__VA_ARGS__} ) / sizeof(T) - 1 \
+)
+
+#  define GP_ARR_STATIC_OPTIONAL_INITIALIZE(T, ARR, ...) \
+( \
+    0 ? \
+        (T*){0} = (ARR)->data \
+    : \
+        memcpy((ARR)->data, (T[]){(T){0},__VA_ARGS__} + 1, sizeof(T) * (ARR)->length) \
+)
+
+#else
+#  define GP_ARR_STATIC_OPTIONAL_INITIALIZE_LENGTH(T, ARR, ...) \
+\
+    sizeof( T[]{__VA_ARGS__} ) / sizeof(T)
+
+#  define GP_ARR_STATIC_OPTIONAL_INITIALIZE(T, ARR, ...) \
+\
+    memcpy((ARR)->data, T[]{__VA_ARGS__}, (ARR)->length)
+
+#endif // GP_ARR_STATIC stuff
+
+#if __cplusplus
 } // extern "C"
 #endif
 

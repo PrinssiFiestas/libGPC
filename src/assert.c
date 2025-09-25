@@ -185,6 +185,7 @@ void gp_fail_internal(
     pf_va_list args;
     va_copy(args.list, _args);
 
+    bool in_main = strcmp(func, "main") == 0;
     bool is_internal = strncmp(func, "gp_", 3) == 0;
     if (gp_current_test != NULL) {
         gp_test_failed = true;
@@ -452,23 +453,8 @@ void gp_fail_internal(
     va_end(_args);
     va_end(args.list);
 
-    #if GP_HAS_SANITIZER // print backtrace
-
-    // We only want to print backtrace if not in main(), which would be
-    // redundant. There is no easy portable way of getting the symbols from
-    // backtraces, so we'll just use the length of the call stack to determine
-    // if in main(). This is obviously not very reliable, but has no effect on
-    // program correctness, so it'll do.
-    void* buffer[8];
-    #if _WIN32
-    size_t backtrace_length = CaptureStackBackTrace(
-        0, sizeof buffer / sizeof buffer[0], buffer, NULL);
-    #else
-    size_t backtrace_length = backtrace(buffer, sizeof buffer / sizeof buffer[0]);
-    #endif
-
-    if (backtrace_length > 6)
+    #if GP_HAS_SANITIZER
+    if ( ! in_main)
         __sanitizer_print_stack_trace();
-
     #endif // GP_HAS_SANITIZER
 }

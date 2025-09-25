@@ -9,7 +9,7 @@ int main(void)
 {
     // Tiny arena to put address sanitizer to work
     GPArena* _arena = gp_arena_new(NULL, 1);
-    _arena->growth_coefficient = 0.0;
+    _arena->growth_factor = 0.0;
     GPAllocator* arena = &_arena->base;
 
     gp_suite("File IO");
@@ -37,7 +37,8 @@ int main(void)
         {
             FILE* f;
             gp_assert(f = tmpfile());
-            GPString str = gp_str_on_stack(arena, 1, "");
+            GPStringBuffer(1) buf;
+            GPString str = gp_str_buffered(arena, &buf);
             while (gp_file_read_line(&str, f))
             {
                 size_t line_length = 0;
@@ -59,7 +60,8 @@ int main(void)
             f_contents = "DELIMfooDELIMbarDELIMbloDELink";
             gp_file_print(f, f_contents);
             rewind(f);
-            GPString str = gp_str_on_stack(arena, 1, "");
+            GPStringBuffer(1) buf;
+            GPString str = gp_str_buffered(arena, &buf);
             while (gp_file_read_until(&str, f, "DELIM"))
             {
                 const char* delim_pos = strstr(f_contents, "DELIM");
@@ -81,10 +83,12 @@ int main(void)
             gp_file_println(f, f_contents);
             rewind(f);
             GPString contents = gp_str_new_init(arena, 1, f_contents);
-            GPString str = gp_str_on_stack(arena, 1, "");
+            GPStringBuffer(1) buf;
+            GPString str = gp_str_buffered(arena, &buf);
             while (gp_file_read_strip(&str, f, NULL)) // NULL defaults to GP_WHITESPACE
             {
-                GPString segment = gp_str_on_stack(NULL, 64, "");
+                GPStringBuffer(64) buf;
+                GPString segment = gp_str_buffered(NULL, &buf);
                 size_t pos = gp_str_find_first_of(contents, GP_WHITESPACE, 0);
                 if (pos == GP_NOT_FOUND)
                     pos = gp_str_length(contents);

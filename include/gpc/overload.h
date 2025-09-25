@@ -126,13 +126,20 @@ int main(void)
 #endif
 
 // ----------------------------------------------------------------------------
+// Avoiding spiral rule
 
 #if __cplusplus
 #define GP_PTR_TO(...) decltype(new(__VA_ARGS__))
+ // decltype(*new(__VA_ARGS__)) is a reference for some reason?? Which is why we
+ // need this dummy struct.
+template <typename T> struct GPCPPType { T t; };
+#define GP_TYPEOF_TYPE(...) decltype(GPCPPType<__VA_ARGS__>{}.t)
 #elif defined(GP_TYPEOF)
-#define GP_PTR_TO(...) GP_TYPEOF(&(__VA_ARGS__){0})
+#define GP_PTR_TO(...)      GP_TYPEOF(&(__VA_ARGS__){0})
+#define GP_TYPEOF_TYPE(...) GP_TYPEOF( (__VA_ARGS__){0})
 #else // typedefs may be required for function pointers and such
 #define GP_PTR_TO(...) __VA_ARGS__*
+#define GP_TYPEOF_TYPE(...) __VA_ARGS__
 #endif
 
 // ----------------------------------------------------------------------------
@@ -416,12 +423,12 @@ static inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #endif
 
-#if __STDC_VERSION__ <= 199901L
-// Unique struct/union name
-#  define GP_C99_UNIQUE_STRUCT(LINE) GP_TOKEN_PASTE(_gp_uniqs__, LINE)
-#else
+#if __STDC_VERSION__ >= 201112L
 // C11 allows structs and unions to be unnamed
-#  define GP_C99_UNIQUE_STRUCT(_)
+#  define GP_ANONYMOUS_STRUCT(_)
+#else
+// Unique struct/union name
+#  define GP_ANONYMOUS_STRUCT(LINE) GP_TOKEN_PASTE(_gp_unique__, LINE)
 #endif
 
 // ----------------------------------------------------------------------------

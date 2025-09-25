@@ -13,7 +13,7 @@ uint32_t gp_bytes_hash32(const void* str, const size_t str_size)
     const uint8_t* ustr = str;
 
     uint32_t hash = FNV_offset_basis;
-    for (size_t i = 0; i < str_size; i++)
+    for (size_t i = 0; i < str_size; ++i)
     {
         hash ^= ustr[i];
         hash *= FNV_prime;
@@ -28,7 +28,7 @@ uint64_t gp_bytes_hash64(const void* str, const size_t str_size)
     const uint8_t* ustr = str;
 
     uint64_t hash = FNV_offset_basis;
-    for (size_t i = 0; i < str_size; i++)
+    for (size_t i = 0; i < str_size; ++i)
     {
         hash ^= ustr[i];
         hash *= FNV_prime;
@@ -43,7 +43,7 @@ GPUInt128 gp_bytes_hash128(const void* str, const size_t str_size)
     const uint8_t* ustr = str;
 
     GPUInt128 hash = FNV_offset_basis;
-    for (size_t i = 0; i < str_size; i++)
+    for (size_t i = 0; i < str_size; ++i)
     {
         *gp_uint128_lo_addr(&hash) ^= ustr[i];
         hash = gp_uint128_mul(hash, FNV_prime);

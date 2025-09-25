@@ -103,7 +103,8 @@ static void init_globals(void)
     }
     closedir(dir);
 
-    GPString full_path = gp_str_on_stack(gmem, 256, "include/");
+    GPStringBuffer(256) full_path_buf;
+    GPString full_path = gp_str_buffered(gmem, &full_path_buf, "include/");
     for (size_t i = 0; i < gp_arr_length(include_paths); i++)
     {
         gp_str_slice(&full_path, NULL, 0, strlen("include/")); // clean last iteration

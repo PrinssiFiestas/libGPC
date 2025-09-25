@@ -267,7 +267,7 @@ static int test2(void*_)
             // This allows the testing allocator to mark freed objects on
             // rewind.
             GPArena* arena = gp_arena_new(NULL, 1);
-            arena->growth_coefficient = 1.;
+            arena->growth_factor = 1.;
             char* ps[4] = {0};
             for (size_t i = 0; i < 4; i++) {
                 ps[i] = gp_mem_alloc(&arena->base, block_size);

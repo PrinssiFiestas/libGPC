@@ -189,11 +189,11 @@ typedef struct gp_arena
      * runtime. A value smaller than 1.0 is useful for arenas that start out
      * huge to not waste memory.
      */
-    double growth_coefficient;
+    double growth_factor;
 
     /** Limit the arena size.
      * Arenas will not grow past this value. Useful when
-     * growth_coefficient > 1.0.
+     * growth_factor > 1.0.
      */
     size_t max_size; // TODO this should be asserted, not saturated! Saturation is unnecessary due to virtual memory. Assertion allows compile time virtual/generic arena.
 
@@ -219,7 +219,7 @@ typedef struct gp_arena_initializer
 
     /** Limit the arena size.
      * Arenas will not grow past this value. Useful when
-     * growth_coefficient > 1.0.
+     * growth_factor > 1.0.
      */
     size_t max_size;
 
@@ -230,7 +230,7 @@ typedef struct gp_arena_initializer
      * runtime. A value smaller than 1.0 is useful for arenas that start out
      * huge to not waste memory.
      */
-    double growth_coefficient;
+    double growth_factor;
 
     /** Size of the structure.
      * Default is sizeof(GPArena). When inheriting from GPArena, this must be
@@ -482,6 +482,8 @@ void gp_mutex_allocator_destroy(GPMutexAllocator* optional);
 //
 // ----------------------------------------------------------------------------
 
+
+static inline void gp_allocator_type_check(GPAllocator*_) { (void)_; }
 
 #if !__cplusplus && __STDC_VERSION__ < 202311L
 // Unlike cast to void(*)(void*), this checks that return type matches.

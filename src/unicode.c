@@ -146,7 +146,7 @@ size_t gp_utf8_codepoint_length(
     const void*const _str, const size_t i)
 {
     const uint8_t* str = (uint8_t*)_str;
-    static const size_t sizes[] = {
+    static const uint16_t sizes[] = { // 16-bits ->  2 bytes -> 2*32 = 64 = cache line size
         1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
         0,0,0,0,0,0,0,0, 2,2,2,2,3,3,4,0 };
     return sizes[str[i] >> 3];
