@@ -10,34 +10,32 @@ Dynamic UTF-8 encoded strings with localization, reentrant ASCII byte arrays, ty
 
 Unlike many other libraries, libGPC integrates polymorphic allocators throughout its components. This makes memory management trivial while also providing performance improvements and reduced memory fragmentation.
 
-libGPC offers a wide range of utilities while being lightweight and easy to integrate into existing projects. You can just use the single header library and you're good to go.
-
-All functions (apart from non-essential `gp_set_utf8_global_locale()`) are thread safe and a big portion of them are reentrant. There are no internal heap allocations other than the ones required by `locale_t` and allocator initialization. Even using the scratch allocator and allocators provided by the user is kept minimal internally for predictable and fast performance.
+libGPC offers a wide range of utilities while being lightweight and easy to integrate into existing projects. You can install the full library simply by running `make` or just use the single header library.
 
 ### Example
 
-The code example below is, of course, silly and not as concise as it could be, but it demonstrates the flexibility of different memory usage strategies.
+The code example below is, of course, silly and not as concise as it could be, but it demonstrates some memory management patterns.
 
 ```c
 #include <gpc/gpc.h>
 
 GPString i_am_the_prince(GPAllocator* out_lifetime) {
-    GPAllocator* scope = gp_begin(0); // 0 for default scope arena size.
-    const size_t init_capacity = 4; // too small, but GPString grows if necessary.
-    GPString out = gp_str_new(out_lifetime, init_capacity, "");
-    GPString s1  = gp_str_new(scope, init_capacity, "I am ");
-    GPString s2  = gp_str_on_stack(scope, 16, "the Prince");
+    GPScope* scope = gp_begin(0); // Create fast temporary allocator.
+    GPStringBuffer(16) static_buffer; // GPString can be statically allocated.
+    const size_t init_capacity = 4; // Too small, but GPString is dynamic.
+    GPString out = gp_str_new(out_lifetime, init_capacity);
+    GPString s1  = gp_str_new(&scope->base, init_capacity);
+    gp_str_copy(&s1, "I am ", strlen("I am "));
+    // Providing optional allocator to statically allocated string allows it to
+    // reallocate if needed.
+    GPString s2  = gp_str_buffered(&scope->base, &static_buffer, "the Prince");
     gp_str_copy(&out, s1, gp_str_length(s1));   // Explicit length argument
     gp_str_append(&out, s2, gp_str_length(s2)); // provides generality without
-    gp_str_append(&out, "!!!", strlen("!!!"));  // hidden strlen().
+    gp_str_append(&out, "!!!", strlen("!!!"));  // pitfalls of hidden strlen().
     gp_end(scope); // frees s1 and s2 if s2 allocated.
     return out; // lifetime tied to out_lifetime so it is safe to return it.
 }
 ```
-
-Only one macro was used: `gp_str_on_stack()`, which allows creating a string on stack that reallocates elsewhere, if needed, providing seamless way to use stack memory safely, even for dynamic data.
-
-The scope allocator is arena based which limits heap allocations, and thus is much faster than traditional `malloc()` `free()` pairs. It can also handle forgotten `gp_end()`call or misplaced return statement so memory leaks are practically impossible.
 
 ## Documentation
 
@@ -45,11 +43,11 @@ Library installation and usage instructions below. API reference can be found in
 
 ## Platform Support
 
-libGPC is regularly tested with MSVC on Windows x64, GCC/Clang on x86_64 Ubuntu, MinGW GCC/Clang on MSYS2 UCRT64, and GCC/Clang on 32-bit ARM Raspbian. Some testing is also done with CompCert on x86_64 Ubuntu.
+libGPC is regularly tested with MSVC on Windows x64, GCC/Clang on x86_64 Ubuntu, MinGW GCC/Clang on MSYS2 UCRT64/CLANG64, and GCC/Clang on 32-bit ARM Raspbian. Some testing is also done with CompCert on x86_64 Ubuntu.
 
-Full features are enabled with GNU C11. Standard C99 is supported with almost full features if not using MSVC. C++11 is mostly supported with minor differences, although the library must be compiled with a C compiler.
+Full features are enabled with GNU C11. Standard C99 is supported with almost full features if not using MSVC. C++11 is supported with minor differences, although the library must be compiled with a C compiler.
 
-Building the single header library with MSVC requires C11 standard threads, which are only available after Visual Studio 2022 version 17.8 Preview 2. Older versions are not supported.
+Compiling the single header library with MSVC requires C11 standard threads, which are only available after Visual Studio 2022 version 17.8 Preview 2. Older versions are not supported.
 
 ## Installation and Usage
 
@@ -122,8 +120,6 @@ gprun "COMPILER_ARGUMENTS" ARGUMENTS
 ```
 
 `gprun`uses `cc`, which is usually a soft link to GCC, to compile `FILE` to an executable which it runs immediately with `ARGUMENTS`. The first argument to `gprun` contains all the arguments passed to the compiler so if you want to pass multiple files or other arguments to the compiler, use quotes and put all files and arguments inside them. `-Wall -lgpcd -lm -lpthread`is passed by default. If `-o MY_EXECUTABLE_OUT` is not passed, the executable will be removed after execution. If optimization flags `-O1`, `-O2`, or `-O3`, or their MSVC counterparts with `/`, are not passed, debug symbols and sanitizers will be enabled if applicable, else `-DNDEBUG` is defined.
-
-If `-c`or `/c`is passed, the input files are only compiled to object files without linking or executing. This differs from directly calling `cc` in the sense that the default flags are more sensible.
 
 On Windows, `gprun` first looks for `cc`, and if it cannot find it, `cl.exe` (Microsoft compiler shipping with Visual Studio) is invoked instead. This allows the user to choose between `cc` and `cl` simply by choosing between MSYS2 UCRT shell and Developer Command Prompt for VS.
 
