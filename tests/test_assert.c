@@ -73,7 +73,7 @@ int main(void)
     gp_end_testing();
 
     // Define this to see failing messages
-    #ifdef GPC_NON_PASSING_TESTS
+    #ifdef GP_NON_PASSING_TESTS
     gp_suite("Non passing suite");
     {
         gp_test("Non passing test");

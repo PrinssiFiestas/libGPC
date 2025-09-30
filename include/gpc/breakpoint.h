@@ -255,15 +255,18 @@ static inline int gp_debugger_detached(void) { return gp_debugger_is_detached();
     // expressionify, so can be used with comma operator, and preferably put the
     // breakpoint in user source code instead of this file.
     #if !__cplusplus && __GNUC__ && !defined(GP_PEDANTIC) && GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION
-    #define GP_BREAKPOINT       ({GP_BREAKPOINT_IMPLEMENTATION;})
-    #define GP_DEBUG_BREAKPOINT ({GP_BREAKPOINT_IMPLEMENTATION;})
+        #define GP_BREAKPOINT       ({GP_BREAKPOINT_IMPLEMENTATION;})
+        #define GP_DEBUG_BREAKPOINT ({GP_BREAKPOINT_IMPLEMENTATION;})
     #elif GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION
-    static inline void gp_breakpoint(void) { GP_BREAKPOINT_IMPLEMENTATION; }
-    #define GP_BREAKPOINT       gp_breakpoint()
-    #define GP_DEBUG_BREAKPOINT gp_breakpoint()
+        #if __GNUC__
+        __attribute__((always_inline, artificial))
+        #endif
+        static inline void gp_breakpoint(void) { GP_BREAKPOINT_IMPLEMENTATION; }
+        #define GP_BREAKPOINT       gp_breakpoint()
+        #define GP_DEBUG_BREAKPOINT gp_breakpoint()
     #else
-    #define GP_BREAKPOINT       GP_BREAKPOINT_IMPLEMENTATION
-    #define GP_DEBUG_BREAKPOINT GP_BREAKPOINT_IMPLEMENTATION
+        #define GP_BREAKPOINT       GP_BREAKPOINT_IMPLEMENTATION
+        #define GP_DEBUG_BREAKPOINT GP_BREAKPOINT_IMPLEMENTATION
     #endif // expressionify
 #else
     #define GP_DEBUG_BREAKPOINT ((void)0)
@@ -273,15 +276,18 @@ static inline int gp_debugger_detached(void) { return gp_debugger_is_detached();
     // expressionify, so can be used with comma operator, and preferably put the
     // breakpoint in user source code instead of this file.
     #if !__cplusplus && __GNUC__ && !defined(GP_PEDANTIC) && GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION
-    #define GP_BREAKPOINT_TRAP       ({GP_BREAKPOINT_TRAP_IMPLEMENTATION;})
-    #define GP_DEBUG_BREAKPOINT_TRAP ({GP_BREAKPOINT_TRAP_IMPLEMENTATION;})
+        #define GP_BREAKPOINT_TRAP       ({GP_BREAKPOINT_TRAP_IMPLEMENTATION;})
+        #define GP_DEBUG_BREAKPOINT_TRAP ({GP_BREAKPOINT_TRAP_IMPLEMENTATION;})
     #elif GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION
-    static inline void gp_breakpoint_trap(void) { GP_BREAKPOINT_TRAP_IMPLEMENTATION; }
-    #define GP_BREAKPOINT_TRAP       gp_breakpoint_trap()
-    #define GP_DEBUG_BREAKPOINT_TRAP gp_breakpoint_trap()
+        #if __GNUC__
+        __attribute__((always_inline, artificial))
+        #endif
+        static inline void gp_breakpoint_trap(void) { GP_BREAKPOINT_TRAP_IMPLEMENTATION; }
+        #define GP_BREAKPOINT_TRAP       gp_breakpoint_trap()
+        #define GP_DEBUG_BREAKPOINT_TRAP gp_breakpoint_trap()
     #else
-    #define GP_BREAKPOINT_TRAP       GP_BREAKPOINT_TRAP_IMPLEMENTATION
-    #define GP_DEBUG_BREAKPOINT_TRAP GP_BREAKPOINT_TRAP_IMPLEMENTATION
+        #define GP_BREAKPOINT_TRAP       GP_BREAKPOINT_TRAP_IMPLEMENTATION
+        #define GP_DEBUG_BREAKPOINT_TRAP GP_BREAKPOINT_TRAP_IMPLEMENTATION
     #endif // expressionify
 #else
     #define GP_DEBUG_BREAKPOINT_TRAP ((void)0)
