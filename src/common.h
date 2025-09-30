@@ -83,7 +83,7 @@ size_t gp_convert_va_arg(
     const size_t limit,
     void*restrict const out,
     pf_va_list*restrict const args,
-    const GPType type);
+    const gp_type_t type);
 
 GP_NONNULL_ARGS(3, 4)
 size_t gp_bytes_print_objects(

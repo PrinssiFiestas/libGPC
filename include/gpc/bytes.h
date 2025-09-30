@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <limits.h>
 
 #ifdef __cplusplus
 #include <sstream>
@@ -302,9 +303,9 @@ typedef struct gp_printable
 
 #if __STDC_VERSION__ >= 201112L || defined(__COMPCERT__)
 #define GP_GENERIC_AVAILABLE 1
-#define GP_PRINTABLE(X) { #X, GP_TYPE(X) }
+#define GP_PRINTABLE(X) { #X, GP_TYPE(X) } // TODO test if this would work in C++ too
 #else
-#define GP_PRINTABLE(X) { #X, -1 }
+#define GP_PRINTABLE(X) { #X, INT_MAX - (int)(sizeof(X)) }
 #endif
 
 size_t gp_bytes_print_internal(

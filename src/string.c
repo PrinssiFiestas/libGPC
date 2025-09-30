@@ -302,51 +302,51 @@ static size_t gp_printable_max_allocation_size(GPPrintable object, pf_va_list _a
     else {
         switch (object.type)
         {
-        case GP_CHAR:
-        case GP_SIGNED_CHAR:
-        case GP_UNSIGNED_CHAR:
+        case GP_TYPE_CHAR:
+        case GP_TYPE_SIGNED_CHAR:
+        case GP_TYPE_UNSIGNED_CHAR:
             length = 1;
             break;
 
-        case GP_BOOL:
+        case GP_TYPE_BOOL:
             length = sizeof"false"-sizeof"";
             break;
 
         char* p;
         size_t p_len;
-        case GP_CHAR_PTR:
+        case GP_TYPE_CHAR_PTR:
             p = va_arg(args, char*);
             p_len = strlen(p);
             length = p_len;
             break;
 
         GPString s;
-        case GP_STRING:
+        case GP_TYPE_STRING:
             s = va_arg(args, GPString);
             length = gp_str_length(s);
             break;
 
-        case GP_FLOAT:
-        case GP_DOUBLE: // %g
+        case GP_TYPE_FLOAT:
+        case GP_TYPE_DOUBLE: // %g
             length = sizeof"-0.111111e-9999"-sizeof"";
             break;
 
-        case GP_PTR:
+        case GP_TYPE_PTR:
             length = sizeof"0x"-sizeof"" + sizeof(void*) * (sizeof"FF"-sizeof"");
             break;
 
-        case GP_INT128:
+        case GP_TYPE_INT128:
             length = sizeof"-170141183460469231731687303715884105728"-sizeof"";
             break;
 
-        case GP_UINT128:
+        case GP_TYPE_UINT128:
             length = sizeof"340282366920938463463374607431768211455"-sizeof"";
             break;
 
         // Integers: https://www.desmos.com/calculator/c1ftloo5ya
         // Will not be accurate for 128-bit integers, they should be handled above.
         default:
-            length = (gp_sizeof(object.type) * 18) / CHAR_BIT + 2;
+            length = (gp_type_size(object.type) * 18) / CHAR_BIT + 2;
             break;
         }
     }

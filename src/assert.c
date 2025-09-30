@@ -166,9 +166,15 @@ void gp_suite(const char* name)
 // ----------------------------------------------------------------------------
 // Implementations for gp_assert() and gp_expect()
 
-// TODO C99 has no reflection, better to skip printing non-formatted variables
-// than print garbage. This improves portability too, it's okay to leave
-// assertions using reflection in.
+// We cannot use GP_UNREACHABLE(), it calls gp_assert(), which leads to infinite
+// recursion.
+#if __GNUC__
+#define GP_FAIL_INTERNAL_UNREACHABLE __builtin_unreachable()
+#elif _MSC_VER
+#define GP_FAIL_INTERNAL_UNREACHABLE __assume(0)
+#else
+#define GP_FAIL_INTERNAL_UNREACHABLE abort()
+#endif
 
 void gp_fail_internal(
     const char* file,
@@ -198,14 +204,53 @@ void gp_fail_internal(
     }
 
     const char* condition = objs[0].identifier;
-    switch (gp_sizeof(objs[0].type)) {
-    case  1: (void)va_arg(args.list, gp_promoted_arg_int8_t ); break;
-    case  2: (void)va_arg(args.list, gp_promoted_arg_int16_t); break;
-    case  4: (void)va_arg(args.list, gp_promoted_arg_int32_t); break;
-    case  8: (void)va_arg(args.list, gp_promoted_arg_int64_t); break;
-    case 16: (void)va_arg(args.list, GPInt128               ); break;
-    default : GP_UNREACHABLE("Invalid GPPrintable passed to gp_assert()");
-    }
+
+    // Ignore condition, we just need it's string (identifier). We have to
+    // handle all types that can be converted to bool. Handling all types
+    // may seem pedantic, but is the only calling convention agnostic way.
+    // C99 relies on size information. The most notable effect of this is that
+    // floats that are passed in different registers may fail. They are not
+    // commonly implicitly converted though.
+    if (GP_NO_TYPE <= objs[0].type && objs[0].type < GP_TYPE_LENGTH) switch (objs[0].type) {
+    case GP_TYPE_BOOL: case GP_TYPE_SIGNED_CHAR: case GP_TYPE_CHAR: case GP_TYPE_UNSIGNED_CHAR:
+    case GP_TYPE_SHORT: case GP_TYPE_UNSIGNED_SHORT: case GP_TYPE_INT: case GP_TYPE_UNSIGNED:
+        (void)va_arg(args.list, gp_promoted_arg_unsigned_t);
+        break;
+    case GP_TYPE_LONG: case GP_TYPE_UNSIGNED_LONG:
+        (void)va_arg(args.list, long);
+        break;
+    case GP_TYPE_LONG_LONG: case GP_TYPE_UNSIGNED_LONG_LONG:
+        (void)va_arg(args.list, long long);
+        break;
+    case GP_TYPE_FLOAT: case GP_TYPE_DOUBLE:
+        (void)va_arg(args.list, gp_promoted_arg_double_t);
+        break;
+    case GP_TYPE_CHAR_PTR: case GP_TYPE_STRING: case GP_TYPE_PTR:
+        (void)va_arg(args.list, void*);
+        break;
+    case GP_TYPE_INT128: case GP_TYPE_UINT128:
+    #if GP_HAS_TETRA_INT
+        (void)va_arg(args.list, gp_tetra_uint_t);
+        break;
+    #endif
+    case GP_TYPE_LONG_DOUBLE:
+    #if GP_HAS_LONG_DOUBLE
+        (void)va_arg(args.list, long double);
+        break;
+    #endif
+    case GP_NO_TYPE:
+    case GP_TYPE_LENGTH:
+        GP_FAIL_INTERNAL_UNREACHABLE;
+    } else switch ((int)objs[0].type) { // C99
+        case INT_MAX-1: (void)va_arg(args.list, gp_promoted_arg_uint8_t ); break;
+        case INT_MAX-2: (void)va_arg(args.list, gp_promoted_arg_uint16_t); break;
+        case INT_MAX-4: (void)va_arg(args.list, gp_promoted_arg_uint32_t); break;
+        case INT_MAX-8: (void)va_arg(args.list, gp_promoted_arg_uint64_t); break;
+        #if GP_HAS_TETRA_INT
+        case INT_MAX-16: (void)va_arg(args.list, gp_tetra_uint_t); break;
+        #endif
+        default: GP_FAIL_INTERNAL_UNREACHABLE;
+    } // end ignoring condition argument. So much code to do absolutely nothing...
 
     const char* indent = gp_current_test != NULL ? "\t" : "";
 
@@ -260,8 +305,10 @@ void gp_fail_internal(
             else if (fmt_spec_count == 1 && asterisk_count == 0)
             {
                 // Static analyzer false positive for buffer overflow
+                #if __GNUC__
                 if (i + 1 >= arg_count)
-                    GP_UNREACHABLE("");
+                    __builtin_unreachable();
+                #endif
 
                 pf_fprintf(stderr,
                     GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ",
@@ -341,63 +388,66 @@ void gp_fail_internal(
             continue;
         } // end if string literal
 
+        if (INT_MAX-16 <= objs[i].type) // C99, cannot continue, we don't know
+            break;                      // what to pass to va_arg(). Most notably
+                                        // a single float argument will cause UB!
         pf_fprintf(stderr,
             GP_BRIGHT_WHITE "%s" GP_RESET_TERMINAL " = ", objs[i].identifier);
 
         switch (objs[i].type)
         {
-            case GP_CHAR:
-            case GP_SIGNED_CHAR:
-            case GP_UNSIGNED_CHAR:
+            case GP_TYPE_CHAR:
+            case GP_TYPE_SIGNED_CHAR:
+            case GP_TYPE_UNSIGNED_CHAR:
                 pf_fprintf(stderr,
                     GP_YELLOW "\'%c\'", va_arg(args.list, gp_promoted_arg_char_t));
                 break;
 
-            case GP_UNSIGNED_SHORT:
-            case GP_UNSIGNED:
+            case GP_TYPE_UNSIGNED_SHORT:
+            case GP_TYPE_UNSIGNED:
                 pf_fprintf(stderr, GP_BRIGHT_BLUE "%u", va_arg(args.list, unsigned));
                 break;
 
-            case GP_UNSIGNED_LONG:
+            case GP_TYPE_UNSIGNED_LONG:
                 pf_fprintf(stderr,
                     GP_BRIGHT_BLUE "%lu", va_arg(args.list, unsigned long));
                 break;
 
-            case GP_UNSIGNED_LONG_LONG:
+            case GP_TYPE_UNSIGNED_LONG_LONG:
                 pf_fprintf(stderr,
                     GP_BRIGHT_BLUE "%llu", va_arg(args.list, unsigned long long));
                 break;
 
-            case GP_UINT128:
+            case GP_TYPE_UINT128:
                 pf_fprintf(stderr,
                     GP_BRIGHT_BLUE "%w128u", va_arg(args.list, GPUInt128));
                 break;
 
-            case GP_BOOL:
+            case GP_TYPE_BOOL:
                 pf_fprintf(stderr, va_arg(args.list, gp_promoted_arg_bool_t) ? "true" : "false");
                 break;
 
-            case GP_SHORT:
-            case GP_INT:
+            case GP_TYPE_SHORT:
+            case GP_TYPE_INT:
                 pf_fprintf(stderr, GP_BRIGHT_BLUE "%i", va_arg(args.list, int));
                 break;
 
-            case GP_LONG:
+            case GP_TYPE_LONG:
                 pf_fprintf(stderr, GP_BRIGHT_BLUE "%li", va_arg(args.list, long));
                 break;
 
-            case GP_LONG_LONG:
+            case GP_TYPE_LONG_LONG:
                 pf_fprintf(stderr, GP_BRIGHT_BLUE "%lli", va_arg(args.list, long long));
                 break;
 
-            case GP_INT128:
+            case GP_TYPE_INT128:
                 pf_fprintf(stderr,
                     GP_BRIGHT_BLUE "%w128i", va_arg(args.list, GPInt128));
                 break;
 
             double f;
-            case GP_FLOAT:
-            case GP_DOUBLE:
+            case GP_TYPE_FLOAT:
+            case GP_TYPE_DOUBLE:
                 f = va_arg(args.list, gp_promoted_arg_double_t);
                 pf_fprintf(stderr, GP_BRIGHT_MAGENTA "%g", f);
                 if (f - (int64_t)f == f/* whole number */&&
@@ -407,7 +457,7 @@ void gp_fail_internal(
 
             #if GP_HAS_LONG_DOUBLE
             long double lf;
-            case GP_LONG_DOUBLE:
+            case GP_TYPE_LONG_DOUBLE:
                 lf = va_arg(args.list, long double);
                 pf_fprintf(stderr, GP_BRIGHT_MAGENTA "%Lg", lf);
                 if (lf - (int64_t)lf == lf/* whole number */&&
@@ -415,11 +465,11 @@ void gp_fail_internal(
                     pf_fprintf(stderr, ".0");
                 } break;
             #else
-            case GP_LONG_DOUBLE: GP_UNREACHABLE("long double not supported.");
+            case GP_TYPE_LONG_DOUBLE: GP_UNREACHABLE("long double not supported.");
             #endif
 
             const char* char_ptr;
-            case GP_CHAR_PTR:
+            case GP_TYPE_CHAR_PTR:
                 char_ptr = va_arg(args.list, char*);
                 if (char_ptr != NULL)
                     pf_fprintf(stderr, GP_BRIGHT_RED "\"%s\"", char_ptr);
@@ -428,7 +478,7 @@ void gp_fail_internal(
                 break;
 
             GPString str;
-            case GP_STRING:
+            case GP_TYPE_STRING:
                 str = va_arg(args.list, GPString);
                 if (str != NULL)
                     pf_fprintf(stderr, GP_BRIGHT_RED "\"%.*s\"",
@@ -437,13 +487,13 @@ void gp_fail_internal(
                     pf_fprintf(stderr, GP_BRIGHT_RED "(null)");
                 break;
 
-            case GP_PTR:
+            case GP_TYPE_PTR:
                 pf_fprintf(stderr, GP_BLUE "%p", va_arg(args.list, void*));
                 break;
 
             case GP_NO_TYPE:
             case GP_TYPE_LENGTH:
-                GP_UNREACHABLE("");
+                GP_FAIL_INTERNAL_UNREACHABLE;
         }
         pf_fprintf(stderr, GP_RESET_TERMINAL "\n");
     } // end for args
@@ -456,5 +506,7 @@ void gp_fail_internal(
     #if GP_HAS_SANITIZER
     if ( ! in_main)
         __sanitizer_print_stack_trace();
+    #else
+    (void)in_main;
     #endif // GP_HAS_SANITIZER
 }

@@ -144,58 +144,58 @@ template <typename T> struct GPCPPType { T t; };
 
 // ----------------------------------------------------------------------------
 
-// Use in variadic function arguments with GP_TYPE() macro
+// Use in variadic function arguments with GP_TYPE() macro.
 typedef enum gp_type
 {
     GP_NO_TYPE,
-    GP_BOOL,
-    GP_UNSIGNED_CHAR,
-    GP_UNSIGNED_SHORT,
-    GP_UNSIGNED,
-    GP_UNSIGNED_LONG,
-    GP_UNSIGNED_LONG_LONG,
-    GP_UINT128,
-    GP_SIGNED_CHAR,
-    GP_CHAR,
-    GP_SHORT,
-    GP_INT,
-    GP_LONG,
-    GP_LONG_LONG,
-    GP_INT128,
-    GP_FLOAT,
-    GP_DOUBLE,
-    GP_LONG_DOUBLE,
-    GP_CHAR_PTR,
-    GP_STRING,
-    GP_PTR,
+    GP_TYPE_BOOL,
+    GP_TYPE_UNSIGNED_CHAR,
+    GP_TYPE_UNSIGNED_SHORT,
+    GP_TYPE_UNSIGNED,
+    GP_TYPE_UNSIGNED_LONG,
+    GP_TYPE_UNSIGNED_LONG_LONG,
+    GP_TYPE_UINT128,
+    GP_TYPE_SIGNED_CHAR,
+    GP_TYPE_CHAR,
+    GP_TYPE_SHORT,
+    GP_TYPE_INT,
+    GP_TYPE_LONG,
+    GP_TYPE_LONG_LONG,
+    GP_TYPE_INT128,
+    GP_TYPE_FLOAT,
+    GP_TYPE_DOUBLE,
+    GP_TYPE_LONG_DOUBLE,
+    GP_TYPE_CHAR_PTR,
+    GP_TYPE_STRING,
+    GP_TYPE_PTR,
     GP_TYPE_LENGTH
-} GPType;
+} gp_type_t;
 
-static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
+static inline GP_CONSTEXPR_FUNCTION size_t gp_type_size(const gp_type_t T) {
     switch (T) {
-        case GP_CHAR: case GP_SIGNED_CHAR: case GP_UNSIGNED_CHAR:
+        case GP_TYPE_CHAR: case GP_TYPE_SIGNED_CHAR: case GP_TYPE_UNSIGNED_CHAR:
             return sizeof(char);
-        case GP_SHORT: case GP_UNSIGNED_SHORT:
+        case GP_TYPE_SHORT: case GP_TYPE_UNSIGNED_SHORT:
             return sizeof(short);
-        case GP_BOOL:
+        case GP_TYPE_BOOL:
             return sizeof(bool);
-        case GP_INT: case GP_UNSIGNED:
+        case GP_TYPE_INT: case GP_TYPE_UNSIGNED:
             return sizeof(int);
-        case GP_LONG: case GP_UNSIGNED_LONG:
+        case GP_TYPE_LONG: case GP_TYPE_UNSIGNED_LONG:
             return sizeof(long);
-        case GP_LONG_LONG: case GP_UNSIGNED_LONG_LONG:
+        case GP_TYPE_LONG_LONG: case GP_TYPE_UNSIGNED_LONG_LONG:
             return sizeof(long long);
-        case GP_UINT128: case GP_INT128:
+        case GP_TYPE_UINT128: case GP_TYPE_INT128:
             return 16;
-        case GP_FLOAT:
+        case GP_TYPE_FLOAT:
             return sizeof(float);
-        case GP_LONG_DOUBLE:
+        case GP_TYPE_LONG_DOUBLE:
             #if GP_HAS_LONG_DOUBLE
             return sizeof(long double);
             #endif
-        case GP_DOUBLE:
+        case GP_TYPE_DOUBLE:
             return sizeof(double);
-        case GP_CHAR_PTR: case GP_STRING: case GP_PTR:
+        case GP_TYPE_CHAR_PTR: case GP_TYPE_STRING: case GP_TYPE_PTR:
             return sizeof(char*);
 
         case GP_NO_TYPE:
@@ -311,85 +311,85 @@ static inline GP_CONSTEXPR_FUNCTION size_t gp_sizeof(const GPType T) {
 // User types currently not supported. // TODO we want these!
 #if __cplusplus // defined with overloads
 #elif _MSC_VER // MSVC doesn't differentiate between char and [un]signed char
-#define GP_TYPE(VAR)                              \
-_Generic(VAR,                                     \
-    bool:                  GP_BOOL,               \
-    short:                 GP_SHORT,              \
-    int:                   GP_INT,                \
-    long:                  GP_LONG,               \
-    long long:             GP_LONG_LONG,          \
-    GP_INT128_SELECTION(GP_INT128,)               \
-    unsigned short:        GP_UNSIGNED_LONG,      \
-    unsigned int:          GP_UNSIGNED,           \
-    unsigned long:         GP_UNSIGNED_LONG,      \
-    unsigned long long:    GP_UNSIGNED_LONG_LONG, \
-    GP_UINT128_SELECTION(GP_UINT128,)             \
-    float:                 GP_FLOAT,              \
-    double:                GP_DOUBLE,             \
-    unsigned char:         GP_UNSIGNED_CHAR,      \
-    signed char:           GP_SIGNED_CHAR,        \
-    char*:                 GP_CHAR_PTR,           \
-    const char*:           GP_CHAR_PTR,           \
-    struct gp_char*:       GP_STRING,             \
-    default:               GP_PTR)
+#define GP_TYPE(VAR)                                   \
+_Generic(VAR,                                          \
+    bool:                  GP_TYPE_BOOL,               \
+    short:                 GP_TYPE_SHORT,              \
+    int:                   GP_TYPE_INT,                \
+    long:                  GP_TYPE_LONG,               \
+    long long:             GP_TYPE_LONG_LONG,          \
+    GP_INT128_SELECTION(GP_TYPE_INT128,)               \
+    unsigned short:        GP_TYPE_UNSIGNED_LONG,      \
+    unsigned int:          GP_TYPE_UNSIGNED,           \
+    unsigned long:         GP_TYPE_UNSIGNED_LONG,      \
+    unsigned long long:    GP_TYPE_UNSIGNED_LONG_LONG, \
+    GP_UINT128_SELECTION(GP_TYPE_UINT128,)             \
+    float:                 GP_TYPE_FLOAT,              \
+    double:                GP_TYPE_DOUBLE,             \
+    unsigned char:         GP_TYPE_UNSIGNED_CHAR,      \
+    signed char:           GP_TYPE_SIGNED_CHAR,        \
+    char*:                 GP_TYPE_CHAR_PTR,           \
+    const char*:           GP_TYPE_CHAR_PTR,           \
+    struct gp_char*:       GP_TYPE_STRING,             \
+    default:               GP_TYPE_PTR)
 #elif GP_HAS_DIFFERENTIATED_LONG_DOUBLE
 // Note: we don't differentiate between gp_tetra_uint_t and GPUInt128 here. This
 // is because gp_tetra_uint_t is supposed to be internal implementation detail,
 // we only added it here so it can be printed for debugging purposes.
-#define GP_TYPE(VAR)                              \
-_Generic(VAR,                                     \
-    bool:                  GP_BOOL,               \
-    short:                 GP_SHORT,              \
-    int:                   GP_INT,                \
-    long:                  GP_LONG,               \
-    long long:             GP_LONG_LONG,          \
-    GP_INT128_SELECTION(GP_INT128,)               \
-    GP_TETRA_INT_SELECTION(GP_INT128,)            \
-    unsigned short:        GP_UNSIGNED_SHORT,     \
-    unsigned int:          GP_UNSIGNED,           \
-    unsigned long:         GP_UNSIGNED_LONG,      \
-    unsigned long long:    GP_UNSIGNED_LONG_LONG, \
-    GP_UINT128_SELECTION(GP_UINT128,)             \
-    GP_TETRA_UINT_SELECTION(GP_UINT128,)          \
-    float:                 GP_FLOAT,              \
-    double:                GP_DOUBLE,             \
-    long double:           GP_LONG_DOUBLE,        \
-    char:                  GP_CHAR,               \
-    unsigned char:         GP_UNSIGNED_CHAR,      \
-    signed char:           GP_SIGNED_CHAR,        \
-    char*:                 GP_CHAR_PTR,           \
-    const char*:           GP_CHAR_PTR,           \
-    struct gp_char*:       GP_STRING,             \
-    default:               GP_PTR)
+#define GP_TYPE(VAR)                                   \
+_Generic(VAR,                                          \
+    bool:                  GP_TYPE_BOOL,               \
+    short:                 GP_TYPE_SHORT,              \
+    int:                   GP_TYPE_INT,                \
+    long:                  GP_TYPE_LONG,               \
+    long long:             GP_TYPE_LONG_LONG,          \
+    GP_INT128_SELECTION(GP_TYPE_INT128,)               \
+    GP_TETRA_INT_SELECTION(GP_TYPE_INT128,)            \
+    unsigned short:        GP_TYPE_UNSIGNED_SHORT,     \
+    unsigned int:          GP_TYPE_UNSIGNED,           \
+    unsigned long:         GP_TYPE_UNSIGNED_LONG,      \
+    unsigned long long:    GP_TYPE_UNSIGNED_LONG_LONG, \
+    GP_UINT128_SELECTION(GP_TYPE_UINT128,)             \
+    GP_TETRA_UINT_SELECTION(GP_TYPE_UINT128,)          \
+    float:                 GP_TYPE_FLOAT,              \
+    double:                GP_TYPE_DOUBLE,             \
+    long double:           GP_TYPE_LONG_DOUBLE,        \
+    char:                  GP_TYPE_CHAR,               \
+    unsigned char:         GP_TYPE_UNSIGNED_CHAR,      \
+    signed char:           GP_TYPE_SIGNED_CHAR,        \
+    char*:                 GP_TYPE_CHAR_PTR,           \
+    const char*:           GP_TYPE_CHAR_PTR,           \
+    struct gp_char*:       GP_TYPE_STRING,             \
+    default:               GP_TYPE_PTR)
 #else
-#define GP_TYPE(VAR)                              \
-_Generic(VAR,                                     \
-    bool:                  GP_BOOL,               \
-    short:                 GP_SHORT,              \
-    int:                   GP_INT,                \
-    long:                  GP_LONG,               \
-    long long:             GP_LONG_LONG,          \
-    GP_INT128_SELECTION(GP_INT128,)               \
-    unsigned short:        GP_UNSIGNED_SHORT,     \
-    unsigned int:          GP_UNSIGNED,           \
-    unsigned long:         GP_UNSIGNED_LONG,      \
-    unsigned long long:    GP_UNSIGNED_LONG_LONG, \
-    GP_UINT128_SELECTION(GP_UINT128,)             \
-    float:                 GP_FLOAT,              \
-    double:                GP_DOUBLE,             \
-    char:                  GP_CHAR,               \
-    unsigned char:         GP_UNSIGNED_CHAR,      \
-    signed char:           GP_SIGNED_CHAR,        \
-    char*:                 GP_CHAR_PTR,           \
-    const char*:           GP_CHAR_PTR,           \
-    struct gp_char*:       GP_STRING,             \
-    default:               GP_PTR)
+#define GP_TYPE(VAR)                                   \
+_Generic(VAR,                                          \
+    bool:                  GP_TYPE_BOOL,               \
+    short:                 GP_TYPE_SHORT,              \
+    int:                   GP_TYPE_INT,                \
+    long:                  GP_TYPE_LONG,               \
+    long long:             GP_TYPE_LONG_LONG,          \
+    GP_INT128_SELECTION(GP_TYPE_INT128,)               \
+    unsigned short:        GP_TYPE_UNSIGNED_SHORT,     \
+    unsigned int:          GP_TYPE_UNSIGNED,           \
+    unsigned long:         GP_TYPE_UNSIGNED_LONG,      \
+    unsigned long long:    GP_TYPE_UNSIGNED_LONG_LONG, \
+    GP_UINT128_SELECTION(GP_TYPE_UINT128,)             \
+    float:                 GP_TYPE_FLOAT,              \
+    double:                GP_TYPE_DOUBLE,             \
+    char:                  GP_TYPE_CHAR,               \
+    unsigned char:         GP_TYPE_UNSIGNED_CHAR,      \
+    signed char:           GP_TYPE_SIGNED_CHAR,        \
+    char*:                 GP_TYPE_CHAR_PTR,           \
+    const char*:           GP_TYPE_CHAR_PTR,           \
+    struct gp_char*:       GP_TYPE_STRING,             \
+    default:               GP_TYPE_PTR)
 #endif
 
-static inline bool gp_is_unsigned(const GPType T) { return T <= GP_UINT128; }
-static inline bool gp_is_integer (const GPType T) { return T <= GP_INT128;  }
-static inline bool gp_is_floating(const GPType T) { return GP_FLOAT <= T && T <= GP_DOUBLE; }
-static inline bool gp_is_pointer (const GPType T) { return GP_CHAR_PTR <= T && T <= GP_PTR; }
+static inline bool gp_is_unsigned(const gp_type_t T) { return T <= GP_TYPE_UINT128; }
+static inline bool gp_is_integer (const gp_type_t T) { return T <= GP_TYPE_INT128;  }
+static inline bool gp_is_floating(const gp_type_t T) { return GP_TYPE_FLOAT <= T && T <= GP_TYPE_DOUBLE; }
+static inline bool gp_is_pointer (const gp_type_t T) { return GP_TYPE_CHAR_PTR <= T && T <= GP_TYPE_PTR; }
 
 // Returns the number of arguments passed.
 #define GP_COUNT_ARGS(...) GP_OVERLOAD64(__VA_ARGS__, 64, 63, 62, 61, 60, 59, 58, 57, 56,\
@@ -761,28 +761,28 @@ _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, RESOLVED, ...) 
 #ifdef __cplusplus
 } // extern "C"
 
-static inline constexpr GPType GP_TYPE(bool               x) { (void)x; return GP_BOOL;               }
-static inline constexpr GPType GP_TYPE(short              x) { (void)x; return GP_SHORT;              }
-static inline constexpr GPType GP_TYPE(int                x) { (void)x; return GP_INT;                }
-static inline constexpr GPType GP_TYPE(long               x) { (void)x; return GP_LONG;               }
-static inline constexpr GPType GP_TYPE(long long          x) { (void)x; return GP_LONG_LONG;          }
-static inline constexpr GPType GP_TYPE(GPInt128           x) { (void)x; return GP_INT128;             }
-static inline constexpr GPType GP_TYPE(unsigned short     x) { (void)x; return GP_UNSIGNED_SHORT;     }
-static inline constexpr GPType GP_TYPE(unsigned           x) { (void)x; return GP_UNSIGNED;           }
-static inline constexpr GPType GP_TYPE(unsigned long      x) { (void)x; return GP_UNSIGNED_LONG;      }
-static inline constexpr GPType GP_TYPE(unsigned long long x) { (void)x; return GP_UNSIGNED_LONG_LONG; }
-static inline constexpr GPType GP_TYPE(GPUInt128          x) { (void)x; return GP_UINT128;            }
-static inline constexpr GPType GP_TYPE(float              x) { (void)x; return GP_FLOAT;              }
-static inline constexpr GPType GP_TYPE(double             x) { (void)x; return GP_DOUBLE;             }
+static inline constexpr gp_type_t GP_TYPE(bool               x) { (void)x; return GP_TYPE_BOOL;               }
+static inline constexpr gp_type_t GP_TYPE(short              x) { (void)x; return GP_TYPE_SHORT;              }
+static inline constexpr gp_type_t GP_TYPE(int                x) { (void)x; return GP_TYPE_INT;                }
+static inline constexpr gp_type_t GP_TYPE(long               x) { (void)x; return GP_TYPE_LONG;               }
+static inline constexpr gp_type_t GP_TYPE(long long          x) { (void)x; return GP_TYPE_LONG_LONG;          }
+static inline constexpr gp_type_t GP_TYPE(GPInt128           x) { (void)x; return GP_TYPE_INT128;             }
+static inline constexpr gp_type_t GP_TYPE(unsigned short     x) { (void)x; return GP_TYPE_UNSIGNED_SHORT;     }
+static inline constexpr gp_type_t GP_TYPE(unsigned           x) { (void)x; return GP_TYPE_UNSIGNED;           }
+static inline constexpr gp_type_t GP_TYPE(unsigned long      x) { (void)x; return GP_TYPE_UNSIGNED_LONG;      }
+static inline constexpr gp_type_t GP_TYPE(unsigned long long x) { (void)x; return GP_TYPE_UNSIGNED_LONG_LONG; }
+static inline constexpr gp_type_t GP_TYPE(GPUInt128          x) { (void)x; return GP_TYPE_UINT128;            }
+static inline constexpr gp_type_t GP_TYPE(float              x) { (void)x; return GP_TYPE_FLOAT;              }
+static inline constexpr gp_type_t GP_TYPE(double             x) { (void)x; return GP_TYPE_DOUBLE;             }
 #if !_MSC_VER
-static inline constexpr GPType GP_TYPE(char               x) { (void)x; return GP_CHAR;               }
+static inline constexpr gp_type_t GP_TYPE(char               x) { (void)x; return GP_TYPE_CHAR;               }
 #endif
-static inline constexpr GPType GP_TYPE(unsigned char      x) { (void)x; return GP_UNSIGNED_CHAR;      }
-static inline constexpr GPType GP_TYPE(signed char        x) { (void)x; return GP_SIGNED_CHAR;        }
-static inline constexpr GPType GP_TYPE(char*              x) { (void)x; return GP_CHAR_PTR;           }
-static inline constexpr GPType GP_TYPE(const char*        x) { (void)x; return GP_CHAR_PTR;           }
-static inline constexpr GPType GP_TYPE(struct gp_char*    x) { (void)x; return GP_STRING;             }
-static inline constexpr GPType GP_TYPE(const void*        x) { (void)x; return GP_PTR;                }
+static inline constexpr gp_type_t GP_TYPE(unsigned char      x) { (void)x; return GP_TYPE_UNSIGNED_CHAR;      }
+static inline constexpr gp_type_t GP_TYPE(signed char        x) { (void)x; return GP_TYPE_SIGNED_CHAR;        }
+static inline constexpr gp_type_t GP_TYPE(char*              x) { (void)x; return GP_TYPE_CHAR_PTR;           }
+static inline constexpr gp_type_t GP_TYPE(const char*        x) { (void)x; return GP_TYPE_CHAR_PTR;           }
+static inline constexpr gp_type_t GP_TYPE(struct gp_char*    x) { (void)x; return GP_TYPE_STRING;             }
+static inline constexpr gp_type_t GP_TYPE(const void*        x) { (void)x; return GP_TYPE_PTR;                }
 
 #endif
 

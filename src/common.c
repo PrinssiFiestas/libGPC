@@ -142,37 +142,39 @@ size_t gp_convert_va_arg(
     const size_t limit,
     void*restrict const out,
     pf_va_list*restrict const args,
-    const GPType type)
+    const gp_type_t type)
 {
+    gp_db_assert((int)type < INT_MAX-16, "gp_print() family of macros require format strings in C99.");
+
     size_t length = 0;
     switch (type)
     {
-    case GP_CHAR:
-    case GP_SIGNED_CHAR:
-    case GP_UNSIGNED_CHAR:
+    case GP_TYPE_CHAR:
+    case GP_TYPE_SIGNED_CHAR:
+    case GP_TYPE_UNSIGNED_CHAR:
         length++;
         if (limit > 0)
             *(uint8_t*)out = va_arg(args->list, gp_promoted_arg_char_t);
         break;
 
-    case GP_UNSIGNED_SHORT:
-    case GP_UNSIGNED:
+    case GP_TYPE_UNSIGNED_SHORT:
+    case GP_TYPE_UNSIGNED:
         length += pf_utoa(limit, out, va_arg(args->list, unsigned));
         break;
 
-    case GP_UNSIGNED_LONG:
+    case GP_TYPE_UNSIGNED_LONG:
         length += pf_utoa(limit, out, va_arg(args->list, unsigned long));
         break;
 
-    case GP_UNSIGNED_LONG_LONG:
+    case GP_TYPE_UNSIGNED_LONG_LONG:
         length += pf_utoa(limit, out, va_arg(args->list, unsigned long long));
         break;
 
-    case GP_UINT128:
+    case GP_TYPE_UINT128:
         length += pf_u128toa(limit, out, va_arg(args->list, GPUInt128));
         break;
 
-    case GP_BOOL:
+    case GP_TYPE_BOOL:
         if (va_arg(args->list, gp_promoted_arg_bool_t)) {
             length += sizeof"true"-sizeof"";
             memcpy(out, "true", gp_min(4llu, limit));
@@ -181,42 +183,42 @@ size_t gp_convert_va_arg(
             memcpy(out, "false", gp_min(5llu, limit));
         } break;
 
-    case GP_SHORT:
-    case GP_INT:
+    case GP_TYPE_SHORT:
+    case GP_TYPE_INT:
         length += pf_itoa(limit, out, va_arg(args->list, int));
         break;
 
-    case GP_LONG:
+    case GP_TYPE_LONG:
         length += pf_itoa(limit, out, va_arg(args->list, long int));
         break;
 
-    case GP_LONG_LONG:
+    case GP_TYPE_LONG_LONG:
         length += pf_itoa(limit, out, va_arg(args->list, long long int));
         break;
 
-    case GP_INT128:
+    case GP_TYPE_INT128:
         length += pf_i128toa(limit, out, va_arg(args->list, GPInt128));
         break;
 
-    case GP_FLOAT:
+    case GP_TYPE_FLOAT:
         length += pf_gtoa(limit, out, va_arg(args->list, gp_promoted_arg_float_t));
         break;
 
-    case GP_DOUBLE:
+    case GP_TYPE_DOUBLE:
         length += pf_gtoa(limit, out, va_arg(args->list, gp_promoted_arg_double_t));
         break;
 
     #if GP_HAS_LONG_DOUBLE // pf_Lgtoa() missing, may lose precision, but better than nothing
-    case GP_LONG_DOUBLE:
+    case GP_TYPE_LONG_DOUBLE:
         length += pf_gtoa(limit, out, va_arg(args->list, long double));
         break;
     #else
-    case GP_LONG_DOUBLE: GP_UNREACHABLE("long double not supported.");
+    case GP_TYPE_LONG_DOUBLE: GP_UNREACHABLE("long double not supported.");
     #endif
 
     char* p;
     size_t p_len;
-    case GP_CHAR_PTR:
+    case GP_TYPE_CHAR_PTR:
         p = va_arg(args->list, char*);
         p_len = strlen(p);
         memcpy(out, p, gp_min(p_len, limit));
@@ -224,13 +226,13 @@ size_t gp_convert_va_arg(
         break;
 
     GPString s;
-    case GP_STRING:
+    case GP_TYPE_STRING:
         s = va_arg(args->list, GPString);
         memcpy(out, s, gp_min(gp_arr_length(s), limit));
         length += gp_arr_length(s);
         break;
 
-    case GP_PTR:
+    case GP_TYPE_PTR:
         p = va_arg(args->list, void*);
         if (p != NULL) {
             memcpy(out, "0x", gp_min(2llu, limit));

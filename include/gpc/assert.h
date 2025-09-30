@@ -190,7 +190,7 @@ static inline void gp_fail_internal_cpp(
 {
     vars.insert(0, "\"" GP_CURSOR_BACK_CPP(1));
     const char*const cstr = vars.c_str();
-    const GPPrintable ps[2] = {{condition, GP_INT}, {cstr, GP_CHAR_PTR}};
+    const GPPrintable ps[2] = {{condition, GP_TYPE_INT}, {cstr, GP_TYPE_CHAR_PTR}};
     gp_fail_internal(file, line, func, 2, ps, 0, cstr);
 }
 

@@ -1037,8 +1037,8 @@ GP_NODISCARD static inline bool operator >=(GPInt128  a, GPInt128  b) { return g
 
 
 #if __cplusplus
-static inline GP_MAYBE_CONSTEXPR GPType GP_TYPE(GPUInt128 x) { (void)x; return GP_UINT128; }
-static inline GP_MAYBE_CONSTEXPR GPType GP_TYPE(GPInt128  x) { (void)x; return GP_INT128;  }
+static inline GP_MAYBE_CONSTEXPR gp_type_t GP_TYPE(GPUInt128 x) { (void)x; return GP_UINT128; }
+static inline GP_MAYBE_CONSTEXPR gp_type_t GP_TYPE(GPInt128  x) { (void)x; return GP_INT128;  }
 #endif
 
 #ifdef GP_INT128_SELECTION
