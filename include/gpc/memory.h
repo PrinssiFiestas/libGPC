@@ -177,7 +177,7 @@ typedef struct gp_arena
     GPAllocator base;
 
     /** Determine where arena gets it's memory from.
-     * Default is gp_heap. If backing buffer is provided, then this will only
+     * Default is gp_global_heap. If backing buffer is provided, then this will only
      * determine how additional buffers are allocated.
      */
     GPAllocator* backing;
@@ -204,7 +204,7 @@ typedef struct gp_arena
 typedef struct gp_arena_initializer
 {
     /** Determine where arena gets it's memory from.
-     * Default is gp_heap. If backing buffer is provided, then this will only
+     * Default is gp_global_heap. If backing buffer is provided, then this will only
      * determine how additional buffers are allocated.
      */
     GPAllocator* backing_allocator;
@@ -289,11 +289,7 @@ GPArena* gp_scratch_arena(void) GP_NODISCARD;
 // Heap Allocator
 
 /** malloc() based allocator.*/
-extern GPAllocator* gp_heap;
-
-/** Allocation count to help optimizations.*/
-GP_NODISCARD
-size_t gp_heap_alloc_count(void);
+extern GPAllocator* gp_global_heap;
 
 // ----------------------------------------------------------------------------
 // Contiguous Arena Allocator
@@ -310,7 +306,9 @@ typedef struct gp_contiguous_arena
     GPAllocator base;
     void*   position; // arena pointer
     size_t  capacity; // size of memory
+    #if !__cplusplus
     uint8_t memory[];
+    #endif
 } GPContiguousArena;
 
 /** Get page size. */

@@ -28,50 +28,67 @@ void gp_carena_dealloc(GPAllocator* arena, void* mem)
 }
 
 // https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
-bool gp_valid_codepoint(
-    const uint32_t c)
+// https://stackoverflow.com/questions/66715611/check-for-valid-utf-8-encoding-in-c/66723102#66723102
+bool gp_bytes_is_valid_codepoint(
+    const void*_str,
+    const size_t i)
 {
-    if (c <= 0x7Fu)
+    // Instead of checking byte by byte, check all all bits in parallel.
+
+    const char* str = _str;
+
+    uint32_t cp_bits = 0; // not UTF-32, just raw bits
+    for (size_t j = 0; j < gp_utf8_codepoint_length(str, i); j++)
+        cp_bits = cp_bits << 8 | (uint8_t)str[i + j];
+
+    if (cp_bits <= 0x7Fu)
         return true;
 
-    if (0xC280u <= c && c <= 0xDFBFu)
-       return ((c & 0xE0C0u) == 0xC080u);
+    if (0xC280u <= cp_bits && cp_bits <= 0xDFBFu)
+       return ((cp_bits & 0xE0C0u) == 0xC080u);
 
-    if (0xEDA080u <= c && c <= 0xEDBFBFu)
-       return 0; // Reject UTF-16 surrogates
+    if (0xEDA080u <= cp_bits && cp_bits <= 0xEDBFBFu)
+       return false; // Reject UTF-16 surrogates
 
-    if (0xE0A080u <= c && c <= 0xEFBFBFu)
-       return ((c & 0xF0C0C0u) == 0xE08080u);
+    if (0xE0A080u <= cp_bits && cp_bits <= 0xEFBFBFu)
+       return ((cp_bits & 0xF0C0C0u) == 0xE08080u);
 
-    if (0xF0908080u <= c && c <= 0xF48FBFBFu)
-       return ((c & 0xF8C0C0C0u) == 0xF0808080u);
+    if (0xF0908080u <= cp_bits && cp_bits <= 0xF48FBFBFu)
+       return ((cp_bits & 0xF8C0C0C0u) == 0xF0808080u);
 
     return false;
 }
 
+// TODO we should just use this:
+// https://lemire.me/blog/2018/10/19/validating-utf-8-bytes-using-only-0-45-cycles-per-byte-avx-edition/
 bool gp_bytes_is_valid_utf8(
     const void*_str,
     const size_t length,
     size_t* invalid_index)
 {
     const char* str = (const char*)_str;
-    for (size_t i = 0; i < length;)
+    size_t i = 0;
+
+    for (; i + 7 < length; i += sizeof(uint64_t))
     {
-        size_t cp_length = gp_utf8_codepoint_length(str, i);
+        uint64_t bits = *(uint64_t*)(str + i);
+        if (bits & 0x8080808080808080)
+            break;
+    }
+
+    for (size_t cp_length; i < length; i += cp_length)
+    {
+        cp_length = gp_utf8_codepoint_length(str, i);
         if (cp_length == 0 || i + cp_length > length) {
             if (invalid_index != NULL)
                 *invalid_index = i;
             return false;
         }
-        uint32_t codepoint = 0;
-        for (size_t j = 0; j < cp_length; j++)
-            codepoint = codepoint << 8 | (uint8_t)str[i + j];
-        if ( ! gp_valid_codepoint(codepoint)) {
+        if ( ! gp_bytes_is_valid_codepoint(str, i)) {
             if (invalid_index != NULL)
                 *invalid_index = i;
             return false;
         }
-        i += cp_length;
     }
     return true;
 }

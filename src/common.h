@@ -47,18 +47,12 @@ size_t pf_vsnprintf_consuming_no_null_termination(
 void gp_arena_dealloc(GPAllocator*, void*);
 void gp_carena_dealloc(GPAllocator*, void*);
 
-bool gp_valid_codepoint(uint32_t c);
+bool gp_bytes_is_valid_codepoint(const void* str, size_t i);
 
 GP_NONNULL_ARGS()
 size_t gp_bytes_codepoint_count(
     const void* _str,
     const size_t n);
-
-GP_NONNULL_ARGS(1)
-bool gp_bytes_is_valid_utf8(
-    const void* str,
-    size_t str_length,
-    size_t* optional_invalid_index);
 
 GP_NONNULL_ARGS()
 inline size_t gp_count_fmt_specs(const char* fmt)

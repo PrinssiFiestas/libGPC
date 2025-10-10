@@ -20,9 +20,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-#define GP_DUMMY_BOOL_ASSIGN
-#else // suppress some warnings allowing things like gp_assert(p = malloc(1))
-#define GP_DUMMY_BOOL_ASSIGN (bool){0} =
 #endif
 
 
@@ -76,7 +73,7 @@ extern "C" {
  * marks current test and suite (if running tests) as failed, and exits program.
  */
 #define gp_assert(/* bool condition, variables*/...) \
-    (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
+    (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
         (GP_FAIL(__VA_ARGS__), GP_DEBUG_BREAKPOINT_TRAP, exit(1), false))
 
 /** Non-fatal assertion.
@@ -84,7 +81,7 @@ extern "C" {
  * marks current test and suite (if running tests) as failed, and returns false.
  */
 #define gp_expect(/* bool condition, variables*/...) \
-    (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
+    (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
         (GP_FAIL(__VA_ARGS__), false))
 
 #ifndef NDEBUG
@@ -93,7 +90,7 @@ extern "C" {
  * marks current test and suite (if running tests) as failed, and exits program.
  */
 #define gp_db_assert(/* bool condition, variables*/...) \
-    (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
+    (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
         (GP_FAIL(__VA_ARGS__), GP_DEBUG_BREAKPOINT_TRAP, exit(1), false))
 
 /** Non-fatal assertion that can be disabled.
@@ -101,13 +98,12 @@ extern "C" {
  * marks current test and suite (if running tests) as failed, and returns false.
  */
 #define gp_db_expect(/* bool condition, variables*/...) \
-    (GP_DUMMY_BOOL_ASSIGN (GP_1ST_ARG(__VA_ARGS__)) ? true :  \
+    (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
         (GP_FAIL(__VA_ARGS__), false))
 
-#else // always return true without evaluating condition
-static inline bool gp_dummy_bool(bool _) { return _; } // prevent -Wunused-value
-#define gp_db_assert(...) gp_dummy_bool(sizeof(GP_1ST_ARG(__VA_ARGS__)))
-#define gp_db_expect(...) gp_dummy_bool(sizeof(GP_1ST_ARG(__VA_ARGS__)))
+#else
+#define gp_db_assert(...) gp_pass_bool(sizeof(GP_1ST_ARG(__VA_ARGS__)))
+#define gp_db_expect(...) gp_pass_bool(sizeof(GP_1ST_ARG(__VA_ARGS__)))
 #endif
 
 /** Control flow assertion.
@@ -120,15 +116,14 @@ static inline bool gp_dummy_bool(bool _) { return _; } // prevent -Wunused-value
 #define GP_UNREACHABLE(...) \
 do { \
     bool unreachable = 0; \
-    gp_db_assert(unreachable, __VA_ARGS__); \
-    __builtin_unreachable(); \
+    gp_assert(unreachable, __VA_ARGS__); \
 } while (0)
 #elif __GNUC__
 #define GP_UNREACHABLE(...) __builtin_unreachable()
 #elif _MSC_VER
 #define GP_UNREACHABLE(...) __assume(0)
 #else
-#define GP_UNREACHABLE(...) do { bool unreachable = 0; gp_assert(unreachable, __VA_ARGS__); } while (0)
+#define GP_UNREACHABLE(...) (*(char*)0 = 0)
 #endif
 
 /** Start test.
@@ -158,6 +153,9 @@ void gp_suite(const char* name);
 // Optional explicit end of all testing and report results. If this
 // function is not called explicitly, it will be called when main() returns.
 void gp_end_testing(void);
+
+// Ingore unused value warnings
+static inline bool gp_pass_bool(bool b) { return b; }
 
 #define GP_FAIL(...) \
     gp_fail_internal( \

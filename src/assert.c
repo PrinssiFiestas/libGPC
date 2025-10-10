@@ -173,7 +173,7 @@ void gp_suite(const char* name)
 #elif _MSC_VER
 #define GP_FAIL_INTERNAL_UNREACHABLE __assume(0)
 #else
-#define GP_FAIL_INTERNAL_UNREACHABLE abort()
+#define GP_FAIL_INTERNAL_UNREACHABLE ((char*)0 = 0)
 #endif
 
 void gp_fail_internal(
@@ -211,6 +211,9 @@ void gp_fail_internal(
     // C99 relies on size information. The most notable effect of this is that
     // floats that are passed in different registers may fail. They are not
     // commonly implicitly converted though.
+    //
+    // Why not just take the first argument as bool? Breaks macro. I hate
+    // macros.
     if (GP_NO_TYPE <= objs[0].type && objs[0].type < GP_TYPE_LENGTH) switch (objs[0].type) {
     case GP_TYPE_BOOL: case GP_TYPE_SIGNED_CHAR: case GP_TYPE_CHAR: case GP_TYPE_UNSIGNED_CHAR:
     case GP_TYPE_SHORT: case GP_TYPE_UNSIGNED_SHORT: case GP_TYPE_INT: case GP_TYPE_UNSIGNED:

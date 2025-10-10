@@ -2,6 +2,16 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+// TODO since we are dealing with indices, we need to make sure that strings
+// remain valid UTF-8 on operatrions like insert(), which may cut a multi-byte
+// codepoint in half.
+//
+// Not just that but since inputs are arbitrary pointers, we also need to check
+// the first bytes in case that the input has been sliced between codepoints.
+// This should be done by the input validation macros.
+//
+// What the hell have I put myself into.
+
 #include <gpc/string.h>
 #include <gpc/memory.h>
 #include <gpc/utils.h>
@@ -17,24 +27,7 @@
 #include <printf/printf.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
-GPString gp_str_new(
-    GPAllocator* allocator,
-    size_t       capacity)
-{
-    capacity = gp_round_to_aligned( // blocks are aligned anyway
-        capacity + sizeof"",
-        GP_ALLOC_ALIGNMENT);
-
-    GPStringHeader* me = gp_mem_alloc(allocator, sizeof*me + capacity);
-    *me = (GPStringHeader) {
-        .length     = 0,
-        .capacity   = capacity - sizeof"",
-        .allocator  = allocator,
-        .allocation = me
-    };
-    return (GPString)(me + 1);
-}
+#include <errno.h>
 
 size_t gp_str_find_first(
     GPString    haystack,
@@ -156,84 +149,7 @@ bool gp_str_is_valid(
     return gp_bytes_is_valid_utf8(str, gp_str_length(str), invalid_index);
 }
 
-void gp_str_reserve(
-    GPString* pstr,
-    size_t capacity)
-{
-    if (gp_str_allocator(*pstr) == NULL)
-        return; // TODO like gp_arr_reserve(), get rid of this after truncating string implemented
-    if (capacity <= gp_arr_capacity(*pstr))
-        return;
-
-    GPString old_address = *pstr;
-    gp_arr_reallocate(sizeof**pstr, pstr, capacity + sizeof"");
-    if (old_address != *pstr) // allocation happened
-        gp_str_set(*pstr)->capacity -= sizeof"";
-}
-
-void gp_str_copy(
-    GPString* dest,
-    const void*restrict src,
-    size_t n)
-{
-    gp_str_reserve(dest, n);
-    memcpy(*dest, src, n);
-    gp_str_set(*dest)->length = n;
-}
-
-void gp_str_repeat(
-    GPString* dest,
-    const size_t n,
-    const void*restrict mem,
-    const size_t mem_length)
-{
-    gp_str_reserve(dest, n * mem_length);
-    if (mem_length == 1) {
-        memset(*dest, *(uint8_t*)mem, n);
-    } else for (size_t i = 0; i < n; i++) {
-        memcpy(*dest + i * mem_length, mem, mem_length);
-    }
-    gp_str_set(*dest)->length = n * mem_length;
-}
-
-void gp_str_slice(
-    GPString* dest,
-    const void*restrict src,
-    size_t start,
-    size_t end)
-{
-    if (src != NULL) {
-        gp_str_reserve(dest, end - start);
-        memcpy(*dest, (uint8_t*)src + start, end - start);
-        gp_str_set(*dest)->length = end - start;
-    } else {
-        memmove(*dest, *dest + start,  end - start);
-        gp_str_set(*dest)->length = end - start;
-    }
-}
-
-void gp_str_append(
-    GPString* dest,
-    const void* src,
-    size_t src_length)
-{
-    gp_str_reserve(dest, gp_str_length(*dest) + src_length);
-    memcpy(*dest + gp_str_length(*dest), src, src_length);
-    gp_str_set(*dest)->length += src_length;
-}
-
-void gp_str_insert(
-    GPString* dest,
-    size_t pos,
-    const void*restrict src,
-    size_t n)
-{
-    gp_str_reserve(dest, gp_str_length(*dest) + n);
-    memmove(*dest + pos + n, *dest + pos, gp_str_length(*dest) - pos);
-    memcpy(*dest + pos, src, n);
-    gp_str_set(*dest)->length += n;
-}
-
+// TODO truncation
 size_t gp_str_replace(
     GPString* haystack,
     const void*restrict needle,
@@ -257,9 +173,11 @@ size_t gp_str_replace(
         replacement,
         replacement_length);
 
+    // TODO remember to truncate tail as well!
     return start;
 }
 
+// TODO truncation!
 size_t gp_str_replace_all(
     GPString* haystack,
     const void*restrict needle,
@@ -285,6 +203,7 @@ size_t gp_str_replace_all(
         start += replacement_length;
         replacement_count++;
     }
+    // TODO remember to truncate tail as well!
     return replacement_count;
 }
 
@@ -354,6 +273,7 @@ static size_t gp_printable_max_allocation_size(GPPrintable object, pf_va_list _a
     return length;
 }
 
+// TODO truncation!
 size_t gp_str_print_internal(
     GPString* out,
     size_t arg_count,
@@ -386,9 +306,11 @@ size_t gp_str_print_internal(
     va_end(_args);
     va_end(args.list);
 
+    // TODO remember to truncate tail as well!
     return gp_str_set(*out)->length;
 }
 
+// TODO truncation!
 size_t gp_str_n_print_internal(
     GPString* out,
     size_t n,
@@ -415,12 +337,15 @@ size_t gp_str_n_print_internal(
     va_end(_args);
     va_end(args.list);
 
+    // TODO remember to truncate tail as well!
+
     const size_t out_length = gp_str_length(*out);
     if (out_length > n)
         gp_str_set(*out)->length = n;
     return out_length;
 }
 
+// TODO truncation!
 size_t gp_str_println_internal(
     GPString* out,
     size_t arg_count,
@@ -456,10 +381,13 @@ size_t gp_str_println_internal(
     va_end(_args);
     va_end(args.list);
 
+    // TODO remember to truncate tail as well!
+
     (*out)[gp_str_length(*out) - 1].c = '\n';
     return gp_str_set(*out)->length;
 }
 
+// TODO truncation!
 size_t gp_str_n_println_internal(
     GPString* out,
     size_t n,
@@ -496,6 +424,7 @@ size_t gp_str_n_println_internal(
     if (out_length > n)
         gp_str_set(*out)->length = n;
     return out_length;
+    // TODO remember to truncate tail as well!
 }
 
 void gp_str_trim(
@@ -503,6 +432,8 @@ void gp_str_trim(
     const char*restrict optional_char_set,
     int flags)
 {
+    gp_db_assert((flags & ~('l' | 'r' | 'a')) == 0, "Invalid trim flags.");
+
     if (gp_str_length(*str) == 0)
         return;
 
@@ -557,9 +488,9 @@ void gp_str_trim(
     gp_str_set(*str)->length = length;
 }
 
-GPArray(uint32_t) gp_utf8_to_utf32_new(GPAllocator* allocator, const GPString u8)
+GPArrayDynamic(uint32_t) gp_utf8_to_utf32_new(GPAllocator* allocator, const GPString u8)
 {
-    GPArray(uint32_t) u32 = gp_arr_new(sizeof u32[0], allocator, gp_str_length(u8));
+    GPArrayDynamic(uint32_t) u32 = gp_arr_new(sizeof u32[0], allocator, gp_str_length(u8));
     for (size_t i = 0, codepoint_length; i < gp_str_length(u8); i += codepoint_length)
     {
         uint32_t encoding;
@@ -573,34 +504,41 @@ uint32_t gp_u32_to_upper(uint32_t);
 uint32_t gp_u32_to_lower(uint32_t);
 uint32_t gp_u32_to_title(uint32_t);
 
-void gp_str_to_upper(GPString* str)
+size_t gp_str_to_upper(GPString* str)
 {
     GPArena* scratch = gp_scratch_arena();
     GPArray(uint32_t) u32 = gp_utf8_to_utf32_new((GPAllocator*)scratch, *str);
     for (size_t i = 0; i < gp_arr_length(u32); i++)
         u32[i] = gp_u32_to_upper(u32[i]);
-    gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
+    size_t trunced = gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
     gp_arena_rewind(scratch, gp_arr_allocation(u32));
+    return trunced;
 }
 
-void gp_str_to_lower(GPString* str)
+size_t gp_str_to_lower(GPString* str)
 {
     GPArena* scratch = gp_scratch_arena();
     GPArray(uint32_t) u32 = gp_utf8_to_utf32_new((GPAllocator*)scratch, *str);
     for (size_t i = 0; i < gp_arr_length(u32); i++)
         u32[i] = gp_u32_to_lower(u32[i]);
-    gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
+    size_t trunced = gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
     gp_arena_rewind(scratch, gp_arr_allocation(u32));
+    return trunced;
 }
 
-void gp_str_to_title(GPString* str)
+// TODO why is this not public? Probably because determing word boundaries in
+// Unicode compliant way is a bit complicated, so this just converts all
+// chacaters like Go does. Something simple would still be useful, implement and
+// make public!
+size_t gp_str_to_title(GPString* str)
 {
     GPArena* scratch = gp_scratch_arena();
     GPArray(uint32_t) u32 = gp_utf8_to_utf32_new((GPAllocator*)scratch, *str);
     for (size_t i = 0; i < gp_arr_length(u32); i++)
         u32[i] = gp_u32_to_title(u32[i]);
-    gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
+    size_t trunced = gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
     gp_arena_rewind(scratch, gp_arr_allocation(u32));
+    return trunced;
 }
 
 static size_t gp_str_find_invalid(
@@ -609,16 +547,13 @@ static size_t gp_str_find_invalid(
     const size_t length)
 {
     const char* haystack = _haystack;
-    for (size_t i = start; i < length;)
+    for (size_t i = start; i < length; )
     {
         size_t cp_length = gp_utf8_codepoint_length((GPString)haystack, i);
         if (cp_length == 0 || i + cp_length > length)
             return i;
 
-        uint32_t codepoint = 0;
-        for (size_t j = 0; j < cp_length; j++)
-            codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
-        if ( ! gp_valid_codepoint(codepoint))
+        if ( ! gp_bytes_is_valid_codepoint(haystack, i))
             return i;
 
         i += cp_length;
@@ -632,7 +567,7 @@ static size_t gp_str_find_valid(
     const size_t length)
 {
     const char* haystack = _haystack;
-    for (size_t i = start; i < length; i++)
+    for (size_t i = start; i < length; ++i)
     {
         size_t cp_length = gp_utf8_codepoint_length((GPString)haystack, i);
         if (cp_length == 1)
@@ -640,104 +575,117 @@ static size_t gp_str_find_valid(
         if (cp_length == 0)
             continue;
 
-        if (cp_length + i < length) {
-            uint32_t codepoint = 0;
-            for (size_t j = 0; j < cp_length; j++)
-                codepoint = codepoint << 8 | (uint8_t)haystack[i + j];
-            if (gp_valid_codepoint(codepoint))
-                return i;
-        } // else maybe there's ascii in last bytes so continue
+        if (cp_length + i < length && gp_bytes_is_valid_codepoint(haystack, i))
+            return i;
+        // else maybe there's ascii in last bytes so continue
     }
     return length;
 }
 
-void gp_str_to_valid(
-    GPString* str,
+// TODO it would be more useful to allow the user to decide whether they want to
+// replace the full invalid chunk with replacement or replace all invalid bytes
+// with replacement or even pass a callback to process the invalid chunk in
+// whatever way they please, which is especially useful if the user knows that
+// the invalid chunk is some other encoding (still unsafe though, see https://wiki.sei.cmu.edu/confluence/display/c/MSC10-C.+Character+encoding%3A+UTF8-related+issues).
+// This can be added later without breaking changes: if replacement is NULL,
+// then take an optional variadic argument.
+size_t gp_str_to_valid(
+    GPString* dest,
+    const void*restrict src,
+    size_t src_length,
     const char* replacement)
 {
-    const size_t replacement_length = strlen(replacement);
+    if (src == NULL) // TODO if replacement length is 1, then just memset()
+    {
+        GPString temp = gp_str_new(&gp_scratch_arena()->base, gp_str_length(*dest));
+        gp_str_copy(&temp, *dest, gp_str_length(*dest));
+        size_t trunced = gp_str_to_valid(dest, temp, gp_str_length(temp), replacement);
+        gp_arena_rewind(gp_scratch_arena(), gp_str_allocation(temp));
+        return trunced;
+    }
 
+    size_t replacement_length = strlen(replacement);
+    size_t trunced = 0;
     size_t start = 0;
-    if (replacement_length == 0) while ((start = gp_str_find_invalid(*str, start, gp_str_length(*str))) != GP_NOT_FOUND)
-    {
-        const size_t end = gp_str_find_valid(*str, start, gp_str_length(*str));
-        memmove(*str + start, *str + end, gp_str_length(*str) - end);
-        gp_str_set(*str)->length -= end - start;
-    }
-    else if (replacement_length == 1) while ((start = gp_str_find_invalid(*str, start, gp_str_length(*str))) != GP_NOT_FOUND)
-    {
-        const size_t end = gp_str_find_valid(*str, start, gp_str_length(*str));
-        memset(*str + start, replacement[0], end - start);
-        start = end;
-    }
-    else while ((start = gp_str_find_invalid(*str, start, gp_str_length(*str))) != GP_NOT_FOUND)
-    {
-        const size_t end = gp_str_find_valid(*str, start, gp_str_length(*str));
 
-        gp_str_reserve(str, gp_str_length(*str) + (end - start) * (replacement_length - 1));
-        memmove(*str + start + (end - start) * replacement_length, *str + end, gp_str_length(*str) - end);
-        gp_bytes_repeat(*str + start, end - start, replacement, replacement_length);
-        gp_str_set(*str)->length += (end - start) * (replacement_length - 1);
-        start += (end - start) * replacement_length;
+    gp_str_set(*dest)->length = 0;
+
+    while (true)
+    {
+        size_t invalid = gp_str_find_invalid(src, start, src_length);
+        if (invalid == GP_NOT_FOUND) {
+            trunced += gp_str_append(dest, (char*)src + start, src_length - start);
+            break;
+        }
+        trunced += gp_str_append(dest, (char*)src + start, invalid - start);
+
+        size_t valid = gp_str_find_valid(src, invalid, src_length);
+        for (size_t i = 0; i < valid - invalid; ++i)
+            trunced += gp_str_append(dest, replacement, replacement_length);
+        start = valid;
     }
+    return trunced;
 }
 
-int gp_str_file(
+size_t gp_str_file(
     GPString*   str,
     const char* file_path,
     const char* mode)
 {
+    size_t trunced = 0;
+
     switch (mode[0])
     {
-        case 'r':
-        {
-            #if _WIN32
-            struct __stat64 s;
-            if (_stat64(file_path, &s) != 0)
-            #elif _GNU_SOURCE
-            struct stat64 s;
-            if (stat64(file_path, &s) != 0)
-            #else
-            struct stat s;
-            if (stat(file_path, &s) != 0)
-            #endif
-                return -1;
+    case 'r':;
+        #if _WIN32
+        struct __stat64 s;
+        if (_stat64(file_path, &s) != 0)
+        #elif _GNU_SOURCE
+        struct stat64 s;
+        if (stat64(file_path, &s) != 0)
+        #else
+        struct stat s;
+        if (stat(file_path, &s) != 0)
+        #endif
+            return -1;
 
-            if ((uint64_t)s.st_size > SIZE_MAX)
-                return 1;
-
-            FILE* f = fopen(file_path, "r");
-            if (f == NULL)
-                return -1;
-
-            gp_str_reserve(str, s.st_size);
-            if (fread(*str, sizeof**str, s.st_size, f) != (size_t)s.st_size) {
-                fclose(f);
-                return -1;
-            }
-            gp_str_set(*str)->length = s.st_size;
-
-            fclose(f);
-        } break;
-
-        default:
-        {
-            size_t len = 0;
-            char mode_buf[4] = { mode[len++] };
-            if ( ! strchr(mode, 'x'))
-                mode_buf[len++] = 'b';
-            if (strchr(mode, '+'))
-                mode_buf[len++] = '+';
-
-            FILE* f = fopen(file_path, mode_buf);
-            if (f == NULL)
-                return -1;
-            if (fwrite(*str, sizeof**str, gp_str_length(*str), f) != gp_str_length(*str))
-                return fclose(f), -1;
-            fclose(f);
+        // Every allocator will fail at SIZE_MAX/2. This could actually happen
+        // in 32-bit systems.
+        if ((uint64_t)s.st_size > SIZE_MAX/2) {
+            errno = ERANGE;
+            return -1;
         }
-    }
-    return 0;
+        FILE* f = fopen(file_path, "r");
+        if (f == NULL)
+            return -1;
+
+        trunced = gp_str_reserve(str, s.st_size);
+        if (fread(*str, sizeof**str, s.st_size - trunced, f) != (size_t)(s.st_size - trunced)) {
+            fclose(f);
+            return -1;
+        }
+        gp_str_set(*str)->length = s.st_size - trunced;
+
+        fclose(f);
+        break;
+
+    default:;
+        size_t len = 0;
+        char mode_buf[4] = { mode[len++] };
+        if ( ! strchr(mode, 'x'))
+            mode_buf[len++] = 'b';
+        if (strchr(mode, '+'))
+            mode_buf[len++] = '+';
+
+        f = fopen(file_path, mode_buf);
+        if (f == NULL)
+            return -1;
+        if (fwrite(*str, sizeof**str, gp_str_length(*str), f) != gp_str_length(*str))
+            return fclose(f), -1;
+        fclose(f);
+    } // switch (mode[0])
+
+    return trunced;
 }
 
 // ----------------------------------------------------------------------------
@@ -822,31 +770,31 @@ static GPFoldPair gp_case_orbit[] = {
 
 static uint32_t gp_u32_simple_fold(uint32_t r)
 {
-	if (r < sizeof gp_ascii_fold / sizeof*gp_ascii_fold) {
-		return gp_ascii_fold[r];
-	}
+    if (r < sizeof gp_ascii_fold / sizeof*gp_ascii_fold) {
+        return gp_ascii_fold[r];
+    }
 
-	// Consult caseOrbit table for special cases.
-	uint32_t lo = 0;
-	uint32_t hi = sizeof gp_case_orbit / sizeof*gp_case_orbit;
-	for (; lo < hi;) {
-		uint32_t m = (lo+hi) >> 1;
-		if (gp_case_orbit[m].from < r) {
-			lo = m + 1;
-		} else {
-			hi = m;
-		}
-	}
-	if (lo < sizeof gp_case_orbit / sizeof*gp_case_orbit && gp_case_orbit[lo].from == r) {
-		return gp_case_orbit[lo].to;
-	}
+    // Consult caseOrbit table for special cases.
+    uint32_t lo = 0;
+    uint32_t hi = sizeof gp_case_orbit / sizeof*gp_case_orbit;
+    for (; lo < hi;) {
+        uint32_t m = (lo+hi) >> 1;
+        if (gp_case_orbit[m].from < r) {
+            lo = m + 1;
+        } else {
+            hi = m;
+        }
+    }
+    if (lo < sizeof gp_case_orbit / sizeof*gp_case_orbit && gp_case_orbit[lo].from == r) {
+        return gp_case_orbit[lo].to;
+    }
 
-	// No folding specified. This is a one- or two-element
-	// equivalence class containing rune and ToLower(rune)
-	// and ToUpper(rune) if they are different from rune.
+    // No folding specified. This is a one- or two-element
+    // equivalence class containing rune and ToLower(rune)
+    // and ToUpper(rune) if they are different from rune.
         uint32_t l = gp_u32_to_lower(r);
-	if (l != r) {
-		return l;
-	}
-	return gp_u32_to_upper(r);
+    if (l != r) {
+        return l;
+    }
+    return gp_u32_to_upper(r);
 }

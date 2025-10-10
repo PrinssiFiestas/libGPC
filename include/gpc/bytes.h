@@ -161,7 +161,7 @@ size_t gp_bytes_to_lower(
  * Converts all invalid bytes with @p replacement.
  */
 GP_NONNULL_ARGS()
-size_t gp_bytes_to_valid(
+size_t gp_bytes_to_valid_ascii(
     void*GP_RESTRICT       bytes,
     size_t                 bytes_size,
     const char*GP_RESTRICT replacement);
@@ -272,9 +272,24 @@ bool gp_bytes_equal_case(
     const void* s2,
     size_t      s2_size);
 
-/** Check if string is valid ASCII.*/
+/** Check if string is valid UTF-8.
+ * @p optional_invalid_index is only modified if invalid segment is found and is
+ * not NULL.
+ * @return true if valid, false if not.
+ */
+GP_NONNULL_ARGS(1)
+bool gp_bytes_is_valid_utf8(
+    const void* str,
+    size_t str_length,
+    size_t* optional_invalid_index);
+
+/** Check if string is valid ASCII.
+ * @p optional_invalid_index is only modified if invalid segment is found and is
+ * not NULL.
+ * @return true if valid, false if not.
+ */
 GP_NONNULL_ARGS(1) GP_NODISCARD
-bool gp_bytes_is_valid(
+bool gp_bytes_is_valid_ascii(
     const void* bytes,
     size_t      bytes_size,
     size_t*     optional_invalid_position);

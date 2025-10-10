@@ -2,9 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// Warning: do NOT define GP_NO_TYPE_SAFE_MACRO_SHADOWING here, it will break
-// the generated single header! All the macros must be #undef'd BELOW the
-// #includes. Ugly, but user experience must be maximized!
+// Do NOT define GP_NO_TYPE_SAFE_MACRO_SHADOWING here, it will break the
+// generated single header! All the macros must be #undef'd BELOW the #includes.
 
 #include <gpc/array.h>
 #include <gpc/utils.h>
@@ -14,14 +13,17 @@
 
 #ifdef gp_arr_reallocate
 #undef gp_arr_reallocate
+#undef gp_arr_filter
+#undef gp_arr_push // gp_arr_filter() needs this
 #endif
+
 void gp_arr_reallocate(
     const size_t   element_size,
     GPArrayAnyAddr _parr,
     size_t         capacity)
 {
     GPArrayAny* parr = _parr;
-    capacity = gp_next_power_of_2(capacity);
+    gp_assert(gp_arr_allocator(*parr) != NULL, "Cannot reallocate truncating array.");
     GPArrayHeader* new_block;
 
     if (gp_arr_allocation(*parr) != NULL)
@@ -38,25 +40,49 @@ void gp_arr_reallocate(
             (GPArrayHeader*)*parr - 1,
             sizeof*new_block + element_size*gp_arr_length(*parr));
 
-    new_block->capacity   = capacity;
+    new_block->capacity   = capacity - (element_size==sizeof(char));
     new_block->allocation = new_block;
 
     *parr = new_block + 1;
 }
 
-// TODO use this to implement truncating strings and arrays
-// use attributes GP_NONNULL_ARGS(2) GP_NODISCARD
-size_t gp_arr_try_reserve(
-    const size_t   element_size,
-    GPArrayAnyAddr _parr,
-    size_t         capacity)
+size_t gp_arr_filter(
+    size_t                   element_size,
+    GPArrayAnyAddr           dest_address,
+    const void*GP_RESTRICT   optional_src, // mutates arr if NULL
+    size_t                   optional_src_length,
+    gp_arr_filter_callback_t f)
 {
-    GPArrayAny* parr = _parr;
-    if (capacity <= gp_arr_capacity(*parr))
-        return 0;
-    else if (gp_arr_allocator(*parr) == NULL)
-        return capacity - gp_arr_capacity(*parr);
-    gp_arr_reallocate(element_size, parr, capacity);
-    return 0;
-}
+    GPArrayAny* parr = (GPArrayAny*)dest_address;
+    bool(*func)(const void* x) = (bool(*)(const void* x))f;
 
+    size_t length = optional_src == NULL ? gp_arr_length(*parr) : optional_src_length;
+    gp_arr_set(*parr)->length = 0;
+    size_t trunced = 0;
+
+    if (optional_src == NULL) {
+        for (size_t i = 0; i < length; ++i)
+            if (func((const uint8_t*)*parr + i*element_size))
+               memmove(
+                   (uint8_t*)*parr + gp_arr_set(*parr)->length++ * element_size,
+                   (uint8_t*)*parr + i*element_size,
+                   element_size);
+    } else {
+        if (length <= gp_arr_capacity(*parr)) { // don't need reallocating or bounds checks
+            for (size_t i = 0; i < length; ++i)
+                if (func((const uint8_t*)optional_src + i*element_size))
+                    memcpy(
+                        (uint8_t*)*parr + gp_arr_set(*parr)->length++ * element_size,
+                        (const uint8_t*)optional_src + i*element_size,
+                        element_size);
+        } else { // TODO unnecessary allocations and bounds checks can be optimized away by storing indices
+            for (size_t i = 0; i < length; ++i) {
+                if (func((const uint8_t*)optional_src + i*element_size)) {
+                    trunced += gp_arr_push(
+                        element_size, parr, (const uint8_t*)optional_src + i*element_size);
+                }
+            }
+        }
+    }
+    return trunced;
+}

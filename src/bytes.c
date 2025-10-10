@@ -171,7 +171,7 @@ bool gp_bytes_equal_case(
     return true;
 }
 
-bool gp_bytes_is_valid(
+bool gp_bytes_is_valid_ascii(
     const void* _str,
     const size_t n,
     size_t* invalid_index)

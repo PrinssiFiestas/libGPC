@@ -115,38 +115,39 @@ size_t gp_utf8_decode(
 // Full string encoding conversions
 
 GP_NONNULL_ARGS()
-void gp_utf8_to_utf32(
+size_t gp_utf8_to_utf32(
     GPArray(uint32_t)* out_utf32,
     const void*        utf8,
     size_t             utf8_length);
 
 GP_NONNULL_ARGS()
-void gp_utf32_to_utf8(
+size_t gp_utf32_to_utf8(
     GPString*        out_utf8,
     const uint32_t*  utf32,
     size_t           utf32_length);
 
 GP_NONNULL_ARGS()
-void gp_utf8_to_utf16(
+size_t gp_utf8_to_utf16(
     GPArray(uint16_t)* out_utf16,
     const void*        utf8,
     size_t             utf8_length);
 
 GP_NONNULL_ARGS()
-void gp_utf16_to_utf8(
+size_t gp_utf16_to_utf8(
     GPString*        out_utf8,
     const uint16_t*  utf16,
     size_t           utf16_length);
 
-// Output will be null-terminated.
+// Output will be null-terminated in memory if not truncated. If only the
+// null-terminator got truncated, (size_t)-1 will be returned.
 GP_NONNULL_ARGS()
-void gp_utf8_to_wcs(
+size_t gp_utf8_to_wcs(
     GPArray(wchar_t)* out_unicode_wide_string,
     const void*       utf8,
     size_t            utf8_length);
 
 GP_NONNULL_ARGS()
-void gp_wcs_to_utf8(
+size_t gp_wcs_to_utf8(
     GPString*       out_unicode_wide_string,
     const wchar_t*  wcs,
     size_t          wcs_length);

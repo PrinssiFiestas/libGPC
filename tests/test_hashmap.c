@@ -162,7 +162,7 @@ int main(void)
     gp_suite("Non-hashed map");
     {
         GPMapInitializer init = {.destructor = free };
-        GPMap* map = gp_map_new(gp_heap, &init);
+        GPMap* map = gp_map_new(gp_global_heap, &init);
 
         int* elem_25 = malloc(sizeof(int));
         int* elem_67 = malloc(sizeof(int));
@@ -191,7 +191,7 @@ int main(void)
         gp_test("Validity after collision");
         {
             GPMapInitializer init = {.element_size = sizeof(int) };
-            GPMap* map = gp_map_new(gp_heap, &init);
+            GPMap* map = gp_map_new(gp_global_heap, &init);
 
             GPUInt128 key1 = gp_uint128(0,0);
             GPUInt128 key2 = gp_uint128(0,0);

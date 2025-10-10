@@ -9,10 +9,8 @@
 #ifndef GP_STRING_INCLUDED
 #define GP_STRING_INCLUDED 1
 
-#include "memory.h"
 #include "bytes.h"
-#include "attributes.h"
-#include "overload.h"
+#include "array.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -32,45 +30,61 @@ extern "C" {
 /** Distinct character type */
 typedef struct gp_char { uint8_t c; } GPChar;
 
-/** Dynamic string.
+/** String type.
  * In memory, a string is GPStringHeader followed by the characters. An object
  * of type GPString is a pointer to the first element.
  *     GPStrings are not null-terminated by design to simplify their usage and
  * to discourage the usage of buggy and slow null-terminated strings. However,
  * null-terminated strings are ubiquitous, so conversion functions are provided.
+ *     String can be configured to be dynamic or truncating on per object basis.
+ * Storing a pointer to an allocator allows the string to reallocate and grow.
+ * If the pointer is NULL, the string is considered static and will not
+ * reallocate. A static string will be truncated to prevent overflow and the
+ * number of truncated elements will be returned by relevant functions.
  */
 typedef GPChar* GPString;
 
+/** Dynamic string.
+ * Use this type to signal the reader that this string is supposed to grow by
+ * reallocation. This is obviously not enforced by the compiler or even our
+ * functions, but you can enforce this simply by asserting that the allcoator is
+ * not NULL.
+ */
+typedef GPString GPStringDynamic;
+
+/** Static string.
+ * Use this type to signal the reader that this string is supposed to never
+ * reallocate and may truncate.
+ */
+typedef GPString GPStringStatic;
+
 /** String meta-data.
- * You can edit the fields directly with gp_str_header(my_str)->field.
- * This might be useful for optimizations, but it is mostly recommended to use
- * the provided functions instead.
+ * You can edit the fields directly using `gp_str_set(my_str)->field = x`.
+ * TODO better docs, which fields are safe to modify and how?
  */
 typedef struct gp_string_header
 {
     uintptr_t    capacity;
     void*        allocation; // allocated block start or NULL if on stack
-    GPAllocator* allocator;
+    GPAllocator* allocator;  // set this to NULL to make the string truncating (not dynamic)
     uintptr_t    length;
 } GPStringHeader;
 
 /** Static string buffer.
- * Used to create a static or stack allocated string. Create a variable of this
- * type, then pass it by address to @ref gp_str_static() to initialize and
- * convert it to GPString. It is not recommended to initialize this manually,
- * @ref gp_str_static() will empty the contents anyway. You also shouldn't use
- * this directly, you want to convert to GPString and use that instead, so it
- * can be reallocated if needed. This is only meant to be a static or stack
- * allocated backing buffer for GPString.
+ * Used to create a static or stack allocated GPString. Create a variable of
+ * this type, then pass it by address to @ref gp_str_buffered() to initialize
+ * and convert it to GPString. This type is not meant to be used directly, it is
+ * meant to be used as a statically allocated buffer to be converted to
+ * GPString.
  */
-#define GPStringBuffer(CAPACITY)    \
-struct GP_ANONYMOUS_STRUCT(__LINE__) \
-{ \
-    uintptr_t    capacity;   \
-    void*        allocation;  \
-    GPAllocator* allocator;    \
-    uintptr_t    length;        \
-    GPChar       data[CAPACITY]; \
+#define GPStringBuffer(CAPACITY)     \
+struct GP_ANONYMOUS_STRUCT(__LINE__)  \
+{                                      \
+    uintptr_t    capacity;              \
+    void*        allocation;             \
+    GPAllocator* allocator;               \
+    uintptr_t    length;                   \
+    GPChar       data[(CAPACITY)+sizeof""]; \
 }
 
 /** Getters */
@@ -86,27 +100,33 @@ static inline GPStringHeader* gp_str_set(GPString str)
     return (GPStringHeader*)str - 1;
 }
 
-/** Create a new string */
+/** Create a new dynamic string */
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
-GPString gp_str_new(
-    GPAllocator*,
-    size_t capacity);
+static inline GPStringDynamic gp_str_new(
+    GPAllocator* allocator,
+    size_t       capacity)
+{
+    return (GPStringDynamic)gp_arr_new(sizeof(GPChar), allocator, capacity);
+}
 
 /** Create and initialize a new string */
 GP_NONNULL_ARGS_AND_RETURN
-static inline GPString gp_str_new_init(
+static inline GPStringDynamic gp_str_new_init(
     GPAllocator* alc,
     size_t       capacity,
     const char*  init)
 {
     size_t len = strlen(init);
-    GPString s = gp_str_new(alc, gp_max(capacity, len));
+    GPStringDynamic s = gp_str_new(alc, gp_max(capacity, len));
     memcpy(s, init, len);
     gp_str_set(s)->length = len;
     return s;
 }
 
-/** Create and initialize a string from a static string buffer */
+/** Create and initialize a string from a static string buffer.
+ * Passing an allocator makes the string reallocateable (dynamic), static if
+ * NULL.
+ */
 #define/* GPString */gp_str_buffered(      \
     GPAllocator_ptr_OPTIONAL,               \
     GPStringBuffer_ptr_BUFFER,               \
@@ -132,7 +152,7 @@ static inline void gp_str_delete(GPString optional)
 }
 
 /** Free string memory trough pointer.
- * This should be used as destructor for GPDictionary(GPString) if needed.
+ * Useful for some destructor callbacks.
  */
 static inline void gp_str_ptr_delete(GPString* optional)
 {
@@ -146,7 +166,7 @@ static inline void gp_str_ptr_delete(GPString* optional)
 GP_NONNULL_ARGS_AND_RETURN
 static inline char* gp_cstr(GPString str)
 {
-    str[gp_str_length(str)].c = '\0';
+    str[gp_str_length(str)].c = '\0'; // safe, using implicit capacity
     return (char*)str;
 }
 
@@ -154,28 +174,50 @@ static inline char* gp_cstr(GPString str)
  * If @p capacity > gp_str_capacity(@p *str), reallocates, does nothing
  * otherwise. In case of reallocation, capacity will be rounded up
  * exponentially.
+ * @return 0 if capacity will be large enough to hold @p capacity bytes, which
+ * is always the case for dynamic strings. Otherwise returns the difference of
+ * @p capacity and current capacity.
  */
 GP_NONNULL_ARGS()
-void gp_str_reserve(
+static inline size_t gp_str_reserve(
     GPString* str,
-    size_t    capacity);
+    size_t    capacity)
+{
+    return gp_arr_reserve(sizeof(GPChar), str, capacity);
+}
 
 /** Copy source string to destination.*/
 GP_NONNULL_ARGS()
-void gp_str_copy(
+static inline size_t gp_str_copy(
     GPString*              dest,
     const void*GP_RESTRICT src,
-    size_t                 src_size);
+    size_t                 src_size)
+{
+    return gp_arr_copy(sizeof(GPChar), dest, (GPString)src, src_size);
+}
 
 /** Copy source string to destination many times.
  * Copies @p src to @p dest and appends @p src to it count - 1 times.
  */
 GP_NONNULL_ARGS()
-void gp_str_repeat(
+static inline size_t gp_str_repeat(
     GPString*              dest,
     size_t                 count,
     const void*GP_RESTRICT src,
-    size_t                 src_length);
+    size_t                 src_length)
+{
+    size_t trunced = gp_str_reserve(dest, count * src_length);
+    if (src_length == 1) {
+        memset(*dest, *(uint8_t*)src, count - trunced);
+    } else for (size_t i = 0, j = 0;
+                i < count*src_length - trunced;
+                ++i, j = j == src_length ? 0 : j + 1)
+    {
+        (*dest)[i] = ((GPChar*)src)[j];
+    }
+    gp_str_set(*dest)->length = count*src_length - trunced;
+    return trunced;
+}
 
 /** Copy or remove characters.
  * Copies characters from @p src starting from @p start_index to @p end_index
@@ -184,29 +226,39 @@ void gp_str_repeat(
  * moved over.
  */
 GP_NONNULL_ARGS(1)
-void gp_str_slice(
+static inline size_t gp_str_slice(
     GPString*              str,
     const void*GP_RESTRICT optional_src,
     size_t                 start,
-    size_t                 end);
+    size_t                 end)
+{
+    return gp_arr_slice(sizeof(GPChar), str, (GPString)optional_src, start, end);
+}
 
 /** Add characters to the end.*/
 GP_NONNULL_ARGS()
-void gp_str_append(
+static inline size_t gp_str_append(
     GPString*              dest,
     const void*GP_RESTRICT src,
-    size_t                 src_size);
+    size_t                 src_size)
+{
+    return gp_arr_append(sizeof(GPChar), dest, (GPString)src, src_size);
+}
 
 /** Add characters to specified position.
  * Moves rest of the characters over to make room for added characters.
  */
 GP_NONNULL_ARGS()
-void gp_str_insert(
+static inline size_t gp_str_insert(
     GPString*              dest,
     size_t                 pos,
     const void*GP_RESTRICT src,
-    size_t                 src_size);
+    size_t                 src_size)
+{
+    return gp_arr_insert(sizeof(GPChar), dest, pos, (GPString)src, src_size);
+}
 
+// TODO truncation
 /** Replace substring with other string.
  * Find the first occurrence of @p needle in @p haystack starting from @p start
  * and replace it with @p replacement.
@@ -221,6 +273,7 @@ size_t gp_str_replace(
     size_t                 replacement_length,
     size_t                 start);
 
+// TODO truncation
 /** Replace all substrings with other string.
  * Find the all occurrences of @p needle in @p haystack and replace them with
  * @p replacement. .
@@ -256,27 +309,33 @@ void gp_str_trim(
  * Only converts Unicode characters with 1:1 mapping.
  */
 GP_NONNULL_ARGS()
-void gp_str_to_upper(
+size_t gp_str_to_upper(
     GPString*);
 
 /** Simple Unicode downcasing.
  * Only converts Unicode characters with 1:1 mapping.
  */
 GP_NONNULL_ARGS()
-void gp_str_to_lower(
+size_t gp_str_to_lower(
     GPString*);
 
 // Unicode standard recommends using this as replacement character for invalid
-// bytes.
+// UTF-8.
 #define GP_REPLACEMENT_CHARACTER "\uFFFD" // �
 
 /** Make string valid UTF-8.
- * Converts all invalid bytes with @p replacement.
+ * Copy @p optional_src to @p dest replacing all invalid bytes with
+ * @p replacement, which may be empty, but it is recommended to use
+ * GP_REPLACEMENT_CHARACTER (�) instead, which is more secure and designed for
+ * this purpose. See https://www.unicode.org/reports/tr36/tr36-15.html.
+ * If @p optional_src is NULL, @p *dest will be used as input instead.
  */
-GP_NONNULL_ARGS()
-void gp_str_to_valid(
-    GPString*   str,
-    const char* replacement);
+GP_NONNULL_ARGS(1)
+size_t gp_str_to_valid(
+    GPString*              dest,
+    const void*GP_RESTRICT optional_src,
+    size_t                 optional_src_length,
+    const char*            replacement);
 
 /** Quick file operations.
  * Opens file in file_path, performs a file operation, and closes it. If
@@ -286,18 +345,20 @@ void gp_str_to_valid(
  * Files are always opened in binary mode by default. Add "x" or "text" anywhere
  * in operation string to open in text mode. This makes no difference in POSIX,
  * but in Windows adds processing to "\n" which is unnecessary in 2024.
- * Returns  0 on success.
- * Returns -1 if file operations fail. Check errno for the specific error.
- * Returns  1 if file size > SIZE_MAX in 32-bit systems.
+ * @return  0 on success, (size_t)-1 if file operations fail (errno will be
+ * set). If reading file to a truncating string without errors, number of
+ * truncated bytes will be returned.
  */
 GP_NONNULL_ARGS() GP_NODISCARD
-int gp_str_file(
+size_t gp_str_file(
     GPString*   src_or_dest,
     const char* file_path,
     const char* operation);
 
 // ----------------------------------------------------------------------------
 // String formatting
+
+// TODO truncation!
 
 // Strings can be formatted without format specifiers with gp_str_print()
 // family of macros if C11 or higher or C++. If not C++ format specifiers can be
@@ -348,6 +409,28 @@ size_t gp_str_find_last(
     GPString    haystack,
     const void* needle,
     size_t      needle_size);
+
+// TODO UNTESTED!
+GP_NONNULL_ARGS() GP_NODISCARD
+static inline size_t gp_str_find_all(
+    GPArray(size_t)* indices,
+    GPString         haystack,
+    const void*      needle,
+    size_t           needle_size)
+{
+    gp_arrt_set(size_t, *indices)->length = 0;
+    size_t start = 0;
+    while (gp_arrt_length(size_t, *indices) < gp_arrt_capacity(size_t, *indices)) {
+        start = gp_str_find_first(haystack, needle, needle_size, start);
+        if (start == GP_NOT_FOUND)
+            return 0;
+        (*indices)[gp_arrt_set(size_t, *indices)->length++] = start;
+    }
+    size_t trunced = 0;
+    while ((start = gp_str_find_first(haystack, needle, needle_size, start)) != GP_NOT_FOUND)
+        trunced += gp_arr_push(sizeof(size_t), indices, &start);
+    return trunced;
+}
 
 /** Find codepoints.
  * @return index to the first occurrence of any codepoints in @p utf8_char_set

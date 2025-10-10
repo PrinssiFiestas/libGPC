@@ -36,7 +36,7 @@ int main(void)
         gp_test("Read line");
         {
             FILE* f;
-            gp_assert(f = tmpfile());
+            gp_assert((f = tmpfile()) != NULL);
             GPStringBuffer(1) buf;
             GPString str = gp_str_buffered(arena, &buf);
             while (gp_file_read_line(&str, f))
@@ -56,7 +56,7 @@ int main(void)
         gp_test("Read until");
         {
             FILE* f;
-            gp_assert(f = tmpfile());
+            gp_assert((f = tmpfile()) != NULL);
             f_contents = "DELIMfooDELIMbarDELIMbloDELink";
             gp_file_print(f, f_contents);
             rewind(f);
@@ -78,7 +78,7 @@ int main(void)
         gp_test("Read word");
         {
             FILE* f;
-            gp_assert(f = tmpfile());
+            gp_assert((f = tmpfile()) != NULL);
             f_contents = "Here\t is some" GP_WHITESPACE "words. Yeah.";
             gp_file_println(f, f_contents);
             rewind(f);

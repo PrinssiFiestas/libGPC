@@ -16,7 +16,7 @@ int main(void)
     // Tiny arena to put address sanitizer to work
     GPArena* _arena = gp_arena_new(NULL, 1);
     _arena->growth_factor = 0.0;
-    GPAllocator* arena = (GPAllocator*)_arena;
+    GPAllocator* arena = &_arena->base;
 
     gp_suite("Conversions");
     {
@@ -46,6 +46,26 @@ int main(void)
             GPString decoding = gp_str_buffered(NULL, &buf);
             gp_utf16_to_utf8(&decoding, utf16, gp_arr_length(utf16));
             gp_expect(gp_str_equal(utf8, decoding, gp_str_length(decoding)), utf8, decoding);
+        }
+
+        gp_test("UTF-32 to UTF-8");
+        {
+            size_t trunced;
+            GPStringBuffer(7) u8buf;
+            GPArrayBuffer(uint32_t, 16) u32buf;
+
+            GPArray(uint32_t) u32s = gp_arr_buffered(
+                uint32_t, NULL, &u32buf, 'a', 'b', 'c', 'd', 'e', U'😂');
+            GPString str = gp_str_buffered(NULL, &u8buf);
+
+            trunced = gp_utf32_to_utf8(&str, u32s, gp_arrt_length(uint32_t, u32s));
+            gp_expect(gp_str_equal(str, "abcde", 5), str);
+            gp_expect(trunced == strlen("😂"), "Full codepoint truncated away.", trunced);
+
+            gp_str_set(str)->allocator = arena;
+            trunced = gp_utf32_to_utf8(&str, u32s, gp_arrt_length(uint32_t, u32s));
+            gp_expect( ! trunced);
+            gp_expect(gp_str_equal(str, "abcde😂", 9), str);
         }
         #endif
 
@@ -130,7 +150,7 @@ int main(void)
         gp_test("Split and join");
         {
             GPString str = gp_str_new_init(arena, 64, "\t\tHello, I'm  the Prince!\r\n");
-            GPArray(GPString) substrs = gp_str_split(gp_heap, str, gp_str_length(str), GP_WHITESPACE);
+            GPArray(GPString) substrs = gp_str_split(gp_global_heap, str, gp_str_length(str), GP_WHITESPACE);
             gp_expect(gp_arr_length(substrs) == 4);
             gp_expect(gp_str_equal(substrs[0], "Hello,",  strlen("Hello,")));
             gp_expect(gp_str_equal(substrs[1], "I'm",     strlen("I'm")));

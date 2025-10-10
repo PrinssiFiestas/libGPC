@@ -24,7 +24,7 @@ static bool is_free(void*_ptr)
 
 static void deferred_dealloc(void* p)
 {
-    gp_mem_dealloc(gp_heap, p);
+    gp_mem_dealloc(gp_global_heap, p);
 }
 
 typedef struct object
@@ -34,12 +34,12 @@ typedef struct object
 
 void init_object(Object* obj)
 {
-    obj->memory = gp_mem_alloc(gp_heap, 32);
+    obj->memory = gp_mem_alloc(gp_global_heap, 32);
 }
 
 void destroy_object(Object* obj)
 {
-    gp_mem_dealloc(gp_heap, obj->memory);
+    gp_mem_dealloc(gp_global_heap, obj->memory);
 }
 
 static int test0(void*_)
@@ -109,9 +109,9 @@ static int test0(void*_)
             // would cause double free. We only use the heap now for unit
             // testing and demonstration purposes.
 
-            void* p1 = gp_mem_alloc(gp_heap, 64);
+            void* p1 = gp_mem_alloc(gp_global_heap, 64);
             gp_scope_defer(scope, deferred_dealloc, p1);
-            void* p2 = gp_mem_alloc(gp_heap, 64);
+            void* p2 = gp_mem_alloc(gp_global_heap, 64);
             gp_defer(scope, deferred_dealloc, p2);
             FILE* f = tmpfile();
             #if WARNING
@@ -142,17 +142,17 @@ static int test0(void*_)
         // code. Note that the declared variable can be used on 1st and 2nd
         // fields.
         GP_BEGIN(
-            (deferred_dealloc, ptr,   void* ptr = gp_mem_alloc(gp_heap, 16)),
-            (deferred_dealloc, ps[1], ps[1]     = gp_mem_alloc(gp_heap, 32))
+            (deferred_dealloc, ptr,   void* ptr = gp_mem_alloc(gp_global_heap, 16)),
+            (deferred_dealloc, ps[1], ps[1]     = gp_mem_alloc(gp_global_heap, 32))
         )
             const int dummy_var = 0;
             (void)dummy_var;
 
-            ps[3] = gp_mem_alloc(gp_heap, 24);
+            ps[3] = gp_mem_alloc(gp_global_heap, 24);
             #if __GNUC__ || _MSC_VER
             // Safe to use pointers to stack allocated objects.
             GP_BEGIN(
-                (deferred_dealloc, ps[2], ps[2] = gp_mem_alloc(gp_heap, 64)),
+                (deferred_dealloc, ps[2], ps[2] = gp_mem_alloc(gp_global_heap, 64)),
                 (deferred_dealloc, ps[3]), // third field is optional
                 (destroy_object, &obj, Object obj; init_object(&obj)) // note multiple statements in third field
             )
@@ -221,12 +221,12 @@ static int test1(void*_)
     test1_ps[2] = gp_mem_alloc(&scope2->base, 8);
     test1_ps[3] = gp_mem_alloc(&scope3->base, 8);
 
-    test1_ps[4] = gp_mem_alloc(gp_heap, 16);
-    test1_ps[5] = gp_mem_alloc(gp_heap, 16);
-    test1_ps[6] = gp_mem_alloc(gp_heap, 16);
-    test1_ps[7] = gp_mem_alloc(gp_heap, 16);
-    test1_ps[8] = gp_mem_alloc(gp_heap, 16);
-    test1_ps[9] = gp_mem_alloc(gp_heap, 16);
+    test1_ps[4] = gp_mem_alloc(gp_global_heap, 16);
+    test1_ps[5] = gp_mem_alloc(gp_global_heap, 16);
+    test1_ps[6] = gp_mem_alloc(gp_global_heap, 16);
+    test1_ps[7] = gp_mem_alloc(gp_global_heap, 16);
+    test1_ps[8] = gp_mem_alloc(gp_global_heap, 16);
+    test1_ps[9] = gp_mem_alloc(gp_global_heap, 16);
     gp_scope_defer(scope0, deferred_dealloc, test1_ps[4]);
     gp_scope_defer(scope0, deferred_dealloc, test1_ps[5]);
     gp_scope_defer(scope1, deferred_dealloc, test1_ps[6]);
@@ -317,9 +317,9 @@ static int test_scratch(void*_)
 
 int main(void)
 {
-    GPAllocator* original_heap = gp_heap;
+    GPAllocator* original_heap = gp_global_heap;
     GPAllocator* test_allocator = new_test_allocator();
-    gp_heap = test_allocator;
+    gp_global_heap = test_allocator;
 
     GPThread tests[3];
     gp_thread_create(&tests[0], test0, NULL);
@@ -336,7 +336,7 @@ int main(void)
             gp_expect(is_free(test1_ps[i]), "%zu", i);
     }
 
-    gp_heap = original_heap; // put sanitizers back to work
+    gp_global_heap = original_heap; // put sanitizers back to work
 
     gp_suite("Other stuff");
     {
@@ -369,11 +369,11 @@ int main(void)
                 uint8_t data[ALIGNMENT];
             } AlignedData;
 
-            AlignedData* data = gp_mem_alloc_aligned(gp_heap, sizeof*data, sizeof*data);
+            AlignedData* data = gp_mem_alloc_aligned(gp_global_heap, sizeof*data, sizeof*data);
             gp_expect((uintptr_t)data == gp_round_to_aligned((uintptr_t)data, sizeof*data));
             gp_expect((uintptr_t)data % ALIGNMENT == 0);
             memset(data, 0, sizeof*data);
-            gp_mem_dealloc(gp_heap, data);
+            gp_mem_dealloc(gp_global_heap, data);
 
             GPArena* arena = gp_arena_new(&(GPArenaInitializer){.max_size = 1}, 1);
             data = gp_mem_alloc_aligned(&arena->base, sizeof*data, sizeof*data);

@@ -70,7 +70,7 @@ static void init_globals(void)
 {
     gmem = &gp_arena_new(NULL, 1 << 15)->base;
 
-    gp_assert(out = fopen(out_path, "wb"), strerror(errno));
+    gp_assert((out = fopen(out_path, "wb")) != NULL, strerror(errno));
 
     include_paths = gp_arr_new(sizeof*include_paths, gmem, 16);
     headers       = gp_arr_new(sizeof*headers,       gmem, 64);
@@ -91,7 +91,7 @@ static void init_globals(void)
     }
 
     DIR* dir;
-    Assert(dir = opendir("include/"), strerror(errno));
+    Assert((dir = opendir("include/")) != NULL, strerror(errno));
     for (struct dirent* entry = readdir(dir); entry != NULL; entry = readdir(dir))
     {
         if (entry->d_name[0] == '.') // ignore ".", "..", and hidden directories
@@ -110,7 +110,7 @@ static void init_globals(void)
         gp_str_slice(&full_path, NULL, 0, strlen("include/")); // clean last iteration
         gp_str_append(&full_path, include_paths[i], strlen(include_paths[i]));
 
-        Assert(dir = opendir(gp_cstr(full_path)), strerror(errno));
+        Assert((dir = opendir(gp_cstr(full_path))) != NULL, strerror(errno));
 
         for (struct dirent* entry = readdir(dir); entry != NULL; entry = readdir(dir))
         {
@@ -136,7 +136,7 @@ static void init_globals(void)
 
         closedir(dir);
     }
-    Assert(dir = opendir("src/"), strerror(errno));
+    Assert((dir = opendir("src/")) != NULL, strerror(errno));
     gp_str_copy(&full_path, "src/", strlen("src/"));
     for (struct dirent* entry = readdir(dir); entry != NULL; entry = readdir(dir))
     {
@@ -166,7 +166,7 @@ static void init_globals(void)
 static void write_license(void)
 {
     DIR* dir;
-    Assert(dir = opendir("."), strerror(errno));
+    Assert((dir = opendir(".")) != NULL, strerror(errno));
     const char* path;
     struct dirent* entry;
     while ((entry = readdir(dir)) != NULL)
@@ -179,7 +179,7 @@ static void write_license(void)
     if (path == entry->d_name)
     {
         FILE* license;
-        Assert(license = fopen(path, "rb"), strerror(errno));
+        Assert((license = fopen(path, "rb")) != NULL, strerror(errno));
         gp_file_println(out, "/*");
 
         while (gp_file_read_line(&line, license))

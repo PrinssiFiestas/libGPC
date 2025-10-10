@@ -21,17 +21,9 @@
 #include <windows.h>
 #endif
 
-static GP_MAYBE_ATOMIC size_t gp_heap_allocation_count = 0;
-
-size_t gp_heap_alloc_count(void)
-{
-    return gp_heap_allocation_count;
-}
-
-static void* gp_heap_alloc(GPAllocator* unused, size_t block_size, size_t alignment)
+static void* gp_global_heap_alloc(GPAllocator* unused, size_t block_size, size_t alignment)
 {
     (void)unused;
-    ++gp_heap_allocation_count;
 
     #if _WIN32
     void* mem = _aligned_malloc(block_size, alignment);
@@ -56,7 +48,7 @@ static void* gp_heap_alloc(GPAllocator* unused, size_t block_size, size_t alignm
     return mem;
 }
 
-static void gp_heap_dealloc(GPAllocator* unused, void* block)
+static void gp_global_heap_dealloc(GPAllocator* unused, void* block)
 {
     (void)unused;
     #if _WIN32
@@ -70,10 +62,10 @@ static void gp_heap_dealloc(GPAllocator* unused, void* block)
 }
 
 static GPAllocator gp_mallocator = {
-    .alloc   = gp_heap_alloc,
-    .dealloc = gp_heap_dealloc
+    .alloc   = gp_global_heap_alloc,
+    .dealloc = gp_global_heap_dealloc
 };
-GPAllocator* gp_heap = &gp_mallocator;
+GPAllocator* gp_global_heap = &gp_mallocator;
 
 // ----------------------------------------------------------------------------
 
@@ -152,7 +144,7 @@ GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
 
     GPAllocator* allocator = init->backing_allocator ?
         init->backing_allocator
-      : gp_heap;
+      : gp_global_heap;
 
     const size_t meta_size = init->meta_size != 0 ?
         init->meta_size
@@ -181,7 +173,7 @@ GPArena* gp_arena_new(const GPArenaInitializer* init, size_t capacity)
     arena->base.dealloc = gp_arena_dealloc;
     arena->backing = init->backing_allocator != NULL ?
         init->backing_allocator
-      : gp_heap;
+      : gp_global_heap;
     arena->growth_factor = init->growth_factor != 0. ?
         init->growth_factor
       : 2.;
@@ -352,7 +344,7 @@ void* gp_scope_alloc(GPAllocator* allocator, const size_t size, const size_t ali
     if ((uint8_t*)block + size + GP_POISON_BOUNDARY_SIZE > (uint8_t*)(head + 1) + arena->head->capacity)
     { // out of memory, create new arena
         block = gp_arena_node_new_alloc(
-            gp_heap, &arena->head, 2*arena->head->capacity, size, alignment);
+            gp_global_heap, &arena->head, 2*arena->head->capacity, size, alignment);
     }
     else {
         ASAN_UNPOISON_MEMORY_REGION(block, size);
@@ -386,8 +378,8 @@ static void gp_delete_thread_scopes(void*_scopes)
         GPScope* parent = scope->parent;
 
         while (scope->head->tail != NULL)
-            gp_arena_node_delete(gp_heap, &scope->head);
-        gp_mem_dealloc(gp_heap, scope);
+            gp_arena_node_delete(gp_global_heap, &scope->head);
+        gp_mem_dealloc(gp_global_heap, scope);
 
         scope = parent;
     }
@@ -410,7 +402,7 @@ static GPScope* gp_scope_new(size_t capacity)
 
     capacity = capacity != 0 ? gp_round_to_aligned(capacity, GP_ALLOC_ALIGNMENT) : 256;
     capacity += GP_POISON_BOUNDARY_SIZE;
-    arena = gp_mem_alloc(gp_heap, sizeof*arena + sizeof(GPArenaNode) + capacity);
+    arena = gp_mem_alloc(gp_global_heap, sizeof*arena + sizeof(GPArenaNode) + capacity);
     arena->head = (GPArenaNode*)(arena + 1);
     arena->head->capacity = capacity;
 
@@ -457,8 +449,8 @@ size_t gp_end(GPScope* scope)
         gp_scope_execute_defers(child);
 
          while (child->head->tail != NULL)
-             gp_arena_node_delete(gp_heap, &child->head);
-        gp_mem_dealloc(gp_heap, child);
+             gp_arena_node_delete(gp_global_heap, &child->head);
+        gp_mem_dealloc(gp_global_heap, child);
 
         child = parent;
     }
@@ -467,9 +459,9 @@ size_t gp_end(GPScope* scope)
 
     size_t scope_size = 0;
     while (scope->head->tail != NULL)
-        scope_size += gp_arena_node_delete(gp_heap, &scope->head);
+        scope_size += gp_arena_node_delete(gp_global_heap, &scope->head);
 
-    gp_mem_dealloc(gp_heap, scope);
+    gp_mem_dealloc(gp_global_heap, scope);
     gp_thread_local_set(gp_scope_list_key, parent);
     return scope_size;
 }

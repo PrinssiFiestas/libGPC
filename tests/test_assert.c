@@ -52,7 +52,7 @@ int main(void)
     void* p;
     // Assertions can be placed anywhere in code. This one is not part of any
     // test or suite.
-    gp_assert(p = malloc(1));
+    gp_assert((p = malloc(1)) != NULL);
     free(p);
 
     // Suites are optional. This test would be part of the last suite, but

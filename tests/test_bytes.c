@@ -63,7 +63,7 @@ int main(void)
         gp_test("To valid ASCII");
         {
             size_t non_ascii_pos;
-            gp_expect( ! gp_bytes_is_valid(str, length, &non_ascii_pos));
+            gp_expect( ! gp_bytes_is_valid_ascii(str, length, &non_ascii_pos));
             gp_expect(non_ascii_pos == (size_t)(strstr(str, "ö") - str));
 
             length = gp_bytes_to_valid(str, length, "X");

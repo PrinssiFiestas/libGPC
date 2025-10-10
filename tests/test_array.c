@@ -6,10 +6,10 @@
 #include <gpc/io.h>
 #include "../src/array.c"
 
-#define arr_assert_eq(ARR, CARR, CARR_LENGTH) do { \
+#define arr_assert_eq(ARR, CARR, CARR_LENGTH, ...) do { \
     gp_expect(gp_arr_length(ARR) == (CARR_LENGTH)); \
     for (size_t _gp_i = 0; _gp_i < (CARR_LENGTH); ++_gp_i) \
-        if (!gp_expect((ARR)[_gp_i] == (CARR)[_gp_i])) \
+        if (!gp_expect((ARR)[_gp_i] == (CARR)[_gp_i]__VA_OPT__(,) __VA_ARGS__)) \
             printf("i = %zu\n", _gp_i); \
 } while (0)
 
@@ -24,7 +24,7 @@ int main(void)
             // Create array that can hold 4 elements
             GPArrayBuffer(int, 4) buffer;
             // Passing an allocator makes the array reallocateable
-            GPArray(int) arr = gp_arr_buffered(int, gp_heap, &buffer);
+            GPArray(int) arr = gp_arr_buffered(int, gp_global_heap, &buffer);
 
             gp_expect(gp_arr_allocation(arr) == NULL,
                 "Stack allocated arrays should not have a allocation.");
@@ -35,40 +35,16 @@ int main(void)
             gp_expect(
                 !memcmp(arr2, (int[]){ 1, 2, 3, 4, 5, 6, 7, 8 }, 8*sizeof(int)));
 
-            // Copying past capacity is safe; arr uses gp_heap to reallocate.
+            // Copying past capacity is safe; arr uses gp_global_heap to reallocate.
             gp_arr_copy(sizeof*arr, &arr, arr2, gp_arr_length(arr2));
             arr_assert_eq(arr, arr2, gp_arr_length(arr2));
 
-            // First array is on gp_heap, don't forget to deallocate!
+            // First array is on gp_global_heap, don't forget to deallocate!
             gp_arr_delete(arr);
 
             // The second array is on stack and no allocator provided so no need
-            // to delete. It is safe, but in this case compiler warns about
-            // discarding const qualifier.
-            #if WARNING
+            // to delete, but it is safe to do it anyway.
             gp_arr_delete(arr2);
-            #endif
-        }
-
-        gp_test("Fast array on stack");
-        {
-            // Avoiding initialization cost of large arrays by manually creating
-            // them on stack.
-            struct name_is_optional_if_C11_but_C99_requires_it {
-                GPArrayHeader header;
-                int array[2048];
-            } array_mem; // No init!
-            array_mem.header = (GPArrayHeader) {
-                .capacity  = 2048,
-                .allocator = gp_heap // optional if 2048 is not exceeded
-            };
-            GPArray(int) arr = array_mem.array;
-
-            const int carr[] = { 1, 2, 3 };
-            gp_arr_copy(sizeof(int), &arr, carr, CARR_LEN(carr));
-            arr_assert_eq(arr, carr, CARR_LEN(carr));
-
-            gp_arr_delete(arr);
         }
 
         gp_test("Arrays on arenas/scopes");
@@ -189,7 +165,7 @@ int main(void)
 
         gp_test("Map, fold, foldr, filter");
         {
-            void increment(void* out, const void* in);
+            void increment(int* out, const int* in);
 
             GPArrayBuffer(int, 2) arr_buf;
             GPArrayBuffer(int, 4) arr2_buf;
@@ -212,7 +188,7 @@ int main(void)
             char* result = gp_arr_foldr(sizeof*arr_cstr, arr_cstr, NULL, append);
             gp_expect(strcmp(result, "Walrus the am I ") == 0, result);
 
-            bool even(const void* element);
+            bool even(const int* element);
             gp_arr_filter(sizeof arr2[0], &arr2, arr, gp_arr_length(arr), even);
             arr_assert_eq(arr2, ((int[]){4, 6}), 2);
 
@@ -221,10 +197,60 @@ int main(void)
             arr_assert_eq(arr2, ((int[]){6}), 1);
         }
         gp_end((GPScope*)scope);
-    }
+    } // gp_suite("Array manipulation");
+
+    gp_suite("Truncating Arrays");
+    {
+        gp_test("Truncation");
+        {
+            GPArrayBuffer(int, 4) buf;
+            // NULL allocator makes array truncating.
+            GPArray(int) arr = gp_arr_buffered(int, NULL, &buf);
+            int* arr_ptr = arr;
+
+            gp_expect(gp_arr_reserve(sizeof(int), &arr, 4) == 0, "No reallocation needed.");
+            gp_expect(gp_arr_reserve(sizeof(int), &arr, 7) == 7-4,
+                "Cannot reallocate truncating array, the difference of requested "
+                "capacity and actual capacity returned.");
+            gp_expect(arr == arr_ptr, "Truncating array will never reallocate.");
+
+            gp_expect(gp_arr_copy(sizeof(int), &arr, ((int[]){1, 2}), 2) == 0);
+            arr_assert_eq(arr, ((int[]){1, 2}), 2);
+            gp_expect(gp_arr_copy(sizeof(int), &arr, ((int[]){4, 5, 6, 7, 8, 9, 10}), 7) == 7-4);
+            arr_assert_eq(arr, ((int[]){4, 5, 6, 7}), 4);
+
+            gp_expect(gp_arr_slice(sizeof(int), &arr, ((int[]){0, 1, 2, 3, 4, 5, 6, 7}), 1, 6) == (6-1)-4);
+            arr_assert_eq(arr, ((int[]){1, 2, 3, 4}), 4);
+
+            gp_arr_set(arr)->length--;
+            gp_expect(gp_arr_push(sizeof(int), &arr, &(int){1}) == false);
+            arr_assert_eq(arr, ((int[]){1, 2, 3, 1}), 4);
+            gp_expect(gp_arr_push(sizeof(int), &arr, &(int){9}) == true);
+            arr_assert_eq(arr, ((int[]){1, 2, 3, 1}), 4);
+
+            gp_arr_set(arr)->length = 1;
+            gp_expect(gp_arr_append(sizeof(int), &arr, ((int[]){1, 2}), 2) == 0);
+            arr_assert_eq(arr, ((int[]){1, 1, 2}), 3);
+            gp_expect(gp_arr_append(sizeof(int), &arr, ((int[]){1, 2, 3, 4, 5}), 5) == 3+5-4);
+            arr_assert_eq(arr, ((int[]){1, 1, 2, 1}), 4);
+
+            gp_arr_set(arr)->length = 3;
+            gp_expect(gp_arr_insert(sizeof(int), &arr, 2, ((int[]){3, 3, 3}), 3) == 3+3-4);
+            gp_println(gp_arr_length(arr));
+            arr_assert_eq(arr, ((int[]){1, 1, 3, 3}), 4);
+
+            gp_expect(gp_arr_null_terminate(sizeof(int), &arr) == NULL);
+
+            void increment(int* out, const int* in);
+            gp_expect(gp_arr_map(sizeof(int), &arr, ((int[]){5, 4, 3, 2, 1, 0}), 6, increment) == 6-4);
+            arr_assert_eq(arr, ((int[]){6, 5, 4, 3}), 4);
+
+            gp_expect(arr == arr_ptr, "Again, a truncating array will never reallocate.");
+        }
+    } // gp_suite("Truncating Arrays");
 }
 
-void increment(void* out, const void* in) { *(int*)out = *(int*)in + 1; }
+void increment(int* out, const int* in) { *out = *in + 1; }
 void* sum(void* y, const void* x) { *(int*)y += *(int*)x; return y; }
 void* append(void* result, const void*_element)
 {
@@ -235,5 +261,5 @@ void* append(void* result, const void*_element)
     ((char*)result)[length] = '\0';
     return strcat(strcat(result, element), " ");
 }
-bool even(const void* element) { return !(*(int*)element % 2); }
+bool even(const int* element) { return !(*element % 2); }
 bool more_than_5(const void* element) { return *(int*)element > 5; }

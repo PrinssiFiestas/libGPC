@@ -50,7 +50,7 @@ static void gp_init_locale_table(void)
         .capacity     = 32,
         .destructor   = gp_locale_delete
     };
-    gp_locale_table = gp_map_new(gp_heap, &init);
+    gp_locale_table = gp_map_new(gp_global_heap, &init);
     gp_mutex_init(&gp_locale_table_mutex);
 
     #if GP_HAS_LOCALE
@@ -152,6 +152,7 @@ size_t gp_utf8_codepoint_length(
     return sizes[str[i] >> 3];
 }
 
+// TODO invalid UTF-8 handling
 size_t gp_utf8_encode(uint32_t* encoding, const void*const _u8, const size_t i)
 {
     const GPString u8 = (GPString)_u8;
@@ -170,6 +171,7 @@ size_t gp_utf8_encode(uint32_t* encoding, const void*const _u8, const size_t i)
     return codepoint_length;
 }
 
+// TODO invalid UTF-32 handling
 size_t gp_utf8_decode(
     void*_decoding,
     uint32_t encoding)
@@ -202,7 +204,8 @@ size_t gp_utf8_decode(
     }
 }
 
-void gp_utf8_to_utf32(
+// TODO invalid sanitazion
+size_t gp_utf8_to_utf32(
     GPArray(uint32_t)* u32,
     const void*const   u8,
     const size_t       u8_length)
@@ -214,19 +217,25 @@ void gp_utf8_to_utf32(
     for (; gp_arr_length(*u32) < gp_arr_capacity(*u32); i += codepoint_length)
     {
         if (i >= u8_length)
-            return;
+            return 0;
         codepoint_length = gp_utf8_encode(&encoding, u8, i);
         (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
     }
     size_t gp_bytes_codepoint_count(const void*, size_t);
-    gp_arr_reserve(sizeof(*u32)[0], u32,
+    size_t trunced = gp_arr_reserve(sizeof(*u32)[0], u32,
         gp_arr_length(*u32) + gp_bytes_codepoint_count((uint8_t*)u8 + i, u8_length - i));
 
-    for (; i < u8_length; i += codepoint_length)
+    if ( ! trunced ) for (; i < u8_length; i += codepoint_length)
     {
         codepoint_length = gp_utf8_encode(&encoding, u8, i);
         (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
     }
+    else for (; i < u8_length && gp_arr_length(*u32) < gp_arr_capacity(*u32); i += codepoint_length)
+    {
+        codepoint_length = gp_utf8_encode(&encoding, u8, i);
+        (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
+    }
+    return trunced;
 }
 
 static void gp_utf8_to_utf32_unsafe(
@@ -242,6 +251,10 @@ static void gp_utf8_to_utf32_unsafe(
     }
 }
 
+// TODO make public, this is useful. But before doing that, how would we do
+// error handling? Do we take an optional bool pointer or return 0? Or bool
+// pointer to enable/disable assertion? For now, this is okay, we internally
+// need the full invalid byte sequence anyway for lazy validation.
 static size_t gp_utf32_to_utf8_byte_length(uint32_t u32)
 {
     if (u32 < 0x80)
@@ -254,17 +267,18 @@ static size_t gp_utf32_to_utf8_byte_length(uint32_t u32)
         return 4;
 }
 
-void gp_utf32_to_utf8(
+// TODO invalid UTF-32 handling
+size_t gp_utf32_to_utf8(
     GPString*        u8,
     const uint32_t*  u32,
     size_t           u32_length)
 {
     ((GPStringHeader*)*u8 - 1)->length = 0;
     size_t i = 0;
-    for (; gp_str_length(*u8) < gp_str_capacity(*u8); ++i)
+    for (; gp_str_length(*u8) + 3 < gp_str_capacity(*u8); ++i) // skip bounds checking
     { // Manually inlined gp_utf8_decode() is faster for some reason.
         if (i >= u32_length)
-            return;
+            return 0;
 
         if (u32[i] > 0x7F)
         {
@@ -293,7 +307,7 @@ void gp_utf32_to_utf8(
     }
 
     size_t required_capacity = gp_str_length(*u8);
-    for (size_t j = i; j < u32_length; ++j)
+    for (size_t j = i; j < u32_length; ++j) // TODO more validation would go here
     {
         if (u32[j] > 0x7F)
         {
@@ -307,9 +321,9 @@ void gp_utf32_to_utf8(
         else
             ++required_capacity;
     }
-    gp_str_reserve(u8, required_capacity);
+    size_t trunced = gp_str_reserve(u8, required_capacity);
 
-    for (; i < u32_length; ++i)
+    if ( ! trunced) for (; i < u32_length; ++i) // skip bounds checking
     {
         if (u32[i] > 0x7F)
         {
@@ -333,9 +347,41 @@ void gp_utf32_to_utf8(
         else
             (*u8)[((GPStringHeader*)*u8 - 1)->length++].c = u32[i];
     }
+    else for (; i < u32_length && gp_str_length(*u8) < gp_str_capacity(*u8); ++i)
+    {
+        if (u32[i] > 0x7F)
+        {
+            if (u32[i] < 0x800) {
+                if (gp_str_length(*u8) + 2 > gp_str_capacity(*u8))
+                    return trunced + gp_str_capacity(*u8) - gp_str_length(*u8);
+                (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x000FC0) >>  6) | 0xC0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 2;
+            } else if (u32[i] < 0x10000) {
+                if (gp_str_length(*u8) + 3 > gp_str_capacity(*u8))
+                    return trunced + gp_str_capacity(*u8) - gp_str_length(*u8);
+                (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x03F000) >> 12) | 0xE0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x000FC0) >>  6) | 0x80;
+                (*u8)[gp_str_length(*u8) + 2].c = ((u32[i] & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 3;
+            } else {
+                if (gp_str_length(*u8) + 4 > gp_str_capacity(*u8))
+                    return trunced + gp_str_capacity(*u8) - gp_str_length(*u8);
+                (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x1C0000) >> 18) | 0xF0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x03F000) >> 12) | 0x80;
+                (*u8)[gp_str_length(*u8) + 2].c = ((u32[i] & 0x000FC0) >>  6) | 0x80;
+                (*u8)[gp_str_length(*u8) + 3].c = ((u32[i] & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 4;
+            }
+        }
+        else
+            (*u8)[((GPStringHeader*)*u8 - 1)->length++].c = u32[i];
+    }
+
+    return trunced;
 }
 
-void gp_utf8_to_utf16(
+size_t gp_utf8_to_utf16(
     GPArray(uint16_t)* u16,
     const void*        u8,
     size_t             u8_length)
@@ -347,7 +393,7 @@ void gp_utf8_to_utf16(
     for (; gp_arr_length(*u16) < gp_arr_capacity(*u16); i += codepoint_length)
     {
         if (i >= u8_length)
-            return;
+            return 0;
         codepoint_length = gp_utf8_encode(&encoding, u8, i);
         if (encoding <= UINT16_MAX) {
             (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = encoding;
@@ -365,9 +411,9 @@ void gp_utf8_to_utf16(
         codepoint_length = gp_utf8_codepoint_length(u8, j);
         capacity_needed += codepoint_length <= 3 ? 1 : 2;
     }
-    gp_arr_reserve(sizeof(*u16)[0], u16, capacity_needed);
+    size_t trunced = gp_arr_reserve(sizeof(*u16)[0], u16, capacity_needed);
 
-    for (; i < u8_length; i += codepoint_length)
+    if ( ! trunced) for (; i < u8_length; i += codepoint_length)
     {
         codepoint_length = gp_utf8_encode(&encoding, u8, i);
         if (encoding <= UINT16_MAX) {
@@ -379,6 +425,19 @@ void gp_utf8_to_utf16(
             ((GPArrayHeader*)*u16 - 1)->length += 2;
         }
     }
+    else for (; i < u8_length && gp_arr_length(*u16) < gp_arr_capacity(*u16); i += codepoint_length)
+    {
+        codepoint_length = gp_utf8_encode(&encoding, u8, i);
+        if (encoding <= UINT16_MAX) {
+            (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = encoding;
+        } else {
+            encoding &= ~0x10000;
+            (*u16)[gp_arr_length(*u16) + 0] = (encoding >> 10)   | 0xD800;
+            (*u16)[gp_arr_length(*u16) + 1] = (encoding & 0x3FF) | 0xDC00;
+            ((GPArrayHeader*)*u16 - 1)->length += 2;
+        }
+    }
+    return trunced;
 }
 
 static void gp_utf8_to_utf16_unsafe(
@@ -401,17 +460,18 @@ static void gp_utf8_to_utf16_unsafe(
     }
 }
 
-void gp_utf16_to_utf8(
+// TODO invalid UTF-16 handling
+size_t gp_utf16_to_utf8(
     GPString*        u8,
     const uint16_t*  u16,
     size_t           u16_length)
 {
     ((GPStringHeader*)*u8 - 1)->length = 0;
     size_t i = 0;
-    for (; gp_str_length(*u8) < gp_str_capacity(*u8); ++i)
+    for (; gp_str_length(*u8) + 3 < gp_str_capacity(*u8); ++i) // skip bounds checking
     {
         if (i >= u16_length)
-            return;
+            return 0;
 
         if (u16[i] > 0x7F)
         {
@@ -441,7 +501,7 @@ void gp_utf16_to_utf8(
     }
 
     size_t required_capacity = gp_str_length(*u8);
-    for (size_t j = i; j < u16_length; ++j)
+    for (size_t j = i; j < u16_length; ++j) // TODO more validation would go here
     {
         if (u16[j] > 0x7F)
         {
@@ -455,9 +515,9 @@ void gp_utf16_to_utf8(
         else
             ++required_capacity;
     }
-    gp_str_reserve(u8, required_capacity);
+    size_t trunced = gp_str_reserve(u8, required_capacity);
 
-    for (; i < u16_length; ++i)
+    if ( ! trunced) for (; i < u16_length; ++i) // skip bounds checking
     {
         if (u16[i] > 0x7F)
         {
@@ -487,19 +547,62 @@ void gp_utf16_to_utf8(
             (*u8)[((GPStringHeader*)*u8 - 1)->length++].c = u16[i];
         }
     }
+    else for (; i < u16_length && gp_str_length(*u8) < gp_str_capacity(*u8); ++i)
+    {
+        if (u16[i] > 0x7F)
+        {
+            if (u16[i] < 0x800) {
+                if (gp_str_length(*u8) + 2 > gp_str_capacity(*u8))
+                    return trunced + gp_str_capacity(*u8) - gp_str_length(*u8);
+                (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x000FC0) >>  6) | 0xC0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u16[i] & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 2;
+            } else if (u16[i] <= 0xD7FF || 0xE000 <= u16[i]) {
+                if (gp_str_length(*u8) + 3 > gp_str_capacity(*u8))
+                    return trunced + gp_str_capacity(*u8) - gp_str_length(*u8);
+                (*u8)[gp_str_length(*u8) + 0].c = ((u16[i] & 0x03F000) >> 12) | 0xE0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((u16[i] & 0x000FC0) >>  6) | 0x80;
+                (*u8)[gp_str_length(*u8) + 2].c = ((u16[i] & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 3;
+            } else { // surrogate pair
+                if (gp_str_length(*u8) + 4 > gp_str_capacity(*u8))
+                    return trunced + gp_str_capacity(*u8) - gp_str_length(*u8);
+                const uint32_t encoding = 0x10000
+                    | ((uint32_t)(u16[i + 0] &~ 0xD800) << 10)
+                    | ((uint32_t)(u16[i + 1] &~ 0xDC00));
+                (*u8)[gp_str_length(*u8) + 0].c = ((encoding & 0x1C0000) >> 18) | 0xF0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((encoding & 0x03F000) >> 12) | 0x80;
+                (*u8)[gp_str_length(*u8) + 2].c = ((encoding & 0x000FC0) >>  6) | 0x80;
+                (*u8)[gp_str_length(*u8) + 3].c = ((encoding & 0x00003F) >>  0) | 0x80;
+                ((GPStringHeader*)*u8 - 1)->length += 4;
+                ++i;
+            }
+        }
+        else
+        {
+            (*u8)[((GPStringHeader*)*u8 - 1)->length++].c = u16[i];
+        }
+    }
+    return trunced;
 }
 
-void gp_utf8_to_wcs(
+size_t gp_utf8_to_wcs(
     GPArray(wchar_t)* wcs,
     const void*       utf8,
     size_t            utf8_length)
 {
+    size_t trunced;
     if (WCHAR_MAX > UINT16_MAX)
-        gp_utf8_to_utf32((GPArray(uint32_t)*)wcs, utf8, utf8_length);
+        trunced = gp_utf8_to_utf32((GPArray(uint32_t)*)wcs, utf8, utf8_length);
     else
-        gp_utf8_to_utf16((GPArray(uint16_t)*)wcs, utf8, utf8_length);
-    gp_arr_reserve(sizeof(*wcs)[0], wcs, gp_arr_length(*wcs) + sizeof"");
-    (*wcs)[gp_arr_length(*wcs)] = L'\0';
+        trunced = gp_utf8_to_utf16((GPArray(uint16_t)*)wcs, utf8, utf8_length);
+    trunced += gp_arr_reserve(sizeof(*wcs)[0], wcs, gp_arr_length(*wcs) + sizeof"");
+    if (gp_arrt_length(wchar_t, *wcs) == 0)
+        return trunced;
+    if (trunced)
+        gp_arrt_set(wchar_t, *wcs)->length--;
+    (*wcs)[gp_arrt_length(wchar_t, *wcs)] = L'\0';
+    return trunced;
 }
 
 static void gp_utf8_to_wcs_unsafe(
@@ -514,16 +617,16 @@ static void gp_utf8_to_wcs_unsafe(
     (*wcs)[gp_arr_length(*wcs)] = L'\0';
 }
 
-void gp_wcs_to_utf8(
+size_t gp_wcs_to_utf8(
     GPString*       utf8,
     const wchar_t*  wcs,
     size_t          wcs_length)
 
 {
     if (WCHAR_MAX > UINT16_MAX)
-        gp_utf32_to_utf8(utf8, (uint32_t*)wcs, wcs_length);
+        return gp_utf32_to_utf8(utf8, (uint32_t*)wcs, wcs_length);
     else
-        gp_utf16_to_utf8(utf8, (uint16_t*)wcs, wcs_length);
+        return gp_utf16_to_utf8(utf8, (uint16_t*)wcs, wcs_length);
 }
 
 uint32_t gp_u32_to_upper(uint32_t);
@@ -1355,6 +1458,8 @@ void gp_str_sort(
     const int flags,
     const char* locale_code)
 {
+    // TODO asssert valid flags
+
     const bool fold    = flags & 0x4;
     const bool collate = flags & 0x1;
     const bool reverse = flags & 0x10;

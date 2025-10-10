@@ -3,10 +3,8 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 /**@file array.h
- * Dynamic array
+ * Dynamic and static truncating array
  */
-
-// TODO more assertions
 
 #ifndef GP_ARRAY_INCLUDED
 #define GP_ARRAY_INCLUDED 1
@@ -28,60 +26,78 @@ extern "C" {
 // ----------------------------------------------------------------------------
 
 
-/** Dynamic array of a specific type.
- * In memory, a dynamic array is GPArrayHeader followed by the elements. An
- * object of type GPArray(T) is a pointer to the first element. Use this macro
- * to differentiate between any other type of pointer.
+/** Array of a specific type.
+ * In memory, an array is GPArrayHeader followed by the elements. An object of
+ * type GPArray(T) is a pointer to the first element. Use this macro to
+ * differentiate between any other type of pointer. Type should not be void.
+ *     Arrays can be configured to be dynamic or truncating on per object basis.
+ * Storing a pointer to an allocator allows the array to reallocate and grow. If
+ * the pointer is NULL, the array is considered static and will not reallocate.
+ * A static array will be truncated to prevent overflow and the number of
+ * truncated elements will be returned by relevant functions.
  */
 #define GPArray(/* Type */...) GP_PTR_TO(__VA_ARGS__)
 
-/** Dynamic array of any type */
+/** Dynamic array of a specific type.
+ * Use this type to signal the reader that this array is supposed to grow by
+ * reallocation. This is obviously not enforced by the compiler or even our
+ * functions, but you can enforce this simply by asserting that the allcoator is
+ * not NULL.
+ */
+#define GPArrayDynamic(/* Type */...) GPArray(__VA_ARGS__)
+
+/** Static array of a specific type.
+ * Use this type to signal the reader that this array is supposed to never
+ * reallocate and may truncate.
+ */
+#define GPArrayStatic(/* Type */...) GPArray(__VA_ARGS__)
+
+/** Array of any type */
 typedef void* GPArrayAny;
 
 #ifdef GP_DOXYGEN // unhide the real meaning of GPArrayAnyAddr from docs.
-/** Pointer to a dynamic array of any type.
- * Most commonly an address of a dynamic array taken with the address operator
- * `&`. Mutating functions take a dynamic array by address to allow
- * reallocation, which in turn, allows mutation.
+/** Pointer to a array of any type.
+ * Most commonly an address of a array taken with the address operator `&`.
+ * Mutating functions take a array by address to allow reallocation, which in
+ * turn, allows mutation.
  */
 typedef GPArrayAnyAddr GPArrayAny*
 #else
-/** Pointer to a dynamic array of any type.
- * Most commonly an address of a dynamic array taken with the address operator
- * `&`. Mutating functions take a dynamic array by address to allow
- * reallocation, which in turn, allows mutation.
+/** Pointer to a array of any type.
+ * Most commonly an address of a array taken with the address operator `&`.
+ * Mutating functions take a array by address to allow reallocation, which in
+ * turn, allows mutation.
  */
-typedef void* GPArrayAnyAddr;
+typedef void* /* GPArrayAny* */GPArrayAnyAddr;
 #endif
 
 /** Array meta-data.
- * You can edit the fields directly with gp_arr_header(my_array)->field.
- * This might be useful for optimizations, but it is mostly recommended to use
- * the provided functions instead.
+ * You can edit the fields directly using `gp_arr_set(my_array)->field = x`.
+ * TODO better docs, which fields are safe to modify and how?
  */
 typedef struct gp_array_header
 {
     uintptr_t    capacity;
     void*        allocation; // allocated block start or NULL if on stack
-    GPAllocator* allocator;
+    GPAllocator* allocator;  // set this to NULL to make the array truncating (not dynamic)
     uintptr_t    length;
 } GPArrayHeader;
 
 /** Static array buffer.
  * Used to create a static or stack allocated GPArray(T). Create a variable of
- * this type, then pass it by address to @ref gp_arr_static() to initialize and
- * convert it to GPArray(T). This type is not meant to be used directly, it is
- * meant to be used as a statically allocated buffer to be converted to
+ * this type, then pass it by address to @ref gp_arr_buffered() to initialize
+ * and convert it to GPArray(T). This type is not meant to be used directly, it
+ * is meant to be used as a statically allocated buffer to be converted to
  * GPArray(T).
  */
 #define GPArrayBuffer(T, CAPACITY)  \
 struct GP_ANONYMOUS_STRUCT(__LINE__) \
 { \
-    uintptr_t         capacity;   \
-    void*             allocation;  \
-    GPAllocator*      allocator;    \
-    uintptr_t         length;        \
-    GP_TYPEOF_TYPE(T) data[CAPACITY]; \
+    uintptr_t         capacity;                                   \
+    void*             allocation;                                  \
+    GPAllocator*      allocator;                                    \
+    uintptr_t         length;                                        \
+    GP_TYPEOF_TYPE(T) data[(CAPACITY) + (sizeof(T) == sizeof(char))]; \
 }
 
 #if !__cplusplus && __STDC_VERSION__ < 202311L // empty arg list for BETTER type checks
@@ -94,18 +110,45 @@ typedef void* gp_arr_fold_callback_t;
 typedef void* gp_arr_filter_callback_t;
 #endif
 
-/** Getters */
+/** Getters.
+ * Note: These will not get shadowed by type safe macros since there is no
+ * arguments to check against. Use gp_arrt variants of these for type checking.
+ */
 GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_arr_length    (GPArrayAny arr) { return ((GPArrayHeader*)arr - 1)->length;     }
 GP_NONNULL_ARGS() GP_NODISCARD static inline size_t       gp_arr_capacity  (GPArrayAny arr) { return ((GPArrayHeader*)arr - 1)->capacity;   }
-GP_NONNULL_ARGS() GP_NODISCARD static inline void*        gp_arr_allocation(GPArrayAny arr) { return ((GPArrayHeader*)arr - 1)->allocation; }
 GP_NONNULL_ARGS() GP_NODISCARD static inline GPAllocator* gp_arr_allocator (GPArrayAny arr) { return ((GPArrayHeader*)arr - 1)->allocator;  }
+GP_NONNULL_ARGS() GP_NODISCARD static inline void*        gp_arr_allocation(GPArrayAny arr) { return ((GPArrayHeader*)arr - 1)->allocation; }
 
-/** Direct access to GPArrayHeader fields. */
+/** Direct access to GPArrayHeader fields.
+ * Note: This will not get shadowed by a type safe macro since there is no
+ * arguments to check against. Use @ref gp_arrt_set() for type checking.
+ */
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 static inline GPArrayHeader* gp_arr_set(GPArrayAny arr)
 {
     return (GPArrayHeader*)arr - 1;
 }
+
+/** Getters with type checking.
+ * Pass the element type to @p T to be the type to be checked against. This
+ * prevents double pointer bugs since it is very common to pass arrays by
+ * address to allow reallocation.
+ */
+#define gp_arrt_length(T, GPArrayT_ARR)     (GP_ARRH_CHECK(T, GPArrayT_ARR), gp_arr_length(GPArrayT_ARR)    )
+#define gp_arrt_capacity(T, GPArrayT_ARR)   (GP_ARRH_CHECK(T, GPArrayT_ARR), gp_arr_capacity(GPArrayT_ARR)  )
+#define gp_arrt_allocator(T, GPArrayT_ARR)  (GP_ARRH_CHECK(T, GPArrayT_ARR), gp_arr_allocator(GPArrayT_ARR) )
+#define gp_arrt_allocation(T, GPArrayT_ARR) (GP_ARRH_CHECK(T, GPArrayT_ARR), gp_arr_allocation(GPArrayT_ARR))
+
+/** Direct accces to GPArrayHeader fields with type checking.
+ * Pass the element type to @p T to be the type to be checked against. This
+ * prevents double pointer bugs since it is very common to pass arrays by
+ * address to allow reallocation.
+ */
+#define gp_arrt_set(T, GPArrayT_ARR) \
+( \
+    GP_ARRH_CHECK(T, GPArrayT_ARR),   \
+    (GPArrayHeader*)(GPArrayT_ARR) - 1 \
+)
 
 /** Create a new empty array.*/
 GP_NONNULL_ARGS()
@@ -114,33 +157,38 @@ static inline GPArrayAny gp_arr_new(
     GPAllocator* allocator,
     size_t element_count)
 {
-    const size_t size = gp_round_to_aligned(element_size * element_count, GP_ALLOC_ALIGNMENT);
+    bool is_char = element_size == sizeof(char);
+    const size_t size = gp_round_to_aligned(element_size * element_count + is_char, GP_ALLOC_ALIGNMENT);
     GPArrayHeader* me = (GPArrayHeader*)gp_mem_alloc(allocator, sizeof(*me) + size);
     *me = (GPArrayHeader) {
         .length = 0,
-        .capacity = size / element_size,
+        .capacity = size / element_size - is_char,
         .allocator = allocator,
         .allocation = me
     };
     return me + 1;
 }
 
-/** Create and initialize an array from a static array buffer */
+/** Create and initialize an array from a static array buffer.
+ * Passing an allocator makes the array reallocateable (dynamic), static if
+ * NULL.
+ */
 #define/* GPArray(T) */gp_arr_buffered( \
     T,                                  \
     GPAllocator_ptr_OPTIONAL,           \
     /* GPArrayBuffer(T, N)* BUFFER, */  \
     /* optional initial values */...)   \
 ( \
-    (GP_1ST_ARG(__VA_ARGS__))->capacity =                                         \
-        sizeof((GP_1ST_ARG(__VA_ARGS__))->data) /                                 \
-            sizeof((GP_1ST_ARG(__VA_ARGS__))->data[0]),                           \
-    (GP_1ST_ARG(__VA_ARGS__))->allocation = NULL,                                 \
-    (GP_1ST_ARG(__VA_ARGS__))->allocator  = (GPAllocator_ptr_OPTIONAL),           \
-    (GP_1ST_ARG(__VA_ARGS__))->length =                                           \
-        GP_ARR_STATIC_OPTIONAL_INITIALIZE_LENGTH(GP_TYPEOF_TYPE(T), __VA_ARGS__), \
-    GP_ARR_STATIC_OPTIONAL_INITIALIZE(GP_TYPEOF_TYPE(T), __VA_ARGS__),            \
-    /* return */(GP_1ST_ARG(__VA_ARGS__))->data                                   \
+    (GP_1ST_ARG(__VA_ARGS__))->capacity =                                              \
+        GP_SIZEOF_VALUE((GP_1ST_ARG(__VA_ARGS__))->data) /                             \
+            GP_SIZEOF_VALUE((GP_1ST_ARG(__VA_ARGS__))->data[0]) -                      \
+                (GP_SIZEOF_VALUE((GP_1ST_ARG(__VA_ARGS__))->data[0]) == sizeof(char)), \
+    (GP_1ST_ARG(__VA_ARGS__))->allocation = NULL,                                      \
+    (GP_1ST_ARG(__VA_ARGS__))->allocator  = (GPAllocator_ptr_OPTIONAL),                \
+    (GP_1ST_ARG(__VA_ARGS__))->length =                                                \
+        GP_ARR_STATIC_OPTIONAL_INITIALIZE_LENGTH(GP_TYPEOF_TYPE(T), __VA_ARGS__),      \
+    GP_ARR_STATIC_OPTIONAL_INITIALIZE(GP_TYPEOF_TYPE(T), __VA_ARGS__),                 \
+    /* return */(GP_1ST_ARG(__VA_ARGS__))->data                                        \
 )
 
 /** Free array memory.
@@ -153,7 +201,7 @@ static inline void gp_arr_delete(GPArrayAny optional)
 }
 
 /** Free array memory trough pointer.
- * This should be used as destructor for GPDictionary(GPArray(T)) if needed.
+ * Useful for some destructor callbacks.
  */
 static inline void gp_arr_ptr_delete(GPArrayAnyAddr optional_address)
 {
@@ -163,7 +211,8 @@ static inline void gp_arr_ptr_delete(GPArrayAnyAddr optional_address)
 
 /** Always reallocate array.
  * Always reallocating may be useful for memory packing, but is not desirable in
- * general. Prefer @ref gp_arr_reserve() for better performance.
+ * general. Prefer @ref gp_arr_reserve() for better performance. @p arr_address
+ * must have an allocator obviously.
  */
 void gp_arr_reallocate(
     size_t         element_size,
@@ -174,41 +223,43 @@ void gp_arr_reallocate(
  * If @p capacity > gp_arr_capacity(@p arr), reallocates, does nothing
  * otherwise. In case of reallocation, capacity will be rounded up
  * exponentially.
+ * @return 0 if capacity will be large enough to hold @p capacity elements,
+ * which is always the case for dynamic arrays. Otherwise returns the difference
+ * of @p capacity and current capacity.
  */
 GP_NONNULL_ARGS()
-static inline void gp_arr_reserve(
+static inline size_t gp_arr_reserve(
     size_t         element_size,
     GPArrayAnyAddr arr_address,
     size_t         capacity)
 {
     GPArrayAny* parr = arr_address;
-    // This check is here so functions like gp_str_print() can try to
-    // guesstimate buffer sizes even for strings on stack when allocator is NULL.
-    //
-    // TODO once truncating strings and arrays are implemented, this should be
-    // an assertion instead.
-    if (gp_arr_allocator(*parr) == NULL)
-        return;
-
     if (capacity <= gp_arr_capacity(*parr))
-        return;
-    gp_arr_reallocate(element_size, parr, capacity);
+        return 0;
+    else if (gp_arr_allocator(*parr) == NULL)
+        return capacity - gp_arr_capacity(*parr);
+    gp_arr_reallocate(element_size, parr, gp_next_power_of_2(capacity));
+    return 0;
 }
 
-
-/** Copy source array to destination */
+/** Copy source array to destination.
+ * @return the number of truncated elements, which is always 0 for dynamic
+ * arrays.
+ */
 GP_NONNULL_ARGS()
-static inline void gp_arr_copy(
+static inline size_t gp_arr_copy(
     size_t                 element_size,
     GPArrayAnyAddr         dest_address,
     const void*GP_RESTRICT src,
     size_t                 src_length)
 {
     GPArrayAny* pdest = (GPArrayAny*)dest_address;
-    gp_arr_reserve(element_size, pdest, src_length);
+    size_t trunced = gp_arr_reserve(element_size, pdest, src_length);
+    src_length -= trunced;
     assert(gp_arr_capacity(*pdest) >= src_length); // analyzer false positive // TODO after testing inlines, try to remove this
     memcpy(*pdest, src, src_length * element_size);
     gp_arr_set(*pdest)->length = src_length;
+    return trunced;
 }
 
 /** Copy or remove elements.
@@ -216,9 +267,11 @@ static inline void gp_arr_copy(
  * excluding @p end_index. If @p src is NULL, elements from @p dest outside
  * @p start_index and @p end_index are removed and the remaining elements are
  * moved over.
+ * @return the number of truncated elements, which is always 0 for dynamic
+ * arrays and in case of @p optional_src being NULL.
  */
 GP_NONNULL_ARGS(2)
-static inline void gp_arr_slice(
+static inline size_t gp_arr_slice(
     size_t                 element_size,
     GPArrayAnyAddr         dest_address,
     const void*GP_RESTRICT optional_src,
@@ -226,30 +279,40 @@ static inline void gp_arr_slice(
     size_t                 end_index_exclusive)
 {
     GPArrayAny* pdest = (GPArrayAny*)dest_address;
+    size_t trunced = 0;
     gp_db_assert(start_index <= end_index_exclusive, "Invalid range.");
-    const size_t length = end_index_exclusive - start_index, size = element_size;
-    if (optional_src == NULL)
-        memmove(*pdest, (uint8_t*)*pdest + start_index*size, length*size);
-    else {
-        gp_arr_reserve(size, pdest, length);
-        memcpy(*pdest, (uint8_t*)optional_src + start_index*size, length*size);
+    size_t length = end_index_exclusive - start_index;
+    if (optional_src == NULL) {
+        if (length != 0) {
+            gp_db_assert(start_index < gp_arr_length(*pdest));
+            gp_db_assert(end_index_exclusive <= gp_arr_length(*pdest));
+        }
+        memmove(*pdest, (uint8_t*)*pdest + start_index*element_size, length*element_size);
+    } else {
+        length -= trunced = gp_arr_reserve(element_size, pdest, length);
+        memcpy(*pdest, (uint8_t*)optional_src + start_index*element_size, length*element_size);
     }
     gp_arr_set(*pdest)->length = length;
+    return trunced;
 }
 
-
-/** Add element to the end */
+/** Add element to the end.
+ * @return true if a truncating array got truncated.
+ */
 GP_NONNULL_ARGS()
-static inline void gp_arr_push(
+static inline bool gp_arr_push(
     size_t                 element_size,
     GPArrayAnyAddr         dest_address,
     const void*GP_RESTRICT element)
 {
     GPArrayAny* parr = (GPArrayAny*)dest_address;
-    const size_t length = gp_arr_length(*parr);
-    gp_arr_reserve(element_size, parr, length + 1);
-    memcpy((uint8_t*)*parr + length * element_size, element, element_size);
-    gp_arr_set(*parr)->length++;
+    bool trunced = gp_arr_reserve(element_size, parr, gp_arr_length(*parr) + 1);
+    if ( ! trunced) {
+        memcpy(
+            (uint8_t*)*parr + gp_arr_length(*parr) * element_size, element, element_size);
+        gp_arr_set(*parr)->length++;
+    }
+    return trunced;
 }
 
 /** Remove element from the end.
@@ -270,9 +333,12 @@ static inline void* gp_arr_pop(
     return (void*)(arr + --((GPArrayHeader*)arr - 1)->length * element_size);
 }
 
-/** Add elements to the end */
+/** Add elements to the end.
+ * @return the number of truncated elements, which is always 0 for dynamic
+ * arrays.
+ */
 GP_NONNULL_ARGS()
-static inline void gp_arr_append(
+static inline size_t gp_arr_append(
     size_t                 element_size,
     GPArrayAnyAddr         dest_address,
     const void*GP_RESTRICT src,
@@ -280,16 +346,20 @@ static inline void gp_arr_append(
 {
     GPArrayAny* parr = (GPArrayAny*)dest_address;
     const size_t length = gp_arr_length(*parr);
-    gp_arr_reserve(element_size, parr, length + src_length);
+    size_t trunced = gp_arr_reserve(element_size, parr, length + src_length);
+    src_length -= trunced;
     memcpy((uint8_t*)*parr + length*element_size, src, src_length*element_size);
     gp_arr_set(*parr)->length += src_length;
+    return trunced;
 }
 
 /** Add elements to specified position.
  * Moves rest of the array over.
+ * @return the number of truncated elements, which is always 0 for dynamic
+ * arrays.
  */
 GP_NONNULL_ARGS()
-static inline void gp_arr_insert(
+static inline size_t gp_arr_insert(
     size_t                 element_size,
     GPArrayAnyAddr         dest_address,
     size_t                 position,
@@ -298,16 +368,25 @@ static inline void gp_arr_insert(
 {
     GPArrayAny* parr = (GPArrayAny*)dest_address;
     const size_t length = gp_arr_length(*parr);
-    gp_arr_reserve(element_size, parr, length + src_length);
+    gp_db_assert(position <= length, "Index out of bounds.");
+    size_t trunced = gp_arr_reserve(element_size, parr, length + src_length);
+    size_t tail_length = length - position;
+
+    if (trunced > tail_length) {
+        src_length -= trunced - tail_length;
+        tail_length = 0;
+    } else
+        tail_length -= trunced;
 
     memmove(
         (uint8_t*)*parr + (position + src_length) * element_size,
         (uint8_t*)*parr +  position               * element_size,
-        (length - position)                       * element_size);
+        tail_length                               * element_size);
     memcpy(
         (uint8_t*)*parr +  position*element_size, src, src_length*element_size);
 
-    gp_arr_set(*parr)->length += src_length;
+    gp_arr_set(*parr)->length = position + src_length + tail_length;
+    return trunced;
 }
 
 /** Remove elements.
@@ -323,26 +402,40 @@ static inline void gp_arr_erase(
     size_t         count)
 {
     GPArrayAny arr = *(GPArrayAny*)dest_address;
-    size_t* length = &((GPArrayHeader*)arr - 1)->length;
-    const size_t tail_length = *length - (position + count);
+    if (count != 0) {
+        gp_db_assert(position < gp_arr_length(arr), "Index out of bounds");
+        gp_db_assert(position + count < gp_arr_length(arr), // TODO should we truncate instead? Is this assertion a bit harsh?
+            "Cannot remove elements beyond array. Use gp_arr_set(arr)->length instead.");
+    }
+    size_t tail_length = gp_arr_length(arr) - (position + count);
+    gp_arr_set(arr)->length -= count;
+
     memmove(
         (uint8_t*)arr +  position          * element_size,
         (uint8_t*)arr + (position + count) * element_size,
         tail_length                        * element_size);
-    *length -= count;
 }
 
 /** Null terminate.
  * Reserve memory for an extra element and zero the reserved memory. This does
  * not change the length of the array.
- * @return the passed array (not by address!) null terminated.
+ * @return the passed array (not by address!) null terminated or NULL if the
+ * null terminator got truncated away, which will only happen for truncating
+ * arrays with element size larger than 1.
  */
 GP_NONNULL_ARGS()
 static inline GPArrayAny gp_arr_null_terminate(
     size_t         element_size,
     GPArrayAnyAddr arr_address)
 {
-    gp_arr_reserve(element_size, arr_address, gp_arr_length(*(GPArrayAny*)arr_address) + 1);
+    if (element_size == sizeof(char)) {
+        (*(uint8_t**)arr_address)[gp_arr_length(*(GPArrayAny*)arr_address)] = '\0';
+        return *(GPArrayAny*)arr_address;
+    }
+    bool trunced = gp_arr_reserve(
+        element_size, arr_address, gp_arr_length(*(GPArrayAny*)arr_address) + 1);
+    if (trunced)
+        return NULL;
     GPArrayAny arr = *(GPArrayAny*)arr_address;
     memset((uint8_t*)arr + element_size*gp_arr_length(arr), 0, element_size);
     return arr;
@@ -356,9 +449,11 @@ static inline GPArrayAny gp_arr_null_terminate(
  * each element of source array. The first argument will be a pointer to mutable
  * output element, the second argument will be a pointer to mutable input
  * element.
+ * @return the number of truncated elements, which is always 0 for dynamic
+ * arrays and in case of @p optional_src being NULL.
  */
 GP_NONNULL_ARGS(2, 5)
-static inline void gp_arr_map(
+static inline size_t gp_arr_map(
     size_t                 element_size,
     GPArrayAnyAddr         dest_address,
     const void*GP_RESTRICT optional_src,
@@ -368,15 +463,17 @@ static inline void gp_arr_map(
     GPArrayAny* parr = (GPArrayAny*)dest_address;
     void(*func)(void*, const void*) = (void(*)(void*, const void*))f;
 
+    size_t trunced = 0;
     if (optional_src == NULL) {
         for (size_t i = 0; i < gp_arr_length(*parr); i++)
             func((uint8_t*)*parr + i*element_size, (uint8_t*)*parr + i*element_size);
     } else {
-        gp_arr_reserve(element_size, parr, optional_src_length);
+        optional_src_length -= trunced = gp_arr_reserve(element_size, parr, optional_src_length);
         for (size_t i = 0; i < optional_src_length; i++)
             func((uint8_t*)*parr + i*element_size, (uint8_t*)optional_src + i*element_size);
         gp_arr_set(*parr)->length = optional_src_length;
     }
+    return trunced;
 }
 
 /** Combine elements from left to right.
@@ -427,94 +524,58 @@ static inline void* gp_arr_foldr(
  * Copies all elements from @p src that make @p f return `true` when passed to
  * @p f by pointer. If @p src is NULL, removes all elements from @p dest that
  * make @p f return `false` when passed to @p f by pointer.
+ * @return the number of truncated elements, which is always 0 for dynamic
+ * arrays and in case of @p optional_src being NULL.
  */
 GP_NONNULL_ARGS(2, 5)
-static inline void gp_arr_filter(
+size_t gp_arr_filter(
     size_t                   element_size,
     GPArrayAnyAddr           dest_address,
     const void*GP_RESTRICT   optional_src, // mutates arr if NULL
     size_t                   optional_src_length,
-    gp_arr_filter_callback_t f)
-{
-    GPArrayAny* parr = (GPArrayAny*)dest_address;
-    bool(*func)(const void* x) = (bool(*)(const void* x))f;
+    gp_arr_filter_callback_t f);
 
-    const size_t length = optional_src == NULL ? gp_arr_length(*parr) : optional_src_length;
-    gp_arr_set(*parr)->length = 0;
-
-    if (optional_src == NULL) {
-        for (size_t i = 0; i < length; ++i)
-            if (func((const uint8_t*)*parr + i*element_size))
-               memmove(
-                   (uint8_t*)*parr + gp_arr_set(*parr)->length++ * element_size,
-                   (uint8_t*)*parr + i*element_size,
-                   element_size);
-    } else {
-        for (size_t i = 0; i < length; ++i)
-            if (func((const uint8_t*)optional_src + i*element_size))
-                memcpy(
-                    (uint8_t*)*parr + gp_arr_set(*parr)->length++ * element_size,
-                    (const uint8_t*)optional_src + i*element_size,
-                    element_size);
-    }
-}
-
-
-// ----------------------------------------------------------------------------
-//
-//          END OF API REFERENCE
-//
-//          Code below is for internal usage and may change without notice.
-//
-// ----------------------------------------------------------------------------
-
-
-#ifdef __clang__
-// Allow {0} for any type, which is the most portable 0 init before C23
-#pragma clang diagnostic ignored "-Wmissing-braces"
-// Silence clang-tidy bugprone-sizeof-expression
-#define GP_SIZEOF_VALUE(...) sizeof(GP_TYPEOF(__VA_ARGS__))
-#else
-#define GP_SIZEOF_VALUE(...) sizeof(__VA_ARGS__)
-#endif
 
 // ----------------------------------------------------------------------------
 // Type Safe Macro Shadowing
+//
+// By default, to mitigate type safety problems of void* and casts, all GPArray
+// related functions are shadowed by their corresponding type safe macros. These
+// emit no runtime instructions, even in debug builds, they just do type checks.
+// These checks can be disabled if needed (see below), but it is recommended to
+// leave them in and only disable for any source files that require it.
+//
+// Care has been taken to make the compiler emit as informative error/warning
+// messages as possible. Most comprehensive checks and most informative messages
+// are given by GNUC compatible compilers. Others are ok too, but some specific
+// messages might say something confusing about negative array sizes.
+//
+// The following checks are performed:
+//
+// * Output arrays are pointers to GPArray, so dereferencing them twice returns
+//   a value whose size matches element size parameter and type is compatible to
+//   input array element if present.
+// * Dereferencing a non-null input pointer/GPArray returns a value whose size
+//   matches element size parameter and type can be assigned to output array
+//   if present.
+// * Arguments, apart from optional NULL inputs, have a complete type, so
+//   void*, GPArray(void), GPArrayAny, and GPArrayAny are invalid.
+// * element size parameter should be a compile time constant and match array
+//   element size (usually sizeof(array[0]) or sizeof(Type)).
+//
+// There are situations that require disabling macro shadowing. As macros, it is
+// impossible to get function pointers to the original functions. More notably,
+// requiring concrete types and constant element size prevent writing user
+// defined generic functions. Using compound literals as arguments might also
+// fail, but this can be mitigated by wrapping the literal in parenthesis, so it
+// is not a good reason alone to disable them. If disabling the macros is
+// required, define GP_NO_TYPE_SAFE_MACRO_SHADOWING before #including this
+// header.
 
 #if !defined(GP_NO_TYPE_SAFE_MACRO_SHADOWING) && !defined(GPC_IMPLEMENTATION) && !defined(GP_DOXYGEN)
 
-#  if __GNUC__ && !defined(GP_PEDANTIC) && __STDC_VERSION__ >= 201112L
-#    define GP_CHECK_SIZE(SIZE, VALUE) ({ \
-        _Static_assert((SIZE) == GP_SIZEOF_VALUE(VALUE), "Element size argument must match array element size."); \
-        (SIZE); \
-    })
-#    define GP_CHECK_ARR_ARGS(SIZE, OUT, IN) ({ \
-        _Static_assert((SIZE) == GP_SIZEOF_VALUE(**(OUT)), "Element size argument must match output array element size."); \
-        _Static_assert((SIZE) == GP_SIZEOF_VALUE(*(IN)), "Element size argument must match input array element size."); \
-        sizeof(**(OUT) = *(IN)); \
-    })
-#    define GP_CHECK_ARR_ARGS_OPTIONAL(SIZE, OUT, IN) ({ \
-        _Static_assert((SIZE) == GP_SIZEOF_VALUE(**(OUT)), "Element size argument must match output array element size."); \
-        _Static_assert((SIZE) == sizeof(_Generic((IN), GP_TYPEOF(NULL):**(OUT), default:*(IN))), \
-            "Element size argument must match input array element size."); \
-        sizeof(**(OUT) = _Generic((IN), GP_TYPEOF(NULL):**(OUT), default:*(IN))); \
-    })
-#  else
-#    define GP_CHECK_SIZE(SIZE, VALUE) (sizeof(char[(SIZE) == sizeof(VALUE) ? (SIZE) : -1]))
-#    define GP_CHECK_ARR_ARGS(SIZE, OUT, IN) (sizeof(char[ \
-        (SIZE) == sizeof**(OUT) && (SIZE) == sizeof*(IN) ? sizeof(**(OUT) = *(IN)) : -1]))
-#    define GP_CHECK_ARR_ARGS_OPTIONAL(SIZE, OUT, IN) (sizeof(char[ \
-        (SIZE) == sizeof**(OUT) ? sizeof(**(OUT)) : -1]))
-#  endif
-
-#if defined(GP_TYPEOF) && !__cplusplus
-#  define GP_CHECK_ACCUMULATOR(...) (GP_TYPEOF(__VA_ARGS__)){0} =
-#else
-#  define GP_CHECK_ACCUMULATOR(...)
-#endif
-
 /** Free array memory trough pointer.
- * This should be used as destructor for GPDictionary(GPArray(T)) if needed.
+ * Useful for some destructor callbacks.
  */
 #define gp_arr_ptr_delete(GPArrayT_ptr_OPTIONAL) \
     gp_arr_ptr_delete(sizeof(**(GPArrayT_ptr_OPTIONAL)) ? (GPArrayT_ptr_OPTIONAL) : (GPArrayT_ptr_OPTIONAL))
@@ -542,8 +603,6 @@ static inline void gp_arr_filter(
     size_t_CAPACITY)     \
 \
     gp_arr_reserve(GP_CHECK_SIZE(size_t_ELEMENT_SIZE, **(GPArrayT_ptr)), (GPArrayT_ptr), (size_t_CAPACITY))
-
-// TODO gp_arr_try_reserve()
 
 /** Copy source array to destination */
 #define gp_arr_copy(     \
@@ -722,9 +781,66 @@ static inline void gp_arr_filter(
         GPArrayT_ptr_DEST, T_ptr_OPTIONAL_SRC, size_t_OPTIONAL_SRC_LENGTH, bool_FUNC_const_T_ptr_ELEMENT) \
 )
 
-#endif // !defined(GP_NO_TYPE_SAFE_MACRO_SHADOWING) && !defined(GPC_IMPLEMENTATION) && !defined(GP_DOXYGEN)
 
 // ----------------------------------------------------------------------------
+//
+//          END OF API REFERENCE
+//
+//          Code below is for internal usage and may change without notice.
+//
+// ----------------------------------------------------------------------------
+
+
+#  if __GNUC__ && !defined(GP_PEDANTIC) && __STDC_VERSION__ >= 201112L
+#    define GP_CHECK_SIZE(SIZE, VALUE) ({ \
+        _Static_assert((SIZE) == GP_SIZEOF_VALUE(VALUE), "Element size argument must match array element size."); \
+        (SIZE); \
+    })
+#    define GP_CHECK_ARR_ARGS(SIZE, OUT, IN) ({ \
+        _Static_assert((SIZE) == GP_SIZEOF_VALUE(**(OUT)), "Element size argument must match output array element size."); \
+        _Static_assert((SIZE) == GP_SIZEOF_VALUE(*(IN)), "Element size argument must match input array element size."); \
+        sizeof(**(OUT) = *(IN)); \
+    })
+#    define GP_CHECK_ARR_ARGS_OPTIONAL(SIZE, OUT, IN) ({ \
+        _Static_assert((SIZE) == GP_SIZEOF_VALUE(**(OUT)), "Element size argument must match output array element size."); \
+        _Static_assert((SIZE) == sizeof(_Generic((IN), GP_TYPEOF(NULL):**(OUT), default:*(IN))), \
+            "Element size argument must match input array element size."); \
+        sizeof(**(OUT) = _Generic((IN), GP_TYPEOF(NULL):**(OUT), default:*(IN))); \
+    })
+#  else
+#    define GP_CHECK_SIZE(SIZE, VALUE) (sizeof(char[(SIZE) == sizeof(VALUE) ? (SIZE) : -1]))
+#    define GP_CHECK_ARR_ARGS(SIZE, OUT, IN) (sizeof(char[ \
+        (SIZE) == sizeof**(OUT) && (SIZE) == sizeof*(IN) ? sizeof(**(OUT) = *(IN)) : -1]))
+#    define GP_CHECK_ARR_ARGS_OPTIONAL(SIZE, OUT, IN) (sizeof(char[ \
+        (SIZE) == sizeof**(OUT) ? sizeof(**(OUT)) : -1]))
+#  endif
+
+#if defined(GP_TYPEOF) && !__cplusplus
+#  define GP_CHECK_ACCUMULATOR(...) (GP_TYPEOF(__VA_ARGS__)){0} =
+#else
+#  define GP_CHECK_ACCUMULATOR(...)
+#endif
+
+#ifdef __clang__
+// Allow {0} for any type, which is the most portable 0 init before C23. This is
+// mostly used for type safe shadowing macros.
+#pragma clang diagnostic ignored "-Wmissing-braces"
+// Silence clang-tidy bugprone-sizeof-expression needed for type safe macro
+// shadows.
+#define GP_SIZEOF_VALUE(...) sizeof(GP_TYPEOF(__VA_ARGS__))
+#else
+#define GP_SIZEOF_VALUE(...) sizeof(__VA_ARGS__)
+#endif
+
+#endif // !defined(GP_NO_TYPE_SAFE_MACRO_SHADOWING) && !defined(GPC_IMPLEMENTATION) && !defined(GP_DOXYGEN)
+// ----------------------------------------------------------------------------
+
+#if __cplusplus // TODO C++ untested!
+template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr; }
+#  define GP_ARRH_CHECK(T, ARR) gp_arrh_check_type<T>(ARR)
+#else
+#  define GP_ARRH_CHECK(T, ARR) 0 ? (void)((GPArray(T)){0} = (ARR)) : (void)0
+#endif
 
 #if __GNUC__ && !defined(GP_PEDANTIC) && __STDC_VERSION__ >= 201112L
 #  define GP_CHECK_ARR_STATIC_LENGTH(T, ARR, ...) \

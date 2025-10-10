@@ -17,15 +17,15 @@ int main(void)
         gp_test("on stack");
         {
             #if GP_INITIALIZER_STRING_IS_TOO_LONG_WARNING
-            GPStringBuffer(1) buf;
+            GPStringBuffer(0) buf;
             GPString str = gp_str_buffered(NULL, &buf, "too long!");
             #elif GP_NON_LITERAL_INITIALIZER_WARNING
-            GPStringBuffer(1) buf;
+            GPStringBuffer(0) buf;
             const char* non_literal = "only literals allowed!";
             // The issued error may be confusing. Clang: "Expected ')'"
             GPString str = gp_str_buffered(NULL, &buf, non_literal);
             #else
-            GPStringBuffer(8) buf;
+            GPStringBuffer(7) buf;
             GPString str = gp_str_buffered(NULL, &buf, "ok");
             #endif
             gp_expect( ! gp_arr_allocation(str),
@@ -40,8 +40,8 @@ int main(void)
 
             gp_str_delete(str); // safe but pointless
 
-            GPStringBuffer(1) small_buf;
-            str = gp_str_buffered(gp_heap, &small_buf);
+            GPStringBuffer(0) small_buf;
+            str = gp_str_buffered(gp_global_heap, &small_buf);
             const char* cstr = "Allocator provided, extending is safe!";
             gp_str_copy(&str, cstr, strlen(cstr));
             gp_expect(gp_arr_allocation(str),
@@ -52,8 +52,8 @@ int main(void)
         gp_test("Reserve");
         {
             size_t old_capacity;
-            GPStringBuffer(1) buf;
-            GPString str    = gp_str_buffered(gp_heap, &buf);
+            GPStringBuffer(0) buf;
+            GPString str    = gp_str_buffered(gp_global_heap, &buf);
             old_capacity    = gp_str_capacity(str);
             GPChar* old_ptr = str;
 
@@ -77,7 +77,7 @@ int main(void)
 
         gp_test("somewhere else than stack");
         {
-            GPString str = gp_str_new(gp_heap, 1);
+            GPString str = gp_str_new(gp_global_heap, 1);
             gp_expect(gp_arr_allocation(str) != NULL);
 
             gp_str_repeat(&str, gp_arr_capacity(str), "X", strlen("X"));
@@ -90,7 +90,7 @@ int main(void)
 
     gp_suite("Finding");
     {
-        GPStringBuffer(16) buf;
+        GPStringBuffer(15) buf;
         const GPString haystack = gp_str_buffered(NULL, &buf, "bbbaabaaabaa");
         const char* needle = "aa";
         const char* needle2 = "not in haystack string";
@@ -123,8 +123,8 @@ int main(void)
     {
         gp_test("Case sensitive");
         {
-            GPStringBuffer(8) blah_buf;
-            GPStringBuffer(16) blaah_buf;
+            GPStringBuffer(7) blah_buf;
+            GPStringBuffer(15) blaah_buf;
             const GPString blah  = gp_str_buffered(NULL, &blah_buf,  "blah");
             const GPString blaah = gp_str_buffered(NULL, &blaah_buf, "blääh");
             gp_expect(gp_str_equal(blah, blah, gp_arr_length(blah)));
@@ -135,7 +135,7 @@ int main(void)
 
         gp_test("Case insensitive");
         {
-            GPStringBuffer(24) buf;
+            GPStringBuffer(23) buf;
             const GPString AaAaOo = gp_str_buffered(NULL, &buf, "AaÄäÖö");
             gp_expect(   gp_str_equal_case(AaAaOo, "aaÄÄöÖ", strlen("aaÄÄöÖ")));
             gp_expect( ! gp_str_equal_case(AaAaOo, "aaxÄöÖ", strlen("aaxÄöÖ")));
@@ -147,7 +147,7 @@ int main(void)
     {
         gp_test("Find first of");
         {
-            GPStringBuffer(16) buf;
+            GPStringBuffer(15) buf;
             const GPString str = gp_str_buffered(NULL, &buf, "blörö");
             gp_expect(gp_str_find_first_of(str, "yö", 0) == 2);
             gp_expect(gp_str_find_first_of(str, "aä", 0) == GP_NOT_FOUND);
@@ -155,7 +155,7 @@ int main(void)
 
         gp_test("Find first not of");
         {
-            GPStringBuffer(16) buf;
+            GPStringBuffer(15) buf;
             const GPString str = gp_str_buffered(NULL, &buf, "blörö");
             gp_expect(gp_str_find_first_not_of(str, "blö", 0)   == strlen("blö"));
             gp_expect(gp_str_find_first_not_of(str, "blörö", 0) == GP_NOT_FOUND);
@@ -166,7 +166,7 @@ int main(void)
     {
         gp_test("Valid index");
         {
-            GPStringBuffer(8) buf;
+            GPStringBuffer(7) buf;
             GPString str = gp_str_buffered(NULL, &buf, "\u1153");
             gp_expect(   gp_utf8_codepoint_length(str, 0));
             gp_str_slice(&str, NULL, 1, gp_arr_length(str));
@@ -175,14 +175,14 @@ int main(void)
 
         gp_test("Codepoint size");
         {
-            GPStringBuffer(8) buf;
+            GPStringBuffer(7) buf;
             GPString str = gp_str_buffered(NULL, &buf, "\u1153");
             gp_expect(gp_utf8_codepoint_length(str, 0) == strlen("\u1153"));
         }
 
         gp_test("Codepoint count");
         {
-            GPStringBuffer(16) buf;
+            GPStringBuffer(15) buf;
             GPString str = gp_str_buffered(NULL, &buf, "aÄb🍌x");
             gp_expect(gp_str_codepoint_count(str) == 5);
         }
@@ -196,13 +196,11 @@ int main(void)
             GPString str = gp_str_buffered(NULL, &buf, "Some_string_to slice");
             gp_str_slice(&str, NULL, 5, 11);
             gp_expect(gp_str_equal(str, "string", strlen("string")));
-            gp_str_set(str)->length = 0;
-            gp_expect(gp_str_length(str) == 0);
         }
 
         gp_test("Substr");
         {
-            GPStringBuffer(64) buf;
+            GPStringBuffer(63) buf;
             const char* src = "Some_string_to slice";
             GPString dest = gp_str_buffered(NULL, &buf);
             gp_str_slice(&dest, src, 5, 11); // not including 11!
@@ -214,14 +212,14 @@ int main(void)
     {
         gp_test("Appending");
         {
-            GPStringBuffer(36) buf;
+            GPStringBuffer(35) buf;
             GPString str = gp_str_buffered(NULL, &buf, "test");
             gp_str_append(&str, " tail", strlen(" tail"));
             gp_expect(gp_str_equal(str, "test tail", strlen("test tail")));
             gp_str_append(&str, ".BLAHBLAHBLAH", 1);
             gp_expect(gp_str_equal(str, "test tail.", strlen("test tail.")));
         }
-        GPStringBuffer(128) buf;
+        GPStringBuffer(127) buf;
         GPString str = gp_str_buffered(NULL, &buf, "test");
         const char* cstr = "test tail";
         gp_test("Appending with insert");
@@ -247,7 +245,7 @@ int main(void)
     {
         gp_test("Replace");
         {
-            GPStringBuffer(128) buf;
+            GPStringBuffer(127) buf;
             GPString str = gp_str_buffered(NULL, &buf, "aaabbbcccaaa");
             const char* cstr = "aaaXcccaaa";
             size_t needlepos = gp_str_replace(&str, "bbb", 3, "X", 1, 0);
@@ -262,7 +260,7 @@ int main(void)
 
         gp_test("Replace_all");
         {
-            GPStringBuffer(128) buf;
+            GPStringBuffer(127) buf;
             GPString str = gp_str_buffered(NULL, &buf, "aaxxbbxxxccxx");
             size_t replacement_count = gp_str_replace_all(
                 &str, "xx", 2, "XXX", 3);
@@ -278,8 +276,8 @@ int main(void)
     {
         gp_test("Numbers");
         {
-            GPStringBuffer(1) buf;
-            GPString str = gp_str_buffered(gp_heap, &buf);
+            GPStringBuffer(0) buf;
+            GPString str = gp_str_buffered(gp_global_heap, &buf);
             gp_str_print(&str, 1, " divided by ", 3, " is ", 1./3.);
             char buf1[128];
             sprintf(buf1, "%i divided by %i is %g", 1, 3, 1./3.);
@@ -289,7 +287,7 @@ int main(void)
 
         gp_test("Strings");
         {
-            GPStringBuffer(16) buf;
+            GPStringBuffer(15) buf;
             GPString str = gp_str_buffered(NULL, &buf);
             char str1[128];
             strcpy(str1, "strings");
@@ -299,7 +297,7 @@ int main(void)
 
         gp_test("Formatting");
         {
-            GPStringBuffer(128) buf0;
+            GPStringBuffer(127) buf0;
             GPString str = gp_str_buffered(NULL, &buf0);
             gp_str_print(&str,
                 "%%No zeroes in this %g", 1.0, " float. %% %%");
@@ -311,13 +309,13 @@ int main(void)
             sprintf(buf, "2 formats here: %x%g.", 0xbeef, 0.);
             gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
 
-            GPStringBuffer(128) buf1;
+            GPStringBuffer(127) buf1;
             GPString str2 = gp_str_buffered(NULL, &buf1, "Capital S");
             gp_str_print(&str, "%S for GPString", str2);
             sprintf(buf, "%s for GPString", gp_cstr(str2));
             gp_expect(gp_str_equal(str, buf, strlen(buf)), str, buf);
 
-            GPStringBuffer(128) buf2;
+            GPStringBuffer(127) buf2;
             GPString str3 = gp_str_buffered(NULL, &buf2);
             gp_str_copy(&str,  "a", 1);
             gp_str_copy(&str2, "ä", strlen("ä"));
@@ -336,7 +334,7 @@ int main(void)
         gp_test("Fixed width length modifiers for format strings");
         { // Can be used for any integer formats. Here we stick with %u for
           // simplicity.
-            GPStringBuffer(128) buf0;
+            GPStringBuffer(127) buf0;
             GPString str = gp_str_buffered(NULL, &buf0);
             char buf[128];
 
@@ -360,7 +358,7 @@ int main(void)
 
         gp_test("%% only");
         {
-            GPStringBuffer(128) buf0;
+            GPStringBuffer(127) buf0;
             GPString str = gp_str_buffered(NULL, &buf0);
             gp_str_print(&str, "%%blah%%");
             char buf[128];
@@ -370,7 +368,7 @@ int main(void)
 
         gp_test("Pointers");
         {
-            GPStringBuffer(128) buf0;
+            GPStringBuffer(127) buf0;
             GPString str = gp_str_buffered(NULL, &buf0);
             char buf[128];
             uintptr_t _buf = (uintptr_t)buf; // shut up -Wrestrict
@@ -385,7 +383,7 @@ int main(void)
 
         gp_test("Print n");
         {
-            GPStringBuffer(128) buf;
+            GPStringBuffer(127) buf;
             GPString str = gp_str_buffered(NULL, &buf);
             gp_str_n_print(&str, 7, "blah", 12345);
             gp_expect(gp_str_equal(str, "blah123", strlen("blah123")), str);
@@ -393,7 +391,7 @@ int main(void)
 
         gp_test("Println");
         {
-            GPStringBuffer(128) buf;
+            GPStringBuffer(127) buf;
             GPString str = gp_str_buffered(NULL, &buf);
             gp_str_println(&str, "Spaces", 3, "inserted.");
             const char* cstr = "Spaces 3 inserted.\n";
@@ -410,7 +408,7 @@ int main(void)
     {
         gp_test("ASCII");
         {
-            GPStringBuffer(128) buf;
+            GPStringBuffer(127) buf;
             GPString str = gp_str_buffered(NULL, &buf, "  \t\f \nLeft Ascii  ");
             gp_str_trim(&str, NULL, 'l' | 'a');
             gp_expect(gp_str_equal(str, "Left Ascii  ", strlen("Left Ascii  ")));
@@ -427,7 +425,7 @@ int main(void)
         }
         gp_test("UTF-8");
         {
-            GPStringBuffer(128) buf;
+            GPStringBuffer(127) buf;
             GPString str = gp_str_buffered(NULL, &buf, "¡¡¡Left!!!");
             gp_str_trim(&str, "¡", 'l');
             gp_expect(gp_str_equal(str, "Left!!!", strlen("Left!!!")), str);
@@ -464,7 +462,7 @@ int main(void)
 
     gp_suite("Validate");
     {
-        GPString str = gp_str_new(gp_heap, 32);
+        GPString str = gp_str_new(gp_global_heap, 32);
 
         gp_test("Valids");
         {
@@ -560,7 +558,7 @@ int main(void)
                 for (size_t j = 0; j < sizeof replacements / sizeof*replacements; ++j)
                 {
                     gp_str_copy(&str, badsequences[i], strlen(badsequences[i]));
-                    gp_str_to_valid(&str, replacements[j]);
+                    gp_str_to_valid(&str, NULL, 0, replacements[j]);
                     gp_expect(gp_str_equal(str, cleanedsequences[i][j], strlen(cleanedsequences[i][j])), i, j);
                 }
             }
@@ -572,7 +570,7 @@ int main(void)
     {
         gp_test("Reading and writing");
         {
-            GPStringBuffer(36) buf;
+            GPStringBuffer(35) buf;
             GPString str = gp_str_buffered(NULL, &buf, "blah blah blah");
             gp_assert(gp_str_file(&str, "gp_test_str_file.txt", "write") == 0);
             gp_str_copy(&str, "XXXX XXXX XXXX", strlen("XXXX XXXX XXXX")); // corrupt memory
@@ -583,8 +581,8 @@ int main(void)
 
         gp_test("Non existent");
         {
-            GPStringBuffer(1) buf;
-            GPString str = gp_str_buffered(gp_heap, &buf);
+            GPStringBuffer(0) buf;
+            GPString str = gp_str_buffered(gp_global_heap, &buf);
             // Only first char in mode is checked so "r" is fine too
             gp_expect(gp_str_file(&str, "NON_EXISTENT.txt", "r") != 0);
             gp_str_delete(str);
@@ -611,7 +609,7 @@ int main(void)
                 memcpy(str + j, &u, sizeof u);
             }
             ((GPStringHeader*)str - 1)->length = BUF_LEN - 1;
-            gp_str_to_valid(&str, "");
+            gp_str_to_valid(&str, NULL, 0, "");
             gp_str_replace_all(&str, "\0", 1, "", 0);
 
             GPArena* scratch = gp_scratch_arena();
