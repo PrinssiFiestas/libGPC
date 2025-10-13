@@ -55,7 +55,7 @@ size_t gp_bytes_codepoint_count(
     const size_t n);
 
 GP_NONNULL_ARGS()
-inline size_t gp_count_fmt_specs(const char* fmt)
+static inline size_t gp_count_fmt_specs(const char* fmt)
 {
     size_t i = 0;
     for (; (fmt = strchr(fmt, '%')) != NULL; ++fmt)

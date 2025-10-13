@@ -11,10 +11,6 @@
 #include <stdint.h>
 #include <wchar.h>
 
-#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
-extern inline size_t gp_count_fmt_specs(const char* fmt);
-#endif
-
 void gp_arena_dealloc(GPAllocator* arena, void* mem)
 {
     (void)arena;

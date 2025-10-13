@@ -258,34 +258,51 @@ static inline size_t gp_str_insert(
     return gp_arr_insert(sizeof(GPChar), dest, pos, (GPString)src, src_size);
 }
 
-// TODO truncation
-/** Replace substring with other string.
- * Find the first occurrence of @p needle in @p haystack starting from @p start
- * and replace it with @p replacement.
- * @return index to the first occurrence of needle in haystack.
+/** Remove elements.
+ * Removes @p count bytes starting from @p pos moving the rest of the bytes
+ * over. Will not reallocate, only takes the array by address to signal mutation
+ * and to be consistent with other mutating functions.
  */
 GP_NONNULL_ARGS()
-size_t gp_str_replace(
-    GPString*              haystack,
-    const void*GP_RESTRICT needle,
-    size_t                 needle_length,
-    const void*GP_RESTRICT replacement,
-    size_t                 replacement_length,
-    size_t                 start);
+static inline void gp_str_erase(
+    GPString* dest,
+    size_t    position,
+    size_t    count)
+{
+    gp_arr_erase(sizeof(GPChar), dest, position, count);
+}
 
-// TODO truncation
-/** Replace all substrings with other string.
- * Find the all occurrences of @p needle in @p haystack and replace them with
- * @p replacement. .
- * @return number of replacements made.
- */
 GP_NONNULL_ARGS()
-size_t gp_str_replace_all(
-    GPString*              haystack,
-    const void*GP_RESTRICT needle,
-    size_t                 needle_length,
-    const void*GP_RESTRICT replacement,
-    size_t                 replacement_length);
+static inline size_t gp_str_replace(
+    GPString*   dest,
+    size_t      position,
+    size_t      count,
+    const void* replacement,
+    size_t      replacement_length)
+{
+    gp_db_assert(position < gp_str_length(*dest) + (count==0), "Index out of bounds.");
+    size_t trunced = 0;
+    if (position + count > gp_str_length(*dest))
+        count = gp_str_length(*dest) - position;
+    if (replacement_length > count)
+        trunced = gp_str_reserve(dest, gp_str_length(*dest) + replacement_length - count);
+
+    size_t tail_length = gp_str_length(*dest) - (position + count);
+    if (trunced > tail_length) {
+        replacement_length -= trunced - tail_length;
+        tail_length = 0;
+    } else
+        tail_length -= trunced;
+
+    memmove(
+        *dest + position + replacement_length,
+        *dest + position + count,
+        tail_length);
+    memcpy(*dest + position, replacement, replacement_length);
+
+    gp_str_set(*dest)->length = position + replacement_length + tail_length;
+    return trunced;
+}
 
 #define GP_WHITESPACE  " \t\n\v\f\r" \
     "\u00A0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006" \
@@ -364,7 +381,7 @@ size_t gp_str_file(
 // family of macros if C11 or higher or C++. If not C++ format specifiers can be
 // added optionally for more control. C99 requires format strings. There can be
 // multiple format strings with an arbitrary amount of format specifiers.
-// Silly example:
+// Simple example:
 /*
     gp_str_print(&my_str, 1, 2, "%u%u", 3u, 4u, "%x", 5); // copies "12345"
  */
@@ -374,17 +391,9 @@ size_t gp_str_file(
 #define/* size_t */gp_str_print(str_ptr_out, ...) \
     GP_STR_PRINT(str_ptr_out, __VA_ARGS__)
 
-/** Copy max n formatted characters allocating max 1 times.*/
-#define/* size_t */gp_str_n_print(str_ptr_out, n, ...) \
-    GP_STR_N_PRINT(str_ptr_out, n, __VA_ARGS__)
-
 /** Like gp_str_print() but add spaces between args and add newline.*/
 #define/* size_t */gp_str_println(str_ptr_out, ...) \
     GP_STR_PRINTLN(str_ptr_out, __VA_ARGS__)
-
-/** Like gp_str_n_print() but add spaces between args and add newline.*/
-#define/* size_t */gp_str_n_println(str_ptr_out, n, ...) \
-    GP_STR_N_PRINTLN(str_ptr_out, n, __VA_ARGS__)
 
 // ----------------------------------------------------------------------------
 // String examination
@@ -394,42 +403,26 @@ size_t gp_str_file(
  * from @p start or GP_NOT_FOUND if not found.
  */
 GP_NONNULL_ARGS() GP_NODISCARD
-size_t gp_str_find_first(
+static inline size_t gp_str_find_first(
     GPString    haystack,
     const void* needle,
     size_t      needle_size,
-    size_t      start);
+    size_t      start)
+{
+    return gp_bytes_find_first(haystack, gp_str_length(haystack), needle, needle_size, start);
+}
 
 /** Find substring from right.
  * @return index to the last occurrence of @p needle in @p haystack or
  * GP_NOT_FOUND if not found.
  */
 GP_NONNULL_ARGS() GP_NODISCARD
-size_t gp_str_find_last(
+static inline size_t gp_str_find_last(
     GPString    haystack,
     const void* needle,
-    size_t      needle_size);
-
-// TODO UNTESTED!
-GP_NONNULL_ARGS() GP_NODISCARD
-static inline size_t gp_str_find_all(
-    GPArray(size_t)* indices,
-    GPString         haystack,
-    const void*      needle,
-    size_t           needle_size)
+    size_t      needle_size)
 {
-    gp_arrt_set(size_t, *indices)->length = 0;
-    size_t start = 0;
-    while (gp_arrt_length(size_t, *indices) < gp_arrt_capacity(size_t, *indices)) {
-        start = gp_str_find_first(haystack, needle, needle_size, start);
-        if (start == GP_NOT_FOUND)
-            return 0;
-        (*indices)[gp_arrt_set(size_t, *indices)->length++] = start;
-    }
-    size_t trunced = 0;
-    while ((start = gp_str_find_first(haystack, needle, needle_size, start)) != GP_NOT_FOUND)
-        trunced += gp_arr_push(sizeof(size_t), indices, &start);
-    return trunced;
+    return gp_bytes_find_last(haystack, gp_str_length(haystack), needle, needle_size);
 }
 
 /** Find codepoints.

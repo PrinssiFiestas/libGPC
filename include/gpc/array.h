@@ -402,11 +402,11 @@ static inline void gp_arr_erase(
     size_t         count)
 {
     GPArrayAny arr = *(GPArrayAny*)dest_address;
-    if (count != 0) {
+    if (count != 0)
         gp_db_assert(position < gp_arr_length(arr), "Index out of bounds");
-        gp_db_assert(position + count < gp_arr_length(arr), // TODO should we truncate instead? Is this assertion a bit harsh?
-            "Cannot remove elements beyond array. Use gp_arr_set(arr)->length instead.");
-    }
+    else if (position + count > gp_arr_length(arr))
+        count = gp_arr_length(arr) - position;
+
     size_t tail_length = gp_arr_length(arr) - (position + count);
     gp_arr_set(arr)->length -= count;
 

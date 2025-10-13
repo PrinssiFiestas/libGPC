@@ -10,7 +10,6 @@
 #ifndef GP_ASSERT_INCLUDED
 #define GP_ASSERT_INCLUDED 1
 
-#include <gpc/utils.h>
 #include <gpc/bytes.h>
 #include <gpc/overload.h>
 #include <gpc/attributes.h>

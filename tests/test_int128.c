@@ -2,6 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+// TODO C++ tests
+
 #define FUZZ_COUNT 4096
 
 #if (__GNUC__ && __SIZEOF_INT128__) || _MSC_VER

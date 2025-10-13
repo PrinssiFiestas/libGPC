@@ -61,8 +61,11 @@ extern "C" {
 GP_NONNULL_ARGS() GP_NODISCARD
 FILE* gp_file_open(const char* path, const char* mode);
 
-/** To be passed to gp_defer() with correct function type.*/
-inline void gp_file_close(FILE* optional)
+/** To be passed to gp_defer() with correct function type.
+ * Used as callback destructor e.g. for @ref gp_defer() which expects functions
+ * to return void instead of int, which is what fclose() returns.
+ */
+static inline void gp_file_close(FILE* optional)
 {
     if (optional != NULL)
         fclose(optional);
@@ -70,30 +73,36 @@ inline void gp_file_close(FILE* optional)
 
 /** Reads line from file.
  * Overwrites any contents in @p dest. Newline will be included in the resultant
- * string.
+ * string. It is highly recommended to have @p dest point to a dynamic string.
+ * A static string can be passed as well, but it must be able to fit the full
+ * line. This will be asserted.
  * @return `false` when no more bytes to be read from @p in.
  */
 GP_NONNULL_ARGS()
 bool gp_file_read_line(
-    GPString* dest,
-    FILE*     in);
+    GPStringDynamic* dest,
+    FILE*            in);
 
 /** Reads segment from file.
  * Overwrites any contents in @p dest. Reads until @p delimiter is found in
  * file. @p delimiter will be included in @p dest. The file pointer will point
- * past the occurrence of @p delimiter.
+ * past the occurrence of @p delimiter. It is highly recommended to have @p dest
+ * point to a dynamic string. A static string can be passed as well, but it must
+ * be able to fit the full line. This will be asserted.
  * @return `false` when no more bytes to be read from @p in.
  */
 GP_NONNULL_ARGS()
 bool gp_file_read_until(
-    GPString*   dest,
-    FILE*       in,
-    const char* delimiter);
+    GPStringDynamic*   dest,
+    FILE*              in,
+    const char*        delimiter);
 
 /** Reads segment from file.
  * Overwrites any contents in @p dest. Skips all codepoints in @p in that are in
  * @p char_set. Then, reads until a codepoint found from @p char_set in @p in.
- * No codepoints in @p char_set are stored in @p dest.
+ * No codepoints in @p char_set are stored in @p dest. It is highly recommended
+ * to have @p dest point to a dynamic string. A static string can be passed as
+ * well, but it must be able to fit the full line. This will be asserted.
  * @return `false` when no more bytes to be read from @p in.
  */
 GP_NONNULL_ARGS(1, 2)

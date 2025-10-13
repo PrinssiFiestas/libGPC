@@ -282,8 +282,8 @@ void* gp_mem_realloc_aligned(
     size_t new_size,
     size_t alignment)
 {
-    gp_db_assert(old_size <= PTRDIFF_MAX, "Impossible size, no allocator accepts this.");
-    gp_db_assert(new_size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
+    gp_db_assert(old_size <= GP_MAX_ALLOC_SIZE, "Impossible size, no allocator accepts this.");
+    gp_db_assert(new_size <= GP_MAX_ALLOC_SIZE, "Maximum allocation size exceeded.");
 
     GPContiguousArena* carena = (GPContiguousArena*)allocator;
     if (allocator->dealloc == gp_carena_dealloc && old_block != NULL &&
@@ -511,7 +511,7 @@ size_t gp_page_size(void)
 GPContiguousArena* gp_carena_new(size_t size)
 {
     gp_db_assert(size != 0, "%zu", size);
-    gp_db_assert(size <= PTRDIFF_MAX, "%zu", size, "Possibly negative size detected.");
+    gp_db_assert(size <= GP_MAX_ALLOC_SIZE - sizeof(GPContiguousArena));
     gp_db_expect(size >= 4096, "%zu", size,
         "Contiguous arenas are supposed to be HUGE. "
         "Are you sure you are allocating enough?");

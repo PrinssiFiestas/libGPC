@@ -316,8 +316,7 @@ typedef struct gp_printable
     // Actual data is in gp_str_print_internal() variadic args.
 } GPPrintable;
 
-#if __STDC_VERSION__ >= 201112L || defined(__COMPCERT__)
-#define GP_GENERIC_AVAILABLE 1
+#if GP_HAS_C11_GENERIC
 #define GP_PRINTABLE(X) { #X, GP_TYPE(X) } // TODO test if this would work in C++ too
 #else
 #define GP_PRINTABLE(X) { #X, INT_MAX - (int)(sizeof(X)) }

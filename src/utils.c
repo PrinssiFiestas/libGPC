@@ -10,38 +10,6 @@
 #include "pcg_basic.h"
 #include <string.h>
 
-#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
-extern inline uintptr_t gp_round_to_aligned(uintptr_t, uintptr_t);
-#endif
-
-size_t gp_next_power_of_2(size_t x)
-{
-    return sizeof x == sizeof(uint32_t) ?
-        gp_next_power_of_2_32(x) : gp_next_power_of_2_64(x);
-}
-
-uint32_t gp_next_power_of_2_32(uint32_t x)
-{
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    return x + 1;
-}
-
-uint64_t gp_next_power_of_2_64(uint64_t x)
-{
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    x |= x >> 32;
-    return x + 1;
-}
-
-
 // Random stuff
 
 //static pcg32_random_t pcg32_global = PCG32_INITIALIZER;

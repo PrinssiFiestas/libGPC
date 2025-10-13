@@ -10,10 +10,6 @@
 #include <printf/format_scanning.h>
 #include "common.h"
 
-#if !(defined(__COMPCERT__) && defined(GPC_IMPLEMENTATION))
-extern inline void gp_file_close(FILE*);
-#endif
-
 FILE* gp_file_open(const char* path, const char* mode)
 {
     size_t len = 0;
@@ -45,7 +41,9 @@ bool gp_file_read_line(GPString* out, FILE* in)
                 goto end;
             (*out)[((GPStringHeader*)*out - 1)->length++].c = c;
         }
-        gp_str_reserve(out, gp_str_capacity(*out) + 1); // doubles cap
+        gp_assert(gp_str_reserve(out, gp_str_capacity(*out) + 1) == 0,
+            "Cannot fit full line to truncating stirng. "
+            "Use a dynamic string or increase static string size.");
     }
     end:
     return true;
@@ -79,7 +77,9 @@ bool gp_file_read_until(
             else
                 match = delimiter;
         }
-        gp_str_reserve(out, gp_str_capacity(*out) + 1); // doubles cap
+        gp_assert(gp_str_reserve(out, gp_str_capacity(*out) + 1) == 0,
+            "Cannot fit full segment to truncating stirng. "
+            "Use a dynamic string or increase static string size.");
     }
     end:
     return true;
@@ -108,7 +108,9 @@ bool gp_file_read_strip(
             codepoint[i] = c;
         }
         if (strstr(char_set, codepoint) == NULL) {
-            gp_str_append(out, codepoint, codepoint_length);
+            gp_assert(gp_str_append(out, codepoint, codepoint_length) == 0,
+                "Cannot fit full segment to truncating string. "
+                "Use a dynamic string or increase static string size.");
             break;
         }
     }
@@ -126,7 +128,9 @@ bool gp_file_read_strip(
         }
         if (strstr(char_set, codepoint) != NULL)
             break;
-        gp_str_append(out, codepoint, codepoint_length);
+        gp_assert(gp_str_append(out, codepoint, codepoint_length) == 0,
+            "Cannot fit full segment to truncating string. "
+            "Use a dynamic string or increase static string size.");
     }
     return true;
 }

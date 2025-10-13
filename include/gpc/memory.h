@@ -12,6 +12,8 @@
 #include <gpc/attributes.h>
 #include <gpc/assert.h>
 #include <gpc/thread.h>
+#include <gpc/utils.h>
+#include <gpc/int128.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -26,6 +28,15 @@ extern "C" {
 //
 // ----------------------------------------------------------------------------
 
+
+// Can be overridden by user usually to enforce stricter limits.
+#ifndef GP_MAX_ALLOC_SIZE
+#  if SIZE_MAX <= UINT32_MAX
+#    define GP_MAX_ALLOC_SIZE (SIZE_MAX >> 1)
+#  else // virtual address space 48 bits, can be larger but this sensible default.
+#    define GP_MAX_ALLOC_SIZE (~(SIZE_MAX << 48))
+#  endif
+#endif
 
 // No valid GPAllocator will return NULL in any circumstance. This is because
 // malloc() and aligned_alloc() only return NULL on invalid inputs or if there
@@ -51,7 +62,7 @@ static inline void* gp_mem_alloc(
     GPAllocator* allocator,
     size_t size)
 {
-    gp_db_assert(size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
+    gp_db_assert(size <= GP_MAX_ALLOC_SIZE, "Maximum allocation size exceeded.");
     return allocator->alloc(allocator, size, GP_ALLOC_ALIGNMENT);
 }
 
@@ -61,7 +72,7 @@ static inline void* gp_mem_alloc_aligned(
     size_t size,
     size_t alignment)
 {
-    gp_db_assert(size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
+    gp_db_assert(size <= GP_MAX_ALLOC_SIZE, "Maximum allocation size exceeded.");
     gp_db_assert((alignment & (alignment - 1)) == 0, "Alignment must be a power of 2.");
     return allocator->alloc(allocator, size, alignment);
 }
@@ -71,7 +82,7 @@ static inline void* gp_mem_alloc_zeroes(
     GPAllocator* allocator,
     size_t size)
 {
-    gp_db_assert(size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
+    gp_db_assert(size <= GP_MAX_ALLOC_SIZE, "Maximum allocation size exceeded.");
     return memset(gp_mem_alloc(allocator, size), 0, size);
 }
 
@@ -333,8 +344,8 @@ static inline void gp_carena_rewind(GPContiguousArena* arena, void* to_this_posi
 {
     arena->position = to_this_position;
     uint8_t* pointer = (uint8_t*)to_this_position;
-    gp_db_assert(pointer < (uint8_t*)arena->memory + arena->capacity, "Pointer points outside the arena.");
-    gp_db_assert(pointer >= (uint8_t*)arena->memory, "Pointer points outside the arena.");
+    gp_db_assert(pointer < (uint8_t*)(arena + 1) + arena->capacity, "Pointer points outside the arena.");
+    gp_db_assert(pointer >= (uint8_t*)(arena + 1), "Pointer points outside the arena.");
 }
 
 /** Deallocate all memory excluding the arena itself.
@@ -354,7 +365,7 @@ GP_NONNULL_ARGS_AND_RETURN GP_ATTRIB_ALLOC_ALIGN(3)
 static inline void* gp_carena_alloc(
     GPContiguousArena* allocator, const size_t size, const size_t alignment)
 {
-    gp_db_assert(size <= PTRDIFF_MAX, "Possibly negative allocation detected.");
+    gp_db_assert(size <= GP_MAX_ALLOC_SIZE, "Maximum allocation size exceeded.");
     gp_db_assert((alignment & (alignment - 1)) == 0, "Alignment must be a power of 2.");
 
     GPContiguousArena* arena = (GPContiguousArena*)allocator;
@@ -362,7 +373,7 @@ static inline void* gp_carena_alloc(
     arena->position = (void*)(gp_round_to_aligned((uintptr_t)arena->position, alignment) + size);
 
     #if !defined(NDEBUG) || /*user*/defined(GP_VIRTUAL_ALWAYS_BOUNDS_CHECK)
-    gp_assert((uint8_t*)arena->position <= (uint8_t*)arena->memory + arena->capacity, "Virtual allocator out of memory.");
+    gp_assert((uint8_t*)arena->position <= (uint8_t*)(arena + 1) + arena->capacity, "Virtual allocator out of memory.");
     #endif
     return block;
 }

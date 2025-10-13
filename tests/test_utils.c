@@ -4,11 +4,12 @@
 
 #include "../include/gpc/assert.h"
 #include "../src/utils.c"
+#include <stdio.h>
 #include <time.h>
 
 int main(void)
 {
-    gp_suite("next_power_of_2");
+    gp_suite("Next Power of 2");
     {
         gp_test("Zero");
         {
@@ -25,11 +26,11 @@ int main(void)
         gp_test("Power of 2");
         {
             size_t npo2_6 = gp_next_power_of_2(1 << 6);
-            gp_expect(npo2_6 == 1 << 7, ("Should be the NEXT power of 2."));
+            gp_expect(npo2_6 == 1 << 7, "Should be the NEXT power of 2.");
         }
     }
 
-    gp_suite("random nummber generation");
+    gp_suite("Random Nummber Generation");
     {
         GPRandomState s = gp_random_state((uint64_t)time(NULL));
         gp_test("range");
@@ -45,4 +46,56 @@ int main(void)
             }
         }
     }
+
+    gp_suite("min(), max()");
+    {
+        gp_test("as_signed()");
+        {
+            char bufs[5][4] = {0};
+            // Using snprintf() for GCC format type checking. This confirms that
+            // the return type is indeed the arguments signed equivalent.
+            sprintf(bufs[0], "%hhi", gp_as_signed((unsigned char     )-1));
+            sprintf(bufs[1], "%hi" , gp_as_signed((unsigned short    )-1));
+            sprintf(bufs[2], "%i"  , gp_as_signed((unsigned int      )-1));
+            sprintf(bufs[3], "%li" , gp_as_signed((unsigned long     )-1));
+            sprintf(bufs[4], "%lli", gp_as_signed((unsigned long long)-1));
+            gp_expect(strcmp(bufs[0], "-1") == 0);
+            gp_expect(strcmp(bufs[1], "-1") == 0);
+            gp_expect(strcmp(bufs[2], "-1") == 0);
+            gp_expect(strcmp(bufs[3], "-1") == 0);
+            gp_expect(strcmp(bufs[4], "-1") == 0);
+        }
+
+        gp_test("Basic min() and max()");
+        {
+            #if MIXED_SIGNEDNESS_MIN_MAX_WILL_NOT_COMPILE
+            // GNUC will issue a lengthy error message about failing static
+            // assertion, the readable message is at the end of that message.
+            // Otherwise a cryptic message about negative array size is given.
+            gp_expect(gp_min(-1, 1u));
+            gp_expect(gp_max(-1u, 1));
+            #endif
+
+            gp_expect(gp_min(-1, -2) == -2);
+            gp_expect(gp_max(-1u, 1llu) == UINT_MAX);
+        }
+
+        gp_test("Signed imin() and imax()");
+        {
+            // This time mixed signs are ok, however, both of the arguments will
+            // be interpreted as signed.
+            gp_expect(gp_imin(-1, 1u) == -1);
+            gp_expect(gp_imin(0u, 1u - 7u) == -6);
+            gp_expect(gp_imax(0u, 1u - 7u) == 0);
+            gp_expect(gp_imax(SIZE_MAX/* (size_t)-1 */, 3) == 3);
+
+            // Sanity checks
+            gp_expect(gp_imin( 3,  9) ==  3);
+            gp_expect(gp_imax( 3,  9) ==  9);
+            gp_expect(gp_imin( 3, -9) == -9);
+            gp_expect(gp_imax( 3, -9) ==  3);
+            gp_expect(gp_imin(-3, -9) == -9);
+            gp_expect(gp_imax(-3, -9) == -3);
+        }
+    } // gp_suite("min(), max()");
 }

@@ -185,7 +185,11 @@
 #  define GP_CONSTEXPR_VARIABLE constexpr
 #  define GP_CONST constexpr
 #else
-#  define GP_CONSTEXPR_FUNCTION
+#  if __GNUC__
+#    define GP_CONSTEXPR_FUNCTION __attribute__((const))
+#  else
+#    define GP_CONSTEXPR_FUNCTION
+#  endif
 #  define GP_CONSTEXPR_VARIABLE
 #  define GP_CONST static const
 #endif

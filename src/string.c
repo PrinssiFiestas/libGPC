@@ -2,16 +2,6 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// TODO since we are dealing with indices, we need to make sure that strings
-// remain valid UTF-8 on operatrions like insert(), which may cut a multi-byte
-// codepoint in half.
-//
-// Not just that but since inputs are arbitrary pointers, we also need to check
-// the first bytes in case that the input has been sliced between codepoints.
-// This should be done by the input validation macros.
-//
-// What the hell have I put myself into.
-
 #include <gpc/string.h>
 #include <gpc/memory.h>
 #include <gpc/utils.h>
@@ -28,23 +18,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
-
-size_t gp_str_find_first(
-    GPString    haystack,
-    const void* needle,
-    size_t      needle_size,
-    size_t      start)
-{
-    return gp_bytes_find_first(haystack, gp_str_length(haystack), needle, needle_size, start);
-}
-
-size_t gp_str_find_last(
-    GPString    haystack,
-    const void* needle,
-    size_t      needle_length)
-{
-    return gp_bytes_find_last(haystack, gp_str_length(haystack), needle, needle_length);
-}
 
 size_t gp_str_find_first_of(
     const GPString   haystack,
@@ -149,64 +122,6 @@ bool gp_str_is_valid(
     return gp_bytes_is_valid_utf8(str, gp_str_length(str), invalid_index);
 }
 
-// TODO truncation
-size_t gp_str_replace(
-    GPString* haystack,
-    const void*restrict needle,
-    const size_t needle_length,
-    const void*restrict replacement,
-    const size_t replacement_length,
-    size_t start)
-{
-    if ((start = gp_str_find_first(*haystack, needle, needle_length, start)) == GP_NOT_FOUND)
-        return GP_NOT_FOUND;
-
-    gp_str_reserve(haystack,
-        gp_str_length(*haystack) + replacement_length - needle_length);
-
-    const size_t end = start + needle_length;
-    gp_str_set(*haystack)->length = gp_bytes_replace_range(
-        *haystack,
-        gp_str_length(*haystack),
-        start,
-        end,
-        replacement,
-        replacement_length);
-
-    // TODO remember to truncate tail as well!
-    return start;
-}
-
-// TODO truncation!
-size_t gp_str_replace_all(
-    GPString* haystack,
-    const void*restrict needle,
-    const size_t needle_length,
-    const void*restrict replacement,
-    const size_t replacement_length)
-{
-    size_t start = 0;
-    size_t replacement_count = 0;
-    while ((start = gp_str_find_first(*haystack, needle, needle_length, start)) != GP_NOT_FOUND)
-    {
-        gp_str_reserve(haystack,
-            gp_str_length(*haystack) + replacement_length - needle_length);
-
-        gp_str_set(*haystack)->length = gp_bytes_replace_range(
-            *haystack,
-            gp_str_length(*haystack),
-            start,
-            start + needle_length,
-            replacement,
-            replacement_length);
-
-        start += replacement_length;
-        replacement_count++;
-    }
-    // TODO remember to truncate tail as well!
-    return replacement_count;
-}
-
 static size_t gp_printable_max_allocation_size(GPPrintable object, pf_va_list _args)
 {
     va_list args;
@@ -273,7 +188,6 @@ static size_t gp_printable_max_allocation_size(GPPrintable object, pf_va_list _a
     return length;
 }
 
-// TODO truncation!
 size_t gp_str_print_internal(
     GPString* out,
     size_t arg_count,
@@ -285,10 +199,7 @@ size_t gp_str_print_internal(
     pf_va_list args;
     va_copy(args.list, _args);
 
-    // Avoid many small allocations by estimating a sufficient buffer size. This
-    // estimation is currently completely arbitrary.
-    gp_str_reserve(out, arg_count * 10);
-
+    size_t trunced_total = 0;
     gp_str_set(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
@@ -296,56 +207,23 @@ size_t gp_str_print_internal(
             out,
             gp_str_length(*out) + gp_printable_max_allocation_size(objs[i], args));
 
-        gp_str_set(*out)->length += gp_bytes_print_objects(
-            (size_t)-1,
+        size_t converted_obj_length = gp_bytes_print_objects(
+            gp_imax(0, gp_str_capacity(*out) - gp_str_length(*out)),
             *out + gp_str_length(*out),
             &args,
             &i,
             objs[i]);
+
+        size_t trunced = gp_imax(0, gp_str_length(*out) + converted_obj_length - gp_str_capacity(*out));
+        gp_str_set(*out)->length += converted_obj_length - trunced;
+        trunced_total += trunced;
     }
     va_end(_args);
     va_end(args.list);
 
-    // TODO remember to truncate tail as well!
-    return gp_str_set(*out)->length;
+    return trunced_total;
 }
 
-// TODO truncation!
-size_t gp_str_n_print_internal(
-    GPString* out,
-    size_t n,
-    size_t arg_count,
-    const GPPrintable* objs,
-    ...)
-{
-    va_list _args;
-    va_start(_args, objs);
-    pf_va_list args;
-    va_copy(args.list, _args);
-
-    gp_str_reserve(out, n);
-    gp_str_set(*out)->length = 0;
-    for (size_t i = 0; i < arg_count; i++)
-    {
-        gp_str_set(*out)->length += gp_bytes_print_objects(
-            n >= gp_str_length(*out) ? n - gp_str_length(*out) : 0,
-            *out + gp_str_length(*out),
-            &args,
-            &i,
-            objs[i]);
-    }
-    va_end(_args);
-    va_end(args.list);
-
-    // TODO remember to truncate tail as well!
-
-    const size_t out_length = gp_str_length(*out);
-    if (out_length > n)
-        gp_str_set(*out)->length = n;
-    return out_length;
-}
-
-// TODO truncation!
 size_t gp_str_println_internal(
     GPString* out,
     size_t arg_count,
@@ -357,10 +235,7 @@ size_t gp_str_println_internal(
     pf_va_list args;
     va_copy(args.list, _args);
 
-    // Avoid many small allocations by estimating a sufficient buffer size. This
-    // estimation is currently completely arbitrary.
-    gp_str_reserve(out, arg_count * 10);
-
+    size_t trunced_total = 0;
     gp_str_set(*out)->length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
@@ -369,62 +244,23 @@ size_t gp_str_println_internal(
             gp_str_length(*out) + sizeof" "-sizeof"" + gp_printable_max_allocation_size(
                 objs[i], args));
 
-        gp_str_set(*out)->length += gp_bytes_print_objects(
-            (size_t)-1,
+        size_t converted_obj_length = gp_bytes_print_objects(
+            gp_imax(0, gp_str_capacity(*out) - gp_str_length(*out)),
             *out + gp_str_length(*out),
             &args,
             &i,
             objs[i]);
 
-        (*out)[gp_str_set(*out)->length++].c = ' ';
+        size_t trunced = gp_imax(0, gp_str_length(*out) + converted_obj_length - gp_str_capacity(*out));
+        gp_str_set(*out)->length += converted_obj_length - trunced;
+        trunced_total += trunced + gp_arr_push(sizeof(GPChar), out, &(GPChar){' '});
     }
     va_end(_args);
     va_end(args.list);
 
-    // TODO remember to truncate tail as well!
-
-    (*out)[gp_str_length(*out) - 1].c = '\n';
-    return gp_str_set(*out)->length;
-}
-
-// TODO truncation!
-size_t gp_str_n_println_internal(
-    GPString* out,
-    size_t n,
-    size_t arg_count,
-    const GPPrintable* objs,
-    ...)
-{
-    va_list _args;
-    va_start(_args, objs);
-    pf_va_list args;
-    va_copy(args.list, _args);
-
-    gp_str_reserve(out, n);
-    gp_str_set(*out)->length = 0;
-    for (size_t i = 0; i < arg_count; i++)
-    {
-        gp_str_set(*out)->length += gp_bytes_print_objects(
-            n >= gp_str_length(*out) ? n - gp_str_length(*out) : 0,
-            *out + gp_str_length(*out),
-            &args,
-            &i,
-            objs[i]);
-
-        if (n > gp_str_length(*out))
-            (*out)[gp_str_set(*out)->length++].c = ' ';
-    }
-    va_end(_args);
-    va_end(args.list);
-
-    if (n > (gp_str_length(*out) - !!gp_str_length(*out))) // overwrite last space
+    if (trunced_total == 0) // replace last space
         (*out)[gp_str_length(*out) - 1].c = '\n';
-
-    const size_t out_length = gp_str_length(*out);
-    if (out_length > n)
-        gp_str_set(*out)->length = n;
-    return out_length;
-    // TODO remember to truncate tail as well!
+    return trunced_total;
 }
 
 void gp_str_trim(

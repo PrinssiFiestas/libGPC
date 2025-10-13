@@ -25,19 +25,21 @@ GPUInt128 gp_u128_c99_ctor(size_t size, ...)
 }
 GPInt128 gp_i128_c99_ctor(size_t size, ...)
 {
-    GPInt128 i;
+    int64_t lo;
     va_list args;
     va_start(args, size);
     switch (size) {
-    case sizeof(GPInt128): i =              va_arg(args, GPInt128); break;
-    case sizeof(int64_t):  i = gp_int128(0, va_arg(args, gp_promoted_arg_int64_t)); break;
-    case sizeof(int32_t):  i = gp_int128(0, va_arg(args, gp_promoted_arg_int32_t)); break;
-    case sizeof(int16_t):  i = gp_int128(0, va_arg(args, gp_promoted_arg_int16_t)); break;
-    case sizeof(int8_t) :  i = gp_int128(0, va_arg(args, gp_promoted_arg_int8_t )); break;
+    case sizeof(GPInt128):; GPInt128 i = va_arg(args, GPInt128);
+        va_end(args);
+        return i;
+    case sizeof(int64_t): lo = va_arg(args, gp_promoted_arg_int64_t); break;
+    case sizeof(int32_t): lo = va_arg(args, gp_promoted_arg_int32_t); break;
+    case sizeof(int16_t): lo = va_arg(args, gp_promoted_arg_int16_t); break;
+    case sizeof(int8_t ): lo = va_arg(args, gp_promoted_arg_int8_t ); break;
     default: GP_UNREACHABLE("gp_i128(): invalid argument.");
     }
     va_end(args);
-    return i;
+    return gp_int128(lo<0, lo);
 }
 GPUInt128 gp_uint128_long_mul64(uint64_t a, uint64_t b)
 {

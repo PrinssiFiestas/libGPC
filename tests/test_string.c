@@ -243,31 +243,20 @@ int main(void)
 
     gp_suite("Replacing substrings");
     {
+
         gp_test("Replace");
         {
             GPStringBuffer(127) buf;
             GPString str = gp_str_buffered(NULL, &buf, "aaabbbcccaaa");
             const char* cstr = "aaaXcccaaa";
-            size_t needlepos = gp_str_replace(&str, "bbb", 3, "X", 1, 0);
+            size_t needlepos = gp_str_find_first(str, "bbb", sizeof"bbb"-1, 0);
+            gp_str_replace(&str, needlepos, sizeof"bbb"-1, "X", 1);
             gp_expect(gp_str_equal(str, cstr, strlen(cstr)), str);
-            gp_expect(needlepos == 3, (needlepos));
 
-            size_t start = 3;
-            gp_str_replace(&str, "aaa", 3, "XXXXX", 5, start);
+            needlepos = gp_str_find_first(str, "aaa", sizeof"aaa"-1, 3);
+            gp_str_replace(&str, needlepos, sizeof"aaa"-1, "XXXXX", 5);
             cstr = "aaaXcccXXXXX";
             gp_expect(gp_str_equal(str, cstr, strlen(cstr)), str);
-        }
-
-        gp_test("Replace_all");
-        {
-            GPStringBuffer(127) buf;
-            GPString str = gp_str_buffered(NULL, &buf, "aaxxbbxxxccxx");
-            size_t replacement_count = gp_str_replace_all(
-                &str, "xx", 2, "XXX", 3);
-
-            const char* cstr = "aaXXXbbXXXxccXXX";
-            gp_expect(gp_str_equal(str, cstr, strlen(cstr)));
-            gp_expect(replacement_count == 3);
         }
     }
 
@@ -290,9 +279,9 @@ int main(void)
             GPStringBuffer(15) buf;
             GPString str = gp_str_buffered(NULL, &buf);
             char str1[128];
-            strcpy(str1, "strings");
+            strcpy(str1, "string");
             gp_str_print(&str, "Copying ", str1, (char)'.');
-            gp_expect(gp_str_equal(str, "Copying strings.", strlen("Copying strings.")));
+            gp_expect(gp_str_equal(str, "Copying string.", strlen("Copying string.")));
         }
 
         gp_test("Formatting");
@@ -379,14 +368,6 @@ int main(void)
             gp_str_print(&str, NULL);
             sprintf(buf, "(nil)");
             gp_expect(gp_str_equal(str, buf, strlen(buf)));
-        }
-
-        gp_test("Print n");
-        {
-            GPStringBuffer(127) buf;
-            GPString str = gp_str_buffered(NULL, &buf);
-            gp_str_n_print(&str, 7, "blah", 12345);
-            gp_expect(gp_str_equal(str, "blah123", strlen("blah123")), str);
         }
 
         gp_test("Println");
@@ -610,7 +591,8 @@ int main(void)
             }
             ((GPStringHeader*)str - 1)->length = BUF_LEN - 1;
             gp_str_to_valid(&str, NULL, 0, "");
-            gp_str_replace_all(&str, "\0", 1, "", 0);
+            for (size_t pos; (pos = gp_str_find_first(str, "\0", 1, pos)) != GP_NOT_FOUND; )
+                gp_str_replace(&str, pos, 1, "", 0);
 
             GPArena* scratch = gp_scratch_arena();
             wchar_t* std_buf = gp_mem_alloc((GPAllocator*)scratch, (gp_str_length(str) + sizeof"") * sizeof*std_buf);
