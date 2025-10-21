@@ -34,7 +34,7 @@ bool gp_bytes_is_valid_codepoint(
     const char* str = _str;
 
     uint32_t cp_bits = 0; // not UTF-32, just raw bits
-    for (size_t j = 0; j < gp_utf8_codepoint_length(str, i); j++)
+    for (size_t j = 0; j < gp_utf8_decode_codepoint_length(str, i); ++j)
         cp_bits = cp_bits << 8 | (uint8_t)str[i + j];
 
     if (cp_bits <= 0x7Fu)
@@ -55,8 +55,6 @@ bool gp_bytes_is_valid_codepoint(
     return false;
 }
 
-// TODO we should just use this:
-// https://lemire.me/blog/2018/10/19/validating-utf-8-bytes-using-only-0-45-cycles-per-byte-avx-edition/
 bool gp_bytes_is_valid_utf8(
     const void*_str,
     const size_t length,
@@ -74,8 +72,8 @@ bool gp_bytes_is_valid_utf8(
 
     for (size_t cp_length; i < length; i += cp_length)
     {
-        cp_length = gp_utf8_codepoint_length(str, i);
-        if (cp_length == 0 || i + cp_length > length) {
+        cp_length = gp_utf8_decode_codepoint_length(str, i);
+        if (cp_length == 0 || i + cp_length > length) { // TODO this should be handled in a dedicated loop below
             if (invalid_index != NULL)
                 *invalid_index = i;
             return false;
@@ -89,7 +87,7 @@ bool gp_bytes_is_valid_utf8(
     return true;
 }
 
-size_t gp_bytes_codepoint_count(
+size_t gp_bytes_codepoint_count_unsafe(
     const void* _str,
     const size_t n)
 {
@@ -104,7 +102,7 @@ size_t gp_bytes_codepoint_count(
             count += valid_leading_nibble[(uint8_t)*(str + i) >> 4];
         return count;
     }
-    // else process in parallel for blazing speeds
+    // else process in parallel
 
     const size_t align_offset = (uintptr_t)str     & 7;
     const size_t remaining    = (n - align_offset) & 7;

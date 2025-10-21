@@ -198,8 +198,25 @@ size_t gp_bytes_to_valid_ascii(
 // ----------------------------------------------------------------------------
 // Bytes examination
 
-// Return value for functions returning indices.
-#define GP_NOT_FOUND ((size_t)-1)
+/** Return value for functions returning indices.
+ * The value is some value that is an impossible index and will trap in most
+ * systems if used.
+ */
+#define GP_NOT_FOUND (~(SIZE_MAX>>1))
+// Details about the chosen GP_NOT_FOUND value
+//
+// A naîve (and commonly used) choise would be something like ((size_t)-1), but
+// due to two's complement, this could point to GPString meta-data, which would
+// cause silent bugs. We will use a size_t with MSB set instead, which is
+// guaranteed to trap in 64-bit ARM and x64, and will most likely trap in most
+// other systems as well. This WILL save and HAS SAVED debugging time.
+//
+// Q: But what if I have a string that is larger than that?
+// A: Not only is this inherently impossible in most of our target platforms,
+//    but a cleared MSB in allocation size is also an explicit precondition to
+//    gp_mem_alloc(). Any size larger or equal can only be a result of a bug.
+// Q: But isn't trapping bad?
+// A: No. Buggy code is.
 
 /** Find substring.
  * @return index to the first occurrence of @p needle in @p haystack starting

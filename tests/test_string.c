@@ -34,7 +34,7 @@ int main(void)
             gp_expect(
                 strcmp(gp_cstr(str), "1234567") == 0 &&
                 str[7].c == '\0' &&
-                "\"%s\" extra byte not counted here", gp_arr_capacity(str) == 8,
+ "\"%s\" extra byte not counted here", gp_arr_capacity(str) == 8,
                 "Extra byte should be reserved so gp_cstr() can null-terminate.",
                 gp_cstr(str), gp_arr_capacity(str));
 
@@ -168,16 +168,16 @@ int main(void)
         {
             GPStringBuffer(7) buf;
             GPString str = gp_str_buffered(NULL, &buf, "\u1153");
-            gp_expect(   gp_utf8_codepoint_length(str, 0));
+            gp_expect(   gp_utf8_decode_codepoint_length(str, 0));
             gp_str_slice(&str, NULL, 1, gp_arr_length(str));
-            gp_expect( ! gp_utf8_codepoint_length(str, 0));
+            gp_expect( ! gp_utf8_decode_codepoint_length(str, 0));
         }
 
         gp_test("Codepoint size");
         {
             GPStringBuffer(7) buf;
             GPString str = gp_str_buffered(NULL, &buf, "\u1153");
-            gp_expect(gp_utf8_codepoint_length(str, 0) == strlen("\u1153"));
+            gp_expect(gp_utf8_decode_codepoint_length(str, 0) == strlen("\u1153"));
         }
 
         gp_test("Codepoint count");
@@ -208,8 +208,24 @@ int main(void)
         }
     }
 
-    gp_suite("Insert and append");
+    gp_suite("Insert, Push, and Append");
     {
+        gp_test("Push");
+        {
+            GPStringBuffer(15) buf;
+            GPString str = gp_str_buffered(NULL, &buf);
+            gp_str_push(&str, 'y');
+            gp_str_push(&str, 'e');
+            gp_str_push(&str, 'e');
+            #if __STDC_VERSION__ >= 201112L // got Unicode literals
+            gp_str_push(&str, U'😎');
+            gp_expect(gp_str_equal(str, "yee😎", strlen("yee😎")));
+            #else
+            gp_str_push(&str, L'ö');
+            gp_expect(gp_str_equal(str, "yeeö", "yeeö"));
+            #endif
+        }
+
         gp_test("Appending");
         {
             GPStringBuffer(35) buf;
@@ -327,6 +343,27 @@ int main(void)
             GPString str = gp_str_buffered(NULL, &buf0);
             char buf[128];
 
+            // C23 compatible specifiers
+
+            gp_str_print(&str, "Width 8 %w8u", (uint8_t)-1);
+            sprintf(buf, "Width 8 %"PRIu8, (uint8_t)-1);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)));
+
+            gp_str_print(&str, "Width 16 %w16u", (uint16_t)-1);
+            sprintf(buf, "Width 16 %"PRIu16, (uint16_t)-1);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)));
+
+            gp_str_print(&str, "Width 32 %w32u", (uint32_t)-1);
+            sprintf(buf, "Width 32 %"PRIu32, (uint32_t)-1);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)));
+
+            gp_str_print(&str, "Width 64 %w64u", (uint64_t)-1);
+            sprintf(buf, "Width 64 %"PRIu64, (uint64_t)-1);
+            gp_expect(gp_str_equal(str, buf, strlen(buf)));
+
+            // Old ones kept for compatibility, it is recommended to use the
+            // ones above.
+
             gp_str_print(&str, "Byte %Bu", (uint8_t)-1);
             sprintf(buf, "Byte %"PRIu8, (uint8_t)-1);
             gp_expect(gp_str_equal(str, buf, strlen(buf)));
@@ -342,7 +379,6 @@ int main(void)
             gp_str_print(&str, "Quad word %Qu", (uint64_t)-1);
             sprintf(buf, "Quad word %"PRIu64, (uint64_t)-1);
             gp_expect(gp_str_equal(str, buf, strlen(buf)));
-
         }
 
         gp_test("%% only");
@@ -431,6 +467,15 @@ int main(void)
             gp_expect(gp_str_equal(str, "BLÖRÖ", strlen("BLÖRÖ")), str);
             gp_str_to_lower(&str);
             gp_expect(gp_str_equal(str, "blörö", strlen("blörö")));
+
+            // ASCII, invalid sequence, multi-byte, and size changing codepoints
+            const char* cstr_lower = "ascii\xff\xffääȿȿⱥⱥ";
+            const char* cstr_upper = "ASCII\xff\xffÄÄⱾⱾȺȺ";
+            gp_str_copy(&str, cstr_lower, strlen(cstr_lower));
+            gp_str_to_upper(&str);
+            gp_expect(gp_str_equal(str, cstr_upper, strlen(cstr_upper)));
+            gp_str_to_lower(&str);
+            gp_expect(gp_str_equal(str, cstr_lower, strlen(cstr_lower)));
         }
 
         gp_test("Title");
@@ -554,8 +599,8 @@ int main(void)
             GPStringBuffer(35) buf;
             GPString str = gp_str_buffered(NULL, &buf, "blah blah blah");
             gp_assert(gp_str_file(&str, "gp_test_str_file.txt", "write") == 0);
-            gp_str_copy(&str, "XXXX XXXX XXXX", strlen("XXXX XXXX XXXX")); // corrupt memory
-            gp_str_copy(&str, "", 0); // empty string
+            gp_str_copy(&str, "XXXX XXXX XXXX", strlen("XXXX XXXX XXXX")); // write junk to memory
+            gp_str_set(str)->length = 0;
             gp_assert(gp_str_file(&str, "gp_test_str_file.txt", "read") == 0);
             gp_expect(gp_str_equal(str, "blah blah blah", strlen("blah blah blah")));
         }
@@ -570,6 +615,126 @@ int main(void)
         }
 
         gp_expect(remove("gp_test_str_file.txt") == 0);
+    }
+
+    gp_suite("Truncating Strings");
+    {
+        // To test truncation at all possible points, we loop until no
+        // truncation happened at all.
+        size_t trunced_sum = -1;
+
+        gp_test("Truncation");
+        for (size_t capacity = 0; trunced_sum != 0; ++capacity)
+        {
+            trunced_sum = 0;
+            size_t trunced;
+            const char* cstr;
+            // Heap allocated string with varying capacity is used for testing
+            // purposes (heap to put sanitizers to work). More common way of
+            // using truncating strings is a stack allocated GPStringBuffer.
+            // gp_str_new() does some rounding, so we'll construct the string
+            // manually for precise buffer sizes (not recommended normally).
+            // Don't forget to add sizeof"" for implicit null terminator capacity!
+            GPStringHeader* header = gp_mem_alloc(
+                gp_global_heap, sizeof(GPStringHeader) + capacity + sizeof"");
+            header->length     = 0;
+            header->capacity   = capacity; // must not include implicit null terminator capacity!
+            header->allocation = header;
+            // A string withouth allocator cannot reallocate making it a
+            // truncating string.
+            header->allocator = NULL;
+            GPString str = (GPString)(header + 1);
+
+            cstr = "Stuff and words";
+            trunced_sum += trunced = gp_str_copy(&str, cstr, strlen(cstr));
+            gp_assert(gp_str_equal(str, cstr, gp_min(strlen(cstr), capacity)));
+            gp_assert(trunced == (size_t)gp_imax(0, strlen(cstr) - capacity));
+
+            const char* cstr1 = " with things";
+            size_t old_length = gp_str_length(str);
+            trunced_sum += trunced = gp_str_append(&str, cstr1, strlen(cstr1));
+            cstr = "Stuff and words with things";
+            gp_assert(gp_str_equal(str, cstr, gp_min(strlen(cstr), capacity)));
+            gp_assert(trunced == (size_t)gp_imax(0, old_length + strlen(cstr1) - capacity));
+
+            cstr1 = "ing";
+            old_length = gp_str_length(str);
+            trunced_sum += trunced = gp_str_insert(&str, strlen("Stuff"), cstr1, strlen(cstr1));
+            cstr = "Stuffing and words with things";
+            gp_assert(gp_str_equal(str, cstr, gp_min(strlen(cstr), capacity)));
+            gp_assert(trunced == (size_t)gp_imax(0, old_length + strlen(cstr1) - capacity));
+
+            const char* lowers = "ɀɀɀ";
+            const char* uppers = "ⱿⱿⱿ";
+            gp_assert(strlen(lowers) < strlen(uppers), "These codepoints expand when upcasing.");
+
+            size_t trunced_lowers = gp_str_append(&str, lowers, strlen(lowers));
+            trunced_sum += trunced = gp_str_to_upper(&str);
+            cstr = "STUFFING AND WORDS WITH THINGSⱿⱿⱿ";
+            if (capacity <= strlen("STUFFING AND WORDS WITH THINGS") || trunced_lowers % strlen("Ɀ") == 0)
+                gp_assert(gp_str_equal(str, cstr, gp_min(strlen(cstr), capacity)), str, capacity, trunced);
+
+            const char* needle = "and words with";
+            const char* replacement = "with savory herbs and";
+            cstr = "Stuffing with savory herbs and thingsⱿⱿⱿ";
+            size_t needle_pos = gp_str_find_first(str, needle, strlen(needle), 0);
+            if (needle_pos != GP_NOT_FOUND) {
+                trunced_sum += trunced = gp_str_replace(
+                    &str,
+                    needle_pos,
+                    strlen(needle),
+                    replacement,
+                    strlen(replacement));
+                gp_assert(gp_str_equal(str, cstr, gp_min(strlen(cstr), capacity)));
+                gp_assert(
+                    trunced ==
+                        (strlen(replacement) - strlen(needle)) - (capacity - gp_str_length(str)));
+            }
+
+            // IMPORTANT!
+            // Truncating string may truncate a multi byte codepoint resulting
+            // in invalid UTF-8. We cannot remove the invalid bytes
+            // automatically, it could just corrupt the data further. Consider
+            // appending two strings, first one starting with an emoji and the
+            // second one starting with ASCII '/', to a string with only a
+            // single byte left in capacity. If we were to automatically
+            // truncate the now invalid first byte of the truncated emoji, then
+            // the string would gain capacity for another byte so now the first
+            // character of the second string '/' would get appended even when
+            // it should've gotten truncated as well. We also cannot decrease
+            // capacity either, this could cause the string to slowly lose
+            // capacity, which has it's own problems like future bad allocation
+            // size calculations. This means that any truncating strings must be
+            // trunceated manually after ALL other processing and before using
+            // as input to any Unicode sensitive processing.
+            cstr = "😂😂😂😂";
+            trunced_sum += trunced = gp_str_repeat(&str, 4, "😂", strlen("😂"));
+            gp_assert(gp_str_equal(str, cstr, gp_min(strlen(cstr), capacity)));
+            gp_assert(trunced == (size_t)gp_imax(0, strlen(cstr) - capacity));
+            if (trunced & 3) // emoji partially trunced
+                gp_assert( ! gp_str_is_valid(str, NULL));
+            gp_assert(gp_str_equal(str, cstr, gp_min(strlen(cstr), capacity)));
+            gp_assert(trunced == (size_t)gp_imax(0, strlen(cstr) - capacity));
+            if (trunced & 3) {
+                trunced = gp_str_truncate_invalid_tail(&str);
+                gp_assert(trunced == (capacity & 3));
+            }
+            gp_assert(gp_str_is_valid(str, NULL));
+
+            gp_assert(gp_str_capacity(str) == capacity, "Truncating string cannot grow.");
+            gp_assert(gp_str_allocation(str) == header, "Truncating string cannot reallocate.");
+
+            // A heap allocated string must be freed of course. However, the
+            // string does not know how to deallocate itself without an
+            // allocator. Here is two ways of deallocating a truncating string.
+            if (capacity & 1) { // restore allocator and delete
+                gp_str_set(str)->allocator = gp_global_heap;
+                gp_str_delete(str);
+            } else // manual deallocation
+                gp_mem_dealloc(gp_global_heap, gp_str_allocation(str));
+            // Note that truncating strings are usually stack or arena allocated
+            // and wouldn't need deallocating.
+        }
     }
 
     // ------------------------------------------------------------------------

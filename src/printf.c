@@ -102,10 +102,10 @@ static size_t pf_write_wc(
     PFString* out,
     pf_va_list* args)
 {
-    size_t gp_utf8_decode(void*, uint32_t);
-    char decoding[4];
-    const size_t length = gp_utf8_decode(decoding, (wint_t)va_arg(args->list, gp_promoted_arg_wint_t));
-    pf_concat(out, decoding, length);
+    size_t gp_utf8_encode_unsafe(void*, uint32_t);
+    char encoding[4];
+    const size_t length = gp_utf8_encode_unsafe(encoding, (wint_t)va_arg(args->list, gp_promoted_arg_wint_t));
+    pf_concat(out, encoding, length);
     return length;
 }
 
@@ -198,7 +198,7 @@ static size_t pf_write_S(
             break;
         }
         ++codepoint_count;
-        i += last_cp_length = gp_utf8_codepoint_length(str, i);
+        i += last_cp_length = gp_utf8_decode_codepoint_length(str, i);
     }
     pf_utf8_string_padding(out, fmt, str, length, codepoint_count);
     return out->length - original_length;

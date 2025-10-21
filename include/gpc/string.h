@@ -41,6 +41,13 @@ typedef struct gp_char { uint8_t c; } GPChar;
  * If the pointer is NULL, the string is considered static and will not
  * reallocate. A static string will be truncated to prevent overflow and the
  * number of truncated elements will be returned by relevant functions.
+ *     The weak type system of C makes UTF-8 invariance enforcement too slow and
+ * impractical, so it is left for the user (sorry!). A workflow for proper UTF-8
+ * handling goes as follows: validate all inputs , do all processing (which
+ * may invalidate string due to truncation so beware!), and finally validate
+ * the output. Internal functions can deal with invalid UTF-8, but they never
+ * automatically convert any invalid sequences, which could lead to data
+ * corruption, which is, again, the reason why this is left for the user to do.
  */
 typedef GPChar* GPString;
 
@@ -54,7 +61,7 @@ typedef GPString GPStringDynamic;
 
 /** Static string.
  * Use this type to signal the reader that this string is supposed to never
- * reallocate and may truncate.
+ * reallocate and may truncate or is expected to be truncating.
  */
 typedef GPString GPStringStatic;
 
@@ -209,11 +216,16 @@ static inline size_t gp_str_repeat(
     size_t trunced = gp_str_reserve(dest, count * src_length);
     if (src_length == 1) {
         memset(*dest, *(uint8_t*)src, count - trunced);
-    } else for (size_t i = 0, j = 0;
-                i < count*src_length - trunced;
-                ++i, j = j == src_length ? 0 : j + 1)
-    {
-        (*dest)[i] = ((GPChar*)src)[j];
+    }
+    else if ( ! trunced) for (size_t i = 0; i < count; ++i) {
+        memcpy(*dest + i*src_length, src, src_length);
+    }
+    else for (size_t i = 0; i < count; ++i) {
+        if ((i+1)*src_length > gp_str_capacity(*dest)) {
+            memcpy(*dest + i*src_length, src, gp_str_capacity(*dest) - i*src_length);
+            break;
+        }
+        memcpy(*dest + i*src_length, src, src_length);
     }
     gp_str_set(*dest)->length = count*src_length - trunced;
     return trunced;
@@ -233,6 +245,40 @@ static inline size_t gp_str_slice(
     size_t                 end)
 {
     return gp_arr_slice(sizeof(GPChar), str, (GPString)optional_src, start, end);
+}
+
+/** Add codepoint to the end.
+ * @return number of truncated bytes of the converted UTF-8 codepoint.
+ */
+GP_NONNULL_ARGS()
+static inline size_t gp_str_push(
+    GPString* dest,
+    uint32_t  codepoint)
+{
+    size_t gp_utf8_encode_unsafe(void*, uint32_t);
+    GPChar cp[4];
+    size_t cp_length = gp_utf8_encode_unsafe(cp, codepoint);
+    return gp_arr_append(sizeof(GPChar), dest, cp, cp_length);
+}
+
+/** Remove codepoint from the end.
+ * The argument must be a string with at least 1 valid codepoint. The tail must
+ * be valid UTF-8, which is why it is highly recommended to only use this for
+ * dynamic strings to avoid truncated tail bugs.
+ * @return removed codepoint encoded to UTF-32.
+ */
+GP_NONNULL_ARGS()
+static inline uint32_t gp_str_pop(
+    GPStringDynamic* dest)
+{
+    size_t gp_utf8_decode_codepoint_length(const void*, size_t);
+    size_t gp_utf8_decode_unsafe(uint32_t*, const void*, size_t);
+    gp_db_assert(gp_str_length(*dest) > 0, "String passed to gp_str_pop() must not be empty.");
+    uint32_t encoding;
+    for (size_t cp_length = 0; cp_length == 0; )
+        cp_length = gp_utf8_decode_codepoint_length(*dest, --gp_str_set(*dest)->length);
+    gp_utf8_decode_unsafe(&encoding, *dest, gp_str_length(*dest));
+    return encoding;
 }
 
 /** Add characters to the end.*/
@@ -280,7 +326,12 @@ static inline size_t gp_str_replace(
     const void* replacement,
     size_t      replacement_length)
 {
-    gp_db_assert(position < gp_str_length(*dest) + (count==0), "Index out of bounds.");
+    // Check comment in gp_arr_insert() for explanation of this precondition.
+    if (gp_str_allocator(*dest) != NULL || gp_str_length(*dest) != gp_str_capacity(*dest))
+        gp_db_assert(position < gp_str_length(*dest) + (count==0), "Index out of bounds.");
+    else if (position >= gp_str_length(*dest))
+        return gp_imax(0, replacement_length - count);
+
     size_t trunced = 0;
     if (position + count > gp_str_length(*dest))
         count = gp_str_length(*dest) - position;
@@ -354,6 +405,31 @@ size_t gp_str_to_valid(
     size_t                 optional_src_length,
     const char*            replacement);
 
+/** Remove potentially invalid bytes at the end of truncated string.
+ * A truncating string may partially truncate a codepoint at the end of the
+ * string. A truncating string will not automatically truncate these invalid
+ * bytes, this could lead into further data corruption and unexpected results.
+ * Use this function at the end of processing a truncating string and before
+ * using it as input to any Unicode sensitive processing. Only a maximum of 3
+ * bytes will be processed and @p dest assumed valid before initial truncation.
+ * @return number of truncated bytes at the end.
+ */
+GP_NONNULL_ARGS()
+static inline size_t gp_str_truncate_invalid_tail(
+    GPStringStatic* dest)
+{
+    size_t gp_utf8_decode_codepoint_length(const void*, size_t);
+    size_t len = gp_imax(0, gp_str_length(*dest) - 3);
+    for (size_t cp_len; len < gp_str_length(*dest); len += cp_len + !cp_len) {
+        cp_len = gp_utf8_decode_codepoint_length(*dest, len);
+        if (len + cp_len > gp_str_length(*dest))
+            break;
+    }
+    size_t trunced = gp_str_length(*dest) - len;
+    gp_str_set(*dest)->length -= trunced;
+    return trunced;
+}
+
 /** Quick file operations.
  * Opens file in file_path, performs a file operation, and closes it. If
  * operation[0] == 'r', reads the whole file and stores to str. If
@@ -374,8 +450,6 @@ size_t gp_str_file(
 
 // ----------------------------------------------------------------------------
 // String formatting
-
-// TODO truncation!
 
 // Strings can be formatted without format specifiers with gp_str_print()
 // family of macros if C11 or higher or C++. If not C++ format specifiers can be
@@ -479,7 +553,7 @@ size_t gp_str_codepoint_count(
 GP_NONNULL_ARGS(1) GP_NODISCARD
 bool gp_str_is_valid(
     GPString str,
-    size_t*  optional_out_invalid_position);
+    size_t*  optional_invalid_position);
 
 // More string functions in unicode.h
 

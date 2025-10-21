@@ -25,7 +25,7 @@ size_t gp_str_find_first_of(
     const size_t     start)
 {
     for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
-        cplen = gp_utf8_codepoint_length(haystack, i);
+        cplen = gp_utf8_decode_codepoint_length(haystack, i);
         if (strstr(char_set, memcpy((char[8]){""}, haystack + i, cplen)) != NULL)
             return i;
     }
@@ -38,7 +38,7 @@ size_t gp_str_find_first_not_of(
     const size_t     start)
 {
     for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
-        cplen = gp_utf8_codepoint_length(haystack, i);
+        cplen = gp_utf8_decode_codepoint_length(haystack, i);
         if (strstr(char_set, memcpy((char[8]){""}, haystack + i, cplen)) == NULL)
             return i;
     }
@@ -71,8 +71,8 @@ bool gp_str_equal_case(
     const void* s2,
     size_t      s2_size)
 {
-    const size_t s1_length = gp_bytes_codepoint_count(s1, gp_str_length(s1));
-    const size_t s2_length = gp_bytes_codepoint_count(s2, s2_size);
+    const size_t s1_length = gp_bytes_codepoint_count_unsafe(s1, gp_str_length(s1));
+    const size_t s2_length = gp_bytes_codepoint_count_unsafe(s2, s2_size);
     if (s1_length != s2_length)
         return false;
 
@@ -80,8 +80,8 @@ bool gp_str_equal_case(
     {
         uint32_t codepoint1;
         uint32_t codepoint2;
-        const size_t s1_codepoint_size = gp_utf8_encode(&codepoint1, s1, 0);
-        const size_t s2_codepoint_size = gp_utf8_encode(&codepoint2, s2, 0);
+        const size_t s1_codepoint_size = gp_utf8_decode_unsafe(&codepoint1, s1, 0);
+        const size_t s2_codepoint_size = gp_utf8_decode_unsafe(&codepoint2, s2, 0);
         s1 += s1_codepoint_size;
         s2 = (uint8_t*)s2 + s2_codepoint_size;
 
@@ -112,7 +112,7 @@ bool gp_str_equal_case(
 size_t gp_str_codepoint_count(
     GPString str)
 {
-    return gp_bytes_codepoint_count(str, gp_str_length(str));
+    return gp_bytes_codepoint_count_unsafe(str, gp_str_length(str));
 }
 
 bool gp_str_is_valid(
@@ -294,7 +294,7 @@ void gp_str_trim(
         while (true)
         {
             char codepoint[8] = "";
-            size_t size = gp_utf8_codepoint_length(*str, prefix_length);
+            size_t size = gp_utf8_decode_codepoint_length(*str, prefix_length);
             memcpy(codepoint, *str + prefix_length, size);
             if (strstr(char_set, codepoint) == NULL)
                 break;
@@ -314,7 +314,7 @@ void gp_str_trim(
         char codepoint[8] = "";
         size_t i = length - 1;
         size_t size;
-        while ((size = gp_utf8_codepoint_length(*str, i)) == 0 && --i != 0);
+        while ((size = gp_utf8_decode_codepoint_length(*str, i)) == 0 && --i != 0);
         memcpy(codepoint, *str + i, size);
         if (strstr(char_set, codepoint) == NULL)
             break;
@@ -324,13 +324,14 @@ void gp_str_trim(
     gp_str_set(*str)->length = length;
 }
 
+// TODO this is only now used for testing, do we need this?
 GPArrayDynamic(uint32_t) gp_utf8_to_utf32_new(GPAllocator* allocator, const GPString u8)
 {
     GPArrayDynamic(uint32_t) u32 = gp_arr_new(sizeof u32[0], allocator, gp_str_length(u8));
     for (size_t i = 0, codepoint_length; i < gp_str_length(u8); i += codepoint_length)
     {
         uint32_t encoding;
-        codepoint_length = gp_utf8_encode(&encoding, u8, i);
+        codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
         u32[((GPArrayHeader*)u32 - 1)->length++] = encoding;
     }
     return u32;
@@ -342,23 +343,115 @@ uint32_t gp_u32_to_title(uint32_t);
 
 size_t gp_str_to_upper(GPString* str)
 {
-    GPArena* scratch = gp_scratch_arena();
-    GPArray(uint32_t) u32 = gp_utf8_to_utf32_new((GPAllocator*)scratch, *str);
-    for (size_t i = 0; i < gp_arr_length(u32); i++)
-        u32[i] = gp_u32_to_upper(u32[i]);
-    size_t trunced = gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
-    gp_arena_rewind(scratch, gp_arr_allocation(u32));
+    size_t i = 0;
+    for (;;++i) { // process ASCII
+        if (i >= gp_str_length(*str))
+            return 0;
+        if ((*str)[i].c >= 0x80)
+            break;
+        if ('a' <= (*str)[i].c && (*str)[i].c <= 'z')
+            (*str)[i].c &= ~('a'^'A');
+    }
+
+    uint32_t decoding;
+    char encoding[4];
+    size_t encoding_length;
+    bool is_valid;
+    size_t bytes_read;
+
+    for (;; i += bytes_read)
+    { // process codepoints that do not change length
+        if (i >= gp_str_length(*str))
+            return 0;
+
+        bytes_read = gp_utf8_decode(&decoding, *str, gp_str_length(*str), i, &is_valid);
+        if ( ! is_valid) // leave invalids unprocessed
+            continue;
+
+        decoding = gp_u32_to_upper(decoding);
+        encoding_length = gp_utf8_encode_unsafe(encoding, decoding);
+        if (encoding_length != bytes_read)
+            break;
+
+        memcpy(*str + i, encoding, encoding_length);
+    }
+
+    uint32_t* u32s = gp_mem_alloc(
+        &gp_scratch_arena()->base, (gp_str_length(*str)-i)*sizeof(u32s[0]));
+    u32s[0] = decoding;
+    size_t u32s_length = 1;
+
+    for (size_t j = i + bytes_read; j < gp_str_length(*str); j += bytes_read)
+    { // fill u32s
+        bytes_read = gp_utf8_decode(&decoding, *str, gp_str_length(*str), j, &(bool){0});
+        u32s[u32s_length++] = gp_u32_to_upper(decoding);
+    }
+
+    size_t trunced = 0;
+    gp_str_set(*str)->length = i;
+    for (i = 0; i < u32s_length; ++i) {
+        encoding_length = gp_utf8_encode(encoding, u32s[i], &(bool){0});
+        trunced += gp_str_append(str, encoding, encoding_length);
+    }
+
+    gp_arena_rewind(gp_scratch_arena(), u32s);
     return trunced;
 }
 
 size_t gp_str_to_lower(GPString* str)
 {
-    GPArena* scratch = gp_scratch_arena();
-    GPArray(uint32_t) u32 = gp_utf8_to_utf32_new((GPAllocator*)scratch, *str);
-    for (size_t i = 0; i < gp_arr_length(u32); i++)
-        u32[i] = gp_u32_to_lower(u32[i]);
-    size_t trunced = gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
-    gp_arena_rewind(scratch, gp_arr_allocation(u32));
+    size_t i = 0;
+    for (;;++i) { // process ASCII
+        if (i >= gp_str_length(*str))
+            return 0;
+        if ((*str)[i].c >= 0x80)
+            break;
+        if ('A' <= (*str)[i].c && (*str)[i].c <= 'Z')
+            (*str)[i].c |= 'a'^'A';
+    }
+
+    uint32_t decoding;
+    char encoding[4];
+    size_t encoding_length;
+    bool is_valid;
+    size_t bytes_read;
+
+    for (;; i += bytes_read)
+    { // process codepoints that do not change length
+        if (i >= gp_str_length(*str))
+            return 0;
+
+        bytes_read = gp_utf8_decode(&decoding, *str, gp_str_length(*str), i, &is_valid);
+        if ( ! is_valid) // leave invalids unprocessed
+            continue;
+
+        decoding = gp_u32_to_lower(decoding);
+        encoding_length = gp_utf8_encode_unsafe(encoding, decoding);
+        if (encoding_length != bytes_read)
+            break;
+
+        memcpy(*str + i, encoding, encoding_length);
+    }
+
+    uint32_t* u32s = gp_mem_alloc(
+        &gp_scratch_arena()->base, (gp_str_length(*str)-i)*sizeof(u32s[0]));
+    u32s[0] = decoding;
+    size_t u32s_length = 1;
+
+    for (size_t j = i + bytes_read; j < gp_str_length(*str); j += bytes_read)
+    { // fill u32s
+        bytes_read = gp_utf8_decode(&decoding, *str, gp_str_length(*str), j, &(bool){0});
+        u32s[u32s_length++] = gp_u32_to_lower(decoding);
+    }
+
+    size_t trunced = 0;
+    gp_str_set(*str)->length = i;
+    for (i = 0; i < u32s_length; ++i) {
+        encoding_length = gp_utf8_encode(encoding, u32s[i], &(bool){0});
+        trunced += gp_str_append(str, encoding, encoding_length);
+    }
+
+    gp_arena_rewind(gp_scratch_arena(), u32s);
     return trunced;
 }
 
@@ -368,12 +461,58 @@ size_t gp_str_to_lower(GPString* str)
 // make public!
 size_t gp_str_to_title(GPString* str)
 {
-    GPArena* scratch = gp_scratch_arena();
-    GPArray(uint32_t) u32 = gp_utf8_to_utf32_new((GPAllocator*)scratch, *str);
-    for (size_t i = 0; i < gp_arr_length(u32); i++)
-        u32[i] = gp_u32_to_title(u32[i]);
-    size_t trunced = gp_utf32_to_utf8(str, u32, gp_arr_length(u32));
-    gp_arena_rewind(scratch, gp_arr_allocation(u32));
+    size_t i = 0;
+    for (;;++i) { // process ASCII
+        if (i >= gp_str_length(*str))
+            return 0;
+        if ((*str)[i].c >= 0x80)
+            break;
+        if ('a' <= (*str)[i].c && (*str)[i].c <= 'z')
+            (*str)[i].c &= ~('a'^'A');
+    }
+
+    uint32_t decoding;
+    char encoding[4];
+    size_t encoding_length;
+    bool is_valid;
+    size_t bytes_read;
+
+    for (;; i += bytes_read)
+    { // process codepoints that do not change length
+        if (i >= gp_str_length(*str))
+            return 0;
+
+        bytes_read = gp_utf8_decode(&decoding, *str, gp_str_length(*str), i, &is_valid);
+        if ( ! is_valid) // leave invalids unprocessed
+            continue;
+
+        decoding = gp_u32_to_title(decoding);
+        encoding_length = gp_utf8_encode_unsafe(encoding, decoding);
+        if (encoding_length != bytes_read)
+            break;
+
+        memcpy(*str + i, encoding, encoding_length);
+    }
+
+    uint32_t* u32s = gp_mem_alloc(
+        &gp_scratch_arena()->base, (gp_str_length(*str)-i)*sizeof(u32s[0]));
+    u32s[0] = decoding;
+    size_t u32s_length = 1;
+
+    for (size_t j = i + bytes_read; j < gp_str_length(*str); j += bytes_read)
+    { // fill u32s
+        bytes_read = gp_utf8_decode(&decoding, *str, gp_str_length(*str), j, &(bool){0});
+        u32s[u32s_length++] = gp_u32_to_title(decoding);
+    }
+
+    size_t trunced = 0;
+    gp_str_set(*str)->length = i;
+    for (i = 0; i < u32s_length; ++i) {
+        encoding_length = gp_utf8_encode(encoding, u32s[i], &(bool){0});
+        trunced += gp_str_append(str, encoding, encoding_length);
+    }
+
+    gp_arena_rewind(gp_scratch_arena(), u32s);
     return trunced;
 }
 
@@ -385,7 +524,7 @@ static size_t gp_str_find_invalid(
     const char* haystack = _haystack;
     for (size_t i = start; i < length; )
     {
-        size_t cp_length = gp_utf8_codepoint_length((GPString)haystack, i);
+        size_t cp_length = gp_utf8_decode_codepoint_length((GPString)haystack, i);
         if (cp_length == 0 || i + cp_length > length)
             return i;
 
@@ -405,7 +544,7 @@ static size_t gp_str_find_valid(
     const char* haystack = _haystack;
     for (size_t i = start; i < length; ++i)
     {
-        size_t cp_length = gp_utf8_codepoint_length((GPString)haystack, i);
+        size_t cp_length = gp_utf8_decode_codepoint_length((GPString)haystack, i);
         if (cp_length == 1)
             return i;
         if (cp_length == 0)
@@ -418,13 +557,6 @@ static size_t gp_str_find_valid(
     return length;
 }
 
-// TODO it would be more useful to allow the user to decide whether they want to
-// replace the full invalid chunk with replacement or replace all invalid bytes
-// with replacement or even pass a callback to process the invalid chunk in
-// whatever way they please, which is especially useful if the user knows that
-// the invalid chunk is some other encoding (still unsafe though, see https://wiki.sei.cmu.edu/confluence/display/c/MSC10-C.+Character+encoding%3A+UTF8-related+issues).
-// This can be added later without breaking changes: if replacement is NULL,
-// then take an optional variadic argument.
 size_t gp_str_to_valid(
     GPString* dest,
     const void*restrict src,
@@ -460,6 +592,8 @@ size_t gp_str_to_valid(
             trunced += gp_str_append(dest, replacement, replacement_length);
         start = valid;
     }
+    if (trunced)
+        trunced += gp_str_truncate_invalid_tail(dest);
     return trunced;
 }
 

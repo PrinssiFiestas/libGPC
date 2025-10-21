@@ -11,7 +11,6 @@
 
 #include <gpc/string.h>
 #include <gpc/array.h>
-#include <locale.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,91 +24,191 @@ extern "C" {
 // ----------------------------------------------------------------------------
 
 
-// ----------------------------------------------------------------------------
-// Locales
-
-/** Portably sets global locale to UTF-8.
- *locale_code should be in form "xx_YY", or "xxx_YY", or an empty string.
+/** Somewhat portably sets global locale to UTF-8.
+ * locale_code should be in form "xx_YY", or "xxx_YY", or an empty string.
  * @return string that can be used to restore locale by passing it to
  * setlocale() with it's associated category, or NULL if arguments are invalid.
  */
 GP_NONNULL_ARGS()
 const char* gp_set_utf8_global_locale(int category, const char* locale_code);
 
-// By default locale_t is available in GNU C Library if using GCC compatible
-// compiler. However, with -std=c99 feature test macros must be used to enable
-// local locales. Functions that take GPLocale* as argument will work, but they
-// will use global locale instead. See
-// https://www.gnu.org/software/libc/manual/html_node/Feature-Test-Macros.html
-#if _WIN32 || _XOPEN_SOURCE >= 700 || defined(_GNU_SOURCE) || defined(_DEFAULT_SOURCE)
-
-#define GP_HAS_LOCALE 1
-
-#if _WIN32
-typedef _locale_t GPLocale;
-#else
-typedef locale_t GPLocale;
-#endif
-
-/** Create or fetch locale.
- * Creates or fetches already created locale which can be used with _xxx_l()
- * family of functions in Microsoft UCRT library or with xxx_l() family of
- * functions in the GNU C Library. libGPC uses this internally when collating in
- * gp_str_compare() and gp_str_sort().
- *     locale_code should be in form "xx_YY", or "xxx_YY", or an empty string.
- * The created locale will be UTF-8 in category LC_ALL.
- *     Creating a locale is extremely expensive: glibc allocates over 200 times
- * internally. However, once created, they take very little space and there only
- * exists a limited set of locale codes. Due to these considerations, adding
- * thread safety and performance, libGPC does not provide a way of freeing the
- * created locales and you should NOT use native cleanup routines either. Any
- * subsequent calls with same locale_code will return a already created locale
- * without mutex locks.
- */
-GP_NODISCARD
-GPLocale gp_locale(const char* optional_locale_code);
-
-#else // only global locale available
-
-typedef void* GPLocale;
-#define gp_locale(...) NULL
-
-#endif // _WIN32 || _XOPEN_SOURCE >= 700 || defined(_GNU_SOURCE) || defined(_DEFAULT_SOURCE)
-
-// ----------------------------------------------------------------------------
-// Unicode
-
-// TODO UNICODE VALIDATION FOR SINGLE CHARACTER
-
 /** Codepoint size in bytes.
- * Only reads one byte at the specified index.
+ * Only reads one byte at the specified index. No bounds checks performed, which
+ * is why this function is not suitable for iterating over codepoints in string.
+ * No checks for validity of given codepoint are performed.
+ * @return number of bytes a codepoint at index @p i occupies or 0 if @p i does
+ * not point to the beginning of a codepoint.
  */
 GP_NONNULL_ARGS() GP_NODISCARD
-size_t gp_utf8_codepoint_length(
+size_t gp_utf8_decode_codepoint_length(
     const void* str,
     size_t      i);
 
-/** Encode UTF-8 codepoint to UTF-32.
- * Encodes codepoint from @p utf8 at @p utf8_index and stores it to @p encoding.
- * Never reads past buffer if @p utf8 points to a valid UTF-8 string.
+/** Decode UTF-8 codepoint to UTF-32 with error handling.
+ * Decodes codepoint from @p utf8 at @p utf8_index and stores it to @p decoding.
+ * If @p is_valid is NULL, then @p utf8 must point to valid UTF-8 string.
+ * Otherwise if no decoding error it will be set true. If decoding error
+ * occurres, false will be written to it and an invalid UTF-32 value will be
+ * written to @p decoding that encodes back to the original invalid UTF-8 when
+ * passed to @ref gp_utf8_encode().
+ * @return amount of bytes read from @p utf8.
+ */
+GP_NONNULL_ARGS(1, 2)
+size_t gp_utf8_decode(
+    uint32_t*    decoding,
+    const void*  utf8,
+    size_t       utf8_length, // for bounds checking
+    size_t       utf8_index,
+    bool*        is_valid);
+
+/** Encode UTF-32 codepoint to UTF-8 with error handling.
+ * Writes encoded codepoint to @p encoding. The decoded codepoint will take
+ * anywhere from 1 to 4 bytes, so @p encoding should be able to hold at least
+ * that many bytes. The result will NOT be null-terminated. If @p is_valid is
+ * NULL, then @p decoding must be a valid UTF-32 codepoint. Otherwise if no
+ * encoding error it will be set true. If encoding error occurress, false will
+ * be written to it and some invalid UTF-8 byte sequence is written to encoding.
+ * @return encoded UTF-8 codepoint length in bytes.
+ */
+GP_NONNULL_ARGS(1)
+size_t gp_utf8_encode(
+    void*    encoding,
+    uint32_t decoding,
+    bool*    is_valid);
+
+/** Fast decode UTF-8 codepoint to UTF-32.
+ * Decodes codepoint from @p utf8 at @p utf8_index and stores it to @p decoding.
+ * @p utf8 must point to valid UTF-8 string.
  * @return amount of bytes read from @p utf8.
  */
 GP_NONNULL_ARGS()
-size_t gp_utf8_encode(
-    uint32_t*    encoding,
+size_t gp_utf8_decode_unsafe(
+    uint32_t*    decoding,
     const void*  utf8,
     size_t       utf8_index);
 
-/** Decode UTF-32 codepoint to UTF-8.
- * Writes decoded codepoint to @p decoding. The decoded codepoint will take
- * anywhere from 1 to 4 bytes, so @p decoding should be able to hold at least
- * that many bytes. The result will NOT be null-terminated.
- * @return decoded UTF-8 codepoint length in bytes.
+/** Fast encode UTF-32 codepoint to UTF-8.
+ * Writes encoded codepoint to @p encoding. The decoded codepoint will take
+ * anywhere from 1 to 4 bytes, so @p encoding should be able to hold at least
+ * that many bytes. The result will NOT be null-terminated and @p decoding must
+ * be valid UTF-32.
+ * @return encoded UTF-8 codepoint length in bytes.
  */
 GP_NONNULL_ARGS()
-size_t gp_utf8_decode(
-    void*    decoding,
-    uint32_t encoding);
+size_t gp_utf8_encode_unsafe(
+    void*    encoding,
+    uint32_t decoding);
+
+// ----------------------------------------------------------------------------
+// Validation
+
+/** Validate UTF-8 codepoint.
+ * @return 0 if invalid, byte length of the codepoint otherwise.
+ */
+GP_NONNULL_ARGS() GP_NODISCARD
+static inline size_t gp_utf8_is_valid_codepoint(
+    const void* str,
+    size_t      str_length,
+    size_t      i)
+{
+    gp_db_assert(i < str_length, "Index out of bounds.");
+    size_t cp_length = gp_utf8_decode_codepoint_length(str, i);
+    if (cp_length == 0 || i + cp_length > str_length)
+        return false;
+    bool gp_bytes_is_valid_codepoint(const void*, size_t); // internal
+    if ( ! gp_bytes_is_valid_codepoint(str, i))
+        return false;
+    return cp_length;
+}
+
+/** Validate UTF-8 string.*/
+GP_NONNULL_ARGS(1) GP_NODISCARD
+static inline bool gp_utf8_is_valid(
+    const void* str,
+    size_t      str_length,
+    size_t*     optional_invalid_position)
+{
+    for (size_t cp_length, i = 0; i < str_length; i += cp_length) {
+        cp_length = gp_utf8_is_valid_codepoint(str, str_length, i);
+        if ( ! cp_length) {
+            if (optional_invalid_position != NULL)
+                *optional_invalid_position = i;
+            return false;
+        }
+    }
+    return true;
+}
+
+/** Validate UTF-16 codepoint.
+ * @return 0 if invalid, 1 if valid, 2 if valid surrogate.
+ */
+GP_NONNULL_ARGS() GP_NODISCARD
+static inline size_t gp_utf16_is_valid_codepoint(
+    const uint16_t* str,
+    size_t          str_length,
+    size_t          i)
+{
+    gp_db_assert(i < str_length, "Index out of bounds.");
+    if (0xDC00 <= str[i] && str[i] <= 0xDFFF) // trailing surrogate
+        return false;
+    if (0xD800 <= str[i] && str[i] <= 0xDBFF) { // leading surrogate
+        if (i == str_length)
+            return false;
+        if (0xDC00 <= str[i + 1] && str[i + 1] <= 0xDFFF)
+            return 2;
+    }
+    return true;
+}
+
+/** Validate UTF-16 string.*/
+GP_NONNULL_ARGS(1) GP_NODISCARD
+static inline bool gp_utf16_is_valid(
+    const uint16_t* str,
+    size_t          str_length,
+    size_t*         optional_invalid_position)
+{
+    for (size_t cp_length, i = 0; i < str_length; i += cp_length) {
+        cp_length = gp_utf16_is_valid_codepoint(str, str_length, i);
+        if ( ! cp_length) {
+            if (optional_invalid_position != NULL)
+                *optional_invalid_position = i;
+            return false;
+        }
+    }
+    return true;
+}
+
+/** Validate UTF-32 codepoint.
+ * @return false if invalid, true otherwise.
+ */
+GP_NONNULL_ARGS() GP_NODISCARD
+static inline bool gp_utf32_is_valid_codepoint(
+    const uint32_t* str,
+    size_t          str_length,
+    size_t          i)
+{
+    gp_db_assert(i < str_length, "Index out of bounds.");
+    if (0xD800 <= str[i] && str[i] <= 0xDFFF) // surrogates
+        return false;
+    return str[i] <= 0x10FFFF;
+}
+
+/** Validate UTF-32 string.*/
+GP_NONNULL_ARGS(1) GP_NODISCARD
+static inline bool gp_utf32_is_valid(
+    const uint32_t* str,
+    size_t          str_length,
+    size_t*         optional_invalid_position)
+{
+    for (size_t i = 0; i < str_length; ++i) {
+        if ( ! gp_utf32_is_valid_codepoint(str, str_length, i)) {
+            if (optional_invalid_position != NULL)
+                *optional_invalid_position = i;
+            return false;
+        }
+    }
+    return true;
+}
 
 // ----------------------------------------------------------------------------
 // Full string encoding conversions
@@ -138,8 +237,12 @@ size_t gp_utf16_to_utf8(
     const uint16_t*  utf16,
     size_t           utf16_length);
 
-// Output will be null-terminated in memory if not truncated. If only the
-// null-terminator got truncated, (size_t)-1 will be returned.
+// Output will be null terminated in all cases except if output is a truncating
+// array with a capacity of 0. Therefore, if user expects a valid wide string,
+// the capacity of a truncating output must be larger than 0, although 0 can be
+// used to probe how many wide characters would've been written if it wasn't 0.
+//     A truncating array may truncate an extra wide character to ensure null
+// termination.
 GP_NONNULL_ARGS()
 size_t gp_utf8_to_wcs(
     GPArray(wchar_t)* out_unicode_wide_string,

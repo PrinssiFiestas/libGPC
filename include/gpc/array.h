@@ -48,7 +48,7 @@ extern "C" {
 
 /** Static array of a specific type.
  * Use this type to signal the reader that this array is supposed to never
- * reallocate and may truncate.
+ * reallocate and may truncate or is expected to be truncating.
  */
 #define GPArrayStatic(/* Type */...) GPArray(__VA_ARGS__)
 
@@ -134,10 +134,10 @@ static inline GPArrayHeader* gp_arr_set(GPArrayAny arr)
  * prevents double pointer bugs since it is very common to pass arrays by
  * address to allow reallocation.
  */
-#define gp_arrt_length(T, GPArrayT_ARR)     (GP_ARRH_CHECK(T, GPArrayT_ARR), gp_arr_length(GPArrayT_ARR)    )
-#define gp_arrt_capacity(T, GPArrayT_ARR)   (GP_ARRH_CHECK(T, GPArrayT_ARR), gp_arr_capacity(GPArrayT_ARR)  )
-#define gp_arrt_allocator(T, GPArrayT_ARR)  (GP_ARRH_CHECK(T, GPArrayT_ARR), gp_arr_allocator(GPArrayT_ARR) )
-#define gp_arrt_allocation(T, GPArrayT_ARR) (GP_ARRH_CHECK(T, GPArrayT_ARR), gp_arr_allocation(GPArrayT_ARR))
+#define gp_arrt_length(T, GPArrayT_ARR)     (GP_ARRH_CHECK(T, GPArrayT_ARR), ((GPArrayHeader*)(GPArrayT_ARR) - 1)->length)
+#define gp_arrt_capacity(T, GPArrayT_ARR)   (GP_ARRH_CHECK(T, GPArrayT_ARR), ((GPArrayHeader*)(GPArrayT_ARR) - 1)->capacity)
+#define gp_arrt_allocator(T, GPArrayT_ARR)  (GP_ARRH_CHECK(T, GPArrayT_ARR), ((GPArrayHeader*)(GPArrayT_ARR) - 1)->allocator)
+#define gp_arrt_allocation(T, GPArrayT_ARR) (GP_ARRH_CHECK(T, GPArrayT_ARR), ((GPArrayHeader*)(GPArrayT_ARR) - 1)->allocation)
 
 /** Direct accces to GPArrayHeader fields with type checking.
  * Pass the element type to @p T to be the type to be checked against. This
@@ -316,7 +316,7 @@ static inline bool gp_arr_push(
 }
 
 /** Remove element from the end.
- * If @p arr is empty, the behavior is undefined.
+ * The argument must not be an empty array.
  * @return a pointer to the last element, which is valid as long as no new
  * elements are added to @p arr. It is recommended to immediately dereference
  * and assign the return value to a variable. Will not reallocate, only takes
@@ -368,7 +368,16 @@ static inline size_t gp_arr_insert(
 {
     GPArrayAny* parr = (GPArrayAny*)dest_address;
     const size_t length = gp_arr_length(*parr);
-    gp_db_assert(position <= length, "Index out of bounds.");
+
+    // If array is dynamic or has space left, then an out of bound index is
+    // meaningless and most certainly a bug, thus should be asserted. Buf if a
+    // truncating array is full, then it is reasonable to assume that the user
+    // expects truncation regardless of the insertion position (I know I did).
+    if (gp_arr_allocator(*parr) != NULL || gp_arr_length(*parr) != gp_arr_capacity(*parr))
+        gp_db_assert(position <= length, "Index out of bounds.");
+    else if (position >= gp_arr_length(*parr))
+        return src_length;
+
     size_t trunced = gp_arr_reserve(element_size, parr, length + src_length);
     size_t tail_length = length - position;
 
@@ -402,8 +411,13 @@ static inline void gp_arr_erase(
     size_t         count)
 {
     GPArrayAny arr = *(GPArrayAny*)dest_address;
-    if (count != 0)
-        gp_db_assert(position < gp_arr_length(arr), "Index out of bounds");
+    if (count != 0) {
+        // Check comment in gp_arr_insert() for explanation of this precondition.
+        if (gp_arr_allocator(arr) != NULL || gp_arr_length(arr) != gp_arr_capacity(arr))
+            gp_db_assert(position < gp_arr_length(arr), "Index out of bounds.");
+        else if (position >= gp_arr_length(arr))
+            return;
+    }
     else if (position + count > gp_arr_length(arr))
         count = gp_arr_length(arr) - position;
 

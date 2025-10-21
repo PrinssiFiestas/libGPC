@@ -49,8 +49,9 @@ void gp_carena_dealloc(GPAllocator*, void*);
 
 bool gp_bytes_is_valid_codepoint(const void* str, size_t i);
 
+// Input must be valid UTF-8
 GP_NONNULL_ARGS()
-size_t gp_bytes_codepoint_count(
+size_t gp_bytes_codepoint_count_unsafe(
     const void* _str,
     const size_t n);
 

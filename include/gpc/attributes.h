@@ -11,11 +11,7 @@
 // Aligment of all pointers returned by any valid allocators. Can be globally
 // overridden to a power of 2 larger or equal to 8.
 #ifndef GP_ALLOC_ALIGNMENT
-#  if (__STDC_VERSION__ >= 201112L && !defined(_MSC_VER)) || defined(__COMPCERT__)
-#    define GP_ALLOC_ALIGNMENT (_Alignof(max_align_t))
-#  else
-#    define GP_ALLOC_ALIGNMENT (2*sizeof(void*))
-#  endif
+#  define GP_ALLOC_ALIGNMENT (2*sizeof(size_t))
 #elif (GP_ALLOC_ALIGNMENT < 8) || (GP_ALLOC_ALIGNMENT & (GP_ALLOC_ALIGNMENT - 1))
 #  error GP_ALLOC_ALIGNMENT must be a power of 2 larger or equal to 8.
 #endif
