@@ -88,7 +88,7 @@ typedef struct gp_slot
 //
 // If GPMap.element_not_pointer, element is in Slot array, not element array.
 
-static void gp_no_op_destructor(void*_) { (void)_; }
+static void gp_s_no_op_destructor(void*_) { (void)_; }
 
 GPMap* gp_map_new(GPAllocator* allocator, const GPMapInitializer*_init)
 {
@@ -105,7 +105,7 @@ GPMap* gp_map_new(GPAllocator* allocator, const GPMapInitializer*_init)
         .element_size = init->element_size,
         .allocator    = allocator,
         .destructor   = init->destructor == NULL ?
-            gp_no_op_destructor
+            gp_s_no_op_destructor
           : init->destructor
     };
     GPMap* block = gp_mem_alloc_zeroes(allocator,
@@ -113,11 +113,11 @@ GPMap* gp_map_new(GPAllocator* allocator, const GPMapInitializer*_init)
     return memcpy(block, &init_map, sizeof init_map);
 }
 
-static inline size_t gp_next_length(const size_t length)
+static inline size_t gp_s_next_length(const size_t length)
 {
     return length/2 < 4 ? 4 : length/2;
 }
-static inline GPUInt128 gp_shift_key(const GPUInt128 key, const size_t length)
+static inline GPUInt128 gp_s_shift_key(const GPUInt128 key, const size_t length)
 {
     #if __GNUC__ && __SIZEOF_INT128__
     if      (sizeof length == sizeof(unsigned))
@@ -174,7 +174,7 @@ void gp_map_delete_elems(
         {
             if (slots[i].element != NULL)
                 map->destructor((void*)slots[i].element);
-            gp_map_delete_elems(map, slots[i].slot.children, gp_next_length(length));
+            gp_map_delete_elems(map, slots[i].slot.children, gp_s_next_length(length));
         }
     }
     if (slots != (GPSlot*)(map + 1))
@@ -188,7 +188,7 @@ void gp_map_delete(GPMap* map)
     gp_map_delete_elems(map, (GPSlot*)(map + 1), map->length);
 }
 
-static void* gp_map_put_elem(
+static void* gp_s_map_put_elem(
     GPAllocator*const allocator,
     GPSlot*const            slots,
     const size_t            length,
@@ -212,18 +212,18 @@ static void* gp_map_put_elem(
         slots[i].key  = key;
         return (void*)slots[i].element;
     }
-    const size_t next_length = gp_next_length(length);
+    const size_t next_length = gp_s_next_length(length);
     if (slots[i].slot.index == GP_IN_USE)
     {
         GPSlot* new_slots = gp_mem_alloc_zeroes(allocator,
             next_length * sizeof*new_slots + next_length * elem_size);
         slots[i].slot.children = new_slots;
     }
-    return gp_map_put_elem(
+    return gp_s_map_put_elem(
         allocator,
         slots[i].slot.children,
         next_length,
-        gp_shift_key(key, length),
+        gp_s_shift_key(key, length),
         elem,
         elem_size);
 }
@@ -233,7 +233,7 @@ void* gp_map_put(
     GPUInt128 key,
     const void* value)
 {
-    return gp_map_put_elem(
+    return gp_s_map_put_elem(
         map->allocator,
         (GPSlot*)(map + 1),
         map->length,
@@ -242,7 +242,7 @@ void* gp_map_put(
         map->element_size);
 }
 
-static void* gp_map_get_elem(
+static void* gp_s_map_get_elem(
     const GPSlot*const slots,
     const size_t length,
     const GPUInt128 key,
@@ -255,20 +255,20 @@ static void* gp_map_get_elem(
     else if (slots[i].slot.index == GP_IN_USE || memcmp(&slots[i].key, &key, sizeof key) == 0)
         return (void*)slots[i].element;
 
-    return gp_map_get_elem(
-        slots[i].slot.children, gp_next_length(length), gp_shift_key(key, length), elem_size);
+    return gp_s_map_get_elem(
+        slots[i].slot.children, gp_s_next_length(length), gp_s_shift_key(key, length), elem_size);
 }
 
 void* gp_map_get(GPMap* map, GPUInt128 key)
 {
-    return gp_map_get_elem(
+    return gp_s_map_get_elem(
         (GPSlot*)(map + 1),
         map->length,
         key,
         map->element_size);
 }
 
-static bool gp_map_remove_elem(
+static bool gp_s_map_remove_elem(
     GPSlot*const slots,
     const size_t length,
     const GPUInt128 key,
@@ -291,13 +291,13 @@ static bool gp_map_remove_elem(
         slots[i].element = NULL;
         return true;
     }
-    return gp_map_remove_elem(
-        slots, gp_next_length(length), gp_shift_key(key, length), elem_size, destructor);
+    return gp_s_map_remove_elem(
+        slots, gp_s_next_length(length), gp_s_shift_key(key, length), elem_size, destructor);
 }
 
 bool gp_map_remove(GPMap* map, GPUInt128 key)
 {
-    return gp_map_remove_elem(
+    return gp_s_map_remove_elem(
         (GPSlot*)(map + 1),
         map->length,
         key,

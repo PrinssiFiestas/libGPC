@@ -115,8 +115,8 @@ static inline size_t gp_utf8_is_valid_codepoint(
     size_t cp_length = gp_utf8_decode_codepoint_length(str, i);
     if (cp_length == 0 || i + cp_length > str_length)
         return false;
-    bool gp_bytes_is_valid_codepoint(const void*, size_t); // internal
-    if ( ! gp_bytes_is_valid_codepoint(str, i))
+    bool gp_internal_bytes_is_valid_codepoint(const void*, size_t); // internal
+    if ( ! gp_internal_bytes_is_valid_codepoint(str, i))
         return false;
     return cp_length;
 }

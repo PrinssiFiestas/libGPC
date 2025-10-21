@@ -17,6 +17,30 @@
 #include <stddef.h>
 #include <string.h>
 
+#ifdef __SANITIZE_ADDRESS__ // GCC and MSVC defines this with -fsanitize=address
+#  include <sanitizer/asan_interface.h>
+#  include <sanitizer/common_interface_defs.h>
+#  define GP_HAS_SANITIZER 1
+#  define GP_TRY_POISON_MEMORY_REGION(A, S)   ASAN_POISON_MEMORY_REGION(A, S)
+#  define GP_TRY_UNPOISON_MEMORY_REGION(A, S) ASAN_UNPOISON_MEMORY_REGION(A, S)
+#elif defined(__has_feature) // Clang defines this
+#  if __has_feature(address_sanitizer)
+#    include <sanitizer/asan_interface.h>
+#    include <sanitizer/common_interface_defs.h>
+#    define GP_HAS_SANITIZER 1
+#    define GP_TRY_POISON_MEMORY_REGION(A, S)   ASAN_POISON_MEMORY_REGION(A, S)
+#    define GP_TRY_UNPOISON_MEMORY_REGION(A, S) ASAN_UNPOISON_MEMORY_REGION(A, S)
+#  else
+#    define GP_HAS_SANITIZER 0
+#    define GP_TRY_POISON_MEMORY_REGION(A, S)   ((void)(A), (void)(S))
+#    define GP_TRY_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
+#  endif
+#else
+#  define GP_HAS_SANITIZER 0
+#  define GP_TRY_POISON_MEMORY_REGION(A, S)   ((void)(A), (void)(S))
+#  define GP_TRY_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -456,7 +480,7 @@ void gp_scope_defer(GPScope* scope, void (*f)(void* arg), void* arg);
  */
 #define gp_defer(scope, f, arg) do { \
     if (0) (f)(arg);\
-    gp_scope_defer(scope, gp_defer_func_cast(f), arg); \
+    gp_scope_defer(scope, gp_internal_defer_func_cast(f), arg); \
 } while(0)
 
 /** Get lastly created scope in the current thread.
@@ -474,9 +498,9 @@ GPScope* gp_last_scope(void);
 #define GP_BEGIN(...) { GP_DEFER_BEGIN(__VA_ARGS__)
 #define GP_END          GP_DEFER_END }
 
-#define GP_AUTO_MEM    ( gp_auto_mem_clean, _gp_auto_mem, \
+#define GP_AUTO_MEM    ( gp_internal_auto_mem_clean, _gp_auto_mem, \
     static GP_AUTO_MEM_THREAD size_t _gp_auto_mem_size; \
-    GPAutoMem* _gp_auto_mem = gp_defer_new(GPAutoMem, gp_begin(_gp_auto_mem_size), &_gp_auto_mem_size); \
+    GPInternalAutoMem* _gp_auto_mem = gp_defer_new(GPInternalAutoMem, gp_begin(_gp_auto_mem_size), &_gp_auto_mem_size); \
     GPScope* scope = _gp_auto_mem->scope; )
 
 #define gp_defer_alloc(/* size_t n_bytes */...)             GP_DEFER_ALLOC(__VA_ARGS__)
@@ -518,16 +542,14 @@ void gp_mutex_allocator_destroy(GPMutexAllocator* optional);
 // ----------------------------------------------------------------------------
 
 
-static inline void gp_allocator_type_check(GPAllocator*_) { (void)_; }
-
 #if !__cplusplus && __STDC_VERSION__ < 202311L
 // Unlike cast to void(*)(void*), this checks that return type matches.
-static inline void(*gp_defer_func_cast(void(*f)(/* accept any arg type */)))(void*)
+static inline void(*gp_internal_defer_func_cast(void(*f)(/* accept any arg type */)))(void*)
 {
     return (void(*)(void*))f;
 }
 #else // no return type checking available
-#define gp_defer_func_cast(...) ((void(*)(void*))(__VA_ARGS__))
+#define gp_internal_defer_func_cast(...) ((void(*)(void*))(__VA_ARGS__))
 #endif
 
 // ----------------------------------------------------------------------------
@@ -536,21 +558,21 @@ static inline void(*gp_defer_func_cast(void(*f)(/* accept any arg type */)))(voi
 // Note: (void)_gp_auto_scope_defers is used for compiler errors when using
 // macros that are only supposed to be used in auto scopes.
 
-typedef struct gp_auto_mem
+typedef struct gp_internal_auto_mem
 {
     GPScope* scope;
     size_t*  size;
-} GPAutoMem;
+} GPInternalAutoMem;
 
-static inline void gp_auto_mem_clean(void*_arena)
+static inline void gp_internal_auto_mem_clean(void*_arena)
 {
-    GPAutoMem* arena = (GPAutoMem*)_arena;
+    GPInternalAutoMem* arena = (GPInternalAutoMem*)_arena;
     *arena->size = (gp_end(arena->scope) >> 1) + (*arena->size >> 1);
 }
 #define GP_DEFER_DECLARATION(DESTRUCTOR, DESTRUCTOR_ARGUMENT,/* declarations */...) \
     __VA_ARGS__; \
     if (0) (DESTRUCTOR)(DESTRUCTOR_ARGUMENT); \
-    _gp_auto_scope_defers[_gp_auto_scope_defers_length].func = gp_defer_func_cast(DESTRUCTOR); \
+    _gp_auto_scope_defers[_gp_auto_scope_defers_length].func = gp_internal_defer_func_cast(DESTRUCTOR); \
     _gp_auto_scope_defers[_gp_auto_scope_defers_length].arg = (DESTRUCTOR_ARGUMENT); \
     ++_gp_auto_scope_defers_length;
 
@@ -601,7 +623,7 @@ typedef const struct gp_auto_scope
 } GPAutoScope;
 
 __attribute__((always_inline))
-static inline void gp_auto_scope_clean(const GPAutoScope* scope)
+static inline void gp_internal_auto_scope_clean(const GPAutoScope* scope)
 {
     for (size_t i = scope->defers_length - 1; i != (size_t)-1; --i)
         scope->defers[i].func(scope->defers[i].arg);
@@ -610,7 +632,7 @@ static inline void gp_auto_scope_clean(const GPAutoScope* scope)
     GPDefer _gp_auto_scope_defers[GP_COUNT_ARGS(__VA_ARGS__)]; \
     size_t _gp_auto_scope_defers_length = 0; \
     GP_PROCESS_ALL_ARGS(GP_DEFER_DECLARE, GP_SEMICOLON, __VA_ARGS__); \
-    __attribute__((cleanup(gp_auto_scope_clean))) GPAutoScope _gp_auto_scope = { \
+    __attribute__((cleanup(gp_internal_auto_scope_clean))) GPAutoScope _gp_auto_scope = { \
         _gp_auto_scope_defers, \
         GP_COUNT_ARGS(__VA_ARGS__) \
     };
@@ -662,9 +684,9 @@ static inline void gp_auto_scope_clean(const GPAutoScope* scope)
 #define GP_DEFER_ALLOC(...) gp_carena_alloc(&_gp_auto_scope.arena, __VA_ARGS__, GP_ALLOC_ALIGNMENT)
 #endif
 
-GPAutoScope99* gp_thread_local_auto_scope(void);
+GPAutoScope99* gp_internal_thread_local_auto_scope(void);
 #define GP_DEFER_BEGIN(...) \
-    GPAutoScope99* _gp_auto_scope = gp_thread_local_auto_scope(); \
+    GPAutoScope99* _gp_auto_scope = gp_internal_thread_local_auto_scope(); \
     void* _gp_auto_scope_arena_position = _gp_auto_scope->arena->position; \
     size_t _gp_auto_scope_defers_old_length = _gp_auto_scope->defers_length; \
     GPDefer* _gp_auto_scope_defers = _gp_auto_scope->defers + _gp_auto_scope->defers_length; \
@@ -693,15 +715,15 @@ template <typename T>
 #if __GNUC__ // allow using alloca() in function arguments. Note: on MSVC it's okay anyway.
 __attribute__((always_inline))
 #endif
-static inline T* gp_cpp_ptr_init(T* ptr, const T& value)
+static inline T* gp_internal_cpp_ptr_init(T* ptr, const T& value)
 {
     *ptr = value;
     return ptr;
 }
 
 #define GP_DEFER_NEW_ALLOC(T) ((T*)GP_DEFER_ALLOC(sizeof(T))) // TODO T!
-#define GP_DEFER_NEW_ZERO_INIT(T) gp_cpp_ptr_init(GP_DEFER_NEW_ALLOC(T), T{0})
-#define GP_DEFER_NEW_INIT(T, ...) gp_cpp_ptr_init(GP_DEFER_NEW_ALLOC(T), T{__VA_ARGS__})
+#define GP_DEFER_NEW_ZERO_INIT(T) gp_internal_cpp_ptr_init(GP_DEFER_NEW_ALLOC(T), T{0})
+#define GP_DEFER_NEW_INIT(T, ...) gp_internal_cpp_ptr_init(GP_DEFER_NEW_ALLOC(T), T{__VA_ARGS__})
 
 #endif
 

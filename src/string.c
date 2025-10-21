@@ -64,15 +64,15 @@ bool gp_str_equal(
         return memcmp(s1, s2, s2_size) == 0;
 }
 
-static uint32_t gp_u32_simple_fold(uint32_t r);
+static uint32_t gp_s_u32_simple_fold(uint32_t r);
 
 bool gp_str_equal_case(
     GPString    s1,
     const void* s2,
     size_t      s2_size)
 {
-    const size_t s1_length = gp_bytes_codepoint_count_unsafe(s1, gp_str_length(s1));
-    const size_t s2_length = gp_bytes_codepoint_count_unsafe(s2, s2_size);
+    const size_t s1_length = gp_internal_bytes_codepoint_count_unsafe(s1, gp_str_length(s1));
+    const size_t s2_length = gp_internal_bytes_codepoint_count_unsafe(s2, s2_size);
     if (s1_length != s2_length)
         return false;
 
@@ -98,9 +98,9 @@ bool gp_str_equal_case(
                 continue;
             return false;
         }
-        uint32_t cp = gp_u32_simple_fold(codepoint1);
+        uint32_t cp = gp_s_u32_simple_fold(codepoint1);
         while (cp != codepoint1 && cp < codepoint2)
-            cp = gp_u32_simple_fold(cp);
+            cp = gp_s_u32_simple_fold(cp);
         if (cp == codepoint2)
             continue;
 
@@ -112,7 +112,7 @@ bool gp_str_equal_case(
 size_t gp_str_codepoint_count(
     GPString str)
 {
-    return gp_bytes_codepoint_count_unsafe(str, gp_str_length(str));
+    return gp_internal_bytes_codepoint_count_unsafe(str, gp_str_length(str));
 }
 
 bool gp_str_is_valid(
@@ -122,7 +122,7 @@ bool gp_str_is_valid(
     return gp_bytes_is_valid_utf8(str, gp_str_length(str), invalid_index);
 }
 
-static size_t gp_printable_max_allocation_size(GPPrintable object, pf_va_list _args)
+static size_t gp_s_printable_max_allocation_size(GPInternalReflectionData object, pf_va_list _args)
 {
     va_list args;
     va_copy(args, _args.list);
@@ -188,10 +188,10 @@ static size_t gp_printable_max_allocation_size(GPPrintable object, pf_va_list _a
     return length;
 }
 
-size_t gp_str_print_internal(
+size_t gp_internal_str_print(
     GPString* out,
     size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...)
 {
     va_list _args;
@@ -205,9 +205,9 @@ size_t gp_str_print_internal(
     {
         gp_str_reserve(
             out,
-            gp_str_length(*out) + gp_printable_max_allocation_size(objs[i], args));
+            gp_str_length(*out) + gp_s_printable_max_allocation_size(objs[i], args));
 
-        size_t converted_obj_length = gp_bytes_print_objects(
+        size_t converted_obj_length = gp_internal_bytes_print_objects(
             gp_imax(0, gp_str_capacity(*out) - gp_str_length(*out)),
             *out + gp_str_length(*out),
             &args,
@@ -224,10 +224,10 @@ size_t gp_str_print_internal(
     return trunced_total;
 }
 
-size_t gp_str_println_internal(
+size_t gp_internal_str_println(
     GPString* out,
     size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...)
 {
     va_list _args;
@@ -241,10 +241,10 @@ size_t gp_str_println_internal(
     {
         gp_str_reserve(
             out,
-            gp_str_length(*out) + sizeof" "-sizeof"" + gp_printable_max_allocation_size(
+            gp_str_length(*out) + sizeof" "-sizeof"" + gp_s_printable_max_allocation_size(
                 objs[i], args));
 
-        size_t converted_obj_length = gp_bytes_print_objects(
+        size_t converted_obj_length = gp_internal_bytes_print_objects(
             gp_imax(0, gp_str_capacity(*out) - gp_str_length(*out)),
             *out + gp_str_length(*out),
             &args,
@@ -516,7 +516,7 @@ size_t gp_str_to_title(GPString* str)
     return trunced;
 }
 
-static size_t gp_str_find_invalid(
+static size_t gp_s_str_find_invalid(
     const void* _haystack,
     const size_t start,
     const size_t length)
@@ -528,7 +528,7 @@ static size_t gp_str_find_invalid(
         if (cp_length == 0 || i + cp_length > length)
             return i;
 
-        if ( ! gp_bytes_is_valid_codepoint(haystack, i))
+        if ( ! gp_internal_bytes_is_valid_codepoint(haystack, i))
             return i;
 
         i += cp_length;
@@ -536,7 +536,7 @@ static size_t gp_str_find_invalid(
     return GP_NOT_FOUND;
 }
 
-static size_t gp_str_find_valid(
+static size_t gp_s_str_find_valid(
     const void* _haystack,
     const size_t start,
     const size_t length)
@@ -550,11 +550,28 @@ static size_t gp_str_find_valid(
         if (cp_length == 0)
             continue;
 
-        if (cp_length + i < length && gp_bytes_is_valid_codepoint(haystack, i))
+        if (cp_length + i < length && gp_internal_bytes_is_valid_codepoint(haystack, i))
             return i;
         // else maybe there's ascii in last bytes so continue
     }
     return length;
+}
+
+static void gp_s_str_to_valid_memset(
+    GPString src,
+    char replacement)
+{
+    for (size_t start = 0, src_length = gp_str_length(src);; )
+    {
+        size_t invalid = gp_s_str_find_invalid(src, start, src_length);
+        if (invalid == GP_NOT_FOUND) {
+            break;
+        }
+
+        size_t valid = gp_s_str_find_valid(src, invalid, src_length);
+        memset(src + invalid, replacement, valid - invalid);
+        start = valid;
+    }
 }
 
 size_t gp_str_to_valid(
@@ -563,8 +580,12 @@ size_t gp_str_to_valid(
     size_t src_length,
     const char* replacement)
 {
-    if (src == NULL) // TODO if replacement length is 1, then just memset()
+    if (src == NULL)
     {
+        if (replacement[0] != '\0' && replacement[1] == '\0') {
+            gp_s_str_to_valid_memset(*dest, replacement[0]);
+            return 0;
+        }
         GPString temp = gp_str_new(&gp_scratch_arena()->base, gp_str_length(*dest));
         gp_str_copy(&temp, *dest, gp_str_length(*dest));
         size_t trunced = gp_str_to_valid(dest, temp, gp_str_length(temp), replacement);
@@ -580,14 +601,14 @@ size_t gp_str_to_valid(
 
     while (true)
     {
-        size_t invalid = gp_str_find_invalid(src, start, src_length);
+        size_t invalid = gp_s_str_find_invalid(src, start, src_length);
         if (invalid == GP_NOT_FOUND) {
             trunced += gp_str_append(dest, (char*)src + start, src_length - start);
             break;
         }
         trunced += gp_str_append(dest, (char*)src + start, invalid - start);
 
-        size_t valid = gp_str_find_valid(src, invalid, src_length);
+        size_t valid = gp_s_str_find_valid(src, invalid, src_length);
         for (size_t i = 0; i < valid - invalid; ++i)
             trunced += gp_str_append(dest, replacement, replacement_length);
         start = valid;
@@ -688,7 +709,7 @@ size_t gp_str_file(
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-static const uint16_t gp_ascii_fold[] = {
+static const uint16_t gp_s_ascii_fold[] = {
     0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007,
     0x0008, 0x0009, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E, 0x000F,
     0x0010, 0x0011, 0x0012, 0x0013, 0x0014, 0x0015, 0x0016, 0x0017,
@@ -713,7 +734,7 @@ typedef struct gp_fold_pair
     uint16_t to;
 } GPFoldPair;
 
-static GPFoldPair gp_case_orbit[] = {
+static GPFoldPair gp_s_case_orbit[] = {
     {0x004B, 0x006B}, {0x0053, 0x0073}, {0x006B, 0x212A}, {0x0073, 0x017F},
     {0x00B5, 0x039C}, {0x00C5, 0x00E5}, {0x00DF, 0x1E9E}, {0x00E5, 0x212B},
     {0x0130, 0x0130}, {0x0131, 0x0131}, {0x017F, 0x0053}, {0x01C4, 0x01C5},
@@ -738,25 +759,25 @@ static GPFoldPair gp_case_orbit[] = {
     {0x212A, 0x004B}, {0x212B, 0x00C5}, {0xA64A, 0xA64B}, {0xA64B, 0x1C88},
 };
 
-static uint32_t gp_u32_simple_fold(uint32_t r)
+static uint32_t gp_s_u32_simple_fold(uint32_t r)
 {
-    if (r < sizeof gp_ascii_fold / sizeof*gp_ascii_fold) {
-        return gp_ascii_fold[r];
+    if (r < sizeof gp_s_ascii_fold / sizeof*gp_s_ascii_fold) {
+        return gp_s_ascii_fold[r];
     }
 
     // Consult caseOrbit table for special cases.
     uint32_t lo = 0;
-    uint32_t hi = sizeof gp_case_orbit / sizeof*gp_case_orbit;
+    uint32_t hi = sizeof gp_s_case_orbit / sizeof*gp_s_case_orbit;
     for (; lo < hi;) {
         uint32_t m = (lo+hi) >> 1;
-        if (gp_case_orbit[m].from < r) {
+        if (gp_s_case_orbit[m].from < r) {
             lo = m + 1;
         } else {
             hi = m;
         }
     }
-    if (lo < sizeof gp_case_orbit / sizeof*gp_case_orbit && gp_case_orbit[lo].from == r) {
-        return gp_case_orbit[lo].to;
+    if (lo < sizeof gp_s_case_orbit / sizeof*gp_s_case_orbit && gp_s_case_orbit[lo].from == r) {
+        return gp_s_case_orbit[lo].to;
     }
 
     // No folding specified. This is a one- or two-element

@@ -4,6 +4,7 @@
 
 /**@file thread.h
  * Portability wrappers for threads. Uses C11 if available, pthreads otherwise.
+ * TODO a lot of important functions still missing!
  * TODO C++?
  */
 
@@ -22,8 +23,8 @@
 #if __cplusplus
 extern "C" {
 #endif
-void* gp_thread_wrapper_routine(void*);
-void* gp_thread_wrapper_arg(int(*f)(void*), void*);
+void* gp_internal_thread_wrapper_routine(void*);
+void* gp_internal_thread_wrapper_arg(int(*f)(void*), void*);
 #if __cplusplus
 } // extern "C"
 #endif
@@ -123,7 +124,7 @@ typedef pthread_t GPThread;
 
 static inline int gp_thread_create(GPThread* t, int(*f)(void*), void* arg)
 {
-    return pthread_create(t, NULL, gp_thread_wrapper_routine, gp_thread_wrapper_arg(f, arg));
+    return pthread_create(t, NULL, gp_internal_thread_wrapper_routine, gp_internal_thread_wrapper_arg(f, arg));
 }
 
 static inline int gp_thread_join(GPThread t, int* return_value)

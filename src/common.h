@@ -16,26 +16,6 @@
 #include <limits.h>
 #include <wctype.h>
 
-#ifdef __SANITIZE_ADDRESS__ // GCC and MSVC defines this with -fsanitize=address
-#  include <sanitizer/asan_interface.h>
-#  include <sanitizer/common_interface_defs.h>
-#  define GP_HAS_SANITIZER 1
-#elif defined(__has_feature) // Clang defines this
-#  if __has_feature(address_sanitizer)
-#    include <sanitizer/asan_interface.h>
-#    include <sanitizer/common_interface_defs.h>
-#    define GP_HAS_SANITIZER 1
-#  else
-#    define ASAN_POISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
-#    define ASAN_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
-#    define GP_HAS_SANITIZER 0
-#  endif
-#else
-#  define ASAN_POISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
-#  define ASAN_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
-#  define GP_HAS_SANITIZER 0
-#endif
-
 #define GP_FORMAT_SPECIFIERS "csSdioxXufFeEgGp"
 
 size_t pf_vsnprintf_consuming_no_null_termination(
@@ -44,19 +24,19 @@ size_t pf_vsnprintf_consuming_no_null_termination(
     const char* format,
     pf_va_list* args);
 
-void gp_arena_dealloc(GPAllocator*, void*);
-void gp_carena_dealloc(GPAllocator*, void*);
+void gp_internal_arena_dealloc(GPAllocator*, void*);
+void gp_internal_carena_dealloc(GPAllocator*, void*);
 
-bool gp_bytes_is_valid_codepoint(const void* str, size_t i);
+bool gp_internal_bytes_is_valid_codepoint(const void* str, size_t i);
 
 // Input must be valid UTF-8
 GP_NONNULL_ARGS()
-size_t gp_bytes_codepoint_count_unsafe(
+size_t gp_internal_bytes_codepoint_count_unsafe(
     const void* _str,
     const size_t n);
 
 GP_NONNULL_ARGS()
-static inline size_t gp_count_fmt_specs(const char* fmt)
+static inline size_t gp_internal_count_fmt_specs(const char* fmt)
 {
     size_t i = 0;
     for (; (fmt = strchr(fmt, '%')) != NULL; ++fmt)
@@ -74,19 +54,19 @@ static inline size_t gp_count_fmt_specs(const char* fmt)
 }
 
 GP_NONNULL_ARGS(3)
-size_t gp_convert_va_arg(
+size_t gp_internal_convert_va_arg(
     const size_t limit,
     void*restrict const out,
     pf_va_list*restrict const args,
     const gp_type_t type);
 
 GP_NONNULL_ARGS(3, 4)
-size_t gp_bytes_print_objects(
+size_t gp_internal_bytes_print_objects(
     const size_t limit,
     void*restrict out,
     pf_va_list* args,
     size_t*const i,
-    GPPrintable obj);
+    GPInternalReflectionData obj);
 
 // ----------------------------------------------------------------------------
 // Portability Assumptions
@@ -127,6 +107,8 @@ _Static_assert(sizeof(void*) == sizeof(void(*)()), "");
 //
 // Sizes are guaranteed to match, so the inaccuracies have neglible impact on
 // program correctness.
+//
+// These could be made public if ever proven to be useful outside libGPC.
 
 typedef int gp_promoted_arg_bool_t;
 typedef int gp_promoted_arg_char_t;

@@ -16,7 +16,7 @@ static bool is_free(void*_ptr)
 {
     gp_assert(_ptr);
     uint8_t* ptr = _ptr;
-    ASAN_UNPOISON_MEMORY_REGION(ptr, GP_ALLOC_ALIGNMENT);
+    GP_TRY_UNPOISON_MEMORY_REGION(ptr, GP_ALLOC_ALIGNMENT);
     for (size_t i = 0; i < GP_ALLOC_ALIGNMENT; i++) if (ptr[i] != 0xFF)
         return false;
     return true;
@@ -514,9 +514,9 @@ static void test_dealloc(GPAllocator* allocator, void*_block)
     uint8_t* block = _block;
 
     size_t block_size;
-    ASAN_UNPOISON_MEMORY_REGION(block - sizeof block_size, sizeof block_size);
+    GP_TRY_UNPOISON_MEMORY_REGION(block - sizeof block_size, sizeof block_size);
     memcpy(&block_size, block - sizeof block_size, sizeof block_size);
-    ASAN_UNPOISON_MEMORY_REGION(block, block_size);
+    GP_TRY_UNPOISON_MEMORY_REGION(block, block_size);
 
     // Mark the block as free.
     memset(

@@ -143,33 +143,33 @@ static inline int gp_stat(GPStat* s, const char* path)
 // ----------------------------------------------------------------------------
 
 
-size_t gp_file_print_internal(
+size_t gp_internal_file_print(
     FILE* file,
     size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...);
 
-size_t gp_file_println_internal(
+size_t gp_internal_file_println(
     FILE* file,
     size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...);
 
 #if !__cplusplus
 
 #define GP_FILE_PRINT(OUT, ...) \
-    gp_file_print_internal( \
+    gp_internal_file_print( \
         OUT, \
         GP_COUNT_ARGS(__VA_ARGS__), \
-        (GPPrintable[]) \
+        (GPInternalReflectionData[]) \
             { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 
 #define GP_FILE_PRINTLN(OUT, ...) \
-    gp_file_println_internal( \
+    gp_internal_file_println( \
         OUT, \
         GP_COUNT_ARGS(__VA_ARGS__), \
-        (GPPrintable[]) \
+        (GPInternalReflectionData[]) \
             { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 

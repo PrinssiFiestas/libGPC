@@ -321,9 +321,9 @@ bool gp_bytes_is_valid_ascii(
 // ----------------------------------------------------------------------------
 
 
-typedef struct gp_printable
+typedef struct gp_internal_reflection_data
 {
-    // Created with #. If var_name[0] == '\"', then contains format string.
+    // Created with #. If identifier[0] == '\"', then contains format string.
     const char* identifier;
 
     // Simplified specifier. If var_name is not a format string, then this is
@@ -331,7 +331,7 @@ typedef struct gp_printable
     const enum gp_type type;
 
     // Actual data is in gp_str_print_internal() variadic args.
-} GPPrintable;
+} GPInternalReflectionData;
 
 #if GP_HAS_C11_GENERIC
 #define GP_PRINTABLE(X) { #X, GP_TYPE(X) } // TODO test if this would work in C++ too
@@ -339,37 +339,37 @@ typedef struct gp_printable
 #define GP_PRINTABLE(X) { #X, INT_MAX - (int)(sizeof(X)) }
 #endif
 
-size_t gp_bytes_print_internal(
+size_t gp_internal_bytes_print(
     void*GP_RESTRICT out,
     size_t n,
     size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...);
 
-size_t gp_bytes_println_internal(
+size_t gp_internal_bytes_println(
     void*GP_RESTRICT out,
     size_t n,
     size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...);
 
 #ifndef __cplusplus
 
 #define GP_BYTES_PRINT(OUT, N, ...) \
-    gp_bytes_print_internal( \
+    gp_internal_bytes_print( \
         OUT, \
         N, \
         GP_COUNT_ARGS(__VA_ARGS__), \
-        (GPPrintable[]) \
+        (GPInternalReflectionData[]) \
             { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 
 #define GP_BYTES_PRINTLN(OUT, N, ...) \
-    gp_bytes_println_internal( \
+    gp_internal_bytes_println( \
         OUT, \
         N, \
         GP_COUNT_ARGS(__VA_ARGS__), \
-        (GPPrintable[]) \
+        (GPInternalReflectionData[]) \
             { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 

@@ -135,7 +135,7 @@ bool gp_file_read_strip(
     return true;
 }
 
-static size_t gp_print_va_arg(
+static size_t gp_s_print_va_arg(
     FILE* out,
     pf_va_list*restrict const args,
     const gp_type_t type)
@@ -256,7 +256,7 @@ static size_t gp_print_va_arg(
     return length;
 }
 
-static void gp_va_list_dummy_consume(
+static void gp_s_va_list_dummy_consume(
     const char* format,
     pf_va_list* args)
 {
@@ -345,31 +345,31 @@ static void gp_va_list_dummy_consume(
     }
 }
 
-static size_t gp_print_objects(
+static size_t gp_s_print_objects(
     FILE* out,
     pf_va_list* args,
     size_t*const i,
-    GPPrintable obj)
+    GPInternalReflectionData obj)
 {
     size_t length = 0;
     if (obj.identifier[0] == '\"')
     {
         const char* fmt = va_arg(args->list, char*);
-        *i += gp_count_fmt_specs(fmt); // skip args printed below
+        *i += gp_internal_count_fmt_specs(fmt); // skip args printed below
 
         length += pf_vfprintf(out, fmt, args->list); // remember, no va_arg consumption here,
         // so they must be consumed manually. // TODO we should implement pf_vfprintf_consuming() instead
-        gp_va_list_dummy_consume(fmt, args);
+        gp_s_va_list_dummy_consume(fmt, args);
     } else
-        length += gp_print_va_arg(out, args, obj.type);
+        length += gp_s_print_va_arg(out, args, obj.type);
 
     return length;
 }
 
-size_t gp_file_print_internal(
+size_t gp_internal_file_print(
     FILE* out,
     const size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...)
 {
     va_list _args;
@@ -379,7 +379,7 @@ size_t gp_file_print_internal(
 
     size_t length = 0;
     for (size_t i = 0; i < arg_count; i++)
-        length += gp_print_objects(out, &args, &i, objs[i]);
+        length += gp_s_print_objects(out, &args, &i, objs[i]);
 
     va_end(_args);
     va_end(args.list);
@@ -387,10 +387,10 @@ size_t gp_file_print_internal(
     return length;
 }
 
-size_t gp_file_println_internal(
+size_t gp_internal_file_println(
     FILE* out,
     const size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...)
 {
     va_list _args;
@@ -401,7 +401,7 @@ size_t gp_file_println_internal(
     size_t length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        length += sizeof" "-sizeof"" + gp_print_objects(out, &args, &i, objs[i]);
+        length += sizeof" "-sizeof"" + gp_s_print_objects(out, &args, &i, objs[i]);
 
         if (i < arg_count - 1)
             fputs(" ",  out);

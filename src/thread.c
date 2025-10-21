@@ -23,24 +23,24 @@ typedef struct gp_thread_routine_wrapper
 
 // Thread local storage allows allocating wrapper to heap (for lifetime), which
 // can be automatically free()d on thread exit.
-pthread_key_t  gp_thread_wrapper_key;
-pthread_once_t gp_thread_wrapper_once = PTHREAD_ONCE_INIT;
+static pthread_key_t  gp_s_thread_wrapper_key;
+static pthread_once_t gp_s_thread_wrapper_once = PTHREAD_ONCE_INIT;
 
-void* gp_thread_wrapper_routine(void*_wrapper)
+void* gp_internal_thread_wrapper_routine(void*_wrapper)
 {
     GPThreadRoutineWrapper* wrapper = _wrapper;
-    pthread_setspecific(gp_thread_wrapper_key, wrapper);
+    pthread_setspecific(gp_s_thread_wrapper_key, wrapper);
     return (void*)(intptr_t)(wrapper->routine(wrapper->arg));
 }
 
-static void gp_make_thread_wrapper_key(void)
+static void gp_s_make_thread_wrapper_key(void)
 {
-    pthread_key_create(&gp_thread_wrapper_key, free);
+    pthread_key_create(&gp_s_thread_wrapper_key, free);
 }
 
-void* gp_thread_wrapper_arg(int(*f)(void* arg), void* arg)
+void* gp_internal_thread_wrapper_arg(int(*f)(void* arg), void* arg)
 {
-    pthread_once(&gp_thread_wrapper_once, gp_make_thread_wrapper_key);
+    pthread_once(&gp_s_thread_wrapper_once, gp_s_make_thread_wrapper_key);
 
     GPThreadRoutineWrapper* wrapper = malloc(sizeof*wrapper);
     wrapper->routine = f;

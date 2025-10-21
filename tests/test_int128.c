@@ -149,13 +149,13 @@ int main(void)
             if ((u64 >> n) == 0)
                 continue;
             #if __GNUC__
-            gp_assert((int)gp_leading_zeros_u64(u64 >> n) == (int)__builtin_clzll(u64 >> n),
+            gp_assert((int)gp_s_leading_zeros_u64(u64 >> n) == (int)__builtin_clzll(u64 >> n),
                 "%w64X", u64,
                 n,
-                gp_leading_zeros_u64(u64 >> n),
+                gp_s_leading_zeros_u64(u64 >> n),
                 __builtin_clzll(u64 >> n));
             #endif
-            gp_assert(gp_leading_zeros_u64(u64 >> n) >= n);
+            gp_assert(gp_s_leading_zeros_u64(u64 >> n) >= n);
             gp_random_bytes(&rs, &u64, sizeof u64);
         }
 
@@ -165,13 +165,13 @@ int main(void)
             if ((u64 << n) == 0)
                 continue;
             #if __GNUC__
-            gp_assert((int)gp_trailing_zeros_u64(u64 << n) == (int)__builtin_ctzll(u64 << n),
+            gp_assert((int)gp_s_trailing_zeros_u64(u64 << n) == (int)__builtin_ctzll(u64 << n),
                 "%w64X", u64,
                 n,
-                gp_trailing_zeros_u64(u64 >> n),
+                gp_s_trailing_zeros_u64(u64 >> n),
                 __builtin_ctzll(u64 >> n));
             #endif
-            gp_assert(gp_trailing_zeros_u64(u64 << n) >= n, "%zu", n);
+            gp_assert(gp_s_trailing_zeros_u64(u64 << n) >= n, "%zu", n);
             gp_random_bytes(&rs, &u64, sizeof u64);
         }
     } // gp_suite("Leading/trailing zeroes");

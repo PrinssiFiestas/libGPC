@@ -11,13 +11,13 @@
 #include <stdint.h>
 #include <wchar.h>
 
-void gp_arena_dealloc(GPAllocator* arena, void* mem)
+void gp_internal_arena_dealloc(GPAllocator* arena, void* mem)
 {
     (void)arena;
-    ASAN_POISON_MEMORY_REGION(mem, GP_ALLOC_ALIGNMENT);
+    GP_TRY_POISON_MEMORY_REGION(mem, GP_ALLOC_ALIGNMENT);
 }
 
-void gp_carena_dealloc(GPAllocator* arena, void* mem)
+void gp_internal_carena_dealloc(GPAllocator* arena, void* mem)
 {
     (void)arena;
     (void)mem;
@@ -25,7 +25,7 @@ void gp_carena_dealloc(GPAllocator* arena, void* mem)
 
 // https://dev.to/rdentato/utf-8-strings-in-c-2-3-3kp1
 // https://stackoverflow.com/questions/66715611/check-for-valid-utf-8-encoding-in-c/66723102#66723102
-bool gp_bytes_is_valid_codepoint(
+bool gp_internal_bytes_is_valid_codepoint(
     const void*_str,
     const size_t i)
 {
@@ -55,39 +55,7 @@ bool gp_bytes_is_valid_codepoint(
     return false;
 }
 
-bool gp_bytes_is_valid_utf8(
-    const void*_str,
-    const size_t length,
-    size_t* invalid_index)
-{
-    const char* str = (const char*)_str;
-    size_t i = 0;
-
-    for (; i + 7 < length; i += sizeof(uint64_t))
-    {
-        uint64_t bits = *(uint64_t*)(str + i);
-        if (bits & 0x8080808080808080)
-            break;
-    }
-
-    for (size_t cp_length; i < length; i += cp_length)
-    {
-        cp_length = gp_utf8_decode_codepoint_length(str, i);
-        if (cp_length == 0 || i + cp_length > length) { // TODO this should be handled in a dedicated loop below
-            if (invalid_index != NULL)
-                *invalid_index = i;
-            return false;
-        }
-        if ( ! gp_bytes_is_valid_codepoint(str, i)) {
-            if (invalid_index != NULL)
-                *invalid_index = i;
-            return false;
-        }
-    }
-    return true;
-}
-
-size_t gp_bytes_codepoint_count_unsafe(
+size_t gp_internal_bytes_codepoint_count_unsafe(
     const void* _str,
     const size_t n)
 {
@@ -149,7 +117,7 @@ size_t gp_bytes_codepoint_count_unsafe(
     return count;
 }
 
-size_t gp_convert_va_arg(
+size_t gp_internal_convert_va_arg(
     const size_t limit,
     void*restrict const out,
     pf_va_list*restrict const args,
@@ -262,22 +230,22 @@ size_t gp_convert_va_arg(
     return length;
 }
 
-size_t gp_bytes_print_objects(
+size_t gp_internal_bytes_print_objects(
     const size_t limit,
     void*restrict out,
     pf_va_list* args,
     size_t*const i,
-    GPPrintable obj)
+    GPInternalReflectionData obj)
 {
     size_t length = 0;
     if (obj.identifier[0] == '\"')
     {
         const char* fmt = va_arg(args->list, char*);
-        *i += gp_count_fmt_specs(fmt);
+        *i += gp_internal_count_fmt_specs(fmt);
 
         length += pf_vsnprintf_consuming_no_null_termination(out, limit, fmt, args);
     } else
-        length += gp_convert_va_arg(limit, out, args, obj.type);
+        length += gp_internal_convert_va_arg(limit, out, args, obj.type);
 
     return length;
 }

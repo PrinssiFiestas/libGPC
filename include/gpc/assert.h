@@ -157,28 +157,28 @@ void gp_end_testing(void);
 static inline bool gp_pass_bool(bool b) { return b; }
 
 #define GP_FAIL(...) \
-    gp_fail_internal( \
+    gp_internal_fail( \
         __FILE__, \
         __LINE__, \
         __func__, \
         GP_COUNT_ARGS(__VA_ARGS__), \
-        (GPPrintable[]) \
+        (GPInternalReflectionData[]) \
             { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 //
-void gp_fail_internal(
+void gp_internal_fail(
     const char* file,
     int line,
     const char* func,
     size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...);
 
 #ifdef __cplusplus
 } // extern "C"
 
 #define GP_CURSOR_BACK_CPP(N) "\033[" #N "D"
-static inline void gp_fail_internal_cpp(
+static inline void gp_internal_fail_cpp(
     const char*const condition,
     const char*const file,
     const int line,
@@ -187,15 +187,15 @@ static inline void gp_fail_internal_cpp(
 {
     vars.insert(0, "\"" GP_CURSOR_BACK_CPP(1));
     const char*const cstr = vars.c_str();
-    const GPPrintable ps[2] = {{condition, GP_TYPE_INT}, {cstr, GP_TYPE_CHAR_PTR}};
-    gp_fail_internal(file, line, func, 2, ps, 0, cstr);
+    const GPInternalReflectionData ps[2] = {{condition, GP_TYPE_INT}, {cstr, GP_TYPE_CHAR_PTR}};
+    gp_internal_fail(file, line, func, 2, ps, 0, cstr);
 }
 
 #define GP_STREAM_VAR_INFO(VAR) #VAR " = " << (VAR)
 #define GP_STREAM_INSERT_VAR(...) << "\n" <<
 #undef GP_FAIL
 #define GP_FAIL(...) \
-    gp_fail_internal_cpp( \
+    gp_internal_fail_cpp( \
         "", \
         __FILE__, \
         __LINE__, \

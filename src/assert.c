@@ -25,51 +25,51 @@
 #include <execinfo.h> // backtrace()
 #endif
 
-static GP_MAYBE_THREAD_LOCAL const char* gp_current_test  = NULL;
-static GP_MAYBE_THREAD_LOCAL const char* gp_current_suite = NULL;
-static GP_MAYBE_THREAD_LOCAL bool gp_test_failed  = false;
-static GP_MAYBE_THREAD_LOCAL bool gp_suite_failed = false;
-static GP_MAYBE_ATOMIC uint32_t gp_test_count    = 0;
-static GP_MAYBE_ATOMIC uint32_t gp_suite_count   = 0;
-static GP_MAYBE_ATOMIC uint32_t gp_tests_failed  = 0;
-static GP_MAYBE_ATOMIC uint32_t gp_suites_failed = 0;
-static GPThreadOnce gp_tests_once  = GP_THREAD_ONCE_INIT;
-static GPThreadOnce gp_colors_once = GP_THREAD_ONCE_INIT;
+static GP_MAYBE_THREAD_LOCAL const char* gp_s_current_test  = NULL;
+static GP_MAYBE_THREAD_LOCAL const char* gp_s_current_suite = NULL;
+static GP_MAYBE_THREAD_LOCAL bool gp_s_test_failed  = false;
+static GP_MAYBE_THREAD_LOCAL bool gp_s_suite_failed = false;
+static GP_MAYBE_ATOMIC uint32_t gp_s_test_count    = 0;
+static GP_MAYBE_ATOMIC uint32_t gp_s_suite_count   = 0;
+static GP_MAYBE_ATOMIC uint32_t gp_s_tests_failed  = 0;
+static GP_MAYBE_ATOMIC uint32_t gp_s_suites_failed = 0;
+static GPThreadOnce gp_s_tests_once  = GP_THREAD_ONCE_INIT;
+static GPThreadOnce gp_s_colors_once = GP_THREAD_ONCE_INIT;
 #define GP_FAILED_STR GP_RED          "[FAILED]" GP_RESET_TERMINAL
 #define GP_PASSED_STR GP_BRIGHT_GREEN "[PASSED]" GP_RESET_TERMINAL
-static const char* prog_name = "";
+static const char* gp_s_prog_name = "";
 
 // ----------------------------------------------------------------------------
 // Implementations for gp_suite(), gp_test(), and relevant
 
 void gp_end_testing(void)
 {
-    if (gp_test_count + gp_suite_count == 0)
+    if (gp_s_test_count + gp_s_suite_count == 0)
         return;
 
     gp_test(NULL);
     gp_suite(NULL);
 
-    pf_printf("Finished testing%s%s\n", *prog_name ? " in " : ".", prog_name);
-    pf_printf("A total of %u tests ran in %u suites\n", gp_test_count, gp_suite_count);
+    pf_printf("Finished testing%s%s\n", *gp_s_prog_name ? " in " : ".", gp_s_prog_name);
+    pf_printf("A total of %u tests ran in %u suites\n", gp_s_test_count, gp_s_suite_count);
 
-    if (gp_tests_failed || gp_suites_failed)
+    if (gp_s_tests_failed || gp_s_suites_failed)
         pf_fprintf(stderr,
             GP_RED "%u tests failed and %u suites failed!" GP_RESET_TERMINAL "\n",
-            gp_tests_failed, gp_suites_failed);
+            gp_s_tests_failed, gp_s_suites_failed);
     else
         pf_printf(GP_BRIGHT_GREEN "Passed all tests!" GP_RESET_TERMINAL "\n");
 
     puts("---------------------------------------------------------------");
 
-    if (gp_tests_failed || gp_suites_failed)
+    if (gp_s_tests_failed || gp_s_suites_failed)
         exit(EXIT_FAILURE);
 
     // Prevent redundant reporting at exit.
-    gp_test_count    = 0;
-    gp_suite_count   = 0;
-    gp_tests_failed  = 0;
-    gp_suites_failed = 0;
+    gp_s_test_count    = 0;
+    gp_s_suite_count   = 0;
+    gp_s_tests_failed  = 0;
+    gp_s_suites_failed = 0;
 }
 
 void gp_enable_terminal_colors(void)
@@ -83,13 +83,13 @@ void gp_enable_terminal_colors(void)
     #endif
 }
 
-static void gp_init_testing(void)
+static void gp_s_init_testing(void)
 {
-    gp_thread_once(&gp_colors_once, gp_enable_terminal_colors);
+    gp_thread_once(&gp_s_colors_once, gp_enable_terminal_colors);
 
     #if (__GNUC__ && __linux__) || BSD
     extern const char* __progname;
-    prog_name = __progname;
+    gp_s_prog_name = __progname;
     #elif _WIN32
     static char prog_name_buf[MAX_PATH] = "";
     size_t length = GetModuleFileNameA(NULL, prog_name_buf, MAX_PATH);
@@ -104,52 +104,52 @@ static void gp_init_testing(void)
     #endif
 
     puts("---------------------------------------------------------------");
-    pf_printf("Starting tests%s%s\n\n", *prog_name ? " in " : "", prog_name);
+    pf_printf("Starting tests%s%s\n\n", *gp_s_prog_name ? " in " : "", gp_s_prog_name);
     atexit(gp_end_testing);
 }
 
 void gp_test(const char* name)
 {
-    gp_thread_once(&gp_tests_once, gp_init_testing);
+    gp_thread_once(&gp_s_tests_once, gp_s_init_testing);
 
     // End current test
-    if (gp_current_test != NULL)
+    if (gp_s_current_test != NULL)
     {
-        const char* indent = gp_current_suite == NULL ? "" : "\t";
-        if (gp_test_failed) {
-            gp_tests_failed++;
+        const char* indent = gp_s_current_suite == NULL ? "" : "\t";
+        if (gp_s_test_failed) {
+            gp_s_tests_failed++;
             pf_fprintf(stderr,
-            "%s" GP_FAILED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_current_test);
+            "%s" GP_FAILED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_s_current_test);
         } else {
             pf_printf(
-            "%s" GP_PASSED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_current_test);
+            "%s" GP_PASSED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_s_current_test);
         }
-        gp_current_test = NULL;
+        gp_s_current_test = NULL;
     }
     // Start new test
     if (name != NULL) {
         // No starting message cluttering output
-        gp_current_test = name;
-        gp_test_failed  = false;
-        gp_test_count++;
+        gp_s_current_test = name;
+        gp_s_test_failed  = false;
+        gp_s_test_count++;
     }
 }
 
 void gp_suite(const char* name)
 {
-    gp_thread_once(&gp_tests_once, gp_init_testing);
+    gp_thread_once(&gp_s_tests_once, gp_s_init_testing);
     gp_test(NULL); // End current test
 
     // End current suite
-    if (gp_current_suite != NULL)
+    if (gp_s_current_suite != NULL)
     {
-        if (gp_suite_failed) {
-            gp_suites_failed++;
-            pf_fprintf(stderr, GP_FAILED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_current_suite);
+        if (gp_s_suite_failed) {
+            gp_s_suites_failed++;
+            pf_fprintf(stderr, GP_FAILED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_s_current_suite);
         } else {
-            pf_printf(GP_PASSED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_current_suite);
+            pf_printf(GP_PASSED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_s_current_suite);
         }
-        gp_current_suite = NULL;
+        gp_s_current_suite = NULL;
     }
 
     // Start new suite
@@ -157,9 +157,9 @@ void gp_suite(const char* name)
     {
         pf_printf("Starting suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n", name);
 
-        gp_current_suite = name;
-        gp_suite_failed  = false;
-        gp_suite_count++;
+        gp_s_current_suite = name;
+        gp_s_suite_failed  = false;
+        gp_s_suite_count++;
     }
 }
 
@@ -176,15 +176,15 @@ void gp_suite(const char* name)
 #define GP_FAIL_INTERNAL_UNREACHABLE ((char*)0 = 0)
 #endif
 
-void gp_fail_internal(
+void gp_internal_fail(
     const char* file,
     int line,
     const char* func,
     size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...)
 {
-    gp_thread_once(&gp_colors_once, gp_enable_terminal_colors);
+    gp_thread_once(&gp_s_colors_once, gp_enable_terminal_colors);
 
     va_list _args;
     va_start(_args, objs);
@@ -193,14 +193,14 @@ void gp_fail_internal(
 
     bool in_main = strcmp(func, "main") == 0;
     bool is_internal = strncmp(func, "gp_", 3) == 0;
-    if (gp_current_test != NULL) {
-        gp_test_failed = true;
-        func = gp_current_test;
+    if (gp_s_current_test != NULL) {
+        gp_s_test_failed = true;
+        func = gp_s_current_test;
     }
-    if (gp_current_suite != NULL) {
-        gp_suite_failed = true;
-        if (gp_current_test == NULL)
-            func = gp_current_suite;
+    if (gp_s_current_suite != NULL) {
+        gp_s_suite_failed = true;
+        if (gp_s_current_test == NULL)
+            func = gp_s_current_suite;
     }
 
     const char* condition = objs[0].identifier;
@@ -255,7 +255,7 @@ void gp_fail_internal(
         default: GP_FAIL_INTERNAL_UNREACHABLE;
     } // end ignoring condition argument. So much code to do absolutely nothing...
 
-    const char* indent = gp_current_test != NULL ? "\t" : "";
+    const char* indent = gp_s_current_test != NULL ? "\t" : "";
 
     if ( ! is_internal) // user assertion
         pf_fprintf(stderr,

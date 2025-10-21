@@ -6,6 +6,7 @@
 #include <gpc/utils.h>
 #include <gpc/overload.h>
 #include <gpc/string.h>
+#include <gpc/unicode.h>
 #include <printf/conversions.h>
 #include "pfstring.h"
 #include "common.h"
@@ -16,12 +17,12 @@
 #include <wctype.h>
 #include <limits.h>
 
-static void* gp_memmem(
+static void* gp_s_memmem(
     const void* haystack, const size_t hlen, const void* needle, const size_t nlen)
 {
     #if defined(_GNU_SOURCE) && defined(__linux__)
     return memmem(haystack, hlen, needle, nlen);
-    #endif
+    #else
     if (hlen == 0 || nlen == 0)
         return NULL;
 
@@ -37,6 +38,7 @@ static void* gp_memmem(
         p = memchr(p, n0, hlen - (p - (char*)haystack));
     }
     return NULL;
+    #endif
 }
 
 size_t gp_bytes_find_first(
@@ -46,13 +48,13 @@ size_t gp_bytes_find_first(
     const size_t needle_size,
     const size_t start)
 {
-    const char* result = gp_memmem(
+    const char* result = gp_s_memmem(
         (char*)haystack + start, haystack_size - start, needle, needle_size);
     return result ? (size_t)(result - (char*)haystack) : GP_NOT_FOUND;
 }
 
 // Find first occurrence of ch looking from right to left
-static const char* gp_memchr_r(const char* ptr_r, const char ch, size_t count)
+static const char* gp_s_memchr_r(const char* ptr_r, const char ch, size_t count)
 {
     const char* position = NULL;
     while (--ptr_r, --count != (size_t)-1) // <=> count >= 0
@@ -81,7 +83,7 @@ size_t gp_bytes_find_last(
     const char* data = haystack + haystack_length - needle_last;
     size_t to_be_searched = haystack_length - needle_last;
 
-    while ((data = gp_memchr_r(data, *(char*)needle, to_be_searched)))
+    while ((data = gp_s_memchr_r(data, *(char*)needle, to_be_searched)))
     {
         if (memcmp(data, needle, needle_length) == 0)
         {
@@ -196,6 +198,38 @@ bool gp_bytes_is_valid_ascii(
     }
     for (; i < n; i++) {
         if (str[i] & 0x80) {
+            if (invalid_index != NULL)
+                *invalid_index = i;
+            return false;
+        }
+    }
+    return true;
+}
+
+bool gp_bytes_is_valid_utf8(
+    const void*_str,
+    const size_t length,
+    size_t* invalid_index)
+{
+    const char* str = (const char*)_str;
+    size_t i = 0;
+
+    for (; i + 7 < length; i += sizeof(uint64_t))
+    {
+        uint64_t bits = *(uint64_t*)(str + i);
+        if (bits & 0x8080808080808080)
+            break;
+    }
+
+    for (size_t cp_length; i < length; i += cp_length)
+    {
+        cp_length = gp_utf8_decode_codepoint_length(str, i);
+        if (cp_length == 0 || i + cp_length > length) {
+            if (invalid_index != NULL)
+                *invalid_index = i;
+            return false;
+        }
+        if ( ! gp_internal_bytes_is_valid_codepoint(str, i)) {
             if (invalid_index != NULL)
                 *invalid_index = i;
             return false;
@@ -328,11 +362,11 @@ size_t gp_bytes_replace_all(
     return haystack_length;
 }
 
-size_t gp_bytes_print_internal(
+size_t gp_internal_bytes_print(
     void*restrict out,
     const size_t n,
     const size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...)
 {
     va_list _args;
@@ -343,7 +377,7 @@ size_t gp_bytes_print_internal(
     size_t length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        length += gp_bytes_print_objects(
+        length += gp_internal_bytes_print_objects(
             n >= length ? n - length : 0,
             (uint8_t*)out + length,
             &args,
@@ -356,11 +390,11 @@ size_t gp_bytes_print_internal(
     return length;
 }
 
-size_t gp_bytes_println_internal(
+size_t gp_internal_bytes_println(
     void*restrict out,
     const size_t n,
     const size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...)
 {
     va_list _args;
@@ -371,7 +405,7 @@ size_t gp_bytes_println_internal(
     size_t length = 0;
     for (size_t i = 0; i < arg_count; i++)
     {
-        length += gp_bytes_print_objects(
+        length += gp_internal_bytes_print_objects(
             n >= length ? n - length : 0,
             (uint8_t*)out + length,
             &args,
@@ -463,7 +497,7 @@ size_t gp_bytes_to_lower(
     return bytes_size;
 }
 
-static size_t gp_bytes_find_invalid(
+static size_t gp_s_bytes_find_invalid(
     const void* _haystack,
     const size_t start,
     const size_t length)
@@ -477,7 +511,7 @@ static size_t gp_bytes_find_invalid(
     return GP_NOT_FOUND;
 }
 
-static size_t gp_bytes_find_valid(
+static size_t gp_s_bytes_find_valid(
     const void* _haystack,
     const size_t start,
     const size_t length)
@@ -499,13 +533,13 @@ size_t gp_bytes_to_valid(
     const size_t replacement_length = strlen(replacement);
 
     size_t start = 0;
-    while ((start = gp_bytes_find_invalid(str, start, length)) != GP_NOT_FOUND)
+    while ((start = gp_s_bytes_find_invalid(str, start, length)) != GP_NOT_FOUND)
     {
         length = gp_bytes_replace_range(
             str,
             length,
             start,
-            gp_bytes_find_valid(str, start, length),
+            gp_s_bytes_find_valid(str, start, length),
             replacement,
             replacement_length);
 

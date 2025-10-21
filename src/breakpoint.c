@@ -23,13 +23,13 @@
 #include <sys/sysctl.h>
 #endif
 
-static GPMutex gp_debugger_check_mutex;
-static void gp_delete_debugger_check_mutex(void) {
-    gp_mutex_destroy(&gp_debugger_check_mutex);
+static GPMutex gp_s_debugger_check_mutex;
+static void gp_s_delete_debugger_check_mutex(void) {
+    gp_mutex_destroy(&gp_s_debugger_check_mutex);
 }
-static void gp_init_debugger_check_mutex(void) {
-    gp_mutex_init(&gp_debugger_check_mutex);
-    atexit(gp_delete_debugger_check_mutex); // pedantic cleanup to silence tooling
+static void gp_s_init_debugger_check_mutex(void) {
+    gp_mutex_init(&gp_s_debugger_check_mutex);
+    atexit(gp_s_delete_debugger_check_mutex); // pedantic cleanup to silence tooling
 }
 
 int gp_debugger_was_detached(void)
@@ -38,17 +38,17 @@ int gp_debugger_was_detached(void)
     static GP_MAYBE_ATOMIC bool checked;
     static int result = -1;
 
-    gp_thread_once(&checked_once, gp_init_debugger_check_mutex);
+    gp_thread_once(&checked_once, gp_s_init_debugger_check_mutex);
 
     if ( ! checked)
     {
-        gp_mutex_lock(&gp_debugger_check_mutex);
+        gp_mutex_lock(&gp_s_debugger_check_mutex);
         if (checked) {
-            gp_mutex_unlock(&gp_debugger_check_mutex);
+            gp_mutex_unlock(&gp_s_debugger_check_mutex);
             return result;
         }
         result = gp_debugger_is_detached();
-        gp_mutex_unlock(&gp_debugger_check_mutex);
+        gp_mutex_unlock(&gp_s_debugger_check_mutex);
     }
     return result;
 }

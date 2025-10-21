@@ -567,65 +567,33 @@ bool gp_str_is_valid(
 // ----------------------------------------------------------------------------
 
 
-size_t gp_str_print_internal(
+size_t gp_internal_str_print(
     GPString* out,
     size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...);
 
-size_t gp_str_n_print_internal(
-    GPString* out,
-    size_t n,
-    size_t arg_count,
-    const GPPrintable* objs,
-    ...);
-
-size_t gp_str_println_internal(
+size_t gp_internal_str_println(
     GPString* out,
     size_t arg_count,
-    const GPPrintable* objs,
-    ...);
-
-size_t gp_str_n_println_internal(
-    GPString* out,
-    size_t n,
-    size_t arg_count,
-    const GPPrintable* objs,
+    const GPInternalReflectionData* objs,
     ...);
 
 #ifndef __cplusplus
 
 #define GP_STR_PRINT(OUT, ...) \
-    gp_str_print_internal( \
+    gp_internal_str_print( \
         OUT, \
         GP_COUNT_ARGS(__VA_ARGS__), \
-        (GPPrintable[]) \
-            { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
-        __VA_ARGS__)
-
-#define GP_STR_N_PRINT(OUT, N, ...) \
-    gp_str_n_print_internal( \
-        OUT, \
-        N, \
-        GP_COUNT_ARGS(__VA_ARGS__), \
-        (GPPrintable[]) \
+        (GPInternalReflectionData[]) \
             { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 
 #define GP_STR_PRINTLN(OUT, ...) \
-    gp_str_println_internal( \
+    gp_internal_str_println( \
         OUT, \
         GP_COUNT_ARGS(__VA_ARGS__), \
-        (GPPrintable[]) \
-            { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
-        __VA_ARGS__)
-
-#define GP_STR_N_PRINTLN(OUT, N, ...) \
-    gp_str_n_println_internal( \
-        OUT, \
-        N, \
-        GP_COUNT_ARGS(__VA_ARGS__), \
-        (GPPrintable[]) \
+        (GPInternalReflectionData[]) \
             { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 
@@ -645,7 +613,7 @@ static inline std::ostream& operator<<(std::ostream& out, GPString str)
     return out;
 }
 
-static inline size_t gp_str_copy_cppstr(GPString* out, const size_t n, std::string s)
+static inline size_t gp_internal_str_copy_cppstr(GPString* out, const size_t n, std::string s)
 {
     const size_t length = n < s.length() ? n : s.length();
     gp_str_reserve(out, length);
@@ -655,13 +623,13 @@ static inline size_t gp_str_copy_cppstr(GPString* out, const size_t n, std::stri
 }
 
 #define GP_STR_PRINT(OUT, ...) GP_STR_N_PRINT(OUT, SIZE_MAX, __VA_ARGS__)
-#define GP_STR_N_PRINT(OUT, N, ...) gp_str_copy_cppstr(OUT, N, \
+#define GP_STR_N_PRINT(OUT, N, ...) gp_internal_str_copy_cppstr(OUT, N, \
     (std::ostringstream() << \
         GP_PROCESS_ALL_ARGS(GP_EVAL, GP_STREAM_INSERT, __VA_ARGS__) \
     ).str())
 
 #define GP_STR_PRINTLN(OUT, ...) GP_STR_N_PRINTLN(OUT, SIZE_MAX, __VA_ARGS__)
-#define GP_STR_N_PRINTLN(OUT, N, ...) gp_str_copy_cppstr(OUT, N, \
+#define GP_STR_N_PRINTLN(OUT, N, ...) gp_internal_str_copy_cppstr(OUT, N, \
     (std::ostringstream() << \
         GP_PROCESS_ALL_ARGS(GP_EVAL, GP_STREAM_INSERT_SPACE, __VA_ARGS__) << "\n" \
     ).str())

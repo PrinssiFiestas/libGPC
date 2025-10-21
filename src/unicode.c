@@ -60,10 +60,10 @@ typedef void* GPLocale;
 
 #if GP_HAS_LOCALE
 
-static GPMap*  gp_locale_table;
-static GPMutex gp_locale_table_mutex;
+static GPMap*  gp_s_locale_table;
+static GPMutex gp_s_locale_table_mutex;
 
-static void gp_locale_delete(void* locale)
+static void gp_s_locale_delete(void* locale)
 {
     #if GP_HAS_LOCALE
     if ((GPLocale)locale != (GPLocale)0 && (GPLocale)locale != (GPLocale)-1)
@@ -78,28 +78,28 @@ static void gp_locale_delete(void* locale)
     return;
 }
 
-static GPLocale gp_default_locale;
+static GPLocale gp_s_default_locale;
 
-static void gp_delete_locale_table(void)
+static void gp_s_delete_locale_table(void)
 {
-    gp_map_delete(gp_locale_table);
-    gp_mutex_destroy(&gp_locale_table_mutex);
-    gp_locale_delete(gp_default_locale);
+    gp_map_delete(gp_s_locale_table);
+    gp_mutex_destroy(&gp_s_locale_table_mutex);
+    gp_s_locale_delete(gp_s_default_locale);
 }
 
-static void gp_init_locale_table(void)
+static void gp_s_init_locale_table(void)
 {
     const GPMapInitializer init = {
         .element_size =  0,
         .capacity     = 32,
-        .destructor   = gp_locale_delete
+        .destructor   = gp_s_locale_delete
     };
-    gp_locale_table = gp_map_new(gp_global_heap, &init);
-    gp_mutex_init(&gp_locale_table_mutex);
+    gp_s_locale_table = gp_map_new(gp_global_heap, &init);
+    gp_mutex_init(&gp_s_locale_table_mutex);
 
     #if GP_HAS_LOCALE
     #if !_WIN32
-    gp_default_locale = newlocale(LC_ALL_MASK, "C.UTF-8", (locale_t)0);
+    gp_s_default_locale = newlocale(LC_ALL_MASK, "C.UTF-8", (locale_t)0);
     #elif __MINGW32__
     gp_default_locale = _create_locale(LC_ALL, "");
     #else
@@ -107,7 +107,7 @@ static void gp_init_locale_table(void)
     #endif
     #endif // GP_HAS_LOCALE
 
-    atexit(gp_delete_locale_table); // shut up sanitizer
+    atexit(gp_s_delete_locale_table); // shut up sanitizer
 }
 #endif // GP_HAS_LOCALE
 
@@ -124,22 +124,22 @@ GPLocale gp_locale(const char* locale_code)
         return (GPLocale)0;
 
     static GPThreadOnce locale_table_once = GP_THREAD_ONCE_INIT;
-    gp_thread_once(&locale_table_once, gp_init_locale_table);
+    gp_thread_once(&locale_table_once, gp_s_init_locale_table);
 
     if (locale_code[0] == '\0')
-        return gp_default_locale;
+        return gp_s_default_locale;
 
     GPUInt128 key = gp_uint128(0, gp_bytes_hash64(locale_code, strlen(locale_code)));
-    GP_MAYBE_ATOMIC GPLocale locale = (GPLocale)gp_map_get(gp_locale_table, key);
+    GP_MAYBE_ATOMIC GPLocale locale = (GPLocale)gp_map_get(gp_s_locale_table, key);
 
     if (locale == (GPLocale)0)
     {
-        gp_mutex_lock(&gp_locale_table_mutex);
+        gp_mutex_lock(&gp_s_locale_table_mutex);
 
-        locale = (GPLocale)gp_map_get(gp_locale_table, key);
+        locale = (GPLocale)gp_map_get(gp_s_locale_table, key);
         if (locale != (GPLocale)0)
         {
-            gp_mutex_unlock(&gp_locale_table_mutex);
+            gp_mutex_unlock(&gp_s_locale_table_mutex);
             return locale != (GPLocale)-1 ? locale : (GPLocale)0;
         }
         char full_locale_code[16] = "";
@@ -159,8 +159,8 @@ GPLocale gp_locale(const char* locale_code)
         #endif
         if (locale == (GPLocale)0) // mark the locale as unavailable
             locale = (GPLocale)-1;
-        gp_map_put(gp_locale_table, key, locale);
-        gp_mutex_unlock(&gp_locale_table_mutex);
+        gp_map_put(gp_s_locale_table, key, locale);
+        gp_mutex_unlock(&gp_s_locale_table_mutex);
     }
     if (locale == (GPLocale)-1)
         return (GPLocale)0;
@@ -196,7 +196,7 @@ size_t gp_utf8_decode_codepoint_length(
     return sizes[str[i] >> 3];
 }
 
-static size_t gp_utf8_encode_codepoint_length_fast(uint32_t u32)
+static size_t gp_s_utf8_encode_codepoint_length_fast(uint32_t u32)
 {
     if (u32 < 0x80)
         return 1;
@@ -226,7 +226,7 @@ size_t gp_utf8_decode_unsafe(uint32_t* decoding, const void*const _u8, const siz
     return codepoint_length;
 }
 
-static uint32_t gp_utf8_to_invalid_codepoint(const void* u8, size_t length)
+static uint32_t gp_s_utf8_to_invalid_codepoint(const void* u8, size_t length)
 {
     uint32_t u32 = UINT32_MAX; // set little endian MSB
     memcpy(&u32, u8, length); // invalids have MSB set so works in big endian too
@@ -243,7 +243,7 @@ size_t gp_utf8_decode(
     const uint8_t* u8 = _u8;
     const size_t codepoint_length = gp_utf8_decode_codepoint_length(u8, i);
     if (codepoint_length == 0) {
-        *decoding = gp_utf8_to_invalid_codepoint(u8 + i, 1);
+        *decoding = gp_s_utf8_to_invalid_codepoint(u8 + i, 1);
         *is_valid = false;
         return 1;
     }
@@ -254,7 +254,7 @@ size_t gp_utf8_decode(
         for (real_length = 1; real_length < tail_length; ++real_length)
             if ((u8[i + real_length] >> 6) != 0x2) // even shorter than truncated e.g. "\xF1/"
                 break;
-        *decoding = gp_utf8_to_invalid_codepoint(u8 + i, real_length);
+        *decoding = gp_s_utf8_to_invalid_codepoint(u8 + i, real_length);
         *is_valid = false;
         return tail_length;
     }
@@ -282,7 +282,7 @@ size_t gp_utf8_decode(
         for (real_length = 1; real_length < codepoint_length; ++real_length)
             if ((u8[i + real_length] >> 6) != 0x2)
                 break;
-        *decoding = gp_utf8_to_invalid_codepoint(u8 + i, real_length);
+        *decoding = gp_s_utf8_to_invalid_codepoint(u8 + i, real_length);
         return real_length;
     }
 
@@ -367,9 +367,9 @@ size_t gp_utf8_to_utf32(
         codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
         (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
     }
-    size_t gp_bytes_codepoint_count_unsafe(const void*, size_t);
+    size_t gp_internal_bytes_codepoint_count_unsafe(const void*, size_t);
     size_t trunced = gp_arr_reserve(sizeof(*u32)[0], u32,
-        gp_arr_length(*u32) + gp_bytes_codepoint_count_unsafe((uint8_t*)u8 + i, u8_length - i));
+        gp_arr_length(*u32) + gp_internal_bytes_codepoint_count_unsafe((uint8_t*)u8 + i, u8_length - i));
 
     if ( ! trunced ) for (; i < u8_length; i += codepoint_length)
     {
@@ -385,7 +385,7 @@ size_t gp_utf8_to_utf32(
 }
 
 // Not just no validation, but no bounds checks either
-static void gp_utf8_to_utf32_very_unsafe(
+static void gp_s_utf8_to_utf32_very_unsafe(
     GPArray(uint32_t)* u32,
     const void*const   u8,
     const size_t       u8_length)
@@ -571,7 +571,7 @@ size_t gp_utf8_to_utf16(
 }
 
 // Not just no validation, but no bounds checks either
-static void gp_utf8_to_utf16_very_unsafe(
+static void gp_s_utf8_to_utf16_very_unsafe(
     GPArray(uint16_t)* u16,
     const void*        u8,
     size_t             u8_length)
@@ -737,15 +737,15 @@ size_t gp_utf8_to_wcs(
     return trunced;
 }
 
-static void gp_utf8_to_wcs_very_unsafe(
+static void gp_s_utf8_to_wcs_very_unsafe(
     GPArray(wchar_t)* wcs,
     const void*       utf8,
     size_t            utf8_length)
 {
     if (WCHAR_MAX > UINT16_MAX)
-        gp_utf8_to_utf32_very_unsafe((GPArray(uint32_t)*)wcs, utf8, utf8_length);
+        gp_s_utf8_to_utf32_very_unsafe((GPArray(uint32_t)*)wcs, utf8, utf8_length);
     else
-        gp_utf8_to_utf16_very_unsafe((GPArray(uint16_t)*)wcs, utf8, utf8_length);
+        gp_s_utf8_to_utf16_very_unsafe((GPArray(uint16_t)*)wcs, utf8, utf8_length);
     (*wcs)[gp_arr_length(*wcs)] = L'\0';
 }
 
@@ -768,7 +768,7 @@ uint32_t gp_u32_to_title(uint32_t);
 // ----------------------------------------------------------------------------
 // String extensions
 
-static size_t gp_utf8_find_first_of(
+static size_t gp_s_utf8_find_first_of(
     const void*const haystack,
     const size_t     haystack_length,
     const char*const char_set,
@@ -782,7 +782,7 @@ static size_t gp_utf8_find_first_of(
     return GP_NOT_FOUND;
 }
 
-static size_t gp_utf8_find_first_not_of(
+static size_t gp_s_utf8_find_first_not_of(
     const void*const haystack,
     const size_t     haystack_length,
     const char*const char_set,
@@ -803,7 +803,7 @@ GPArray(GPString) gp_str_split(
     const char*const separators)
 {
     GPArray(GPString) substrs = NULL;
-    size_t j, i = gp_utf8_find_first_not_of(str, str_length, separators, 0);
+    size_t j, i = gp_s_utf8_find_first_not_of(str, str_length, separators, 0);
     if (i == GP_NOT_FOUND)
         return gp_arr_new(sizeof(GPString), allocator, 1);
 
@@ -819,13 +819,13 @@ GPArray(GPString) gp_str_split(
             ++indices_length)
         {
             indices[indices_length].start = i;
-            i = gp_utf8_find_first_of(str, str_length, separators, i);
+            i = gp_s_utf8_find_first_of(str, str_length, separators, i);
             if (i == GP_NOT_FOUND) {
                 indices[indices_length++].end = str_length;
                 break;
             }
             indices[indices_length].end = i;
-            i = gp_utf8_find_first_not_of(str, str_length, separators, i);
+            i = gp_s_utf8_find_first_not_of(str, str_length, separators, i);
             if (i == GP_NOT_FOUND) {
                 ++indices_length;
                 break;
@@ -888,7 +888,7 @@ void gp_str_join(GPString* out, GPArray(GPString) strs, const char* separator)
     ((GPStringHeader*)*out - 1)->length += gp_str_length(strs[gp_arr_length(strs) - 1]);
 }
 
-static bool gp_is_soft_dotted(const uint32_t encoding)
+static bool gp_s_is_soft_dotted(const uint32_t encoding)
 {
     switch (encoding) {
         case 'i':     case 'j':     case 0x012F:  case 0x0249:  case 0x0268:
@@ -906,7 +906,7 @@ static bool gp_is_soft_dotted(const uint32_t encoding)
     return false;
 }
 
-static bool gp_is_diatrical(const uint32_t encoding)
+static bool gp_s_is_diatrical(const uint32_t encoding)
 {
     return
         (0x0300 <= encoding && encoding <= 0x036F) ||
@@ -918,20 +918,20 @@ static bool gp_is_diatrical(const uint32_t encoding)
 }
 
 GP_NONNULL_ARGS()
-static size_t gp_u32_append(
+static size_t gp_s_u32_append(
     GPArray(uint32_t)*restrict u32, uint32_t*restrict codepoints, size_t codepoints_length)
 {
     gp_arr_reserve(sizeof (*u32)[0], u32, gp_arr_capacity(*u32) + codepoints_length - 1);
     size_t utf8_length = 0;
     for (size_t i = 0; i < codepoints_length; ++i) {
         (*u32)[gp_arr_length(*u32) + i] = codepoints[i];
-        utf8_length += gp_utf8_encode_codepoint_length_fast(codepoints[i]);
+        utf8_length += gp_s_utf8_encode_codepoint_length_fast(codepoints[i]);
     }
     ((GPArrayHeader*)*u32 - 1)->length += codepoints_length;
     return utf8_length;
 }
 
-#define GP_u32_APPEND(...) required_capacity += gp_u32_append( \
+#define GP_u32_APPEND(...) required_capacity += gp_s_u32_append( \
     &u32, (uint32_t[]){__VA_ARGS__}, sizeof(uint32_t[]){__VA_ARGS__} / sizeof(uint32_t))
 
 uint32_t gp_u32_to_upper(uint32_t);
@@ -961,7 +961,7 @@ void gp_str_to_upper_full(
         i += codepoint_length;
         codepoint_length = gp_utf8_decode_unsafe(&lookahead, *str, i);
 
-        if (encoding == 0x0345 && gp_is_diatrical(lookahead)) // Combining Greek Ypogegrammeni
+        if (encoding == 0x0345 && gp_s_is_diatrical(lookahead)) // Combining Greek Ypogegrammeni
         { // Move iota-subscript to end of any sequence of combining marks.
             GP_u32_APPEND(lookahead);
             lookahead = encoding;
@@ -970,7 +970,7 @@ void gp_str_to_upper_full(
 
         if (lookahead == 0x0307                &&
             strncmp(locale_code, "lt", 2) == 0 &&
-            gp_is_soft_dotted(encoding))
+            gp_s_is_soft_dotted(encoding))
         { // remove DOT ABOVE after "i"
             i += codepoint_length;
             codepoint_length = gp_utf8_decode_unsafe(&lookahead, *str, i);
@@ -1069,7 +1069,7 @@ void gp_str_to_upper_full(
     gp_arena_rewind(scratch, gp_arr_allocation(u32));
 }
 
-static bool gp_is_lithuanian_accent(uint32_t encoding)
+static bool gp_s_is_lithuanian_accent(uint32_t encoding)
 { // Only relevants for special cases in gp_to_lower_full() listed here.
     switch (encoding) {
     case 0x0300: // grave
@@ -1082,8 +1082,8 @@ static bool gp_is_lithuanian_accent(uint32_t encoding)
 }
 
 #if LITHUANIANS_COMPLAIN_ABOUT_NOT_HANDLING_ALL_ACCENTS
-// use this instead of gp_is_lithuanian_accent().
-static bool gp_is_above_combining_class(const uint32_t encoding)
+// use this instead of gp_s_is_lithuanian_accent().
+static bool gp_s_is_above_combining_class(const uint32_t encoding)
 {
     switch (encoding) {
     case 0x0346: case 0x034A: case 0x034B: case 0x034C: case 0x0350: case 0x0351:
@@ -1105,7 +1105,7 @@ static bool gp_is_above_combining_class(const uint32_t encoding)
 }
 #endif
 
-static bool gp_is_greek_letter(const uint32_t c)
+static bool gp_s_is_greek_letter(const uint32_t c)
 {
     if ((0x0041 <= c && c <= 0x005a) ||
         (0x0061 <= c && c <= 0x007a) ||
@@ -1148,14 +1148,14 @@ static bool gp_is_greek_letter(const uint32_t c)
     return false;
 }
 
-static bool gp_is_greek_final(
+static bool gp_s_is_greek_final(
     const uint32_t lookbehind, uint32_t lookahead, const char* str)
 {
-    if (!gp_is_greek_letter(lookbehind) && !gp_is_diatrical(lookbehind))
+    if (!gp_s_is_greek_letter(lookbehind) && !gp_s_is_diatrical(lookbehind))
         return false;
-    while (gp_is_diatrical(lookahead))
+    while (gp_s_is_diatrical(lookahead))
         str += gp_utf8_decode_unsafe(&lookahead, str, 0);
-    return !gp_is_greek_letter(lookahead);
+    return !gp_s_is_greek_letter(lookahead);
 }
 
 uint32_t gp_u32_to_lower(uint32_t);
@@ -1188,7 +1188,7 @@ void gp_str_to_lower_full(
 
         if (encoding == 0x03A3) // GREEK CAPITAL LETTER SIGMA
         {
-            if (gp_is_greek_final(lookbehind, lookahead, (char*)*str + i + codepoint_length))
+            if (gp_s_is_greek_final(lookbehind, lookahead, (char*)*str + i + codepoint_length))
                 GP_u32_APPEND(0x03C2); // GREEK SMALL LETTER FINAL SIGMA
             else
                 GP_u32_APPEND(0x03C3); // GREEK SMALL LETTER SIGMA
@@ -1197,9 +1197,9 @@ void gp_str_to_lower_full(
 
         if (strncmp(locale_code, "lt", 2) == 0) switch (encoding)
         {
-        case 'I':    GP_u32_APPEND('i');    if (gp_is_lithuanian_accent(lookahead)) GP_u32_APPEND(0x0307); continue; // LATIN CAPITAL LETTER I
-        case 'J':    GP_u32_APPEND('j');    if (gp_is_lithuanian_accent(lookahead)) GP_u32_APPEND(0x0307); continue; // LATIN CAPITAL LETTER J
-        case 0x012E: GP_u32_APPEND(0x012F); if (gp_is_lithuanian_accent(lookahead)) GP_u32_APPEND(0x0307); continue; // LATIN CAPITAL LETTER I WITH OGONEK
+        case 'I':    GP_u32_APPEND('i');    if (gp_s_is_lithuanian_accent(lookahead)) GP_u32_APPEND(0x0307); continue; // LATIN CAPITAL LETTER I
+        case 'J':    GP_u32_APPEND('j');    if (gp_s_is_lithuanian_accent(lookahead)) GP_u32_APPEND(0x0307); continue; // LATIN CAPITAL LETTER J
+        case 0x012E: GP_u32_APPEND(0x012F); if (gp_s_is_lithuanian_accent(lookahead)) GP_u32_APPEND(0x0307); continue; // LATIN CAPITAL LETTER I WITH OGONEK
         case 0x00CC: GP_u32_APPEND('i', 0x0307, 0x0300); continue; // LATIN CAPITAL LETTER I WITH GRAVE
         case 0x00CD: GP_u32_APPEND('i', 0x0307, 0x0301); continue; // LATIN CAPITAL LETTER I WITH ACUTE
         case 0x0128: GP_u32_APPEND('i', 0x0307, 0x0303); continue; // LATIN CAPITAL LETTER I WITH TILDE
@@ -1268,13 +1268,13 @@ void gp_str_capitalize(
     if (first_length < gp_str_length(*str))
         second_length = gp_utf8_decode_unsafe(&second, *str, first_length);
 
-    if (first == 0x0345 && gp_is_diatrical(second))
+    if (first == 0x0345 && gp_s_is_diatrical(second))
     { // Move iota-subscript to end of any sequence of combining marks.
         size_t diatricals_length = second_length;
         while (true) {
             uint32_t cp;
             size_t cp_length = gp_utf8_decode_unsafe(&cp, *str, first_length + diatricals_length);
-            if ( ! gp_is_diatrical(cp))
+            if ( ! gp_s_is_diatrical(cp))
                 break;
             diatricals_length += cp_length;
         }
@@ -1285,7 +1285,7 @@ void gp_str_capitalize(
 
     if (second == 0x0307                   &&
         strncmp(locale_code, "lt", 2) == 0 &&
-        gp_is_soft_dotted(first))
+        gp_s_is_soft_dotted(first))
     { // remove DOT ABOVE after "i"
         memmove(
             *str + first_length,
@@ -1377,7 +1377,7 @@ void gp_str_capitalize(
 }
 
 GP_NONNULL_ARGS()
-static void gp_wcs_append(
+static void gp_s_wcs_append(
     GPArray(wchar_t)*restrict wcs, wchar_t*restrict codepoints, size_t codepoints_length)
 {
     gp_arr_reserve(sizeof (*wcs)[0], wcs, gp_arr_capacity(*wcs) + codepoints_length - 1);
@@ -1386,7 +1386,7 @@ static void gp_wcs_append(
     ((GPArrayHeader*)*wcs - 1)->length += codepoints_length;
 }
 
-#define GP_wcs_APPEND(...) gp_wcs_append( \
+#define GP_wcs_APPEND(...) gp_s_wcs_append( \
     wcs, (wchar_t[]){__VA_ARGS__}, sizeof(wchar_t[]){__VA_ARGS__} / sizeof(wchar_t))
 
 void gp_wcs_fold_utf8(
@@ -1523,7 +1523,7 @@ void gp_wcs_fold_utf8(
     (*wcs)[gp_arr_length(*wcs)] = L'\0';
 }
 
-static int gp_utf8_codepoint_compare(const void*_s1, const void*_s2)
+static int gp_s_utf8_codepoint_compare(const void*_s1, const void*_s2)
 {
     const GPString s1 = *(GPString*)_s1;
     const GPString s2 = *(GPString*)_s2;
@@ -1538,9 +1538,9 @@ static int gp_utf8_codepoint_compare(const void*_s1, const void*_s2)
     return gp_str_length(s1) - gp_str_length(s2);
 }
 
-static int gp_utf8_codepoint_compare_reverse(const void*_s1, const void*_s2)
+static int gp_s_utf8_codepoint_compare_reverse(const void*_s1, const void*_s2)
 {
-    return gp_utf8_codepoint_compare(_s2, _s1);
+    return gp_s_utf8_codepoint_compare(_s2, _s1);
 }
 
 typedef struct gp_narrow_wide
@@ -1550,21 +1550,21 @@ typedef struct gp_narrow_wide
     GPLocale         locale;
 } GPNarrowWide;
 
-static int gp_wcs_compare(const void*_s1, const void*_s2)
+static int gp_s_wcs_compare(const void*_s1, const void*_s2)
 {
     const GPNarrowWide* s1 = _s1;
     const GPNarrowWide* s2 = _s2;
     return wcscmp(s1->wide, s2->wide);
 }
 
-static int gp_wcs_compare_reverse(const void*_s1, const void*_s2)
+static int gp_s_wcs_compare_reverse(const void*_s1, const void*_s2)
 {
     const GPNarrowWide* s1 = _s1;
     const GPNarrowWide* s2 = _s2;
     return wcscmp(s2->wide, s1->wide);
 }
 
-static int gp_wcs_collate(const void*_s1, const void*_s2)
+static int gp_s_wcs_collate(const void*_s1, const void*_s2)
 {
     const GPNarrowWide* s1 = _s1;
     const GPNarrowWide* s2 = _s2;
@@ -1579,9 +1579,9 @@ static int gp_wcs_collate(const void*_s1, const void*_s2)
     #endif
 }
 
-static int gp_wcs_collate_reverse(const void* s1, const void* s2)
+static int gp_s_wcs_collate_reverse(const void* s1, const void* s2)
 {
-    return gp_wcs_collate(s2, s1);
+    return gp_s_wcs_collate(s2, s1);
 }
 
 void gp_str_sort(
@@ -1595,7 +1595,7 @@ void gp_str_sort(
     const bool reverse = flags & 0x10;
     if ( ! (fold | collate)) {
         qsort(*strs, gp_arr_length(*strs), sizeof(GPString),
-            !reverse ? gp_utf8_codepoint_compare : gp_utf8_codepoint_compare_reverse);
+            !reverse ? gp_s_utf8_codepoint_compare : gp_s_utf8_codepoint_compare_reverse);
         return;
     }
     GPArena* scratch = gp_scratch_arena();
@@ -1609,13 +1609,13 @@ void gp_str_sort(
         if (fold)
             gp_wcs_fold_utf8(&pairs[i].wide, (*strs)[i], gp_str_length((*strs)[i]), locale_code);
         else
-            gp_utf8_to_wcs_very_unsafe(&pairs[i].wide, (*strs)[i], gp_str_length((*strs)[i]));
+            gp_s_utf8_to_wcs_very_unsafe(&pairs[i].wide, (*strs)[i], gp_str_length((*strs)[i]));
     }
 
     if (collate)
-        qsort(pairs, gp_arr_length(*strs), sizeof pairs[0], !reverse ? gp_wcs_collate : gp_wcs_collate_reverse);
+        qsort(pairs, gp_arr_length(*strs), sizeof pairs[0], !reverse ? gp_s_wcs_collate : gp_s_wcs_collate_reverse);
     else
-        qsort(pairs, gp_arr_length(*strs), sizeof pairs[0], !reverse ? gp_wcs_compare : gp_wcs_compare_reverse);
+        qsort(pairs, gp_arr_length(*strs), sizeof pairs[0], !reverse ? gp_s_wcs_compare : gp_s_wcs_compare_reverse);
 
     for (size_t i = 0; i < gp_arr_length(*strs); ++i)
         (*strs)[i] = pairs[i].narrow;
@@ -1650,18 +1650,18 @@ int gp_str_compare(
     GPArray(wchar_t) wcs1 = gp_arr_new(
         sizeof wcs1[0],
         (GPAllocator*)scratch,
-        gp_bytes_codepoint_count_unsafe(s1, gp_str_length(s1)) + sizeof"");
+        gp_internal_bytes_codepoint_count_unsafe(s1, gp_str_length(s1)) + sizeof"");
     GPArray(wchar_t) wcs2 = gp_arr_new(
         sizeof wcs2[0],
         (GPAllocator*)scratch,
-        gp_bytes_codepoint_count_unsafe(s2, s2_length) + sizeof"");
+        gp_internal_bytes_codepoint_count_unsafe(s2, s2_length) + sizeof"");
 
     if (fold) {
         gp_wcs_fold_utf8(&wcs1, s1, gp_str_length(s1), locale_code);
         gp_wcs_fold_utf8(&wcs2, s2, s2_length,         locale_code);
     } else {
-        gp_utf8_to_wcs_very_unsafe(&wcs1, s1, gp_str_length(s1));
-        gp_utf8_to_wcs_very_unsafe(&wcs2, s2, s2_length);
+        gp_s_utf8_to_wcs_very_unsafe(&wcs1, s1, gp_str_length(s1));
+        gp_s_utf8_to_wcs_very_unsafe(&wcs2, s2, s2_length);
     }
 
     int result;

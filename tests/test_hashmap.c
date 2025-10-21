@@ -236,7 +236,7 @@ int main(void)
         {
             GPUInt128 x = gp_uint128(59318, 86453012);
             size_t shift = 8;
-            gp_expect(gp_shift_key(x, shift).u128 == x.u128 >> 3);
+            gp_expect(gp_s_shift_key(x, shift).u128 == x.u128 >> 3);
         }
     }
     #endif

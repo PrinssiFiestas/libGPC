@@ -7,7 +7,7 @@
 #include <stdarg.h>
 #include "common.h"
 
-GPUInt128 gp_u128_c99_ctor(size_t size, ...)
+GPUInt128 gp_internal_u128_c99_ctor(size_t size, ...)
 {
     GPUInt128 u;
     va_list args;
@@ -23,7 +23,7 @@ GPUInt128 gp_u128_c99_ctor(size_t size, ...)
     va_end(args);
     return u;
 }
-GPInt128 gp_i128_c99_ctor(size_t size, ...)
+GPInt128 gp_internal_i128_c99_ctor(size_t size, ...)
 {
     int64_t lo;
     va_list args;
@@ -64,7 +64,7 @@ GPUInt128 gp_uint128_long_mul64(uint64_t a, uint64_t b)
         (ahbl << 32) + (albh << 32) + albl);
 }
 
-static size_t gp_trailing_zeros_u64(uint64_t u)
+static size_t gp_s_trailing_zeros_u64(uint64_t u)
 {
     gp_db_assert(u != 0, "Invalid argument.");
 
@@ -88,7 +88,7 @@ static size_t gp_trailing_zeros_u64(uint64_t u)
     #endif
 }
 
-static size_t gp_leading_zeros_u64(uint64_t u)
+static size_t gp_s_leading_zeros_u64(uint64_t u)
 {
     gp_db_assert(u != 0, "Invalid argument.");
 
@@ -172,12 +172,12 @@ GPUInt128 gp_uint128_divmod(GPUInt128 a, GPUInt128 b, GPUInt128 *rem)
               *gp_uint128_hi_addr(&r) = gp_uint128_hi(n) & (gp_uint128_hi(d) - 1);
               *rem = r;
           }
-          return gp_uint128(0, gp_uint128_hi(n) >> gp_trailing_zeros_u64(gp_uint128_hi(d)));
+          return gp_uint128(0, gp_uint128_hi(n) >> gp_s_trailing_zeros_u64(gp_uint128_hi(d)));
       }
       // K K
       // ---
       // K 0
-      sr = gp_leading_zeros_u64(gp_uint128_hi(d)) - gp_leading_zeros_u64(gp_uint128_hi(n));
+      sr = gp_s_leading_zeros_u64(gp_uint128_hi(d)) - gp_s_leading_zeros_u64(gp_uint128_hi(n));
       // 0 <= sr <= n_udword_bits - 2 or sr large
       if (sr > n_udword_bits - 2) {
           if (rem)
@@ -202,7 +202,7 @@ GPUInt128 gp_uint128_divmod(GPUInt128 a, GPUInt128 b, GPUInt128 *rem)
                   *rem = gp_uint128(0, gp_uint128_lo(n) & (gp_uint128_lo(d) - 1));
               if (gp_uint128_lo(d) == 1)
                   return n;
-              sr = gp_trailing_zeros_u64(gp_uint128_lo(d));
+              sr = gp_s_trailing_zeros_u64(gp_uint128_lo(d));
               *gp_uint128_hi_addr(&q) = gp_uint128_hi(n) >> sr;
               *gp_uint128_lo_addr(&q) = (gp_uint128_hi(n) << (n_udword_bits - sr)) | (gp_uint128_lo(n) >> sr);
               return q;
@@ -210,8 +210,8 @@ GPUInt128 gp_uint128_divmod(GPUInt128 a, GPUInt128 b, GPUInt128 *rem)
           // K X
           // ---
           // 0 K
-          sr = 1 + n_udword_bits + gp_leading_zeros_u64(gp_uint128_lo(d)) -
-               gp_leading_zeros_u64(gp_uint128_hi(n));
+          sr = 1 + n_udword_bits + gp_s_leading_zeros_u64(gp_uint128_lo(d)) -
+               gp_s_leading_zeros_u64(gp_uint128_hi(n));
           // 2 <= sr <= n_utword_bits - 1
           // q = n << (n_utword_bits - sr);
           // r = n >> sr;
@@ -236,7 +236,7 @@ GPUInt128 gp_uint128_divmod(GPUInt128 a, GPUInt128 b, GPUInt128 *rem)
             // K X
             // ---
             // K K
-            sr = gp_leading_zeros_u64(gp_uint128_hi(d)) - gp_leading_zeros_u64(gp_uint128_hi(n));
+            sr = gp_s_leading_zeros_u64(gp_uint128_hi(d)) - gp_s_leading_zeros_u64(gp_uint128_hi(n));
             // 0 <= sr <= n_udword_bits - 1 or sr large
             if (sr > n_udword_bits - 1) {
                 if (rem)
@@ -473,7 +473,7 @@ float gp_f32_convert_uint128(GPUInt128 x)
         return gp_uint128_lo(x);
 
     // https://github.com/m-ou-se/floatconv/blob/main/src/soft.rs
-    size_t n = gp_leading_zeros_u64(gp_uint128_hi(x));
+    size_t n = gp_s_leading_zeros_u64(gp_uint128_hi(x));
     GPUInt128 y = gp_uint128_shift_left(x, n); // 0 handled, no need for wrapping_shl()
     uint32_t a = gp_uint128_lo(gp_uint128_shift_right(y, 104)); // Significant bits, with bit 24 still intact
     uint32_t b = (uint32_t)gp_uint128_lo(gp_uint128_shift_right(y, 72))
