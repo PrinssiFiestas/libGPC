@@ -7,14 +7,11 @@
 #include <gpc/utils.h>
 #include <gpc/array.h>
 #include <gpc/unicode.h>
+#include <printf/printf.h>
 #include "common.h"
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <stdarg.h>
 #include <wchar.h>
 #include <locale.h>
-#include <printf/printf.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -24,8 +21,12 @@ size_t gp_str_find_first_of(
     const char*const char_set,
     const size_t     start)
 {
+    #ifndef NDEBUG
+    gp_assert(gp_utf8_is_valid(char_set, strlen(char_set), NULL));
+    #endif
     for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
-        cplen = gp_utf8_decode_codepoint_length(haystack, i);
+        if ( ! gp_utf8_is_valid_codepoint(haystack, gp_str_length(haystack), i, &cplen))
+            continue;
         if (strstr(char_set, memcpy((char[8]){""}, haystack + i, cplen)) != NULL)
             return i;
     }
@@ -37,8 +38,13 @@ size_t gp_str_find_first_not_of(
     const char*const char_set,
     const size_t     start)
 {
+    #ifndef NDEBUG
+    gp_assert(gp_utf8_is_valid(char_set, strlen(char_set), NULL));
+    #endif
     for (size_t cplen, i = start; i < gp_str_length(haystack); i += cplen) {
-        cplen = gp_utf8_decode_codepoint_length(haystack, i);
+        if ( ! gp_utf8_is_valid_codepoint(
+            haystack, gp_str_length(haystack), i, &cplen))
+            return i;
         if (strstr(char_set, memcpy((char[8]){""}, haystack + i, cplen)) == NULL)
             return i;
     }
@@ -263,18 +269,115 @@ size_t gp_internal_str_println(
     return trunced_total;
 }
 
+static size_t gp_s_str_trim_invalid(
+    GPString str, size_t length, const char* char_set, bool left, bool right)
+{
+    size_t size;
+
+    if (right) while (length > 0)
+    {
+        char codepoint[8] = "";
+        size_t i = length - 1;
+
+        while ( ! gp_utf8_is_valid_codepoint(str, length, i, &size))
+            if (i == 0) // all invalid
+                return 0;
+            else
+                --i;
+
+        memcpy(codepoint, str + i, size);
+        if (strstr(char_set, codepoint) == NULL) {
+            length = i + size;
+            break;
+        }
+        length = i;
+    }
+    if (left)
+    {
+        size_t i = 0;
+        for (;; i += size)
+        {
+            if (i >= length)
+                return 0;
+            if ( ! gp_utf8_is_valid_codepoint(str, length, i, &size))
+                continue;
+
+            char codepoint[8] = "";
+            memcpy(codepoint, str + i, size);
+            if (strstr(char_set, codepoint) == NULL)
+                break;
+        }
+        length -= i;
+        memmove(str, str + i, length);
+    }
+    return length;
+}
+
+static size_t gp_s_str_trim_valid(
+    GPString str, size_t length, const char* char_set, bool left, bool right)
+{
+    #ifndef NDEBUG
+    gp_assert(gp_utf8_is_valid(char_set, strlen(char_set), NULL));
+    #endif
+
+    size_t size;
+
+    if (right) while (length > 0)
+    {
+        char codepoint[8] = "";
+        size_t i = length - 1;
+
+        while ( ! gp_utf8_is_valid_codepoint(str, length, i, &size))
+            if (i == 0) // all invalid
+                return length;
+            else
+                --i;
+
+        if (i + size != length) // invalid between i and length
+            break;
+
+        memcpy(codepoint, str + i, size);
+        if (strstr(char_set, codepoint) == NULL) {
+            length = i + size;
+            break;
+        }
+        length = i;
+    }
+    if (left)
+    {
+        size_t i = 0;
+        for (;; i += size)
+        {
+            if (i >= length)
+                return 0;
+            if ( ! gp_utf8_is_valid_codepoint(str, length, i, &size))
+                break;
+
+            char codepoint[8] = "";
+            memcpy(codepoint, str + i, size);
+            if (strstr(char_set, codepoint) == NULL)
+                break;
+        }
+        length -= i;
+        memmove(str, str + i, length);
+    }
+    return length;
+}
+
 void gp_str_trim(
     GPString* str,
-    const char*restrict optional_char_set,
+    const char*restrict optional_char_set, // TODO make this mandatory, if NULL accidentally passed, then results are nonsense!
     int flags)
 {
-    gp_db_assert((flags & ~('l' | 'r' | 'a')) == 0, "Invalid trim flags.");
-
     if (gp_str_length(*str) == 0)
         return;
 
-    const bool ascii = flags & 0x01;
-    if (ascii) {
+    gp_db_assert((flags & ~('l'|'r'|GP_TRIM_INVALID)) == 0, "Invalid trim flags.");
+
+    if (optional_char_set != NULL &&
+        (flags & GP_TRIM_INVALID) == 0 &&
+        gp_bytes_is_valid_ascii(optional_char_set, strlen(optional_char_set), NULL))
+    {
         gp_str_set(*str)->length = gp_bytes_trim(
             *str, gp_str_length(*str), NULL, optional_char_set, flags);
         return;
@@ -284,44 +387,13 @@ void gp_str_trim(
     size_t      length   = gp_str_length(*str);
     const bool  left     = flags & 0x04;
     const bool  right    = flags & 0x02;
-    const char* char_set = optional_char_set != NULL ?
-        optional_char_set :
-        GP_WHITESPACE;
+    const char* char_set = optional_char_set != NULL ? optional_char_set : GP_WHITESPACE;
 
-    if (left)
-    {
-        size_t prefix_length = 0;
-        while (true)
-        {
-            char codepoint[8] = "";
-            size_t size = gp_utf8_decode_codepoint_length(*str, prefix_length);
-            memcpy(codepoint, *str + prefix_length, size);
-            if (strstr(char_set, codepoint) == NULL)
-                break;
-
-            prefix_length += size;
-            if (prefix_length >= gp_str_length(*str)) {
-                gp_str_set(*str)->length = 0;
-                return;
-            }
-        }
-        length -= prefix_length;
-
-        memmove(*str, *str + prefix_length, length);
-    }
-    if (right) while (length > 0)
-    {
-        char codepoint[8] = "";
-        size_t i = length - 1;
-        size_t size;
-        while ((size = gp_utf8_decode_codepoint_length(*str, i)) == 0 && --i != 0);
-        memcpy(codepoint, *str + i, size);
-        if (strstr(char_set, codepoint) == NULL)
-            break;
-
-        length -= size;
-    }
-    gp_str_set(*str)->length = length;
+    if (flags & GP_TRIM_INVALID)
+        gp_str_set(*str)->length = gp_s_str_trim_invalid(*str, length, char_set, left, right);
+    else
+        gp_str_set(*str)->length = gp_s_str_trim_valid(*str, length, char_set, left, right);
+    return;
 }
 
 // TODO this is only now used for testing, do we need this?

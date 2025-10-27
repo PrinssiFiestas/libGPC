@@ -93,7 +93,7 @@ int main(void)
                 if (pos == GP_NOT_FOUND)
                     pos = gp_str_length(contents);
                 gp_str_slice(&segment, contents, 0, pos);
-                gp_str_trim(&segment, GP_WHITESPACE, 'l' |'r');
+                gp_str_trim(&segment, GP_WHITESPACE, 'l'|'r');
 
                 gp_expect(gp_str_equal(str, segment, gp_str_length(segment)), segment, str);
 

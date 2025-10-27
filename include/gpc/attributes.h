@@ -57,17 +57,6 @@
 #endif
 
 // ----------------------------------------------------------------------------
-// Malloc-like functions
-
-// https://gcc.gnu.org/onlinedocs/gcc/Common-Function-Attributes.html
-
-#ifdef __GNUC__
-#  define GP_ATTRIB_ALLOC_ALIGN(...) __attribute__((alloc_align(__VA_ARGS__)))
-#else
-#  define GP_ATTRIB_ALLOC_ALIGN(...)
-#endif
-
-// ----------------------------------------------------------------------------
 // Restrict
 
 #if __GNUG__ || _MSC_VER
@@ -120,6 +109,15 @@
 #  define GP_NO_SANITIZE __declspec(no_sanitize_address)
 #else
 #  define GP_NO_SANITIZE
+#endif
+
+// ----------------------------------------------------------------------------
+// GNU
+
+#if __GNUC__
+#define GP_GNU_ATTRIB(...) __attribute__((__VA_ARGS__))
+#else
+#define GP_GNU_ATTRIB(...)
 #endif
 
 // ----------------------------------------------------------------------------

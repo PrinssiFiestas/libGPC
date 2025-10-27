@@ -34,7 +34,7 @@ int main(void)
             gp_expect(
                 strcmp(gp_cstr(str), "1234567") == 0 &&
                 str[7].c == '\0' &&
- "\"%s\" extra byte not counted here", gp_arr_capacity(str) == 8,
+                gp_str_capacity(str) == 7,
                 "Extra byte should be reserved so gp_cstr() can null-terminate.",
                 gp_cstr(str), gp_arr_capacity(str));
 
@@ -148,17 +148,32 @@ int main(void)
         gp_test("Find first of");
         {
             GPStringBuffer(15) buf;
-            const GPString str = gp_str_buffered(NULL, &buf, "blörö");
+            GPString str = gp_str_buffered(NULL, &buf, "blörö");
             gp_expect(gp_str_find_first_of(str, "yö", 0) == 2);
             gp_expect(gp_str_find_first_of(str, "aä", 0) == GP_NOT_FOUND);
+
+            str = gp_str_buffered(NULL, &buf, "em\xFFoji🙊");
+            gp_expect(gp_str_find_first_of(str, "X🙊", 0) == strlen("em\xFFoji"));
+            gp_str_set(str)->length -= strlen("🙊")-1; // truncate emoji
+            gp_expect(gp_str_find_first_of(str, "X🙊", 0) == GP_NOT_FOUND);
         }
 
         gp_test("Find first not of");
         {
-            GPStringBuffer(15) buf;
-            const GPString str = gp_str_buffered(NULL, &buf, "blörö");
+            GPStringBuffer(18) buf;
+            GPString str = gp_str_buffered(NULL, &buf, "blörö");
             gp_expect(gp_str_find_first_not_of(str, "blö", 0)   == strlen("blö"));
             gp_expect(gp_str_find_first_not_of(str, "blörö", 0) == GP_NOT_FOUND);
+
+            str = gp_str_buffered(NULL, &buf, "❌X❎bläh🙊");
+            gp_expect(gp_str_find_first_not_of(str, "X❌❎", 0) == strlen("❌X❎"));
+
+            gp_str_slice(&str, NULL, strlen("❌X❎"), gp_str_length(str));
+            gp_expect(gp_str_find_first_not_of(str, "lXäbYh", 0) == strlen("bläh"));
+            gp_str_set(str)->length -= strlen("🙊")-1; // truncate emoji
+            // If codepoint is invalid (truncated in this case) then it cannot
+            // be in character set.
+            gp_expect(gp_str_find_first_not_of(str, "lX🙊äbYh", 0) != GP_NOT_FOUND);
         }
     }
 
@@ -277,7 +292,7 @@ int main(void)
     }
 
     #ifdef __GLIBC__ // gp_print() conversions match glibc
-    gp_suite("String print");
+    gp_suite("String Print");
     {
         gp_test("Numbers");
         {
@@ -418,31 +433,40 @@ int main(void)
             gp_str_println(&str, "With %g%i", 2., 0, "fmt specs.");
             gp_expect(gp_str_equal(str, cstr, strlen(cstr)), str);
         }
-    }
+    } // gp_suite("String Print");
     #endif
 
     gp_suite("Trim");
     {
+        GPStringBuffer(127) buf;
+
         gp_test("ASCII");
         {
-            GPStringBuffer(127) buf;
             GPString str = gp_str_buffered(NULL, &buf, "  \t\f \nLeft Ascii  ");
-            gp_str_trim(&str, NULL, 'l' | 'a');
+            gp_str_trim(&str, NULL, 'l');
             gp_expect(gp_str_equal(str, "Left Ascii  ", strlen("Left Ascii  ")));
 
             const char* cstr = " AA RightSAICASIACSIACIAS";
             gp_str_copy(&str, cstr, strlen(cstr));
-            gp_str_trim(&str, "ASCII", 'r' | 'a');
+            gp_str_trim(&str, "ASCII", 'r');
             gp_expect(gp_str_equal(str, " AA Right", strlen(" AA Right")));
 
             cstr = "  __Left and Right__  ";
             gp_str_copy(&str, cstr, strlen(cstr));
-            gp_str_trim(&str, GP_ASCII_WHITESPACE "_", 'l' | 'r' | 'a');
+            gp_str_trim(&str, GP_ASCII_WHITESPACE "_", 'l'|'r');
             gp_expect(gp_str_equal(str, "Left and Right", strlen( "Left and Right")), str);
+
+            int flags[] = { 'l', 'r', 'l'|'r' };
+            for (size_t i = 0; i < sizeof flags/sizeof flags[0]; ++i) {
+                cstr = "xxyyxxyxy";
+                gp_str_copy(&str, cstr, strlen(cstr));
+                gp_str_trim(&str, "xy", flags[i]);
+                gp_assert(gp_str_length(str) == 0);
+            }
         }
+
         gp_test("UTF-8");
         {
-            GPStringBuffer(127) buf;
             GPString str = gp_str_buffered(NULL, &buf, "¡¡¡Left!!!");
             gp_str_trim(&str, "¡", 'l');
             gp_expect(gp_str_equal(str, "Left!!!", strlen("Left!!!")), str);
@@ -451,11 +475,72 @@ int main(void)
             gp_str_trim(&str, NULL, 'r');
             gp_expect(gp_str_equal(str, " Right", strlen(" Right")), str);
 
-            gp_str_copy(&str, "\t\u3000 ¡¡Left and Right!! \n", strlen("\t\u3000 ¡¡Left and Right!! \n"));
-            gp_str_trim(&str, GP_WHITESPACE "¡!", 'l' | 'r');
+            gp_str_copy(&str, "\t\u3000 ¡¡Left and Right!! \u3000\n", strlen("\t\u3000 ¡¡Left and Right!! \u3000\n"));
+            gp_str_trim(&str, GP_WHITESPACE "¡!", 'l'|'r');
             gp_expect(gp_str_equal(str, "Left and Right", strlen("Left and Right")));
+
+            int flags[] = { 'l', 'r', 'l'|'r' };
+            for (size_t i = 0; i < sizeof flags/sizeof flags[0]; ++i) {
+                const char* cstr = "xx😫yyxxy😫xy";
+                gp_str_copy(&str, cstr, strlen(cstr));
+                gp_str_trim(&str, "xy😫", flags[i]);
+                gp_assert(gp_str_length(str) == 0);
+            }
         }
-    }
+
+        gp_test("Invalid UTF-8");
+        {
+            // Use heap to put sanitizers to work
+            const char* cstr = "\xF2 Too shorts \xF2";
+            GPString str = gp_str_new_init(gp_global_heap, 0, cstr);
+            gp_str_trim(&str, "", 'l'|'r');
+            // Didn't buffer overflow, but didn't really do anything either.
+            gp_expect(gp_str_equal(str, cstr, strlen(cstr)));
+            gp_str_delete(str);
+
+            // Only invalids
+            // - left:  continuation byte, overlong, and truncated codepoint
+            // - right: truncated codepoint, bunch of continuation bytes, overlong, more continuation bytes
+            // Detecting codepoints boundaries from right is a bit tricky, which
+            // is why we do this in a loop.
+            for (char cstr[] = "\x80\xC0\xAF\xF2 😁 \x80\x80\x80\x80\x80\xC0\xAF\x80\x80\x80\x80\x80\xF2";
+                strlen(cstr) > strlen("\x80\xC0\xAF\xF2 😁 ");
+                cstr[strlen(cstr)-1] = '\0')
+            {
+                GP_TRY_POISON_MEMORY_REGION(cstr + strlen(cstr) + 1, 8);
+                str = gp_str_new_init(gp_global_heap, 0, cstr);
+                gp_str_trim(&str, "", 'l'|'r'|GP_TRIM_INVALID);
+                // Note: empty character set instead of NULL to only trim invalid.
+                gp_assert(gp_str_equal(str, " 😁 ", strlen(" 😁 ")));
+                gp_str_delete(str);
+            }
+
+            // Mixed invalids and valids
+            // Same ones as above but some random Unicode whitespace mixed in.
+            for (char cstr[] = "\x80\u3000\xC0\xAF\n\xF2 😁\x80 \x80\n\x80\x80\x80\x80\xC0\xAF\x80\u3000\x80\x80\x80\x80\xF2";
+                strlen(cstr) > strlen("\x80\u3000\xC0\xAF\n\xF2 😁");
+                cstr[strlen(cstr)-1] = '\0')
+            {
+                GP_TRY_POISON_MEMORY_REGION(cstr + strlen(cstr) + 1, 8);
+                str = gp_str_new_init(gp_global_heap, 0, cstr);
+                gp_str_trim(&str, GP_WHITESPACE, 'l'|'r' | GP_TRIM_INVALID);
+                gp_assert(gp_str_equal(str, "😁", strlen("😁")));
+                gp_str_delete(str);
+            }
+
+            //// Invalids in char set
+            //cstr = "\x80\xC0\xAF
+
+            int flags[] = { 'l', 'r', 'l'|'r' };
+            for (size_t i = 0; i < sizeof flags/sizeof flags[0]; ++i) {
+                const char* cstr = "x\xFFx😫yyx\x80xy\xC3😫xy\xF3";
+                str = gp_str_new_init(gp_global_heap, 0, cstr);
+                gp_str_trim(&str, "xy😫", flags[i] | GP_TRIM_INVALID);
+                gp_assert(gp_str_length(str) == 0);
+                gp_str_delete(str);
+            }
+        }
+    } // gp_suite("Trim");
 
     gp_suite("To upper/lower/title case");
     {

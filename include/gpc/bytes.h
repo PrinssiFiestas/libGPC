@@ -33,7 +33,8 @@ size_t pf_snprintf(char*GP_RESTRICT, size_t, const char*GP_RESTRICT, ...);
 
 // The bytes interface is meant to be used for lower level operations. It is
 // inherently unsafe and static by nature. For dynamic memory or bounds
-// checking, use GPString or GPArray instead.
+// checking, use GPString or GPArray instead. In fact, you probably should not
+// use these.
 //
 // None of these functions null-terminate! Non of these functions bounds check
 // either! `dest_size`, when present, indicates the data length already present

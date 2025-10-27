@@ -11,8 +11,8 @@ class GPStringPrinter():
         str_data        = (val_as_data_ptr - 1).dereference()
 
         T_cstr       = gdb.lookup_type("char").pointer()
-        val_contents = self.val.cast(T_cstr).string("utf-8", length = str_data["length"])
-        val_contents = str(val_contents).encode("unicode_escape").decode()
+        val_contents = self.val.cast(T_cstr).string("utf-8", "backslashreplace", length = str_data["length"])
+        val_contents = str(val_contents).encode("unicode_escape").decode("unicode_escape")
         return "\"" + val_contents + "\", " + str(str_data)
 
 def gp_str_lookup_function(val):
@@ -25,5 +25,29 @@ def gp_const_str_lookup_function(val):
         return GPStringPrinter(val)
     return None
 
+def gp_str_dynamic_lookup_function(val):
+    if str(val.type) == "GPStringDynamic":
+        return GPStringPrinter(val)
+    return None
+
+def gp_const_str_dynamic_lookup_function(val):
+    if str(val.type) == "const GPStringDynamic":
+        return GPStringPrinter(val)
+    return None
+
+def gp_str_static_lookup_function(val):
+    if str(val.type) == "GPStringStatic":
+        return GPStringPrinter(val)
+    return None
+
+def gp_const_str_static_lookup_function(val):
+    if str(val.type) == "const GPStringStatic":
+        return GPStringPrinter(val)
+    return None
+
 gdb.pretty_printers.append(gp_str_lookup_function)
 gdb.pretty_printers.append(gp_const_str_lookup_function)
+gdb.pretty_printers.append(gp_str_dynamic_lookup_function)
+gdb.pretty_printers.append(gp_const_str_dynamic_lookup_function)
+gdb.pretty_printers.append(gp_str_static_lookup_function)
+gdb.pretty_printers.append(gp_const_str_static_lookup_function)

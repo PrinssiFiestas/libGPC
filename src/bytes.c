@@ -442,32 +442,32 @@ size_t gp_bytes_trim(
         optional_char_set :
         GP_ASCII_WHITESPACE;
 
-    if (left)
+    if (right)
+        while (strchr(char_set, ((char*)str)[length - 1]) != NULL)
+            if (--length == 0)
+                break;
+
+    if (left && length > 0)
     {
+        // Null terminate so we can use strspn() which is usually faster than
+        // while(strchr()) loop. We don't know if there is capacity, so
+        // temporarily overwrite last character.
         char last = str[length - 1];
         str[length - 1] = '\0';
-        size_t prefix_length = strspn(str, char_set);
-        str[length - 1] = last;
 
+        size_t prefix_length = strspn(str, char_set);
+
+        str[length - 1] = last;
         if (prefix_length == length - 1 && strchr(char_set, last) != NULL)
-            prefix_length++;
+            ++prefix_length;
 
         length -= prefix_length;
-
         if (optional_out_ptr != NULL)
             *optional_out_ptr = str + prefix_length;
         else
             memmove(str, str + prefix_length, length);
     }
 
-    if (right && length > 0)
-    {
-        while (strchr(char_set, ((char*)str)[length - 1]) != NULL) {
-            length--;
-            if (length == 0)
-                break;
-        }
-    }
     return length;
 }
 

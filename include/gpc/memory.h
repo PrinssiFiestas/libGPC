@@ -74,32 +74,6 @@ extern "C" {
 // GPAllocator*, although taking the address of the base allocator (the first
 // member, usually also named as 'base') is more type safe.
 
-/** Check if allocation would fail.
- * Since allocator failures are asserted, user cannot check for NULL after
- * allocations. This can be used to check if an allocation would fail before
- * allocating memory. Multiplication overflow is checked as well.
- *     This obviously ignores allocators internal state, but any
- * valid GPAllocator must make sure that they never run out of memory anyway.
- * @return 0 if allocation would fail, the product of @p element_size and
- * @p number_of_elements otherwise. Note that one cannot portably assume that 0
- * size returns a valid pointer, which is why 0 is retuned here as well.
- */
-static inline size_t gp_mem_alloc_check_args(
-    size_t number_of_elements,
-    size_t element_size,
-    size_t alignment)
-{
-    if ((alignment & (alignment - 1)) != 0)
-        return 0;
-    #if SIZE_MAX <= UINT32_MAX
-    uint64_t size = (uint64_t)number_of_elements * element_size;
-    return size > GP_MAX_ALLOC_SIZE ? 0 : size;
-    #else
-    GPUInt128 size = gp_uint128_mul64(number_of_elements, element_size);
-    return gp_u128_greater_than(size, GP_MAX_ALLOC_SIZE) ? 0 : gp_uint128_lo(size);
-    #endif
-}
-
 /** Polymorphic abstract allocator.*/
 typedef struct gp_allocator
 {
@@ -116,7 +90,7 @@ static inline void* gp_mem_alloc(
     return allocator->alloc(allocator, size, GP_ALLOC_ALIGNMENT);
 }
 
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_ATTRIB_ALLOC_ALIGN(3)
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_GNU_ATTRIB(alloc_align(3))
 static inline void* gp_mem_alloc_aligned(
     GPAllocator* allocator,
     size_t size,
@@ -411,7 +385,7 @@ void gp_carena_delete(GPContiguousArena* optional);
  * gp_mem_alloc() is meant to be polymorphic, use this directly to maximize
  * performance.
  */
-GP_NONNULL_ARGS_AND_RETURN GP_ATTRIB_ALLOC_ALIGN(3)
+GP_NONNULL_ARGS_AND_RETURN GP_GNU_ATTRIB(alloc_align(3))
 static inline void* gp_carena_alloc(
     GPContiguousArena* allocator, const size_t size, const size_t alignment)
 {

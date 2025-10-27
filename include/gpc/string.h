@@ -248,6 +248,7 @@ static inline size_t gp_str_slice(
 }
 
 /** Add codepoint to the end.
+ * @p codepoint must be valid UTF-32.
  * @return number of truncated bytes of the converted UTF-8 codepoint.
  */
 GP_NONNULL_ARGS()
@@ -361,11 +362,11 @@ static inline size_t gp_str_replace(
 
 #define GP_LEFT  'l'
 #define GP_RIGHT 'r'
-#define GP_ASCII 'a'
+#define GP_TRIM_INVALID 0x1
 
 /** Trim characters.
  * @p flags: 'l' or GP_LEFT, 'r' or GP_RIGHT, 'a' or GP_ASCII for ASCII char set
- * only. Separate flags with |. Trims whitespace if @p char_set is NULL.
+ * only. Combine flags with |. Trims whitespace if @p optional_char_set is NULL.
  */
 GP_NONNULL_ARGS(1)
 void gp_str_trim(

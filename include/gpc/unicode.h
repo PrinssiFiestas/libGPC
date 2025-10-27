@@ -103,22 +103,39 @@ size_t gp_utf8_encode_unsafe(
 // Validation
 
 /** Validate UTF-8 codepoint.
- * @return 0 if invalid, byte length of the codepoint otherwise.
+ * If @p optional_out_codepoint_length is not NULL, the number of bytes read
+ * from string will be stored in it. If the codepoint is valid, then the stored
+ * length will be the lenght of the codepoint. If the codepoint is invalid, then
+ * the length will be some segment length that allows using this function for
+ * well defined iteration.
  */
-GP_NONNULL_ARGS() GP_NODISCARD
-static inline size_t gp_utf8_is_valid_codepoint(
+GP_NONNULL_ARGS(1) GP_NODISCARD
+static inline bool gp_utf8_is_valid_codepoint(
     const void* str,
     size_t      str_length,
-    size_t      i)
+    size_t      i,
+    size_t*     optional_out_codepoint_length)
 {
     gp_db_assert(i < str_length, "Index out of bounds.");
     size_t cp_length = gp_utf8_decode_codepoint_length(str, i);
-    if (cp_length == 0 || i + cp_length > str_length)
+    if (cp_length == 0 || i + cp_length > str_length) {
+        if (optional_out_codepoint_length != NULL)
+            *optional_out_codepoint_length =
+                cp_length == 0 ? 1 : i + cp_length - str_length;
         return false;
-    bool gp_internal_bytes_is_valid_codepoint(const void*, size_t); // internal
-    if ( ! gp_internal_bytes_is_valid_codepoint(str, i))
-        return false;
-    return cp_length;
+    }
+    bool gp_internal_bytes_is_valid_codepoint(const void*, size_t);
+    bool is_valid = gp_internal_bytes_is_valid_codepoint(str, i);
+
+    if ( ! is_valid) for (size_t j = 1; j < cp_length; ++j) {
+        if (gp_utf8_decode_codepoint_length(str, i + j) > 0) {
+            cp_length = j;
+            break;
+        }
+    }
+    if (optional_out_codepoint_length != NULL)
+        *optional_out_codepoint_length = cp_length;
+    return is_valid;
 }
 
 /** Validate UTF-8 string.*/
@@ -129,8 +146,7 @@ static inline bool gp_utf8_is_valid(
     size_t*     optional_invalid_position)
 {
     for (size_t cp_length, i = 0; i < str_length; i += cp_length) {
-        cp_length = gp_utf8_is_valid_codepoint(str, str_length, i);
-        if ( ! cp_length) {
+        if ( ! gp_utf8_is_valid_codepoint(str, str_length, i, &cp_length)) {
             if (optional_invalid_position != NULL)
                 *optional_invalid_position = i;
             return false;
@@ -140,7 +156,7 @@ static inline bool gp_utf8_is_valid(
 }
 
 /** Validate UTF-16 codepoint.
- * @return 0 if invalid, 1 if valid, 2 if valid surrogate.
+ * @return 0 if invalid, 2 if valid surrogate, 1 otherwise.
  */
 GP_NONNULL_ARGS() GP_NODISCARD
 static inline size_t gp_utf16_is_valid_codepoint(
@@ -179,7 +195,6 @@ static inline bool gp_utf16_is_valid(
 }
 
 /** Validate UTF-32 codepoint.
- * @return false if invalid, true otherwise.
  */
 GP_NONNULL_ARGS() GP_NODISCARD
 static inline bool gp_utf32_is_valid_codepoint(
