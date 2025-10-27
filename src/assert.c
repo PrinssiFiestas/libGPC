@@ -9,6 +9,7 @@
 #include <gpc/string.h>
 #include <gpc/utils.h>
 #include <gpc/thread.h>
+#include <gpc/time.h>
 #include "common.h"
 #include <printf/printf.h>
 #include <stddef.h>
@@ -27,6 +28,9 @@
 
 static GP_MAYBE_THREAD_LOCAL const char* gp_s_current_test  = NULL;
 static GP_MAYBE_THREAD_LOCAL const char* gp_s_current_suite = NULL;
+static GP_MAYBE_THREAD_LOCAL GPUInt128 gp_s_test_start_time;
+static GP_MAYBE_THREAD_LOCAL GPUInt128 gp_s_suite_start_time;
+static GPUInt128 gp_s_all_tests_start_time;
 static GP_MAYBE_THREAD_LOCAL bool gp_s_test_failed  = false;
 static GP_MAYBE_THREAD_LOCAL bool gp_s_suite_failed = false;
 static GP_MAYBE_ATOMIC uint32_t gp_s_test_count    = 0;
@@ -46,12 +50,14 @@ void gp_end_testing(void)
 {
     if (gp_s_test_count + gp_s_suite_count == 0)
         return;
+    double t = gp_time_ns(&gp_s_all_tests_start_time);
 
     gp_test(NULL);
     gp_suite(NULL);
 
     pf_printf("Finished testing%s%s\n", *gp_s_prog_name ? " in " : ".", gp_s_prog_name);
-    pf_printf("A total of %u tests ran in %u suites\n", gp_s_test_count, gp_s_suite_count);
+    pf_printf("A total of %u tests ran in %u suites. Time: %.2f ms.\n",
+        gp_s_test_count, gp_s_suite_count, t / (1000*1000));
 
     if (gp_s_tests_failed || gp_s_suites_failed)
         pf_fprintf(stderr,
@@ -106,6 +112,8 @@ static void gp_s_init_testing(void)
     puts("---------------------------------------------------------------");
     pf_printf("Starting tests%s%s\n\n", *gp_s_prog_name ? " in " : "", gp_s_prog_name);
     atexit(gp_end_testing);
+
+    gp_s_all_tests_start_time = gp_time_begin();
 }
 
 void gp_test(const char* name)
@@ -115,15 +123,29 @@ void gp_test(const char* name)
     // End current test
     if (gp_s_current_test != NULL)
     {
+        double t = gp_time_ns(&gp_s_test_start_time);
         const char* indent = gp_s_current_suite == NULL ? "" : "\t";
         if (gp_s_test_failed) {
             gp_s_tests_failed++;
             pf_fprintf(stderr,
-            "%s" GP_FAILED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_s_current_test);
+            "%s" GP_FAILED_STR " test " GP_CYAN "%s " GP_RESET_TERMINAL, indent, gp_s_current_test);
         } else {
             pf_printf(
-            "%s" GP_PASSED_STR " test " GP_CYAN "%s" GP_RESET_TERMINAL "\n", indent, gp_s_current_test);
+            "%s" GP_PASSED_STR " test " GP_CYAN "%s " GP_RESET_TERMINAL, indent, gp_s_current_test);
         }
+
+        if (t > 1000*1000) {
+            t /= 1000*1000; // to ms
+            const char* color = GP_BRIGHT_BLACK;
+            if (t >= 1000)
+                color = GP_RED;
+            else if (t >= 100)
+                color = GP_YELLOW;
+            pf_fprintf(
+                gp_s_test_failed ? stderr : stdout,
+                "%s(time: %.2f ms)" GP_RESET_TERMINAL, color, t);
+        }
+        fputs("\n", gp_s_test_failed ? stderr : stdout);
         gp_s_current_test = NULL;
     }
     // Start new test
@@ -132,6 +154,7 @@ void gp_test(const char* name)
         gp_s_current_test = name;
         gp_s_test_failed  = false;
         gp_s_test_count++;
+        gp_s_test_start_time = gp_time_begin();
     }
 }
 
@@ -143,12 +166,26 @@ void gp_suite(const char* name)
     // End current suite
     if (gp_s_current_suite != NULL)
     {
+        double t = gp_time_ns(&gp_s_suite_start_time);
         if (gp_s_suite_failed) {
             gp_s_suites_failed++;
-            pf_fprintf(stderr, GP_FAILED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_s_current_suite);
+            pf_fprintf(stderr, GP_FAILED_STR " suite " GP_CYAN "%s " GP_RESET_TERMINAL, gp_s_current_suite);
         } else {
-            pf_printf(GP_PASSED_STR " suite " GP_CYAN "%s" GP_RESET_TERMINAL "\n\n", gp_s_current_suite);
+            pf_printf(GP_PASSED_STR " suite " GP_CYAN "%s " GP_RESET_TERMINAL, gp_s_current_suite);
         }
+
+        if (t > 1000*1000) {
+            t /= 1000*1000; // to ms
+            const char* color = GP_BRIGHT_BLACK;
+            if (t >= 1000)
+                color = GP_RED;
+            else if (t >= 100)
+                color = GP_YELLOW;
+            pf_fprintf(
+                gp_s_test_failed ? stderr : stdout,
+                "%s(time: %.2f ms)" GP_RESET_TERMINAL, color, t);
+        }
+        fputs("\n\n", gp_s_suite_failed ? stderr : stdout);
         gp_s_current_suite = NULL;
     }
 
@@ -160,6 +197,7 @@ void gp_suite(const char* name)
         gp_s_current_suite = name;
         gp_s_suite_failed  = false;
         gp_s_suite_count++;
+        gp_s_suite_start_time = gp_time_begin();
     }
 }
 

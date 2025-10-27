@@ -9,7 +9,7 @@ GPUInt128 gp_global_time;
 
 static void gp_s_init_global_time(void)
 {
-    gp_global_time = gp_time_begin_ns();
+    gp_global_time = gp_time_begin();
 }
 
 GPUInt128 gp_internal_time(void)
@@ -19,7 +19,7 @@ GPUInt128 gp_internal_time(void)
     return gp_global_time;
 }
 
-GPUInt128 gp_time_begin_ns(void)
+GPUInt128 gp_time_begin(void)
 {
     struct timespec ts;
     #if __STDC_VERSION__ >= 201112L
@@ -43,25 +43,10 @@ static int gp_sleep_ts(
     #endif
 }
 
-int gp_sleep_ns(time_t s, uint32_t ns)
-{
-    return gp_sleep_ts(&(struct timespec){.tv_sec = s, .tv_nsec = ns }, NULL);
-}
-
 int gp_sleep(double t)
 {
     struct timespec ts;
     ts.tv_sec  = t;
     ts.tv_nsec = 1000000000.* (t - ts.tv_sec);
     return gp_sleep_ts(&ts, NULL);
-}
-
-int gp_sleep_signal_ns(time_t* s, uint32_t* ns)
-{
-    struct timespec duration  = {.tv_sec = *s, .tv_nsec = *ns };
-    struct timespec remaining = {0};
-    int result = gp_sleep_ts(&duration, &remaining);
-    *s  = remaining.tv_sec;
-    *ns = remaining.tv_nsec;
-    return result;
 }

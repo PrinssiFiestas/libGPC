@@ -528,9 +528,6 @@ int main(void)
                 gp_str_delete(str);
             }
 
-            //// Invalids in char set
-            //cstr = "\x80\xC0\xAF
-
             int flags[] = { 'l', 'r', 'l'|'r' };
             for (size_t i = 0; i < sizeof flags/sizeof flags[0]; ++i) {
                 const char* cstr = "x\xFFx😫yyx\x80xy\xC3😫xy\xF3";
