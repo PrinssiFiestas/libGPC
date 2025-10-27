@@ -247,41 +247,6 @@ static inline size_t gp_str_slice(
     return gp_arr_slice(sizeof(GPChar), str, (GPString)optional_src, start, end);
 }
 
-/** Add codepoint to the end.
- * @p codepoint must be valid UTF-32.
- * @return number of truncated bytes of the converted UTF-8 codepoint.
- */
-GP_NONNULL_ARGS()
-static inline size_t gp_str_push(
-    GPString* dest,
-    uint32_t  codepoint)
-{
-    size_t gp_utf8_encode_unsafe(void*, uint32_t);
-    GPChar cp[4];
-    size_t cp_length = gp_utf8_encode_unsafe(cp, codepoint);
-    return gp_arr_append(sizeof(GPChar), dest, cp, cp_length);
-}
-
-/** Remove codepoint from the end.
- * The argument must be a string with at least 1 valid codepoint. The tail must
- * be valid UTF-8, which is why it is highly recommended to only use this for
- * dynamic strings to avoid truncated tail bugs.
- * @return removed codepoint encoded to UTF-32.
- */
-GP_NONNULL_ARGS()
-static inline uint32_t gp_str_pop(
-    GPStringDynamic* dest)
-{
-    size_t gp_utf8_decode_codepoint_length(const void*, size_t);
-    size_t gp_utf8_decode_unsafe(uint32_t*, const void*, size_t);
-    gp_db_assert(gp_str_length(*dest) > 0, "String passed to gp_str_pop() must not be empty.");
-    uint32_t encoding;
-    for (size_t cp_length = 0; cp_length == 0; )
-        cp_length = gp_utf8_decode_codepoint_length(*dest, --gp_str_set(*dest)->length);
-    gp_utf8_decode_unsafe(&encoding, *dest, gp_str_length(*dest));
-    return encoding;
-}
-
 /** Add characters to the end.*/
 GP_NONNULL_ARGS()
 static inline size_t gp_str_append(

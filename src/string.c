@@ -426,7 +426,7 @@ size_t gp_str_to_upper(GPString* str)
     }
 
     uint32_t decoding;
-    char encoding[4];
+    unsigned char encoding[4];
     size_t encoding_length;
     bool is_valid;
     size_t bytes_read;
@@ -455,8 +455,9 @@ size_t gp_str_to_upper(GPString* str)
 
     for (size_t j = i + bytes_read; j < gp_str_length(*str); j += bytes_read)
     { // fill u32s
-        bytes_read = gp_utf8_decode(&decoding, *str, gp_str_length(*str), j, &(bool){0});
-        u32s[u32s_length++] = gp_u32_to_upper(decoding);
+        bool is_valid;
+        bytes_read = gp_utf8_decode(&decoding, *str, gp_str_length(*str), j, &is_valid);
+        u32s[u32s_length++] = is_valid ? gp_u32_to_upper(decoding) : decoding;
     }
 
     size_t trunced = 0;
@@ -483,7 +484,7 @@ size_t gp_str_to_lower(GPString* str)
     }
 
     uint32_t decoding;
-    char encoding[4];
+    unsigned char encoding[4];
     size_t encoding_length;
     bool is_valid;
     size_t bytes_read;
@@ -512,8 +513,9 @@ size_t gp_str_to_lower(GPString* str)
 
     for (size_t j = i + bytes_read; j < gp_str_length(*str); j += bytes_read)
     { // fill u32s
-        bytes_read = gp_utf8_decode(&decoding, *str, gp_str_length(*str), j, &(bool){0});
-        u32s[u32s_length++] = gp_u32_to_lower(decoding);
+        bool is_valid;
+        bytes_read = gp_utf8_decode(&decoding, *str, gp_str_length(*str), j, &is_valid);
+        u32s[u32s_length++] = is_valid ? gp_u32_to_lower(decoding) : decoding;
     }
 
     size_t trunced = 0;

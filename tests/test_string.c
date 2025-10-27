@@ -225,22 +225,6 @@ int main(void)
 
     gp_suite("Insert, Push, and Append");
     {
-        gp_test("Push");
-        {
-            GPStringBuffer(15) buf;
-            GPString str = gp_str_buffered(NULL, &buf);
-            gp_str_push(&str, 'y');
-            gp_str_push(&str, 'e');
-            gp_str_push(&str, 'e');
-            #if __STDC_VERSION__ >= 201112L // got Unicode literals
-            gp_str_push(&str, U'😎');
-            gp_expect(gp_str_equal(str, "yee😎", strlen("yee😎")));
-            #else
-            gp_str_push(&str, L'ö');
-            gp_expect(gp_str_equal(str, "yeeö", "yeeö"));
-            #endif
-        }
-
         gp_test("Appending");
         {
             GPStringBuffer(35) buf;
@@ -550,9 +534,9 @@ int main(void)
             gp_str_to_lower(&str);
             gp_expect(gp_str_equal(str, "blörö", strlen("blörö")));
 
-            // ASCII, invalid sequence, multi-byte, and size changing codepoints
-            const char* cstr_lower = "ascii\xff\xffääȿȿⱥⱥ";
-            const char* cstr_upper = "ASCII\xff\xffÄÄⱾⱾȺȺ";
+            // ASCII, invalid sequence, multi-byte, size changing codepoints, trunced
+            const char* cstr_lower = "ascii\xff\xffääȿȿⱥⱥ\xf2";
+            const char* cstr_upper = "ASCII\xff\xffÄÄⱾⱾȺȺ\xf2";
             gp_str_copy(&str, cstr_lower, strlen(cstr_lower));
             gp_str_to_upper(&str);
             gp_expect(gp_str_equal(str, cstr_upper, strlen(cstr_upper)));

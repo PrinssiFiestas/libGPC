@@ -341,7 +341,14 @@ size_t gp_utf8_encode(
             1,1,1,1,1,1,1,1, 2,2,2,2,3,3,4,1,
         };
         *is_valid = false;
-        size_t size = sizes[*(uint8_t*)&u32 >> 3];
+        uint8_t* bytes = (uint8_t*)&u32;
+        size_t size = sizes[bytes[0] >> 3];
+        for (size_t i = 1; i < size; ++i) {
+            if (bytes[i] == 0xFF) {
+                size = i;
+                break;
+            }
+        }
         memcpy(mem, &u32, size);
         return size;
     }
