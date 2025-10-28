@@ -364,49 +364,46 @@ static size_t gp_s_str_trim_valid(
     return length;
 }
 
-void gp_str_trim(
-    GPString* str,
-    const char*restrict optional_char_set, // TODO make this mandatory, if NULL accidentally passed, then results are nonsense!
-    int flags)
+size_t gp_str_trim(
+    GPString*   str,
+    const void* optional_src,
+    size_t      optional_src_length,
+    const char* char_set,
+    int         flags)
 {
-    if (gp_str_length(*str) == 0)
-        return;
+    if (optional_src != NULL && optional_src_length == 0)
+        return gp_str_set(*str)->length = 0;
+
+    if (optional_src == NULL && gp_str_length(*str) == 0)
+        return 0;
 
     gp_db_assert((flags & ~('l'|'r'|GP_TRIM_INVALID)) == 0, "Invalid trim flags.");
 
-    if (optional_char_set != NULL &&
-        (flags & GP_TRIM_INVALID) == 0 &&
-        gp_bytes_is_valid_ascii(optional_char_set, strlen(optional_char_set), NULL))
+    if ((flags & GP_TRIM_INVALID) == 0 &&
+        gp_bytes_is_valid_ascii(char_set, strlen(char_set), NULL))
     {
-        gp_str_set(*str)->length = gp_bytes_trim(
-            *str, gp_str_length(*str), NULL, optional_char_set, flags);
-        return;
+        if (optional_src == NULL) {
+            gp_str_set(*str)->length = gp_bytes_trim(
+                *str, gp_str_length(*str), NULL, char_set, flags);
+            return 0;
+        } else {
+            size_t length = gp_bytes_trim(
+                (void*)optional_src, optional_src_length, (void**)&optional_src, char_set, flags);
+            return gp_str_copy(str, optional_src, length);
+        }
     }
     // else utf8
 
     size_t      length   = gp_str_length(*str);
     const bool  left     = flags & 0x04;
     const bool  right    = flags & 0x02;
-    const char* char_set = optional_char_set != NULL ? optional_char_set : GP_WHITESPACE;
 
+    // TODO trunc
     if (flags & GP_TRIM_INVALID)
         gp_str_set(*str)->length = gp_s_str_trim_invalid(*str, length, char_set, left, right);
     else
         gp_str_set(*str)->length = gp_s_str_trim_valid(*str, length, char_set, left, right);
-    return;
-}
-
-// TODO this is only now used for testing, do we need this?
-GPArrayDynamic(uint32_t) gp_utf8_to_utf32_new(GPAllocator* allocator, const GPString u8)
-{
-    GPArrayDynamic(uint32_t) u32 = gp_arr_new(sizeof u32[0], allocator, gp_str_length(u8));
-    for (size_t i = 0, codepoint_length; i < gp_str_length(u8); i += codepoint_length)
-    {
-        uint32_t encoding;
-        codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
-        u32[((GPArrayHeader*)u32 - 1)->length++] = encoding;
-    }
-    return u32;
+    return 0; // TODO trunc
 }
 
 uint32_t gp_u32_to_upper(uint32_t);

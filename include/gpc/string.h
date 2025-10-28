@@ -331,12 +331,14 @@ static inline size_t gp_str_replace(
 
 /** Trim characters.
  * @p flags: 'l' or GP_LEFT, 'r' or GP_RIGHT, 'a' or GP_ASCII for ASCII char set
- * only. Combine flags with |. Trims whitespace if @p optional_char_set is NULL.
+ * only. Combine flags with |.
  */
-GP_NONNULL_ARGS(1)
-void gp_str_trim(
-    GPString*,
-    const char* optional_char_set,
+GP_NONNULL_ARGS(1, 4)
+size_t gp_str_trim(
+    GPString*   dest,
+    const void* optional_src,
+    size_t      optional_src_length,
+    const char* utf8_char_set,
     int         flags);
 
 /** Simple Unicode upcasing.

@@ -71,7 +71,7 @@ RELEASE_TESTS = $(patsubst tests/test_%.c, build/test_%$(EXE_EXT),  $(TEST_SRCS)
 
 .PHONY: all release debug install tests build_tests run_tests release_tests
 .PHONY: build_release_tests run_release_tests cl_tests single_header analyze
-.PHONY: test_all clean
+.PHONY: test_all bench bench_debug clean
 
 .PRECIOUS: $(TESTS) $(RELEASE_TESTS)
 
@@ -317,6 +317,13 @@ release_tests:
 	$(MAKE) build_release_tests
 	$(MAKE) run_release_tests
 	$(MAKE) single_header
+
+bench: all
+	$(CC) -o build/bench$(EXE_EXT) -O3 -ggdb3 -gdwarf -Wall -Wextra -fno-omit-frame-pointer -DNDEBUG tests/bench.c build/libgpc$(LIB_EXT)
+	./build/bench$(EXE_EXT)
+
+bench_debug:
+	$(CC) -o build/benchd$(EXE_EXT) $(DEBUG_CFLAGS) -fno-omit-frame-pointer tests/bench.c build/libgpcd$(LIB_EXT)
 
 clean:
 	rm -rf build

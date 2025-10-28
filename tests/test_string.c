@@ -427,47 +427,50 @@ int main(void)
         gp_test("ASCII");
         {
             GPString str = gp_str_buffered(NULL, &buf, "  \t\f \nLeft Ascii  ");
-            gp_str_trim(&str, NULL, 'l');
+            gp_str_trim(&str, NULL, 0, GP_ASCII_WHITESPACE, 'l');
             gp_expect(gp_str_equal(str, "Left Ascii  ", strlen("Left Ascii  ")));
 
             const char* cstr = " AA RightSAICASIACSIACIAS";
             gp_str_copy(&str, cstr, strlen(cstr));
-            gp_str_trim(&str, "ASCII", 'r');
+            gp_str_trim(&str, NULL, 0, "ASCII", 'r');
             gp_expect(gp_str_equal(str, " AA Right", strlen(" AA Right")));
 
             cstr = "  __Left and Right__  ";
             gp_str_copy(&str, cstr, strlen(cstr));
-            gp_str_trim(&str, GP_ASCII_WHITESPACE "_", 'l'|'r');
+            gp_str_trim(&str, NULL, 0, GP_ASCII_WHITESPACE "_", 'l'|'r');
             gp_expect(gp_str_equal(str, "Left and Right", strlen( "Left and Right")), str);
 
             int flags[] = { 'l', 'r', 'l'|'r' };
             for (size_t i = 0; i < sizeof flags/sizeof flags[0]; ++i) {
                 cstr = "xxyyxxyxy";
                 gp_str_copy(&str, cstr, strlen(cstr));
-                gp_str_trim(&str, "xy", flags[i]);
+                gp_str_trim(&str, NULL, 0, "xy", flags[i]);
                 gp_assert(gp_str_length(str) == 0);
             }
+
+            cstr = "   Just space      ";
+            gp_str_trim(&str, cstr, strlen(cstr), " ", 'l'|'r');
         }
 
         gp_test("UTF-8");
         {
             GPString str = gp_str_buffered(NULL, &buf, "¡¡¡Left!!!");
-            gp_str_trim(&str, "¡", 'l');
+            gp_str_trim(&str, NULL, 0, "¡", 'l');
             gp_expect(gp_str_equal(str, "Left!!!", strlen("Left!!!")), str);
 
             gp_str_copy(&str, " Right\r\u200A\r\n", strlen(" Right\r\u200A\r\n"));
-            gp_str_trim(&str, NULL, 'r');
+            gp_str_trim(&str, NULL, 0, GP_WHITESPACE, 'r');
             gp_expect(gp_str_equal(str, " Right", strlen(" Right")), str);
 
             gp_str_copy(&str, "\t\u3000 ¡¡Left and Right!! \u3000\n", strlen("\t\u3000 ¡¡Left and Right!! \u3000\n"));
-            gp_str_trim(&str, GP_WHITESPACE "¡!", 'l'|'r');
+            gp_str_trim(&str, NULL, 0, GP_WHITESPACE "¡!", 'l'|'r');
             gp_expect(gp_str_equal(str, "Left and Right", strlen("Left and Right")));
 
             int flags[] = { 'l', 'r', 'l'|'r' };
             for (size_t i = 0; i < sizeof flags/sizeof flags[0]; ++i) {
                 const char* cstr = "xx😫yyxxy😫xy";
                 gp_str_copy(&str, cstr, strlen(cstr));
-                gp_str_trim(&str, "xy😫", flags[i]);
+                gp_str_trim(&str, NULL, 0, "xy😫", flags[i]);
                 gp_assert(gp_str_length(str) == 0);
             }
         }
@@ -477,7 +480,7 @@ int main(void)
             // Use heap to put sanitizers to work
             const char* cstr = "\xF2 Too shorts \xF2";
             GPString str = gp_str_new_init(gp_global_heap, 0, cstr);
-            gp_str_trim(&str, "", 'l'|'r');
+            gp_str_trim(&str, NULL, 0, "", 'l'|'r');
             // Didn't buffer overflow, but didn't really do anything either.
             gp_expect(gp_str_equal(str, cstr, strlen(cstr)));
             gp_str_delete(str);
@@ -493,7 +496,7 @@ int main(void)
             {
                 GP_TRY_POISON_MEMORY_REGION(cstr + strlen(cstr) + 1, 8);
                 str = gp_str_new_init(gp_global_heap, 0, cstr);
-                gp_str_trim(&str, "", 'l'|'r'|GP_TRIM_INVALID);
+                gp_str_trim(&str, NULL, 0, "", 'l'|'r'|GP_TRIM_INVALID);
                 // Note: empty character set instead of NULL to only trim invalid.
                 gp_assert(gp_str_equal(str, " 😁 ", strlen(" 😁 ")));
                 gp_str_delete(str);
@@ -507,7 +510,7 @@ int main(void)
             {
                 GP_TRY_POISON_MEMORY_REGION(cstr + strlen(cstr) + 1, 8);
                 str = gp_str_new_init(gp_global_heap, 0, cstr);
-                gp_str_trim(&str, GP_WHITESPACE, 'l'|'r' | GP_TRIM_INVALID);
+                gp_str_trim(&str, NULL, 0, GP_WHITESPACE, 'l'|'r' | GP_TRIM_INVALID);
                 gp_assert(gp_str_equal(str, "😁", strlen("😁")));
                 gp_str_delete(str);
             }
@@ -516,7 +519,7 @@ int main(void)
             for (size_t i = 0; i < sizeof flags/sizeof flags[0]; ++i) {
                 const char* cstr = "x\xFFx😫yyx\x80xy\xC3😫xy\xF3";
                 str = gp_str_new_init(gp_global_heap, 0, cstr);
-                gp_str_trim(&str, "xy😫", flags[i] | GP_TRIM_INVALID);
+                gp_str_trim(&str, NULL, 0, "xy😫", flags[i] | GP_TRIM_INVALID);
                 gp_assert(gp_str_length(str) == 0);
                 gp_str_delete(str);
             }
@@ -654,6 +657,9 @@ int main(void)
                     gp_expect(gp_str_equal(str, cleanedsequences[i][j], strlen(cleanedsequences[i][j])), i, j);
                 }
             }
+            const char* cstr = "\xf2ö\x80\xf2";
+            gp_str_to_valid(&str, cstr, strlen(cstr), "_");
+            gp_expect(gp_str_equal(str, "_ö__", strlen("_ö__")));
         }
         gp_str_delete(str);
     }
@@ -830,7 +836,8 @@ int main(void)
             const char* src = gp_cstr(str);
             size_t std_buf_length = mbsrtowcs(std_buf, &src, gp_str_length(str) + sizeof"", &(mbstate_t){0});
 
-            GPArray(uint32_t) gp_buf = gp_utf8_to_utf32_new((GPAllocator*)scratch, str);
+            GPArray(uint32_t) gp_buf = gp_arr_new(sizeof(uint32_t), &scratch->base, gp_str_length(str));
+            gp_utf8_to_utf32(&gp_buf, str, gp_str_length(str));
 
             if ( ! gp_expect(gp_bytes_equal(
                 gp_buf,  gp_arr_length(gp_buf) * sizeof gp_buf[0],

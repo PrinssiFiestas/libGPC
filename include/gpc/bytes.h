@@ -135,15 +135,14 @@ size_t gp_bytes_replace_all(
 #define GP_ASCII_WHITESPACE " \t\n\v\f\r"
 
 /** Trim characters.
- * Flags: 'l' left, 'r' right, and 'l' | 'r' for both. Trims whitespace if
- * char_set is NULL.
+ * Flags: 'l' left, 'r' right, and 'l' | 'r' for both.
  */
-GP_NONNULL_ARGS(1)
+GP_NONNULL_ARGS(1, 4)
 size_t gp_bytes_trim(
     void*GP_RESTRICT       bytes,
     size_t                 bytes_size,
     void**GP_RESTRICT      optional_out_ptr, // memmove() if NULL
-    const char*GP_RESTRICT optional_char_set,
+    const char*GP_RESTRICT char_set,
     int                    flags);
 
 /** ASCII upcasing.*/

@@ -424,51 +424,89 @@ size_t gp_internal_bytes_println(
     return length;
 }
 
+size_t gp_memspn(const void*_str, size_t length, const char* char_set)
+{
+    const uint8_t* str = _str;
+    bool in_set[256] = { false };
+
+    for (const uint8_t* c = (uint8_t*)char_set; *c != '\0'; ++c)
+        in_set[*c] = true;
+
+    for (size_t i = 0; i < length; ++i)
+        if ( ! in_set[str[i]])
+            return i;
+    return length;
+}
+
+size_t gp_memspn_r(const void*_str, size_t length, const char* char_set)
+{
+    const uint8_t* str = _str;
+    bool in_set[256] = { false };
+
+    for (const uint8_t* c = (uint8_t*)char_set; *c != '\0'; ++c)
+        in_set[*c] = true;
+
+    for (size_t i = length - 1; gp_as_signed(i) >= 0; --i)
+        if ( ! in_set[str[i]])
+            return length - (i+1);
+    return length;
+}
+
 size_t gp_bytes_trim(
     void*restrict _str,
     size_t length,
     void**restrict optional_out_ptr,
-    const char*restrict optional_char_set,
+    const char*restrict char_set,
     int flags)
 {
-    if (length == 0)
+    if (length == 0) {
+        if (optional_out_ptr != NULL)
+            *optional_out_ptr = _str;
         return 0;
+    }
+    if (GP_UNLIKELY(char_set[0] == '\0')) {
+        if (optional_out_ptr != NULL)
+            *optional_out_ptr = _str;
+        return length;
+    }
 
-    char* str = _str;
+    unsigned char* str = (unsigned char*)_str;
     const bool left  = flags & 0x04;
     const bool right = flags & 0x02;
 
-    const char* char_set = optional_char_set != NULL ?
-        optional_char_set :
-        GP_ASCII_WHITESPACE;
+    size_t start = 0;
+    size_t end = length;
 
-    if (right)
-        while (strchr(char_set, ((char*)str)[length - 1]) != NULL)
-            if (--length == 0)
+    if (GP_UNLIKELY(char_set[1] == '\0'))
+    {
+        if (right) for (; end > 0; --end)
+            if (str[end - 1] != *char_set)
                 break;
 
-    if (left && length > 0)
+        if (end > 0 && left) for (; start < end; ++start)
+            if (str[start] != *char_set)
+                break;
+    }
+    else
     {
-        // Null terminate so we can use strspn() which is usually faster than
-        // while(strchr()) loop. We don't know if there is capacity, so
-        // temporarily overwrite last character.
-        char last = str[length - 1];
-        str[length - 1] = '\0';
+        bool in_set[256] = { false };
+        for (const uint8_t* c = (uint8_t*)char_set; *c != '\0'; ++c)
+            in_set[*c] = true;
 
-        size_t prefix_length = strspn(str, char_set);
+        if (right) for (; end > 0; --end)
+            if ( ! in_set[str[end - 1]])
+                break;
 
-        str[length - 1] = last;
-        if (prefix_length == length - 1 && strchr(char_set, last) != NULL)
-            ++prefix_length;
-
-        length -= prefix_length;
-        if (optional_out_ptr != NULL)
-            *optional_out_ptr = str + prefix_length;
-        else
-            memmove(str, str + prefix_length, length);
+        if (left) for (; start < end; ++start)
+            if ( ! in_set[str[start]])
+                break;
     }
 
-    return length;
+    if (optional_out_ptr != NULL)
+        *optional_out_ptr = str + start;
+    else
+        memmove(str, str + start, end - start);
+    return end - start;
 }
 
 size_t gp_bytes_to_upper(
