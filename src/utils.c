@@ -16,7 +16,7 @@
 
 GPRandomState gp_random_state(uint64_t seed)
 {
-    GPRandomState state;
+    GPRandomState state = {0};
     pcg32_srandom_r((pcg32_random_t*)&state, seed, 0xf35d3918378e53c4ULL);
     return state;
 }
@@ -32,10 +32,29 @@ double gp_frandom(GPRandomState* state)
 }
 
 int32_t gp_random_range(GPRandomState* state, int32_t min, int32_t max)
-{ // TODO optimize for power of 2 ranges (avoid integer modulus)
+{
     gp_db_assert(max > min, "Invalid range.");
     union punner { uint32_t u; int32_t i; } r; // avoid implementation defined cast when u>INT32_MAX
-    r.u = pcg32_boundedrand_r((pcg32_random_t*)state, max - min) + min;
+    uint32_t bound = max - min;
+
+    // Coin flip, which is very common, most calculations can be avoided by
+    // caching bits.
+    if (bound == 2) {
+        if (state->coin_flip_cache_length == 0) {
+            state->coin_flip_cache_bits   = pcg32_random_r((pcg32_random_t*)state);
+            state->coin_flip_cache_length = 32;
+        }
+        r.u = (state->coin_flip_cache_bits & 1) + min;
+        state->coin_flip_cache_bits  >>= 1;
+        state->coin_flip_cache_length -= 1;
+    }
+    // Power of 2, also very common, avoid integer modulus in
+    // pcg32_boundedrand_r().
+    else if ((bound & (bound - 1)) == 0)
+        r.u = (pcg32_random_r((pcg32_random_t*)state) & (bound - 1)) + min;
+    else
+        r.u = pcg32_boundedrand_r((pcg32_random_t*)state, bound) + min;
+
     return r.i;
 }
 

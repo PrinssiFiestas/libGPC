@@ -48,7 +48,7 @@
 #endif
 
 // ----------------------------------------------------------------------------
-// Require initialized memory
+// Require Initialized Memory
 
 #if __GNUC__ >= 11 && !__clang__
 #  define GP_INOUT(...) __attribute__((access(read_write, __VA_ARGS__)))
@@ -68,7 +68,7 @@
 #endif
 
 // ----------------------------------------------------------------------------
-// Static array index
+// Static Array Index
 
 // Static array index in parameter declarations is a C99 feature, however, many
 // compilers do not support it.
@@ -87,17 +87,20 @@
 #endif
 
 // ----------------------------------------------------------------------------
-// Printf Format String Type Checking
+// Optimize
 
-// User can #define GP_NO_FORMAT_STRING_CHECK before including this header to
-// disable format string checking, which may be useful with custom formats.
-
-#if __GNUC__ && !defined(GP_NO_FORMAT_STRING_CHECK)
-// Type checking for format strings
-#  define GP_CHECK_FORMAT_STRING(FORMAT_STRING_INDEX, FIRST_TO_CHECK) \
-      __attribute__((format(printf, FORMAT_STRING_INDEX, FIRST_TO_CHECK)))
+#if __clang__
+#  define GP_OPTIMIZE_NONE __attribute__((optnone))
+#  define GP_OPTIMIZE_HIGH __attribute__((minsize)) // Clang has no -O3 equivalent
+#  define GP_OPTIMIZE_SIZE __attribute__((minsize))
+#elif __GNUC__
+#  define GP_OPTIMIZE_NONE __attribute__((optimize(0)))
+#  define GP_OPTIMIZE_HIGH __attribute__((optimize(3)))
+#  define GP_OPTIMIZE_SIZE __attribute__((optimize("Os")))
 #else
-#  define GP_CHECK_FORMAT_STRING(...)
+#  define GP_OPTIMIZE_NONE
+#  define GP_OPTIMIZE_SIZE
+#  define GP_OPTIMIZE_HIGH
 #endif
 
 // ----------------------------------------------------------------------------
@@ -112,8 +115,24 @@
 #endif
 
 // ----------------------------------------------------------------------------
+// Printf Format String Type Checking
+
+// User can #define GP_NO_FORMAT_STRING_CHECK before including this header to
+// disable format string checking, which may be useful with custom formats.
+
+#if __GNUC__ && !defined(GP_NO_FORMAT_STRING_CHECK)
+// Type checking for format strings
+#  define GP_CHECK_FORMAT_STRING(FORMAT_STRING_INDEX, FIRST_TO_CHECK) \
+      __attribute__((format(printf, FORMAT_STRING_INDEX, FIRST_TO_CHECK)))
+#else
+#  define GP_CHECK_FORMAT_STRING(...)
+#endif
+
+// ----------------------------------------------------------------------------
 // GNU
 
+// Used for attributes that are common to GNU C compatible compilers but has no
+// portable macro equivalent.
 #if __GNUC__
 #define GP_GNU_ATTRIB(...) __attribute__((__VA_ARGS__))
 #else

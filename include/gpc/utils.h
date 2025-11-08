@@ -176,6 +176,8 @@ typedef struct gp_random_state
 {
     uint64_t state;
     uint64_t inc;
+    uint32_t coin_flip_cache_bits;
+    uint32_t coin_flip_cache_length;
 } GPRandomState;
 
 GPRandomState gp_random_state(uint64_t seed) GP_NODISCARD;
