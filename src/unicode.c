@@ -330,6 +330,33 @@ size_t gp_utf8_encode_unsafe(
     }
 }
 
+bool gp_utf8_is_valid_codepoint(
+    const void* str,
+    size_t      str_length,
+    size_t      i,
+    size_t*     optional_out_codepoint_length)
+{
+    gp_db_assert(i < str_length, "Index out of bounds.");
+    size_t cp_length = gp_utf8_decode_codepoint_length(str, i);
+    if (cp_length == 0 || i + cp_length > str_length) {
+        if (optional_out_codepoint_length != NULL)
+            *optional_out_codepoint_length =
+                cp_length == 0 ? 1 : i + cp_length - str_length;
+        return false;
+    }
+    bool gp_internal_bytes_is_valid_codepoint(const void*, size_t);
+    bool is_valid = gp_internal_bytes_is_valid_codepoint(str, i);
+
+    if ( ! is_valid) for (size_t j = 1; j < cp_length; ++j) {
+        if (gp_utf8_decode_codepoint_length(str, i + j) > 0) {
+            cp_length = j;
+            break;
+        }
+    }
+    if (optional_out_codepoint_length != NULL)
+        *optional_out_codepoint_length = cp_length;
+    return is_valid;
+}
 size_t gp_utf8_encode(
     void*    mem,
     uint32_t u32,
@@ -374,9 +401,9 @@ size_t gp_utf8_to_utf32(
         codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
         (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
     }
-    size_t gp_internal_bytes_codepoint_count_unsafe(const void*, size_t);
+    size_t gp_internal_bytes_codepoint_count(const void*, size_t);
     size_t trunced = gp_arr_reserve(sizeof(*u32)[0], u32,
-        gp_arr_length(*u32) + gp_internal_bytes_codepoint_count_unsafe((uint8_t*)u8 + i, u8_length - i));
+        gp_arr_length(*u32) + gp_internal_bytes_codepoint_count((uint8_t*)u8 + i, u8_length - i));
 
     if ( ! trunced ) for (; i < u8_length; i += codepoint_length)
     {
@@ -1657,11 +1684,11 @@ int gp_str_compare(
     GPArray(wchar_t) wcs1 = gp_arr_new(
         sizeof wcs1[0],
         (GPAllocator*)scratch,
-        gp_internal_bytes_codepoint_count_unsafe(s1, gp_str_length(s1)) + sizeof"");
+        gp_internal_bytes_codepoint_count(s1, gp_str_length(s1)) + sizeof"");
     GPArray(wchar_t) wcs2 = gp_arr_new(
         sizeof wcs2[0],
         (GPAllocator*)scratch,
-        gp_internal_bytes_codepoint_count_unsafe(s2, s2_length) + sizeof"");
+        gp_internal_bytes_codepoint_count(s2, s2_length) + sizeof"");
 
     if (fold) {
         gp_wcs_fold_utf8(&wcs1, s1, gp_str_length(s1), locale_code);

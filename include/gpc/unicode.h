@@ -110,33 +110,11 @@ size_t gp_utf8_encode_unsafe(
  * well defined iteration.
  */
 GP_NONNULL_ARGS(1) GP_NODISCARD
-static inline bool gp_utf8_is_valid_codepoint(
+bool gp_utf8_is_valid_codepoint(
     const void* str,
     size_t      str_length,
     size_t      i,
-    size_t*     optional_out_codepoint_length)
-{
-    gp_db_assert(i < str_length, "Index out of bounds.");
-    size_t cp_length = gp_utf8_decode_codepoint_length(str, i);
-    if (cp_length == 0 || i + cp_length > str_length) {
-        if (optional_out_codepoint_length != NULL)
-            *optional_out_codepoint_length =
-                cp_length == 0 ? 1 : i + cp_length - str_length;
-        return false;
-    }
-    bool gp_internal_bytes_is_valid_codepoint(const void*, size_t);
-    bool is_valid = gp_internal_bytes_is_valid_codepoint(str, i);
-
-    if ( ! is_valid) for (size_t j = 1; j < cp_length; ++j) {
-        if (gp_utf8_decode_codepoint_length(str, i + j) > 0) {
-            cp_length = j;
-            break;
-        }
-    }
-    if (optional_out_codepoint_length != NULL)
-        *optional_out_codepoint_length = cp_length;
-    return is_valid;
-}
+    size_t*     optional_out_codepoint_length);
 
 /** Validate UTF-8 string.*/
 GP_NONNULL_ARGS(1) GP_NODISCARD

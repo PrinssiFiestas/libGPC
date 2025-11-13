@@ -31,7 +31,7 @@ bool gp_internal_bytes_is_valid_codepoint(const void* str, size_t i);
 
 // Input must be valid UTF-8
 GP_NONNULL_ARGS()
-size_t gp_internal_bytes_codepoint_count_unsafe(
+size_t gp_internal_bytes_codepoint_count(
     const void* _str,
     const size_t n);
 

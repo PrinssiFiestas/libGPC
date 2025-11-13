@@ -55,12 +55,36 @@ bool gp_internal_bytes_is_valid_codepoint(
     return false;
 }
 
-size_t gp_internal_bytes_codepoint_count_unsafe(
+size_t gp_internal_bytes_codepoint_count(
     const void* _str,
     const size_t n)
 {
     size_t count = 0;
-    const char* str = _str;
+    const unsigned char* str = _str;
+
+    static const uint16_t sizes[] = {
+        1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+        1,1,1,1,1,1,1,1, 2,2,2,2,3,3,4,1 };
+
+    for (size_t cplen, i = 0; i < n; ++count, i += cplen) {
+        cplen = sizes[str[i] >> 3];
+        for (size_t j = i + 1; j < gp_min(i + cplen, n); ++j) {
+            if ((str[j] &~ 0x3F) != 0x80) {
+                cplen = j - i;
+                break;
+            }
+        }
+    }
+    return count;
+
+    // Highly optimized code below. It simply counts all starting bytes in
+    // parallel. This means that even most invalid sequences are handled
+    // correctly, except that it doesn't count codepoints that start with
+    // continuation bytes like we expect in many other functions. Now this is
+    // dead code, but we'll leave it here, because surely it is useful
+    // somewhere? Also, wait, the above one is surely very fast too, is this
+    // crazyness really that much faster??? Benchmark and remove this comment! // TODO
+
     static const unsigned valid_leading_nibble[] = {
         1,1,1,1, 1,1,1,1, 0,0,0,0, 1,1,1,1
     };

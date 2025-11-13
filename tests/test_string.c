@@ -210,11 +210,13 @@ int main(void)
 
             // String with invalids
             count = 0;
-            str = gp_str_buffered(NULL, &buf, "\xf1\x80""ascii\xff\xffää\xc0\x80ȿȿⱥⱥ\xf2");
+            str = gp_str_buffered(NULL, &buf, "\xf1\x80""ascii\x80\x80\xff\xffää\xc0\x80ȿȿⱥⱥ\xf2");
             for (size_t cp_len, i = 0; i < gp_str_length(str); ++count, i += cp_len)
                 cp_len = gp_utf8_decode(
                     &(uint32_t){0}, str, gp_str_length(str), i, &(bool){0});
-            gp_expect(count == gp_str_codepoint_count(str));
+            gp_expect(count == gp_str_codepoint_count(str),
+                count,
+                gp_str_codepoint_count(str));
         }
     }
 

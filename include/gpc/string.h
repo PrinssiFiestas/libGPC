@@ -485,8 +485,12 @@ bool gp_str_equal_case(
 
 /** Count Unicode code points.*/
 GP_NONNULL_ARGS() GP_NODISCARD
-size_t gp_str_codepoint_count(
-    GPString str);
+static inline size_t gp_str_codepoint_count(
+    GPString str)
+{
+    size_t gp_internal_bytes_codepoint_count(const void*, size_t);
+    return gp_internal_bytes_codepoint_count(str, gp_str_length(str));
+}
 
 /** Check if string is valid UTF-8.*/
 GP_NONNULL_ARGS(1) GP_NODISCARD

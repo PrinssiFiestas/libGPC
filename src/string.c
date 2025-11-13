@@ -112,8 +112,8 @@ bool gp_str_equal_case(
     const void* s2,
     size_t      s2_size)
 {
-    const size_t s1_length = gp_internal_bytes_codepoint_count_unsafe(s1, gp_str_length(s1));
-    const size_t s2_length = gp_internal_bytes_codepoint_count_unsafe(s2, s2_size);
+    const size_t s1_length = gp_internal_bytes_codepoint_count(s1, gp_str_length(s1));
+    const size_t s2_length = gp_internal_bytes_codepoint_count(s2, s2_size);
     if (s1_length != s2_length)
         return false;
 
@@ -148,12 +148,6 @@ bool gp_str_equal_case(
         return false;
     }
     return true;
-}
-
-size_t gp_str_codepoint_count(
-    GPString str)
-{
-    return gp_internal_bytes_codepoint_count_unsafe(str, gp_str_length(str));
 }
 
 bool gp_str_is_valid(
