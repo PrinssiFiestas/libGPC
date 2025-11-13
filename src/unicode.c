@@ -808,9 +808,13 @@ static size_t gp_s_utf8_find_first_of(
     const char*const char_set,
     const size_t     start)
 {
+    #ifndef NDEBUG
+    gp_assert(gp_utf8_is_valid(char_set, strlen(char_set), NULL));
+    #endif
     for (size_t cplen, i = start; i < haystack_length; i += cplen) {
-        cplen = gp_utf8_decode_codepoint_length(haystack, i);
-        if (strstr(char_set, memcpy((char[8]){""}, (uint8_t*)haystack + i, cplen)) != NULL)
+        if ( ! gp_utf8_is_valid_codepoint(haystack, haystack_length, i, &cplen))
+            continue;
+        if (strstr(char_set, memcpy((char[8]){""}, haystack + i, cplen)) != NULL)
             return i;
     }
     return GP_NOT_FOUND;
