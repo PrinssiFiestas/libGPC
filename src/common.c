@@ -61,7 +61,7 @@ size_t gp_internal_bytes_codepoint_count_unsafe(
 {
     size_t count = 0;
     const char* str = _str;
-    static const size_t valid_leading_nibble[] = {
+    static const unsigned valid_leading_nibble[] = {
         1,1,1,1, 1,1,1,1, 0,0,0,0, 1,1,1,1
     };
     if (n <= 8) // Not worth optimizing. Also GCC miscompiles small string

@@ -123,7 +123,7 @@ void gp_test(const char* name)
     // End current test
     if (gp_s_current_test != NULL)
     {
-        double t = gp_time_ns(&gp_s_test_start_time);
+        double t = gp_time(&gp_s_test_start_time);
         const char* indent = gp_s_current_suite == NULL ? "" : "\t";
         if (gp_s_test_failed) {
             gp_s_tests_failed++;
@@ -134,12 +134,12 @@ void gp_test(const char* name)
             "%s" GP_PASSED_STR " test " GP_CYAN "%s " GP_RESET_TERMINAL, indent, gp_s_current_test);
         }
 
-        if (t > 1000*1000) {
-            t /= 1000*1000; // to ms
+        if (t > .001) {
+            t *= 1000; // to ms
             const char* color = GP_BRIGHT_BLACK;
-            if (t >= 1000)
+            if (t >= 1000.)
                 color = GP_RED;
-            else if (t >= 100)
+            else if (t >= 100.)
                 color = GP_YELLOW;
             pf_fprintf(
                 gp_s_test_failed ? stderr : stdout,
@@ -166,7 +166,7 @@ void gp_suite(const char* name)
     // End current suite
     if (gp_s_current_suite != NULL)
     {
-        double t = gp_time_ns(&gp_s_suite_start_time);
+        double t = gp_time(&gp_s_suite_start_time);
         if (gp_s_suite_failed) {
             gp_s_suites_failed++;
             pf_fprintf(stderr, GP_FAILED_STR " suite " GP_CYAN "%s " GP_RESET_TERMINAL, gp_s_current_suite);
@@ -174,8 +174,8 @@ void gp_suite(const char* name)
             pf_printf(GP_PASSED_STR " suite " GP_CYAN "%s " GP_RESET_TERMINAL, gp_s_current_suite);
         }
 
-        if (t > 1000*1000) {
-            t /= 1000*1000; // to ms
+        if (t > .001) {
+            t *= 1000; // to ms
             const char* color = GP_BRIGHT_BLACK;
             if (t >= 1000)
                 color = GP_RED;

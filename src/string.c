@@ -16,6 +16,41 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+size_t gp_str_replace(
+    GPString*   dest,
+    size_t      position,
+    size_t      count,
+    const void* replacement,
+    size_t      replacement_length)
+{
+    // Check comment in gp_arr_insert() for explanation of this precondition.
+    if (gp_str_allocator(*dest) != NULL || gp_str_length(*dest) != gp_str_capacity(*dest))
+        gp_db_assert(position < gp_str_length(*dest) + (count==0), "Index out of bounds.");
+    else if (position >= gp_str_length(*dest))
+        return gp_imax(0, replacement_length - count);
+
+    size_t trunced = 0;
+    if (position + count > gp_str_length(*dest))
+        count = gp_str_length(*dest) - position;
+    if (replacement_length > count)
+        trunced = gp_str_reserve(dest, gp_str_length(*dest) + replacement_length - count);
+
+    size_t tail_length = gp_str_length(*dest) - (position + count);
+    if (trunced > tail_length) {
+        replacement_length -= trunced - tail_length;
+        tail_length = 0;
+    } else
+        tail_length -= trunced;
+
+    memmove(
+        *dest + position + replacement_length,
+        *dest + position + count,
+        tail_length);
+    memcpy(*dest + position, replacement, replacement_length);
+
+    gp_str_set(*dest)->length = position + replacement_length + tail_length;
+    return trunced;
+}
 size_t gp_str_find_first_of(
     const GPString   haystack,
     const char*const char_set,
