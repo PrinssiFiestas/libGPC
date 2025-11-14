@@ -393,13 +393,13 @@ size_t gp_utf8_to_utf32(
     ((GPArrayHeader*)*u32 - 1)->length = 0;
     size_t i = 0;
     size_t codepoint_length;
-    uint32_t encoding;
+    uint32_t decoding;
     for (; gp_arr_length(*u32) < gp_arr_capacity(*u32); i += codepoint_length)
     {
         if (i >= u8_length)
             return 0;
-        codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
-        (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
+        codepoint_length = gp_utf8_decode_unsafe(&decoding, u8, i);
+        (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = decoding;
     }
     size_t gp_internal_bytes_codepoint_count(const void*, size_t);
     size_t trunced = gp_arr_reserve(sizeof(*u32)[0], u32,
@@ -407,13 +407,13 @@ size_t gp_utf8_to_utf32(
 
     if ( ! trunced ) for (; i < u8_length; i += codepoint_length)
     {
-        codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
-        (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
+        codepoint_length = gp_utf8_decode_unsafe(&decoding, u8, i);
+        (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = decoding;
     }
     else for (; i < u8_length && gp_arr_length(*u32) < gp_arr_capacity(*u32); i += codepoint_length)
     {
-        codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
-        (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
+        codepoint_length = gp_utf8_decode_unsafe(&decoding, u8, i);
+        (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = decoding;
     }
     return trunced;
 }
@@ -440,7 +440,7 @@ size_t gp_utf32_to_utf8(
     ((GPStringHeader*)*u8 - 1)->length = 0;
     size_t i = 0;
     for (; gp_str_length(*u8) + 3 < gp_str_capacity(*u8); ++i) // skip bounds checking
-    { // Manually inlined gp_utf8_decode() is faster for some reason.
+    { // Manually inlined gp_utf8_encode() is faster for some reason.
         if (i >= u32_length)
             return 0;
 
