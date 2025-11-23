@@ -7,7 +7,6 @@
 
 #include <gpc/array.h>
 #include <gpc/utils.h>
-#include "common.h"
 #include <string.h>
 #include <assert.h>
 
@@ -54,7 +53,8 @@ size_t gp_arr_filter(
     gp_arr_filter_callback_t f)
 {
     GPArrayAny* parr = (GPArrayAny*)dest_address;
-    bool(*func)(const void* x) = (bool(*)(const void* x))f;
+    bool(*func)(const void* x);
+    memcpy(&func, &f, sizeof f);
 
     size_t length = optional_src == NULL ? gp_arr_length(*parr) : optional_src_length;
     gp_arr_set(*parr)->length = 0;

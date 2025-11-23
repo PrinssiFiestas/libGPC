@@ -475,7 +475,8 @@ static inline size_t gp_arr_map(
     gp_arr_map_callback_t  f)
 {
     GPArrayAny* parr = (GPArrayAny*)dest_address;
-    void(*func)(void*, const void*) = (void(*)(void*, const void*))f;
+    void(*func)(void*, const void*);
+    memcpy(&func, &f, sizeof f);
 
     size_t trunced = 0;
     if (optional_src == NULL) {
@@ -506,7 +507,8 @@ static inline void* gp_arr_fold(
     void*                  accumulator,
     gp_arr_fold_callback_t f)
 {
-    void*(*func)(void*, const void*) = (void*(*)(void*, const void*))f;
+    void*(*func)(void*, const void*);
+    memcpy(&func, &f, sizeof f);
     for (size_t i = 0; i < gp_arr_length(arr); ++i)
         accumulator = func(accumulator, (uint8_t*)arr + i * elem_size);
     return accumulator;
@@ -528,7 +530,8 @@ static inline void* gp_arr_foldr(
     void*                  accumulator,
     gp_arr_fold_callback_t f)
 {
-    void*(*func)(void*, const void*) = (void*(*)(void*, const void*))f;
+    void*(*func)(void*, const void*);
+    memcpy(&func, &f, sizeof f);
     for (size_t i = gp_arr_length(arr) - 1; i != (size_t)-1; --i)
         accumulator = func(accumulator, (uint8_t*)arr + i * elem_size);
     return accumulator;
