@@ -6,9 +6,13 @@ GPC_VERSION = 0.3.0
 
 # TODO we want to leverage modern C features and compiler extensions. Therefore,
 # -std=c99 should not be the default. What we should do instead, is to get the
-# tests running in C99 compilers like CompCert.
+# tests running in C99 compilers like CompCert or TCC.
 
-override CFLAGS += -Wall -Wextra -Werror -Wpedantic
+# -Werror note: different versions of the same compiler may have different set
+# of warnings. This means that -Werror may break builds silently on any systems
+# that are not explicitly tested. Therefore, it shouldn't be enabled by default.
+# However, any warnings should be fixed, so -Werror is enabled for tests.
+override CFLAGS += -Wall -Wextra -Wpedantic
 override CFLAGS += -DGP_PEDANTIC
 override CFLAGS += -D_GNU_SOURCE # memmem(), stat64(), locale_t
 override CFLAGS += -Iinclude
@@ -247,7 +251,7 @@ release_tests: override CFLAGS += $(RELEASE_CFLAGS)
 # versions are way too slow with way too much false positives so use v12 or newer.
 STATIC_ANALYZER_AVAILABLE = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 12)
 ifeq ($(STATIC_ANALYZER_AVAILABLE), 1)
-analyze: override CFLAGS += -fanalyzer -DGP_STATIC_ANALYSIS
+analyze: override CFLAGS += -fanalyzer -Werror -DGP_STATIC_ANALYSIS
 endif
 analyze: build_tests # you probably want to run make tests after
 
@@ -282,7 +286,7 @@ $(DEBUG_OBJS): build/%d.o : src/%.c
 -include $(OBJS:.o=.d)
 -include $(DEBUG_OBJS:.o=.d)
 
-build_tests: override CFLAGS += -DGP_TESTS $(DEBUG_CFLAGS) -no-pie # -no-pie prevents sanitizers from crashing
+build_tests: override CFLAGS += -Werror -DGP_TESTS $(DEBUG_CFLAGS) -no-pie # -no-pie prevents sanitizers from crashing
 build_tests: $(TESTS)
 
 $(TESTS): build/test_%d$(EXE_EXT) : tests/test_%.c $(DEBUG_OBJS)
@@ -300,7 +304,7 @@ tests:
 	$(MAKE) run_tests
 	$(MAKE) single_header
 
-build_release_tests: override CFLAGS += -DGP_TESTS $(RELEASE_CFLAGS) -ggdb3
+build_release_tests: override CFLAGS += -Werror -DGP_TESTS $(RELEASE_CFLAGS) -ggdb3
 build_release_tests: $(RELEASE_TESTS)
 
 $(RELEASE_TESTS): build/test_%$(EXE_EXT) : tests/test_%.c $(OBJS)
