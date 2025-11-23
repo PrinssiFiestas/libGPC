@@ -292,7 +292,8 @@ int main(int argc, char* argv[])
         }
         else if (child_pid == 0) {
             if (execvp(compiler, cc_argv.argv) == -1) {
-                perror("execlp()");
+                fprintf(
+                    stderr, "Could not run %s: execvp(): %s\n", compiler, strerror(errno));
                 exit(EXIT_FAILURE);
             }
         }
@@ -378,7 +379,7 @@ int main(int argc, char* argv[])
         else if (child_pid == 0) {
             argv[1] = out_executable;
             if (execv(run_out_executable, &argv[1]) == -1) {
-                perror("execlp()");
+                perror("execv()");
                 exit(EXIT_FAILURE);
             }
         }

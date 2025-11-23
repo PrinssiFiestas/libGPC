@@ -4,7 +4,7 @@
 
 #include <gpc/assert.h>
 #include <gpc/io.h>
-#include "../src/array.c"
+#include <gpc/array.h> // note: source included after the tests so we can get access to shadowing macros
 
 #define arr_assert_eq(ARR, CARR, CARR_LENGTH, ...) do { \
     gp_expect(gp_arr_length(ARR) == (CARR_LENGTH)); \
@@ -14,6 +14,12 @@
 } while (0)
 
 #define CARR_LEN(CARR) (sizeof(CARR) / sizeof*(CARR))
+
+#ifndef GP_NO_TYPE_SAFE_MACRO_SHADOWING
+#define FPTR2PTR(...) __VA_ARGS__
+#else
+#define FPTR2PTR(...) GP_FPTR_TO_VOIDPTR(__VA_ARGS__)
+#endif
 
 int main(void)
 {
@@ -171,29 +177,29 @@ int main(void)
             GPArrayBuffer(int, 4) arr2_buf;
             GPArray(int) arr  = gp_arr_buffered(int, &scope->base, &arr_buf);
             GPArray(int) arr2 = gp_arr_buffered(int, &scope->base, &arr2_buf, 1, 2, 3, 4);
-            gp_arr_map(sizeof arr[0], &arr, arr2, gp_arr_length(arr2), increment);
+            gp_arr_map(sizeof arr[0], &arr, arr2, gp_arr_length(arr2), FPTR2PTR(increment));
             arr_assert_eq(arr, ((int[]){2, 3, 4, 5}), 4);
 
-            gp_arr_map(sizeof arr[0], &arr, NULL, 0, increment);
+            gp_arr_map(sizeof arr[0], &arr, NULL, 0, FPTR2PTR(increment));
             arr_assert_eq(arr, ((int[]){3, 4, 5, 6}), 4);
 
             void* sum(void* accumulator, const void* element);
-            gp_expect(*(int*)gp_arr_fold(sizeof arr[0], arr, &(int){0}, sum)
+            gp_expect(*(int*)gp_arr_fold(sizeof arr[0], arr, &(int){0}, FPTR2PTR(sum))
                 == 0 + 3 + 4 + 5 + 6);
 
             void* append(void* accumulator, const void* element);
             GPArrayBuffer(const char*, 4) cstr_buffer;
             GPArray(const char*) arr_cstr = gp_arr_buffered(const char*, &scope->base, &cstr_buffer,
                 "I", "am", "the", "Walrus");
-            char* result = gp_arr_foldr(sizeof*arr_cstr, arr_cstr, NULL, append);
+            char* result = gp_arr_foldr(sizeof*arr_cstr, arr_cstr, NULL, FPTR2PTR(append));
             gp_expect(strcmp(result, "Walrus the am I ") == 0, result);
 
             bool even(const int* element);
-            gp_arr_filter(sizeof arr2[0], &arr2, arr, gp_arr_length(arr), even);
+            gp_arr_filter(sizeof arr2[0], &arr2, arr, gp_arr_length(arr), FPTR2PTR(even));
             arr_assert_eq(arr2, ((int[]){4, 6}), 2);
 
             bool more_than_5(const void* element);
-            gp_arr_filter(sizeof arr2[0], &arr2, NULL, 0, more_than_5);
+            gp_arr_filter(sizeof arr2[0], &arr2, NULL, 0, FPTR2PTR(more_than_5));
             arr_assert_eq(arr2, ((int[]){6}), 1);
         }
         gp_end((GPScope*)scope);
@@ -242,7 +248,7 @@ int main(void)
             gp_expect(gp_arr_null_terminate(sizeof(int), &arr) == NULL);
 
             void increment(int* out, const int* in);
-            gp_expect(gp_arr_map(sizeof(int), &arr, ((int[]){5, 4, 3, 2, 1, 0}), 6, increment) == 6-4);
+            gp_expect(gp_arr_map(sizeof(int), &arr, ((int[]){5, 4, 3, 2, 1, 0}), 6, FPTR2PTR(increment)) == 6-4);
             arr_assert_eq(arr, ((int[]){6, 5, 4, 3}), 4);
 
             gp_expect(arr == arr_ptr, "Again, a truncating array will never reallocate.");
@@ -263,3 +269,5 @@ void* append(void* result, const void*_element)
 }
 bool even(const int* element) { return !(*element % 2); }
 bool more_than_5(const void* element) { return *(int*)element > 5; }
+
+#include "../src/array.c"

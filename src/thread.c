@@ -9,11 +9,12 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <assert.h>
 
 // Pthreads uses routines of type void*(*)(void*), but the type should be
 // int(*)(void*) for portability. However, if we just cast the routine to
 // void*(*)(void*), calling it becomes undefined (incompatible return types), so
-// wrapper is needed.
+// wrapper is needed. // TODO we should just cast like libc anyway in x86.
 
 typedef struct gp_thread_routine_wrapper
 {
@@ -43,6 +44,7 @@ void* gp_internal_thread_wrapper_arg(int(*f)(void* arg), void* arg)
     pthread_once(&gp_s_thread_wrapper_once, gp_s_make_thread_wrapper_key);
 
     GPThreadRoutineWrapper* wrapper = malloc(sizeof*wrapper);
+    assert(wrapper);
     wrapper->routine = f;
     wrapper->arg     = arg;
     return wrapper;

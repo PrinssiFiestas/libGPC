@@ -4,6 +4,15 @@
 
 #include <gpc/time.h>
 #include <gpc/thread.h>
+#include <time.h>
+
+#if !_WIN32
+int clock_gettime(clockid_t clockid, struct timespec *tp);
+int nanosleep(const struct timespec *duration, struct timespec * rem);
+#  ifndef CLOCK_REALTIME
+#    define CLOCK_REALTIME 0
+#  endif
+#endif
 
 GPUInt128 gp_global_time;
 

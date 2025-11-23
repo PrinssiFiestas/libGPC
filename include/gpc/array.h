@@ -100,7 +100,7 @@ struct GP_ANONYMOUS_STRUCT(__LINE__) \
     GP_TYPEOF_TYPE(T) data[(CAPACITY) + (sizeof(T) == sizeof(char))]; \
 }
 
-#if !__cplusplus && __STDC_VERSION__ < 202311L // empty arg list for BETTER type checks
+#if !__cplusplus && __STDC_VERSION__ < 202311L && !__clang__// empty arg list for BETTER type checks
 typedef void  (*gp_arr_map_callback_t)(/* T* out_element, const T* in_element */);
 typedef void* (*gp_arr_fold_callback_t)(/* Any* accumulator, const T* element */);
 typedef bool  (*gp_arr_filter_callback_t)(/* const T* element */);
@@ -233,6 +233,12 @@ static inline size_t gp_arr_reserve(
     GPArrayAnyAddr arr_address,
     size_t         capacity)
 {
+    #ifdef GP_STATIC_ANALYSIS // GCC static analyzer can't keep up with conditional
+                              // reallocations, which causes a lot of buffer
+                              // overflow false positives.
+    gp_arr_reallocate(element_size, arr_address, gp_next_power_of_2(capacity));
+    return 0;
+    #else
     GPArrayAny* parr = arr_address;
     if (capacity <= gp_arr_capacity(*parr))
         return 0;
@@ -240,6 +246,7 @@ static inline size_t gp_arr_reserve(
         return capacity - gp_arr_capacity(*parr);
     gp_arr_reallocate(element_size, parr, gp_next_power_of_2(capacity));
     return 0;
+    #endif
 }
 
 /** Copy source array to destination.
@@ -256,7 +263,7 @@ static inline size_t gp_arr_copy(
     GPArrayAny* pdest = (GPArrayAny*)dest_address;
     size_t trunced = gp_arr_reserve(element_size, pdest, src_length);
     src_length -= trunced;
-    assert(gp_arr_capacity(*pdest) >= src_length); // analyzer false positive // TODO after testing inlines, try to remove this
+    assert(gp_arr_capacity(*pdest) >= src_length); // analyzer false positive
     memcpy(*pdest, src, src_length * element_size);
     gp_arr_set(*pdest)->length = src_length;
     return trunced;
@@ -737,7 +744,7 @@ size_t gp_arr_filter(
     0 ? (void_FUNC_void_ptr_OUT_const_void_ptr_IN)(*(GPArrayT_ptr_DEST), *(GPArrayT_ptr_DEST)) : (void)0, \
     gp_arr_map(GP_CHECK_ARR_ARGS_OPTIONAL(size_t_ELEMENT_SIZE, GPArrayT_ptr_DEST, T_ptr_OPTIONAL_SRC), \
         GPArrayT_ptr_DEST, T_ptr_OPTIONAL_SRC, size_t_OPTIONAL_SRC_LENGTH, \
-        void_FUNC_void_ptr_OUT_const_void_ptr_IN) \
+        GP_FPTR_TO_VOIDPTR(void_FUNC_void_ptr_OUT_const_void_ptr_IN)) \
 )
 
 /** Combine elements from left to right.
@@ -758,7 +765,7 @@ size_t gp_arr_filter(
 ( \
     0 ? (void)(GP_CHECK_ACCUMULATOR(ptr_ACCUMULATOR) (ptr_FUNC_ptr_ACCUMULATOR_const_T_ptr_ELEMENT)(ptr_ACCUMULATOR, GPArrayT_IN)) : (void)0, \
     gp_arr_fold(GP_CHECK_SIZE(size_t_ELEMENT_SIZE, *(GPArrayT_IN)), \
-        GPArrayT_IN, ptr_ACCUMULATOR, ptr_FUNC_ptr_ACCUMULATOR_const_T_ptr_ELEMENT) \
+        GPArrayT_IN, ptr_ACCUMULATOR, GP_FPTR_TO_VOIDPTR(ptr_FUNC_ptr_ACCUMULATOR_const_T_ptr_ELEMENT)) \
 )
 
 /** Combine elements from right to left.
@@ -778,7 +785,8 @@ size_t gp_arr_filter(
 ( \
     0 ? (void)(GP_CHECK_ACCUMULATOR(ptr_ACCUMULATOR) (ptr_FUNC_ptr_ACCUMULATOR_const_T_ptr_ELEMENT)(ptr_ACCUMULATOR, GPArrayT_IN)) : (void)0, \
     gp_arr_foldr(GP_CHECK_SIZE(size_t_ELEMENT_SIZE, *(GPArrayT_IN)), \
-        GPArrayT_IN, ptr_ACCUMULATOR, ptr_FUNC_ptr_ACCUMULATOR_const_T_ptr_ELEMENT) \
+        GPArrayT_IN, ptr_ACCUMULATOR, \
+        GP_FPTR_TO_VOIDPTR(ptr_FUNC_ptr_ACCUMULATOR_const_T_ptr_ELEMENT)) \
 )
 
 /** Copies elements conditionally.
@@ -795,7 +803,10 @@ size_t gp_arr_filter(
 ( \
     0 && bool_FUNC_const_T_ptr_ELEMENT(*(GPArrayT_ptr_DEST)) ? (void)0 : (void)0, \
     gp_arr_filter(GP_CHECK_ARR_ARGS_OPTIONAL(size_t_ELEMENT_SIZE, GPArrayT_ptr_DEST, T_ptr_OPTIONAL_SRC), \
-        GPArrayT_ptr_DEST, T_ptr_OPTIONAL_SRC, size_t_OPTIONAL_SRC_LENGTH, bool_FUNC_const_T_ptr_ELEMENT) \
+        GPArrayT_ptr_DEST, \
+        T_ptr_OPTIONAL_SRC, \
+        size_t_OPTIONAL_SRC_LENGTH, \
+        GP_FPTR_TO_VOIDPTR(bool_FUNC_const_T_ptr_ELEMENT)) \
 )
 
 
@@ -838,6 +849,9 @@ size_t gp_arr_filter(
 #  define GP_CHECK_ACCUMULATOR(...)
 #endif
 
+#endif // !defined(GP_NO_TYPE_SAFE_MACRO_SHADOWING) && !defined(GPC_IMPLEMENTATION) && !defined(GP_DOXYGEN)
+// ----------------------------------------------------------------------------
+
 #ifdef __clang__
 // Allow {0} for any type, which is the most portable 0 init before C23. This is
 // mostly used for type safe shadowing macros.
@@ -848,9 +862,6 @@ size_t gp_arr_filter(
 #else
 #define GP_SIZEOF_VALUE(...) sizeof(__VA_ARGS__)
 #endif
-
-#endif // !defined(GP_NO_TYPE_SAFE_MACRO_SHADOWING) && !defined(GPC_IMPLEMENTATION) && !defined(GP_DOXYGEN)
-// ----------------------------------------------------------------------------
 
 #if __cplusplus // TODO C++ untested!
 template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr; }
@@ -871,7 +882,7 @@ template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr;
 #  define GP_CHECK_ARR_STATIC_LENGTH(T, ARR, ...) (void)0
 #endif
 
-#if !__cplusplus // GP_ARR_STATIC stuff
+#if !__cplusplus // GP_ARR_STATIC stuff // TODO does this work with function pointer arrays?? (spiral rule)
 
 #  define GP_ARR_STATIC_OPTIONAL_INITIALIZE_LENGTH(T, ARR, ...) \
 ( \
@@ -884,7 +895,7 @@ template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr;
     0 ? \
         (T*){0} = (ARR)->data \
     : \
-        memcpy((ARR)->data, (T[]){(T){0},__VA_ARGS__} + 1, sizeof(T) * (ARR)->length) \
+        memcpy((ARR)->data, (T[GP_COUNT_ARGS(__VA_ARGS__) + 1]){(T){0},__VA_ARGS__} + 1, sizeof(T) * (ARR)->length) \
 )
 
 #else
@@ -897,6 +908,16 @@ template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr;
     memcpy((ARR)->data, T[]{__VA_ARGS__}, (ARR)->length)
 
 #endif // GP_ARR_STATIC stuff
+
+// Avoid -Wpedantic warning about function pointer to void* conversion
+#if __STDC_VERSION__ >= 202311L
+#  define GP_FPTR_TO_VOIDPTR(FPTR) \
+( \
+    *(void**)memcpy(&(void*){0}, &(void(*)()){(void(*)())(FPTR)}, sizeof(void(*)())) \
+)
+#else
+#  define GP_FPTR_TO_VOIDPTR(FPTR) (FPTR)
+#endif
 
 #if __cplusplus
 } // extern "C"

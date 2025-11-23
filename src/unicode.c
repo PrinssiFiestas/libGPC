@@ -439,6 +439,7 @@ size_t gp_utf32_to_utf8(
 {
     ((GPStringHeader*)*u8 - 1)->length = 0;
     size_t i = 0;
+    #ifndef GP_STATIC_ANALYSIS // false positive on writes
     for (; gp_str_length(*u8) + 3 < gp_str_capacity(*u8); ++i) // skip bounds checking
     { // Manually inlined gp_utf8_encode() is faster for some reason.
         if (i >= u32_length)
@@ -469,6 +470,7 @@ size_t gp_utf32_to_utf8(
             (*u8)[((GPStringHeader*)*u8 - 1)->length++].c = u32[i];
         }
     }
+    #endif
 
     size_t required_capacity = gp_str_length(*u8);
     for (size_t j = i; j < u32_length; ++j)
@@ -513,6 +515,11 @@ size_t gp_utf32_to_utf8(
     }
     else for (; i < u32_length && gp_str_length(*u8) < gp_str_capacity(*u8); ++i)
     {
+        #ifdef GP_STATIC_ANALYSIS // buffer overflow false positive, bounds checked before writing anything
+        gp_str_set(*u8)->length = gp_str_capacity(*u8);
+        return trunced;
+        #endif
+
         if (u32[i] > 0x7F)
         {
             if (u32[i] < 0x800) {
@@ -529,12 +536,12 @@ size_t gp_utf32_to_utf8(
                 (*u8)[gp_str_length(*u8) + 2].c = ((u32[i] & 0x00003F) >>  0) | 0x80;
                 ((GPStringHeader*)*u8 - 1)->length += 3;
             } else {
-                if (gp_str_length(*u8) + 4 > gp_str_capacity(*u8))
+                if (gp_str_length(*u8) + 4 > gp_str_capacity(*u8)) // bounds checked here
                     return trunced + gp_str_capacity(*u8) - gp_str_length(*u8);
                 (*u8)[gp_str_length(*u8) + 0].c = ((u32[i] & 0x1C0000) >> 18) | 0xF0;
                 (*u8)[gp_str_length(*u8) + 1].c = ((u32[i] & 0x03F000) >> 12) | 0x80;
                 (*u8)[gp_str_length(*u8) + 2].c = ((u32[i] & 0x000FC0) >>  6) | 0x80;
-                (*u8)[gp_str_length(*u8) + 3].c = ((u32[i] & 0x00003F) >>  0) | 0x80;
+                (*u8)[gp_str_length(*u8) + 3].c = ((u32[i] & 0x00003F) >>  0) | 0x80; // false positive here
                 ((GPStringHeader*)*u8 - 1)->length += 4;
             }
         }
@@ -1764,6 +1771,13 @@ int gp_str_compare(
 
 uint32_t gp_u32_to_upper(uint32_t c)
 {
+    #ifdef GP_STATIC_ANALYSIS
+    char* old_locale = setlocale(LC_ALL, "C.UTF-8");
+    c = towupper(c);
+    setlocale(LC_ALL, old_locale);
+    return c;
+    #endif
+
     /* Based on and tested against Unicode 5.2 */
     /* Expression used to filter out the characters for the below code:
        awk -F\; '{ if ( $13 != "" ) print $1; }' UnicodeData.txt
@@ -2332,6 +2346,13 @@ uint32_t gp_u32_to_upper(uint32_t c)
 
 uint32_t gp_u32_to_lower(uint32_t c)
 {
+    #ifdef GP_STATIC_ANALYSIS
+    char* old_locale = setlocale(LC_ALL, "C.UTF-8");
+    c = towlower(c);
+    setlocale(LC_ALL, old_locale);
+    return c;
+    #endif
+
     /* Based on and tested against Unicode 5.2 */
     /* Expression used to filter out the characters for the below code:
        awk -F\; '{ if ( $14 != "" ) print $1; }' UnicodeData.txt

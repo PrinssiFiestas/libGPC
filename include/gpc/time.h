@@ -27,7 +27,7 @@ GPUInt128 gp_time_begin(void);
 GP_GNU_ATTRIB(always_inline)
 static inline uint64_t gp_time_ns(const GPUInt128* optional_start_ns)
 {
-    GPUInt128 gp_internal_time();
+    GPUInt128 gp_internal_time(void);
     GPUInt128 start = optional_start_ns != NULL ? *optional_start_ns : gp_internal_time();
     return gp_uint128_lo(gp_uint128_sub(gp_time_begin(), start));
 }

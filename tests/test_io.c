@@ -85,7 +85,7 @@ int main(void)
             GPString contents = gp_str_new_init(arena, 1, f_contents);
             GPStringBuffer(1) buf;
             GPString str = gp_str_buffered(arena, &buf);
-            while (gp_file_read_strip(&str, f, NULL)) // NULL defaults to GP_WHITESPACE
+            while (gp_file_read_strip(&str, f, NULL)) // NULL defaults to GP_WHITESPACE // TODO this should be asserted!
             {
                 GPStringBuffer(64) buf;
                 GPString segment = gp_str_buffered(NULL, &buf);

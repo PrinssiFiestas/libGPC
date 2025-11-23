@@ -19,6 +19,7 @@ GPUInt128 gp_internal_u128_c99_ctor(size_t size, ...)
     case sizeof(uint16_t): u = gp_uint128(0, va_arg(args, gp_promoted_arg_uint16_t)); break;
     case sizeof(uint8_t) : u = gp_uint128(0, va_arg(args, gp_promoted_arg_uint8_t )); break;
     default: GP_UNREACHABLE("gp_u128(): invalid argument.");
+        memset(&u, 0, sizeof u); // Recent versions of Clang introduced false -Wsometimes-uninitialized positive
     }
     va_end(args);
     return u;
@@ -37,6 +38,7 @@ GPInt128 gp_internal_i128_c99_ctor(size_t size, ...)
     case sizeof(int16_t): lo = va_arg(args, gp_promoted_arg_int16_t); break;
     case sizeof(int8_t ): lo = va_arg(args, gp_promoted_arg_int8_t ); break;
     default: GP_UNREACHABLE("gp_i128(): invalid argument.");
+        memset(&lo, 0, sizeof lo); // Recent versions of Clang introduced false -Wsometimes-uninitialized positive
     }
     va_end(args);
     return gp_int128(lo<0, lo);

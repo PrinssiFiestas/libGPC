@@ -39,7 +39,11 @@ bool gp_file_read_line(GPString* out, FILE* in)
             c = fgetc(in);
             if (c == EOF)
                 goto end;
-            (*out)[((GPStringHeader*)*out - 1)->length++].c = c;
+
+            #if GP_STATIC_ANALYSIS
+            if (0 == gp_str_reserve(out, gp_str_capacity(*out) + 1))
+            #endif
+            (*out)[gp_str_set(*out)->length++].c = c;
         }
         gp_assert(gp_str_reserve(out, gp_str_capacity(*out) + 1) == 0,
             "Cannot fit full line to truncating stirng. "
@@ -71,7 +75,12 @@ bool gp_file_read_until(
             c = fgetc(in);
             if (c == EOF)
                 goto end;
-            (*out)[((GPStringHeader*)*out - 1)->length++].c = c;
+
+            #if GP_STATIC_ANALYSIS
+            if (0 == gp_str_reserve(out, gp_str_capacity(*out) + 1))
+            #endif
+            (*out)[gp_str_set(*out)->length++].c = c;
+
             if (c == *match)
                 ++match;
             else
@@ -101,7 +110,7 @@ bool gp_file_read_strip(
         if (c == EOF)
             return false;
         char codepoint[8] = {c};
-        size_t codepoint_length = gp_utf8_decode_codepoint_length(codepoint, 0);
+        size_t codepoint_length = gp_utf8_decode_codepoint_length(codepoint, 0); // TODO does this handle invalid sequences?
         for (size_t i = 1; i < codepoint_length; i++) {
             if ((c = fgetc(in)) == EOF)
                 return false;
@@ -120,7 +129,7 @@ bool gp_file_read_strip(
         if (c == EOF)
             return false;
         char codepoint[8] = {c};
-        size_t codepoint_length = gp_utf8_decode_codepoint_length(codepoint, 0);
+        size_t codepoint_length = gp_utf8_decode_codepoint_length(codepoint, 0); // TODO does this handle invalid sequences?
         for (size_t i = 1; i < codepoint_length; i++) {
             if ((c = fgetc(in)) == EOF)
                 return false;

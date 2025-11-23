@@ -1096,8 +1096,8 @@ GP_NODISCARD static inline GPInt128  gp_int128_int128(GPInt128 i) { return i;   
          GPUInt128: gp_int128_u128, GPInt128: gp_int128_int128)(A)
 #  endif
 #elif !__cplusplus // C99, no type safety and performance hit from va_args
-#  define GP_U128_CTOR(...) gp_u128_c99_ctor(sizeof(__VA_ARGS__), __VA_ARGS__)
-#  define GP_I128_CTOR(...) gp_i128_c99_ctor(sizeof(__VA_ARGS__), __VA_ARGS__)
+#  define GP_U128_CTOR(...) gp_internal_u128_c99_ctor(sizeof(__VA_ARGS__), __VA_ARGS__)
+#  define GP_I128_CTOR(...) gp_internal_i128_c99_ctor(sizeof(__VA_ARGS__), __VA_ARGS__)
 GP_NODISCARD GPUInt128 gp_internal_u128_c99_ctor(size_t size, ...);
 GP_NODISCARD GPInt128 gp_internal_i128_c99_ctor(size_t size, ...);
 #endif // __STDC_VERSION__ >= 201112L

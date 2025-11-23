@@ -516,7 +516,7 @@ void gp_mutex_allocator_destroy(GPMutexAllocator* optional);
 // ----------------------------------------------------------------------------
 
 
-#if !__cplusplus && __STDC_VERSION__ < 202311L
+#if !__cplusplus && __STDC_VERSION__ < 202311L && !__clang__
 // Unlike cast to void(*)(void*), this checks that return type matches.
 static inline void(*gp_internal_defer_func_cast(void(*f)(/* accept any arg type */)))(void*)
 {

@@ -118,6 +118,8 @@ static inline void gp_thread_once(GPThreadOnce* flag, void(*init)(void))
 
 #else // standard threads not supported, use POSIX threads // --------------- //
 
+#include <stdint.h>
+
 #define GP_USE_PTHREADS 1
 
 typedef pthread_t GPThread;

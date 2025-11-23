@@ -6,8 +6,6 @@
 #include "../include/gpc/io.h"
 #include "../src/string.c"
 #include <locale.h>
-#include <errno.h>
-#include <signal.h>
 #include <inttypes.h>
 
 int main(void)
@@ -845,7 +843,7 @@ int main(void)
             }
             ((GPStringHeader*)str - 1)->length = BUF_LEN - 1;
             gp_str_to_valid(&str, NULL, 0, "");
-            for (size_t pos; (pos = gp_str_find_first(str, "\0", 1, pos)) != GP_NOT_FOUND; )
+            for (size_t pos=0; (pos = gp_str_find_first(str, "\0", 1, pos)) != GP_NOT_FOUND; )
                 gp_str_replace(&str, pos, 1, "", 0);
 
             GPArena* scratch = gp_scratch_arena();

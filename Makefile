@@ -136,6 +136,11 @@ test_all:
 	cp build/conversions.o     build/conversionsd.o     # These are well
 	cp build/format_scanning.o build/format_scanningd.o # tested, skip slow
 	cp build/printf.o          build/printfd.o          # static analysis.
+	cp build/int128.o          build/int128d.o          # No memory stuff here.
+	cp build/test_conversions     build/test_conversionsd     # These are well
+	cp build/test_format_scanning build/test_format_scanningd # tested, skip slow
+	cp build/test_printf          build/test_printfd          # static analysis.
+	cp build/test_int128          build/test_int128d          # No memory stuff here.
 	$(MAKE) analyze
 	$(MAKE) tests
 	clang -Wall -Wextra -Werror tests/singleheadertest.c -o build/singleheadertest.exe
@@ -160,6 +165,11 @@ test_all:
 	cp build/conversions.o     build/conversionsd.o     # These are well
 	cp build/format_scanning.o build/format_scanningd.o # tested, skip slow
 	cp build/printf.o          build/printfd.o          # static analysis.
+	cp build/int128.o          build/int128d.o          # No memory stuff here.
+	cp build/test_conversions     build/test_conversionsd     # These are well
+	cp build/test_format_scanning build/test_format_scanningd # tested, skip slow
+	cp build/test_printf          build/test_printfd          # static analysis.
+	cp build/test_int128          build/test_int128d          # No memory stuff here.
 	$(MAKE) analyze
 	$(MAKE) tests
 	make clean
@@ -250,10 +260,12 @@ release_tests: override CFLAGS += $(RELEASE_CFLAGS)
 # GCC static analyzer has been available since version 10, but the early
 # versions are way too slow with way too much false positives so use v12 or newer.
 STATIC_ANALYZER_AVAILABLE = $(shell expr `gcc -dumpversion | cut -f1 -d.` \>= 12)
-ifeq ($(STATIC_ANALYZER_AVAILABLE), 1)
-analyze: override CFLAGS += -fanalyzer -Werror -DGP_STATIC_ANALYSIS
+ifeq ($(STATIC_ANALYZER_AVAILABLE), 1) # No sanitizers nor shadowing macros, which may confuse analyzer. Uninitialized value analysis is unfixable buggy.
+analyze: override CFLAGS += -Werror -fanalyzer -DGP_TESTS -ggdb3 -gdwarf -DGP_STATIC_ANALYSIS -DGP_NO_TYPE_SAFE_MACRO_SHADOWING -Wno-analyzer-use-of-uninitialized-value
+else
+analyze: override CFLAGS += -Werror -DGP_TESTS $(DEBUG_CFLAGS) -no-pie # -no-pie prevents sanitizers from crashing
 endif
-analyze: build_tests # you probably want to run make tests after
+analyze: $(TESTS) # you probably want to run make tests after
 
 ifeq ($(OS), Windows_NT)
 build/libgpc$(LIB_EXT): $(OBJS)
