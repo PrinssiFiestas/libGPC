@@ -836,7 +836,7 @@ int main(void)
             #define BUF_LEN (1024)
             GPStringBuffer(BUF_LEN) buf0;
             GPString str = gp_str_buffered(NULL, &buf0, "");
-            GPRandomState rs = gp_random_state((uintptr_t)str);
+            GPRandomState rs = gp_random_state();
             for (size_t j = 0; j < BUF_LEN ; j += sizeof(uint32_t)) {
                 uint32_t u = gp_random(&rs);
                 memcpy(str + j, &u, sizeof u);

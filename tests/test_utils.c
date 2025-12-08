@@ -35,7 +35,7 @@ int main(void)
         // No need to test gp_random(), it is just a trivial wrapper to
         // pcg32_random_r(), returns random number in range [0, UINT32_MAX].
 
-        GPRandomState s = gp_random_state((uint64_t)time(NULL));
+        GPRandomState s = gp_random_state();
         gp_test("Range");
         {
             for (size_t i = 0; i < 2048; ++i)

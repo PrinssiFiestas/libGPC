@@ -82,7 +82,7 @@ typedef struct gp_arena_node
 } GPArenaNode;
 
 #if GP_HAS_SANITIZER
-#define GP_POISON_BOUNDARY_SIZE 8 // 8 is minimum required by libasan
+#define GP_POISON_BOUNDARY_SIZE 8 // 8 is minimum required by libasan // TODO shouldn't this be GP_ALLOC_ALIGNMENT?
 #else
 #define GP_POISON_BOUNDARY_SIZE 0
 #endif

@@ -346,8 +346,8 @@ int main(void)
             time_t t = time(NULL);
             struct tm* gmt = gmtime(&t);
             gp_assert(gmt != NULL);
-            g_rs = gp_random_state(
-                gmt->tm_mday + 100*gmt->tm_mon + 10000*gmt->tm_year + FUZZ_SEED_OFFSET);
+            g_rs = gp_random_state_seed(
+                gmt->tm_mday + 100*gmt->tm_mon, gmt->tm_year + FUZZ_SEED_OFFSET);
         }
         const size_t loop_count = FUZZ_COUNT;
         const char* random_format(char conversion_type);

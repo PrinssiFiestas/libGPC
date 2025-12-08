@@ -68,6 +68,24 @@ size_t gp_internal_bytes_print_objects(
     size_t*const i,
     GPInternalReflectionData obj);
 
+// It seems like every few years compilers go a bit more crazy with strict
+// aliasing. For instance, GCC 15 considers pointers to `struct A{int i;}` and
+// `struct B{int i;}` to be incompatible. What's even worse is that may_alias
+// attribute seems to be ignored. We'll have this function here if needed for
+// quick fixes, but of course getting rid of aliasing violation (even if we
+// don't really agree with it) should be preferred. At the time of writing, this
+// is not used anywhere. If it turns out to be useful, it should be made public.
+static inline void* gp_launder(void* p)
+{
+    #if __GNUC__ && !__FILC__
+    asm ("" : "+r"(p));
+    #else // have to add function call overhead, sorry!
+    void gp_launder_noinline(void**);
+    gp_launder_noinline(&p);
+    #endif
+    return p;
+}
+
 // ----------------------------------------------------------------------------
 // Portability Assumptions
 

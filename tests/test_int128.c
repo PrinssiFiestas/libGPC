@@ -136,7 +136,7 @@ int main(void)
         time_t t = time(NULL);
         struct tm* tm = gmtime(&t);
         gp_assert(tm != NULL);
-        rs = gp_random_state(tm->tm_yday + 1000*tm->tm_year);
+        rs = gp_random_state_seed(tm->tm_yday, tm->tm_year);
     }
 
     gp_suite("Leading/trailing zeroes"); // internal test, but prerequisite

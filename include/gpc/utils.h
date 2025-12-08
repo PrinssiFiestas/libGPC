@@ -160,31 +160,80 @@ bool gp_approxl(long double a, long double b, long double max_rel_diff) {
  * integer of inferred size making the conversion typedef agnostic. It also
  * guarantees that `gp_as_signed(a - b) < 0` will always return 1 for all b > a.
  * If C99, the return value cannot be inferred and will be long long, but the
- * comparison property mentioned above will still hold.
+ * comparison property will still hold.
  */
 #define gp_as_signed(X) GP_AS_SIGNED(X)
 
 // ----------------------------------------------------------------------------
 // Random number generator
-// https://www.pcg-random.org/
 
-/** PCG based random number generator.
- * Create a RNG object with @ref gp_random_state() which you can use to generate
- * high quality random numbers with great performance.
+/** Random Number Generator.
+ * A PGC https://www.pcg-random.org/ based RNG. Superior to most RNGs in almost
+ * every way (e.g. performance, statistical quality, size). Must be initialized
+ * with @ref gp_random_state() or @ref gp_random_state_seed().
  */
 typedef struct gp_random_state
 {
-    uint64_t state;
-    uint64_t inc;
-    uint32_t coin_flip_cache_bits;
-    uint32_t coin_flip_cache_length;
+    uint64_t state;                  /** @private */
+    uint64_t inc;                    /** @private */
+    uint32_t coin_flip_cache_bits;   /** @private */
+    uint32_t coin_flip_cache_length; /** @private */
 } GPRandomState;
 
-GPRandomState gp_random_state(uint64_t seed) GP_NODISCARD;
-uint32_t gp_random      (GPRandomState*) GP_NONNULL_ARGS() GP_NODISCARD;
-double   gp_frandom     (GPRandomState*) GP_NONNULL_ARGS() GP_NODISCARD;
-int32_t  gp_random_range(GPRandomState*, int32_t min, int32_t max_non_inclusive) GP_NONNULL_ARGS() GP_NODISCARD;
-void     gp_random_bytes(GPRandomState*, void* buffer, size_t buffer_size) GP_NONNULL_ARGS();
+/** Create a Random Number Generator.
+ * The RNG will be seeded with /dev/random on Unices, rand_s() on Windows,
+ * or some unspecified values on other systems. If you need deterministic
+ * random number sequence or need to avoid initialization costs, use
+ * @ref gp_random_state_seed() instead.
+ */
+GPRandomState gp_random_state(void) GP_NODISCARD;
+
+/** Create a seeded Random Number Generator.
+ * For this generator, there are 2^63 possible sequences of pseudorandom
+ * numbers. Each sequence is entirely distinct and has a period of 2^64. The low
+ * 63 bits of @p stream_id selects which stream you will use.
+ * @p init_state specifies where you are in that 2^64 period. Calling this with
+ * the same arguments produces the same output.
+ *     For the most non-deterministic output, use @ref gp_random_state()
+ * instead. One quick and dirty option to initialize unique RNGs is to pass
+ * current time and the address of the RNG like so:
+ * `GPRandomState rng = gp_random_state_seed(time(NULL), (uintptr_t)&rng)`
+ */
+GP_NODISCARD
+GPRandomState gp_random_state_seed(uint64_t init_state, uint64_t stream_id);
+
+/** Generate random integer.
+ * Generates a pseudorandom uniformly distributed 32-bit unsigned integer. Do
+ * not use modulus operator (%) for bounded random numbers, this is wrong with
+ * all RNGs and will cause a bias. Use @ref gp_random_bound() or
+ * @ref gp_random_range() instead.
+ */
+uint32_t gp_random(GPRandomState*) GP_NONNULL_ARGS() GP_NODISCARD;
+
+/** Generate random float.
+ * Generates a pseudorandom float f where 0.0 <= f < 1.0.
+ */
+double gp_frandom(GPRandomState*) GP_NONNULL_ARGS() GP_NODISCARD;
+
+/** Generate bounded random integer.
+ * Generates uniformly distributed bounded random integer, unlike using the
+ * modulus operator, which would give bias.
+ */
+GP_NONNULL_ARGS() GP_NODISCARD
+uint32_t gp_random_bound(GPRandomState*, uint32_t bound);
+
+/** Generate random integer in given range.
+ * Generates uniformly distributed bounded random integer i where
+ * @p min <= i < @p max_non_inclusive.
+ */
+GP_NONNULL_ARGS() GP_NODISCARD
+int32_t gp_random_range(GPRandomState*, int32_t min, int32_t max_non_inclusive);
+
+/** Generate random bytes.
+ * Fills @p buffer with @p buffer_size random bytes.
+ */
+GP_NONNULL_ARGS()
+void gp_random_bytes(GPRandomState*, void* buffer, size_t buffer_size);
 
 
 // ----------------------------------------------------------------------------
