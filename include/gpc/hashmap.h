@@ -33,124 +33,98 @@ extern "C" {
 // ----------------------------------------------------------------------------
 
 
-// ------------------
+// ------------------------------------
 // Hash map
 
-/** Hash map using 128-bit keys.
- * Internally a tree of arrays. Simply uses lowest n bits from the key to index
- * to an array of size 2^n. In case of collisions, a new array of size 2^(n - 1)
- * is created and the last slot is set to point to the new array. Then the next
- * lowest n - 1 bits from the key are used to index to the new array.
- */
-typedef struct gp_map GPMap;
+/** Hash map */
+typedef struct gp_map* GPMap;
 
-/** Hash map using any bytes as keys.
- * Internally based on GPMap.
- * Keys are hashed to 128-bit keys with fast, but non-cryptographic, FNV hashing
- * function.
- */
-typedef struct gp_hash_map GPHashMap;
-
-/** Optional hash map attributes.*/
-typedef struct gp_map_initializer
+/** Hash map iterator */
+typedef struct gp_map_iterator
 {
-    /** 0 for pointers, else elements stored in map memory.*/
+    void*  value; /**< Pointer to the element. */
     size_t element_size;
 
-    /** Initial capacity.
-     * Should be a power of 2. Defaults to 256.
-     */
-    size_t capacity;
+    struct gp_map_bucket* _bs;    /**< @private */
+    uint16_t              _i;     /**< @private */
+    uint16_t              _shift; /**< @private */
+} GPMapIterator;
 
-    /** Element destructor.
-     * If element_size != 0, argument is pointer to the element, else argument
-     * is the actual pointer. In the latter case an example of a valid
-     * destructor is free().
-     */
-    void (*destructor)(void* element);
-} GPMapInitializer;
+/** Create hash map.*/
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
+GPMap gp_map_new(
+    size_t       element_size,
+    GPAllocator* allocator,
+    size_t       init_capacity);
 
-/** Create hash map that takes any bytes as keys.*/
-GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
-GPHashMap* gp_hash_map_new(
-    GPAllocator*,
-    const GPMapInitializer* optional);
+/** Deallocate hash map.*/
+void gp_map_delete(GPMap optional);
 
-/** Deallocate memory.*/
-void gp_hash_map_delete(GPHashMap*);
-
-/** Put element to hash table.
- * @return pointer to the element put in the table.
- */
-GP_NONNULL_ARGS(1, 2) GP_NONNULL_RETURN
-void* gp_hash_map_put(
-    GPHashMap*,
-    const void* key,
-    size_t      key_size,
-    const void* optional_value);
-
-/** Find element.
- * @return pointer to element if found, NULL otherwise.
- */
-GP_NONNULL_ARGS() GP_NODISCARD
-void* gp_hash_map_get(
-    GPHashMap*,
-    const void* key,
-    size_t      key_size);
-
-/** Remove element.
- * @return `true` if element found and removed, `false` otherwise.
- */
-GP_NONNULL_ARGS()
-bool gp_hash_map_remove(
-    GPHashMap*,
-    const void* key,
-    size_t      key_size);
-
-// ------------------
-// Non-hashed map
-
-/** Create hash map that takes 128-bit keys.*/
-GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD
-GPMap* gp_map_new(
-    GPAllocator*,
-    const GPMapInitializer* optional);
-
-/** Deallocate memory.*/
-void gp_map_delete(GPMap* optional);
+/** Deallocate hash map trough pointer.*/
+void gp_map_ptr_delete(GPMap* optional_ptr);
 
 /** Put element to the table.
  * @return pointer to the element put in the table.
  */
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN
 void* gp_map_put(
-    GPMap*,
-    GPUInt128   key,
+    GPMap*      map_addr,
+    const void* optional_key,
+    uint64_t    key_size_or_hash,
     const void* value);
 
 /** Find element.
  * @return pointer to element if found, NULL otherwise.
  */
-GP_NONNULL_ARGS() GP_NODISCARD
+GP_NONNULL_ARGS(1) GP_NODISCARD
 void* gp_map_get(
-    GPMap*,
-    GPUInt128 key);
+    GPMap,
+    const void* optional_key,
+    uint64_t    key_size_or_hash);
 
 /** Remove element.
- * @return `true` if element found and removed, `false` otherwise.
+ * @return pointer to removed element, which is valid until the next operation
+ * on passed map, or NULL if no element found. The return value is mostly used
+ * as a boolean to detect if the value was actually there. If the value is used,
+ * (and not NULL of course) it is recommended to copy it immediately to another
+ * variable.
  */
-GP_NONNULL_ARGS()
-bool gp_map_remove(
+GP_NONNULL_ARGS(1)
+void* gp_map_remove(
     GPMap*,
-    GPUInt128 key);
+    const void* optional_key,
+    uint64_t    key_size_or_hash);
 
-// ------------------
+/** Create a hash map iterator.
+ * If the map is empty, then the value pointer of the iterator will be NULL.
+ * Otherwise it will point to the first unordered element.
+ */
+GP_NODISCARD
+GPMapIterator gp_map_begin(GPMap);
+
+/** Iterate over hash map.*/
+GP_NODISCARD
+GPMapIterator gp_map_next(GPMapIterator);
+
+// ------------------------------------
 // Hashing
 
-/** Hashing functions based on non-cryptographic FNV function.*/
-uint32_t  gp_bytes_hash32 (const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
-uint64_t  gp_bytes_hash64 (const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
+/** 32-bit non-cryptographic FNV hash.*/
+uint32_t gp_bytes_hash32(const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
+/** 64-bit non-cryptographic FNV hash.*/
+uint64_t gp_bytes_hash64(const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
+/** 128-bit non-cryptographic FNV hash.*/
 GPUInt128 gp_bytes_hash128(const void* key, size_t key_size) GP_NONNULL_ARGS() GP_NODISCARD;
+
+/** Default hash.
+ * @ref GPMap uses this internally. This can be used for caching hashes to avoid
+ * repeated hashing.
+ */
+GP_NONNULL_ARGS() GP_NODISCARD
+static inline uint64_t gp_bytes_hash(const void* key, size_t key_size)
+{
+    return gp_bytes_hash64(key, key_size);
+}
 
 
 // ----------------------------------------------------------------------------

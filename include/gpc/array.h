@@ -155,10 +155,10 @@ GP_NONNULL_ARGS()
 static inline GPArrayAny gp_arr_new(
     size_t element_size,
     GPAllocator* allocator,
-    size_t element_count)
+    size_t init_capacity)
 {
     bool is_char = element_size == sizeof(char);
-    const size_t size = gp_round_to_aligned(element_size * element_count + is_char, GP_ALLOC_ALIGNMENT);
+    const size_t size = gp_round_to_aligned(element_size * init_capacity + is_char, GP_ALLOC_ALIGNMENT);
     GPArrayHeader* me = (GPArrayHeader*)gp_mem_alloc(allocator, sizeof(*me) + size);
     *me = (GPArrayHeader) {
         .length = 0,
@@ -207,6 +207,7 @@ static inline void gp_arr_ptr_delete(GPArrayAnyAddr optional_address)
 {
     if (optional_address != NULL)
         gp_arr_delete(*(GPArrayAny*)optional_address);
+    *(GPArrayAny*)optional_address = NULL;
 }
 
 /** Always reallocate array.

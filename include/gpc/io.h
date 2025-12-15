@@ -71,6 +71,16 @@ static inline void gp_file_close(FILE* optional)
         fclose(optional);
 }
 
+/** Close a file pointer by address.
+ * Some destructor callbacks expect a layer of indirection.
+ */
+static inline void gp_file_ptr_close(FILE** optional_addr)
+{
+    if (optional_addr != NULL && *optional_addr != NULL)
+        fclose(*optional_addr);
+    *optional_addr = NULL;
+}
+
 /** Reads line from file.
  * Overwrites any contents in @p dest. Newline will be included in the resultant
  * string. It is highly recommended to have @p dest point to a dynamic string.

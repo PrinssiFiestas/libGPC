@@ -80,6 +80,101 @@ size_t gp_next_power_of_2(size_t x)
         gp_next_power_of_2_32(x) : gp_next_power_of_2_64(x);
 }
 
+GP_NODISCARD static inline GP_CONSTEXPR_FUNCTION
+size_t gp_trailing_zeros_u32(uint32_t u)
+{
+    gp_db_assert(u != 0, "Invalid argument.");
+
+    // Note: C23 stdc_trailing_zeros() breaks builds, don't use it!
+    #if __GNUC__ && !defined(GP_TEST_INT128)
+    GP_STATIC_ASSERT(sizeof u == sizeof(unsigned)); // be pedantic and paranoid
+    return __builtin_ctz(u); // note: generic ctz() not available in older GCC
+    #else // https://graphics.stanford.edu/~seander/bithacks.html
+    u &= -u;
+    // u==0 is undefined with ctz(), we know it's not 0 anyway
+    // size_t c = 32;
+    // if (u) c--;
+    size_t c = 31;
+    if (u & 0x0000FFFF0000FFFF) c -= 16;
+    if (u & 0x00FF00FF00FF00FF) c -=  8;
+    if (u & 0x0F0F0F0F0F0F0F0F) c -=  4;
+    if (u & 0x3333333333333333) c -=  2;
+    if (u & 0x5555555555555555) c -=  1;
+    return c;
+    #endif
+}
+
+GP_NODISCARD static inline GP_CONSTEXPR_FUNCTION
+size_t gp_trailing_zeros_u64(uint64_t u)
+{
+    gp_db_assert(u != 0, "Invalid argument.");
+
+    // Note: C23 stdc_trailing_zeros() breaks builds, don't use it!
+    #if __GNUC__ && !defined(GP_TEST_INT128)
+    GP_STATIC_ASSERT(sizeof u == sizeof(unsigned long long)); // be pedantic and paranoid
+    return __builtin_ctzll(u); // note: generic ctz() not available in older GCC
+    #else // https://graphics.stanford.edu/~seander/bithacks.html
+    u &= -u;
+    // u==0 is undefined with ctz(), we know it's not 0 anyway
+    // size_t c = 64;
+    // if (u) c--;
+    size_t c = 63;
+    if (u & 0x00000000FFFFFFFF) c -= 32;
+    if (u & 0x0000FFFF0000FFFF) c -= 16;
+    if (u & 0x00FF00FF00FF00FF) c -=  8;
+    if (u & 0x0F0F0F0F0F0F0F0F) c -=  4;
+    if (u & 0x3333333333333333) c -=  2;
+    if (u & 0x5555555555555555) c -=  1;
+    return c;
+    #endif
+}
+
+GP_NODISCARD static inline GP_CONSTEXPR_FUNCTION
+size_t gp_leading_zeros_u32(uint32_t u)
+{
+    gp_db_assert(u != 0, "Invalid argument.");
+
+    // Note: C23 stdc_leading_zeros() breaks builds, don't use it!
+    #if __GNUC__ && !defined(GP_TEST_INT128)
+    GP_STATIC_ASSERT(sizeof u == sizeof(unsigned)); // be pedantic and paranoid
+    return __builtin_clz(u); // note: generic clz() not available in older GCC
+    #else // https://graphics.stanford.edu/~seander/bithacks.html
+    uint32_t v = u;
+    uint32_t r;
+    uint32_t shift;
+
+    r     = (v > 0xFFFF    ) << 4; v >>= r;
+    shift = (v > 0xFF      ) << 3; v >>= shift; r |= shift;
+    shift = (v > 0xF       ) << 2; v >>= shift; r |= shift;
+    shift = (v > 0x3       ) << 1; v >>= shift; r |= shift;
+                                                r |= (v >> 1);
+    return 31 - r;
+    #endif
+}
+GP_NODISCARD static inline GP_CONSTEXPR_FUNCTION
+size_t gp_leading_zeros_u64(uint64_t u)
+{
+    gp_db_assert(u != 0, "Invalid argument.");
+
+    // Note: C23 stdc_leading_zeros() breaks builds, don't use it!
+    #if __GNUC__ && !defined(GP_TEST_INT128)
+    GP_STATIC_ASSERT(sizeof u == sizeof(unsigned long long)); // be pedantic and paranoid
+    return __builtin_clzll(u); // note: generic clz() not available in older GCC
+    #else // https://graphics.stanford.edu/~seander/bithacks.html
+    uint64_t v = u;
+    uint64_t r;
+    uint64_t shift;
+
+    r =     (v > 0xFFFFFFFF) << 5; v >>= r;
+    shift = (v > 0xFFFF    ) << 4; v >>= shift; r |= shift;
+    shift = (v > 0xFF      ) << 3; v >>= shift; r |= shift;
+    shift = (v > 0xF       ) << 2; v >>= shift; r |= shift;
+    shift = (v > 0x3       ) << 1; v >>= shift; r |= shift;
+                                                r |= (v >> 1);
+    return 63 - r;
+    #endif
+}
+
 /** Round number up to alignment boundary.
  * @p boundary must be a power of 2.
  * @return @p x if already aligned.

@@ -60,7 +60,7 @@ typedef void* GPLocale;
 
 #if GP_HAS_LOCALE
 
-static GPMap*  gp_s_locale_table;
+static GPMap   gp_s_locale_table;
 static GPMutex gp_s_locale_table_mutex;
 
 static void gp_s_locale_delete(void* locale)
@@ -82,6 +82,10 @@ static GPLocale gp_s_default_locale;
 
 static void gp_s_delete_locale_table(void)
 {
+    for (GPMapIterator it = gp_map_begin(gp_s_locale_table)
+        ; it.value != NULL
+        ; it = gp_map_next(it))
+        gp_s_locale_delete(*(void**)it.value);
     gp_map_delete(gp_s_locale_table);
     gp_mutex_destroy(&gp_s_locale_table_mutex);
     gp_s_locale_delete(gp_s_default_locale);
@@ -89,22 +93,17 @@ static void gp_s_delete_locale_table(void)
 
 static void gp_s_init_locale_table(void)
 {
-    const GPMapInitializer init = {
-        .element_size =  0,
-        .capacity     = 32,
-        .destructor   = gp_s_locale_delete
-    };
-    gp_s_locale_table = gp_map_new(gp_global_heap, &init);
+    gp_s_locale_table = gp_map_new(sizeof(void*), gp_global_heap, 16);
     gp_mutex_init(&gp_s_locale_table_mutex);
 
     #if GP_HAS_LOCALE
-    #if !_WIN32
+    #  if !_WIN32
     gp_s_default_locale = newlocale(LC_ALL_MASK, "C.UTF-8", (locale_t)0);
-    #elif __MINGW32__
+    #  elif __MINGW32__
     gp_default_locale = _create_locale(LC_ALL, "");
-    #else
+    #  else
     gp_default_locale = _create_locale(LC_ALL, ".UTF-8");
-    #endif
+    #  endif
     #endif // GP_HAS_LOCALE
 
     atexit(gp_s_delete_locale_table); // shut up sanitizer
@@ -129,18 +128,18 @@ GPLocale gp_locale(const char* locale_code)
     if (locale_code[0] == '\0')
         return gp_s_default_locale;
 
-    GPUInt128 key = gp_uint128(0, gp_bytes_hash64(locale_code, strlen(locale_code)));
-    GP_MAYBE_ATOMIC GPLocale locale = (GPLocale)gp_map_get(gp_s_locale_table, key);
+    uint64_t key = gp_bytes_hash(locale_code, strlen(locale_code));
+    GP_MAYBE_ATOMIC GPLocale* locale_addr = gp_map_get(gp_s_locale_table, NULL, key);
 
-    if (locale == (GPLocale)0)
+    if (locale_addr == NULL)
     {
         gp_mutex_lock(&gp_s_locale_table_mutex);
 
-        locale = (GPLocale)gp_map_get(gp_s_locale_table, key);
-        if (locale != (GPLocale)0)
+        locale_addr = gp_map_get(gp_s_locale_table, NULL, key);
+        if (locale_addr != NULL)
         {
             gp_mutex_unlock(&gp_s_locale_table_mutex);
-            return locale != (GPLocale)-1 ? locale : (GPLocale)0;
+            return *locale_addr != (GPLocale)-1 ? *locale_addr : (GPLocale)0;
         }
         char full_locale_code[16] = "";
         strncpy(full_locale_code, locale_code, sizeof"xxx_XX"-sizeof"");
@@ -153,18 +152,18 @@ GPLocale gp_locale(const char* locale_code)
         #endif
 
         #if _WIN32
-        locale = _create_locale(LC_ALL, full_locale_code);
+        GPLocale locale = _create_locale(LC_ALL, full_locale_code);
         #elif GP_HAS_LOCALE
-        locale = newlocale(LC_ALL_MASK, full_locale_code, (GPLocale)0);
+        GPLocale locale = newlocale(LC_ALL_MASK, full_locale_code, (GPLocale)0);
         #endif
         if (locale == (GPLocale)0) // mark the locale as unavailable
             locale = (GPLocale)-1;
-        gp_map_put(gp_s_locale_table, key, locale);
+        locale_addr = gp_map_put(&gp_s_locale_table, NULL, key, &locale);
         gp_mutex_unlock(&gp_s_locale_table_mutex);
     }
-    if (locale == (GPLocale)-1)
+    if (*locale_addr == (GPLocale)-1)
         return (GPLocale)0;
-    return locale;
+    return *locale_addr;
     #endif // GP_HAS_LOCALE
 }
 

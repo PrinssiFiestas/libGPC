@@ -30,6 +30,76 @@ int main(void)
         }
     }
 
+    gp_suite("Leading/trailing zeroes");
+    {
+        uint64_t u64;
+        uint32_t u32;
+        GPRandomState rs = gp_random_state();
+
+        gp_random_bytes(&rs, &u64, sizeof u64);
+        gp_test("Leading zeroes (64 bits)"); for (size_t n = 0; n < 64; ++n)
+        {
+            if ((u64 >> n) == 0)
+                continue;
+            #if __GNUC__
+            gp_assert((int)gp_leading_zeros_u64(u64 >> n) == (int)__builtin_clzll(u64 >> n),
+                "%w64X", u64,
+                n,
+                gp_leading_zeros_u64(u64 >> n),
+                __builtin_clzll(u64 >> n));
+            #endif
+            gp_assert(gp_leading_zeros_u64(u64 >> n) >= n);
+            gp_random_bytes(&rs, &u64, sizeof u64);
+        }
+
+        gp_random_bytes(&rs, &u64, sizeof u64);
+        gp_test("Trailing zeroes (64 bits)"); for (size_t n = 0; n < 64; ++n)
+        {
+            if ((u64 << n) == 0)
+                continue;
+            #if __GNUC__
+            gp_assert((int)gp_trailing_zeros_u64(u64 << n) == (int)__builtin_ctzll(u64 << n),
+                "%w64X", u64,
+                n,
+                gp_trailing_zeros_u64(u64 >> n),
+                __builtin_ctzll(u64 >> n));
+            #endif
+            gp_assert(gp_trailing_zeros_u64(u64 << n) >= n, "%zu", n);
+            gp_random_bytes(&rs, &u64, sizeof u64);
+        }
+
+        gp_test("Leading zeroes (32 bits)"); for (size_t n = 0; n < 32; ++n)
+        {
+            if ((u32 >> n) == 0)
+                continue;
+            #if __GNUC__
+            gp_assert((int)gp_leading_zeros_u32(u32 >> n) == (int)__builtin_clz(u32 >> n),
+                "%w32X", u32,
+                n,
+                gp_leading_zeros_u32(u32 >> n),
+                __builtin_clzll(u32 >> n));
+            #endif
+            gp_assert(gp_leading_zeros_u32(u32 >> n) >= n);
+            gp_random_bytes(&rs, &u32, sizeof u32);
+        }
+
+        gp_random_bytes(&rs, &u32, sizeof u32);
+        gp_test("Trailing zeroes (32 bits)"); for (size_t n = 0; n < 32; ++n)
+        {
+            if ((u32 << n) == 0)
+                continue;
+            #if __GNUC__
+            gp_assert((int)gp_trailing_zeros_u32(u32 << n) == (int)__builtin_ctz(u32 << n),
+                "%w32X", u32,
+                n,
+                gp_trailing_zeros_u32(u32 >> n),
+                __builtin_ctzll(u32 >> n));
+            #endif
+            gp_assert(gp_trailing_zeros_u32(u32 << n) >= n, "%zu", n);
+            gp_random_bytes(&rs, &u32, sizeof u32);
+        }
+    } // gp_suite("Leading/trailing zeroes");
+
     gp_suite("Random Nummber Generation");
     {
         // No need to test gp_random(), it is just a trivial wrapper to

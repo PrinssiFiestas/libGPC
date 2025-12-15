@@ -55,286 +55,339 @@ GPUInt128 gp_bytes_hash128(const void* str, const size_t str_size)
 
 struct gp_map
 {
-    const size_t length; // number of slots
-    const size_t element_size; // if 0, elements is in GPSlot
-    GPAllocator*const allocator;
-    void (*const destructor)(void* element); // may be NULL
-};
-
-struct gp_hash_map
-{
-    struct gp_map map;
-};
-
-#define GP_EMPTY  ((size_t) 0)
-#define GP_IN_USE ((size_t)-1)
-typedef struct gp_slot
-{
-    GPUInt128 key;
-    union {
-        uintptr_t index;
-        void*     children;
-    } slot;
-    const void* element;
-} GPSlot;
-
-// GPMap in memory:
-// |GPMap|Slot 0|Slot 1|...|Slot n|Element 0|Element 1|...|Element n|
-//
-// Subsequent slots in memory in case of collissions:
-// |New slot 0|...|New slot n/2|New element 1|...|New element n/2|
-// ^
-// Slot i info points here where i is the index of the colliding slot.
-//
-// If GPMap.element_not_pointer, element is in Slot array, not element array.
-
-static void gp_s_no_op_destructor(void*_) { (void)_; }
-
-GPMap* gp_map_new(GPAllocator* allocator, const GPMapInitializer*_init)
-{
-    #define GP_DEFAULT_MAP_CAP (1 << 8) // somewhat arbitrary atm
-    static const GPMapInitializer defaults = { .capacity = GP_DEFAULT_MAP_CAP };
-    const GPMapInitializer* init = _init == NULL ? &defaults : _init;
-
-    const size_t length = init->capacity == 0 ?
-        GP_DEFAULT_MAP_CAP
-      : gp_next_power_of_2(init->capacity) >> 1;
-
-    const GPMap init_map = {
-        .length       = length,
-        .element_size = init->element_size,
-        .allocator    = allocator,
-        .destructor   = init->destructor == NULL ?
-            gp_s_no_op_destructor
-          : init->destructor
-    };
-    GPMap* block = gp_mem_alloc_zeroes(allocator,
-        sizeof init_map + length * sizeof(GPSlot) + length * init->element_size);
-    return memcpy(block, &init_map, sizeof init_map);
-}
-
-static inline size_t gp_s_next_length(const size_t length)
-{
-    return length/2 < 4 ? 4 : length/2;
-}
-static inline GPUInt128 gp_s_shift_key(const GPUInt128 key, const size_t length)
-{
-    #if __GNUC__ && __SIZEOF_INT128__
-    if      (sizeof length == sizeof(unsigned))
-        return (GPUInt128){.u128 =
-            key.u128 >> (sizeof(int)  * CHAR_BIT -__builtin_clz  (length) - 1)};
-    else if (sizeof length == sizeof(long))
-        return (GPUInt128){.u128 =
-            key.u128 >> (sizeof(long) * CHAR_BIT -__builtin_clzl (length) - 1)};
-    return
-        (GPUInt128){.u128 =
-        key.u128 >> (sizeof(long long)* CHAR_BIT -__builtin_clzll(length) - 1)};
-    #else
-
-    // Find bit width of length which is assumed to be a power of 2.
-    // https://graphics.stanford.edu/~seander/bithacks.html#IntegerLog
-    static const uint64_t b[] = {
-        0xAAAAAAAAAAAAAAAA, 0xCCCCCCCCCCCCCCCC, 0xF0F0F0F0F0F0F0F0,
-        0xFF00FF00FF00FF00, 0xFFFF0000FFFF0000, 0xFFFFFFFF00000000
-    };
-    uint64_t
-    bitw  =  ((uint64_t)length & b[0]) != 0;
-    bitw |= (((uint64_t)length & b[5]) != 0) << 5;
-    bitw |= (((uint64_t)length & b[4]) != 0) << 4;
-    bitw |= (((uint64_t)length & b[3]) != 0) << 3;
-    bitw |= (((uint64_t)length & b[2]) != 0) << 2;
-    bitw |= (((uint64_t)length & b[1]) != 0) << 1;
-
-    // 128-bit bit shift right
-    GPUInt128 new_key = gp_uint128(
-        gp_uint128_hi(key) >> bitw,
-       (gp_uint128_lo(key) >> bitw) | (gp_uint128_hi(key)<<(64-bitw)));
-
-    return new_key;
+    GPAllocator* allocator;
+    #if UINTPTR_MAX < UINT64_MAX
+    uint32_t _alignment_pad;
     #endif
-}
+    uint32_t element_size;
+    uint32_t size_shift; // 1 << size_shift == number_of_elements
 
-// ----------------------------------------------------------------------------
+    /* // Initial allocation:
+    GPMapBucket initial_buckets[(1 << size_shift) + 1];
+    T           initial_elements[1 << size_shift];
+    */
+};
 
-void gp_map_delete_elems(
-    GPMap*const  map,
-    GPSlot*const slots,
-    const size_t length)
+typedef struct gp_map_bucket
 {
-    for (size_t i = 0; i < length; i++)
-    {
-        if (slots[i].slot.index == GP_IN_USE)
-        {
-            if (slots[i].element == NULL)
-                continue;
+    uint64_t              hash;
+    struct gp_map_bucket* children;
+} GPMapBucket;
 
-            map->destructor((void*)slots[i].element);
-        }
-        else if (slots[i].slot.index != GP_EMPTY)
-        {
-            if (slots[i].element != NULL)
-                map->destructor((void*)slots[i].element);
-            gp_map_delete_elems(map, slots[i].slot.children, gp_s_next_length(length));
-        }
-    }
-    if (slots != (GPSlot*)(map + 1))
-        gp_mem_dealloc(map->allocator, slots);
-    else
-        gp_mem_dealloc(map->allocator, map);
-}
+GP_STATIC_ASSERT((sizeof(struct gp_map) & 0xF) == 0, "16 bytes of alignment required.");
 
-void gp_map_delete(GPMap* map)
+GPMap gp_map_new(
+    size_t       element_size,
+    GPAllocator* allocator,
+    size_t       capacity)
 {
-    gp_map_delete_elems(map, (GPSlot*)(map + 1), map->length);
-}
+    gp_assert(element_size < UINT32_MAX);
+    capacity = gp_max(16lu,     capacity);
+    capacity = gp_min(0x4000lu, capacity);
+    size_t size_shift = 63 - __builtin_clzll(capacity); // TODO portability!
+    if (size_shift & 1) // even power makes things easier later
+        size_shift++;
+    capacity = 1 << size_shift;
 
-static void* gp_s_map_put_elem(
-    GPAllocator*const allocator,
-    GPSlot*const            slots,
-    const size_t            length,
-    const GPUInt128         key,
-    const void*const        elem,
-    const size_t            elem_size)
-{
-    uint8_t* values = (uint8_t*)(slots + length);
-    size_t i = gp_uint128_lo(key) & (length - 1);
-
-    if (slots[i].slot.index == GP_EMPTY)
-    {
-        if (elem_size != 0) {
-            if (elem != NULL)
-                memcpy(values + i * elem_size, elem, elem_size);
-            slots[i].element = values + i * elem_size;
-        } else {
-            slots[i].element = elem;
-        }
-        slots[i].slot.index = GP_IN_USE;
-        slots[i].key  = key;
-        return (void*)slots[i].element;
-    }
-    const size_t next_length = gp_s_next_length(length);
-    if (slots[i].slot.index == GP_IN_USE)
-    {
-        GPSlot* new_slots = gp_mem_alloc_zeroes(allocator,
-            next_length * sizeof*new_slots + next_length * elem_size);
-        slots[i].slot.children = new_slots;
-    }
-    return gp_s_map_put_elem(
+    void* map_mem = gp_mem_alloc_aligned(
         allocator,
-        slots[i].slot.children,
-        next_length,
-        gp_s_shift_key(key, length),
-        elem,
-        elem_size);
+        sizeof(struct gp_map)
+            + (capacity + 1) * sizeof(GPMapBucket) // extra one for terminator
+            + (capacity + 0) * element_size,
+        16); // low 4 bits of children pointer used to detect sentinel and to
+             // store size shift of previous level.
+
+    GPMap map = map_mem;
+    *map = (struct gp_map){
+        .allocator    = allocator,
+        .element_size = element_size,
+        .size_shift   = size_shift
+    };
+    GPMapBucket* buckets = (GPMapBucket*)(map + 1);
+    memset(buckets, 0, capacity * sizeof buckets[0]);
+    buckets[capacity].children = (GPMapBucket*)-1; // final (root) terminator
+    return map;
+}
+
+void gp_s_bucket_delete(
+    GPAllocator* allocator, GPMapBucket buckets[], size_t size_shift)
+{
+    size_t size = 1 << size_shift;
+    for (size_t i = 0; i < size; ++i) {
+        if (buckets[i].children != NULL)
+            gp_s_bucket_delete(
+                allocator, buckets[i].children, size_shift >> (2 * (size_shift>4)));
+    }
+    gp_mem_dealloc(allocator, buckets);
+}
+
+void gp_map_delete(GPMap map)
+{
+    if (map == NULL)
+        return;
+
+    // Root node lives in different allocation, which is why we need to
+    // duplicate this loop.
+    GPMapBucket* buckets = (void*)(map + 1);
+    size_t size = 1 << map->size_shift;
+    for (size_t i = 0; i < size; ++i) {
+        if (buckets[i].children != NULL)
+            gp_s_bucket_delete(
+                map->allocator,
+                buckets[i].children,
+                map->size_shift >> (2 * (map->size_shift>4)));
+    }
+    gp_mem_dealloc(map->allocator, map);
+}
+
+void gp_map_ptr_delete(GPMap* map)
+{
+    if (map == NULL || *map == NULL)
+        return;
+    gp_map_delete(*map);
+    *map = NULL;
+}
+
+static void* gp_s_map_put(
+    GPMap        map,
+    size_t       size_shift,
+    GPMapBucket  buckets[],
+    uint64_t     hash,
+    const void*  value)
+{
+    size_t size = 1 << size_shift;
+    size_t mask = size - 1;
+    size_t i    = hash & mask;
+
+    if (buckets[i].hash == 0) {
+        buckets[i].hash = hash;
+        void* ptr = (unsigned char*)(buckets + size + 1) + i * map->element_size;
+        return memcpy(ptr, value, map->element_size);
+    }
+
+    uint64_t hash1 = (hash << (64 - size_shift)) | (hash >> size_shift);
+    size_t size_shift1 = gp_max(size_shift - 2, 4u);
+
+    if (buckets[i].children == NULL) {
+        size_t size1 = gp_max(size >> 2,  1u << 4);
+        size_t mask1 = gp_max(mask >> 2, (1u << 4) - 1);
+        size_t i1    = hash1 & mask1;
+
+        buckets[i].children = gp_mem_alloc_aligned(
+            map->allocator,
+            (size1 + 1) * sizeof(GPMapBucket) + size1 * map->element_size,
+            16);
+        memset(buckets[i].children, 0, size1 *  sizeof(GPMapBucket));
+        buckets[i].children[i1].hash = hash1;
+
+        // Store information for the iterator on how to get back. Low 4 bits of
+        // all children pointers are 0, except for this terminator node, so the
+        // iterator just checks the low 4 bits to detect end of level.
+        buckets[i].children[size1].hash = i;
+        buckets[i].children[size1].children = (void*)(0
+            | (uintptr_t)buckets // aligned to 16 bytes, so we have 4 bits free
+            | (size_shift-1) // max shift = 0x10, must offset -1 to fit in 4 bits
+        );
+
+        void* ptr = (unsigned char*)(buckets[i].children + size1 + 1)
+            + i1 * map->element_size;
+        return memcpy(ptr, value, map->element_size);
+    }
+
+    return gp_s_map_put(map, size_shift1, buckets[i].children, hash1, value);
 }
 
 void* gp_map_put(
-    GPMap* map,
-    GPUInt128 key,
+    GPMap*      map,
+    const void* key,
+    uint64_t    hash,
     const void* value)
 {
-    return gp_s_map_put_elem(
-        map->allocator,
-        (GPSlot*)(map + 1),
-        map->length,
-        key,
-        value,
+    if (key != NULL)
+        hash = gp_bytes_hash(key, hash);
+    else
+        gp_assert(hash != 0, "Invalid hash.");
+
+    return gp_s_map_put(
+        *map,
+        (*map)->size_shift,
+        (GPMapBucket*)(*map + 1),
+        hash,
+        value);
+}
+
+static void* gp_s_map_get(
+    size_t       size_shift,
+    GPMapBucket  buckets[],
+    uint64_t     hash,
+    const size_t value_size)
+{
+    size_t size = 1 << size_shift;
+    size_t mask = size - 1;
+    size_t i    = hash & mask;
+
+    if (buckets[i].hash == hash)
+        return (unsigned char*)(buckets + size + 1) + i * value_size;
+
+    if (buckets[i].children != NULL) {
+        hash = (hash << (64 - size_shift)) | (hash >> size_shift);
+        return gp_s_map_get(
+            size_shift - 2 * (size_shift>4), buckets[i].children, hash, value_size);
+    }
+    return NULL;
+}
+
+void* gp_map_get(
+    GPMap       map,
+    const void* key,
+    uint64_t    hash)
+{
+    if (key != NULL)
+        hash = gp_bytes_hash(key, hash);
+    else
+        gp_assert(hash != 0, "Invalid hash.");
+
+    return gp_s_map_get(
+        map->size_shift,
+        (GPMapBucket*)(map + 1),
+        hash,
         map->element_size);
 }
 
-static void* gp_s_map_get_elem(
-    const GPSlot*const slots,
-    const size_t length,
-    const GPUInt128 key,
-    const size_t elem_size)
+void* gp_s_map_remove(
+    const size_t element_size,
+    size_t       size_shift,
+    GPMapBucket  buckets[],
+    uint64_t     hash)
 {
-    size_t i = gp_uint128_lo(key) & (length - 1);
+    size_t size = 1 << size_shift;
+    size_t mask = size - 1;
+    size_t i    = hash & mask;
 
-    if (slots[i].slot.index == GP_EMPTY)
-        return NULL;
-    else if (slots[i].slot.index == GP_IN_USE || memcmp(&slots[i].key, &key, sizeof key) == 0)
-        return (void*)slots[i].element;
-
-    return gp_s_map_get_elem(
-        slots[i].slot.children, gp_s_next_length(length), gp_s_shift_key(key, length), elem_size);
-}
-
-void* gp_map_get(GPMap* map, GPUInt128 key)
-{
-    return gp_s_map_get_elem(
-        (GPSlot*)(map + 1),
-        map->length,
-        key,
-        map->element_size);
-}
-
-static bool gp_s_map_remove_elem(
-    GPSlot*const slots,
-    const size_t length,
-    const GPUInt128 key,
-    const size_t elem_size,
-    void (*const destructor)(void*))
-{
-    size_t i = gp_uint128_lo(key) & (length - 1);
-    if (slots[i].slot.index == GP_IN_USE) {
-        slots[i].slot.index = GP_EMPTY;
-        destructor((void*)slots[i].element);
-        slots[i].element = NULL;
-        return true;
+    if (buckets[i].hash == hash) {
+        buckets[i].hash = 0;
+        return (unsigned char*)(buckets + size + 1) + i * element_size;
     }
-    else if (slots[i].slot.index == GP_EMPTY) {
-        return false;
+
+    if (buckets[i].children != NULL) {
+        hash = (hash << (64 - size_shift)) | (hash >> size_shift);
+        return gp_s_map_remove(
+            element_size, size_shift - 2 * (size_shift>4), buckets[i].children, hash);
     }
-    else if (memcmp(&slots[i].key, &key, sizeof key) == 0) {
-        slots[i].key = gp_bytes_hash128(&key, sizeof key);
-        destructor((void*)slots[i].element);
-        slots[i].element = NULL;
-        return true;
+    return NULL;
+}
+
+void* gp_map_remove(
+    GPMap*      map,
+    const void* key,
+    uint64_t    hash)
+{
+    if (key != NULL)
+        hash = gp_bytes_hash(key, hash);
+    else
+        gp_assert(hash != 0, "Invalid hash.");
+
+    return gp_s_map_remove(
+        (*map)->element_size,
+        (*map)->size_shift,
+        (GPMapBucket*)(*map + 1),
+        hash);
+}
+
+GPMapIterator gp_map_begin(GPMap map)
+{
+    size_t       shift   = map->size_shift;
+    size_t       size    = 1 << shift;
+    GPMapBucket* buckets = (void*)(map + 1);
+    GPMapBucket* b       = buckets;
+
+    find_first:
+    while (((uintptr_t)b->children & 0xF) == 0) {
+        if (b->children != NULL) { // go down
+            b = buckets = b->children;
+            shift = gp_max(shift - 2, 4u);
+            size  = 1 << shift;
+        }
+        else if (b->hash != 0)
+            return (GPMapIterator){
+                .value        = (unsigned char*)(buckets + size + 1)
+                                    + (b - buckets) * map->element_size,
+                .element_size = map->element_size,
+                ._bs          = buckets,
+                ._i           = b - buckets,
+                ._shift       = shift};
+        else
+            b++;
     }
-    return gp_s_map_remove_elem(
-        slots, gp_s_next_length(length), gp_s_shift_key(key, length), elem_size, destructor);
+    if (b->children == (void*)-1)
+        return (GPMapIterator){0};
+    // else go up
+
+    shift = ((uintptr_t)b->children & 0xF)
+        + 1; // compensate for the -1 in gp_map_put()
+    size = 1 << shift;
+    buckets = (void*)((uintptr_t)b->children &~ 0xF);
+    b = buckets + b->hash;
+
+    if (b->hash == 0) {
+        b++;
+        goto find_first;
+    }
+    return (GPMapIterator){
+        .value        = (unsigned char*)(buckets + size + 1)
+                            + (b - buckets) * map->element_size,
+        .element_size = map->element_size,
+        ._bs          = buckets,
+        ._i           = b - buckets,
+        ._shift       = shift
+    };
 }
 
-bool gp_map_remove(GPMap* map, GPUInt128 key)
+GPMapIterator gp_map_next(GPMapIterator it)
 {
-    return gp_s_map_remove_elem(
-        (GPSlot*)(map + 1),
-        map->length,
-        key,
-        map->element_size,
-        map->destructor);
+    size_t       shift   = it._shift;
+    size_t       size    = 1 << shift;
+    GPMapBucket* buckets = it._bs;
+    GPMapBucket* b       = buckets + it._i + 1;
+
+    find_next:
+    while (((uintptr_t)b->children & 0xF) == 0) {
+        if (b->children != NULL) { // go down
+            b = buckets = b->children;
+            shift = gp_max(shift - 2, 4u);
+            size  = 1 << shift;
+        }
+        else if (b->hash != 0)
+            return (GPMapIterator){
+                .value        = (unsigned char*)(buckets + size + 1)
+                    + (b - buckets) * it.element_size,
+                .element_size = it.element_size,
+                ._bs          = buckets,
+                ._i           = b - buckets,
+                ._shift       = shift};
+        else
+            b++;
+    }
+    if (b->children == (void*)-1)
+        return (GPMapIterator){0};
+    // else go up
+
+    shift = ((uintptr_t)b->children & 0xF)
+        + 1; // compensate for the -1 in gp_map_put()
+    size = 1 << shift;
+    buckets = (void*)((uintptr_t)b->children &~ 0xF);
+    b = buckets + b->hash;
+
+    if (b->hash == 0)  {
+        b++;
+        goto find_next;
+    }
+    return (GPMapIterator){
+        .value        = (unsigned char*)(buckets + size + 1)
+                            + (b - buckets) * it.element_size,
+        .element_size = it.element_size,
+        ._bs          = buckets,
+        ._i           = b - buckets,
+        ._shift       = shift
+    };
 }
-
-GPHashMap* gp_hash_map_new(GPAllocator* alc, const GPMapInitializer* init)
-{
-    return (GPHashMap*)gp_map_new(alc, init);
-}
-
-void gp_hash_map_delete(GPHashMap* map) { gp_map_delete((GPMap*)map); }
-
-void* gp_hash_map_put(
-    GPHashMap*  map,
-    const void* key,
-    size_t      key_size,
-    const void* value)
-{
-    return gp_map_put((GPMap*)map, gp_bytes_hash128(key, key_size), value);
-}
-
-void* gp_hash_map_get(
-    GPHashMap*  map,
-    const void* key,
-    size_t      key_size)
-{
-    return gp_map_get((GPMap*)map, gp_bytes_hash128(key, key_size));
-}
-
-bool gp_hash_map_remove(
-    GPHashMap*  map,
-    const void* key,
-    size_t      key_size)
-{
-    return gp_map_remove((GPMap*)map, gp_bytes_hash128(key, key_size));
-}
-
-

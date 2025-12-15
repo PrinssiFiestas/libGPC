@@ -139,43 +139,6 @@ int main(void)
         rs = gp_random_state_seed(tm->tm_yday, tm->tm_year);
     }
 
-    gp_suite("Leading/trailing zeroes"); // internal test, but prerequisite
-    {
-        uint64_t u64;
-
-        gp_random_bytes(&rs, &u64, sizeof u64);
-        gp_test("Leading zeroes"); for (size_t n = 0; n < 64; ++n)
-        {
-            if ((u64 >> n) == 0)
-                continue;
-            #if __GNUC__
-            gp_assert((int)gp_s_leading_zeros_u64(u64 >> n) == (int)__builtin_clzll(u64 >> n),
-                "%w64X", u64,
-                n,
-                gp_s_leading_zeros_u64(u64 >> n),
-                __builtin_clzll(u64 >> n));
-            #endif
-            gp_assert(gp_s_leading_zeros_u64(u64 >> n) >= n);
-            gp_random_bytes(&rs, &u64, sizeof u64);
-        }
-
-        gp_random_bytes(&rs, &u64, sizeof u64);
-        gp_test("Trailing zeroes"); for (size_t n = 0; n < 64; ++n)
-        {
-            if ((u64 << n) == 0)
-                continue;
-            #if __GNUC__
-            gp_assert((int)gp_s_trailing_zeros_u64(u64 << n) == (int)__builtin_ctzll(u64 << n),
-                "%w64X", u64,
-                n,
-                gp_s_trailing_zeros_u64(u64 >> n),
-                __builtin_ctzll(u64 >> n));
-            #endif
-            gp_assert(gp_s_trailing_zeros_u64(u64 << n) >= n, "%zu", n);
-            gp_random_bytes(&rs, &u64, sizeof u64);
-        }
-    } // gp_suite("Leading/trailing zeroes");
-
     GPUInt128 ua, ub;
     GPInt128  ia, ib;
 

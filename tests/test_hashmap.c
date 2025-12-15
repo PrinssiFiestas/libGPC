@@ -3,38 +3,210 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include "../src/hashmap.c"
+#include <gpc/array.h>
 #include <gpc/assert.h>
-#include <stdlib.h>
-#include <string.h>
-
-typedef struct my_type
-{
-    char* data;
-    size_t length;
-    bool is_destroyed;
-} MyType;
-
-MyType create(const char* init)
-{
-    return (MyType){ strcpy(malloc(strlen(init) + 1), init), strlen(init), false };
-}
-
-// Really takes MyType* as argument but void* avoids awkward func pointer cast
-void destroy(void*_obj)
-{
-    MyType* obj = _obj;
-    free(obj->data);
-    obj->is_destroyed = true;
-}
+#include <errno.h>
 
 int main(void)
 {
-    // Tiny arena to put address sanitizer to work
-    GPArena* _arena = gp_arena_new(NULL, 1);
-    _arena->growth_factor = 0.0; // TODO document this
-    GPAllocator* arena = (GPAllocator*)_arena;
-
     gp_suite("Hash map");
+    {
+        GPMap        map = gp_map_new(sizeof(int), gp_global_heap, 0x10);
+        const char* key1 = "key1";
+        const char* key2 = "key2";
+        uint64_t   hash1 = gp_bytes_hash(key1, strlen(key1));
+        uint64_t   hash2 = gp_bytes_hash(key2, strlen(key2));
+        int       value1 = 1;
+        int       value2 = 2;
+        int       value3 = 3;
+        int*     bucket1 = NULL; // pointer to stored element in map
+        int*     bucket2 = NULL; // pointer to stored element in map
+        int*     bucket3 = NULL; // pointer to stored element in map
+
+        gp_test("Put and get");
+        {
+            // String keys and hashes can be used interchangeably.
+            bucket1 = gp_map_put(&map, key1, strlen(key1), &value1);
+            gp_expect(gp_map_get(map, NULL, hash1) == bucket1);
+            gp_expect(*bucket1 == value1);
+            bucket2 = gp_map_put(&map, NULL, hash2, &value2);
+            gp_expect(gp_map_get(map, key2, strlen(key2)) == bucket2);
+            gp_expect(*bucket2 == value2);
+        }
+
+        gp_test("Iteration");
+        {
+            // GPMap is unordered, you shouldn't rely on the exact order.
+            GPMapIterator it = gp_map_begin(map);
+            if (it.value == bucket1) {
+                gp_expect(it.value == bucket1);
+                it = gp_map_next(it);
+                gp_expect(it.value == bucket2);
+            } else {
+                gp_expect(it.value == bucket2);
+                it = gp_map_next(it);
+                gp_expect(it.value == bucket1);
+            }
+            it = gp_map_next(it);
+            gp_expect(it.value == NULL);
+        }
+
+        gp_test("Removal");
+        {
+            gp_expect(gp_map_get(map, NULL, hash1) == bucket1);
+            gp_expect(gp_map_remove(&map, NULL, hash1) == bucket1);
+            gp_expect(gp_map_get(map, NULL, hash1) == NULL);
+            gp_expect(gp_map_get(map, NULL, hash2) == bucket2);
+            gp_expect(gp_map_remove(&map, NULL, hash2) == bucket2);
+            gp_expect(gp_map_get(map, NULL, hash2) == NULL);
+            gp_expect(gp_map_remove(&map, NULL, hash1) == NULL);
+            gp_expect(gp_map_remove(&map, NULL, hash2) == NULL);
+            gp_expect(gp_map_begin(map).value == NULL);
+        }
+
+        gp_test("Hard coded hashes");
+        {
+            // The exact values of these hashes are used to test internals. This
+            // also demonstrates that you can use whatever hashing function you
+            // like, as long as it never returns zero and the values are
+            // statistically unique enough.
+
+            bucket1 = gp_map_put(&map, NULL, 0x33, &value1);
+            bucket2 = gp_map_put(&map, NULL, 0x03, &value2);
+            gp_expect(bucket1 != bucket2);
+            gp_expect(bucket1 == gp_map_get(map, NULL, 0x33));
+            gp_expect(bucket2 == gp_map_get(map, NULL, 0x03));
+            gp_expect(*bucket1 == value1);
+            gp_expect(*bucket2 == value2);
+
+            bucket3 = gp_map_put(&map, NULL, 0x103, &value3);
+            gp_expect(bucket1 == gp_map_get(map, NULL, 0x33));
+            gp_expect(bucket2 == gp_map_get(map, NULL, 0x03));
+            gp_expect(bucket3 == gp_map_get(map, NULL, 0x103));
+            gp_expect(*bucket1 == value1);
+            gp_expect(*bucket2 == value2);
+            gp_expect(*bucket3 == value3);
+
+            // Again, don't rely on exact order, we just do this because we know
+            // the how the internals work and it's convenient.
+            GPMapIterator it = gp_map_begin(map);
+            gp_expect(it.value == bucket3, *(int*)it.value);
+            it = gp_map_next(it);
+            gp_expect(it.value == bucket2, *(int*)it.value);
+            it = gp_map_next(it);
+            gp_expect(it.value == bucket1, *(int*)it.value);
+            it = gp_map_next(it);
+            gp_expect(it.value == NULL);
+
+            gp_expect(gp_map_remove(&map, NULL, 0x03) != NULL);
+            gp_expect(gp_map_get(map, NULL, 0x03)     == NULL);
+            gp_expect(gp_map_remove(&map, NULL, 0x03) == NULL);
+            gp_expect(gp_map_remove(&map, NULL, 0x33) != NULL);
+            gp_expect(gp_map_get(map, NULL, 0x33)     == NULL);
+            gp_expect(gp_map_remove(&map, NULL, 0x33) == NULL);
+            gp_expect(gp_map_remove(&map, NULL, 0x103) != NULL);
+            gp_expect(gp_map_get(map, NULL, 0x103)     == NULL);
+            gp_expect(gp_map_remove(&map, NULL, 0x103) == NULL);
+        }
+
+        gp_test("Full depth");
+        {
+            // Any halfway decent hash function will not have 60 colliding bits
+            // for 16 values in gazillion years, but something custom like using
+            // pointer values might. This test tests some related edge cases.
+
+            for (uint64_t i = 0; i < 16; ++i)
+                gp_map_put(&map, NULL, 0x0555555555555555 | (i<<60), &(int){i});
+
+            for (uint64_t i = 0; i < 16; ++i)
+                gp_assert(
+                    *(int*)gp_map_get(map, NULL, 0x0555555555555555 | (i<<60)) == (int)i,
+                    i);
+
+            bool found[16] = {false};
+            GPMapIterator it = gp_map_begin(map);
+            for (uint64_t i = 0; i < 16; it = gp_map_next(it), ++i)
+                found[*(int*)it.value] = true;
+            gp_expect(it.value == NULL);
+            for (uint64_t i = 0; i < 16; ++i)
+                gp_assert(found[i], i);
+
+            for (uint64_t i = 0; i < 16; ++i)
+                gp_assert(
+                    gp_map_remove(&map, NULL, 0x0555555555555555 | (i<<60)), i);
+            gp_expect(gp_map_begin(map).value == NULL);
+        }
+        gp_map_delete(map);
+
+        gp_test("Fuzzing");
+        {
+            time_t t = time(NULL);
+            struct tm* tm = gmtime(&t);
+            gp_assert(tm != NULL, strerror(errno));
+            GPRandomState rs = gp_random_state_seed(tm->tm_yday, tm->tm_year);
+
+            // Current implementation's max is internally limited to 0x10-0x4000.
+            size_t init_cap   = gp_random_bound(&rs, 0x4100);
+            size_t iterations = gp_random_range(&rs, 0x1000, 0x10000);
+
+            typedef struct key_val {
+                uint64_t key;
+                int      val;
+            } KeyVal;
+            GPArray(KeyVal) key_vals = gp_arr_new(
+                sizeof key_vals[0], gp_global_heap, iterations);
+            map = gp_map_new(sizeof(int), gp_global_heap, init_cap);
+
+            // Fill elements randomly removing a random element in between.
+            for (size_t i = 0; i < iterations; ++i) {
+                if (gp_random_bound(&rs, 8) != 0) {
+                    KeyVal kv = {.val = i, .key = gp_bytes_hash(&i, sizeof i) };
+                    gp_arr_push(sizeof key_vals[0], &key_vals, &kv);
+                    gp_map_put(&map, NULL, kv.key, &kv.val);
+                } else {
+                    size_t j = gp_random_bound(&rs, gp_arr_length(key_vals));
+                    bool removed = gp_map_remove(&map, NULL, key_vals[j].key);
+                    gp_assert(removed, i, j, key_vals[j].key, key_vals[j].val);
+                    gp_arr_erase(sizeof key_vals[0], &key_vals, j, 1);
+                }
+            }
+
+            // Check matches
+            for (size_t i = 0; i < gp_arr_length(key_vals); ++i) {
+                int* p = gp_map_get(map, NULL, key_vals[i].key);
+                gp_assert(p != NULL, i, key_vals[i].key, key_vals[i].val);
+                gp_assert(*p == key_vals[i].val, i, key_vals[i].key, key_vals[i].val);
+            }
+
+            // Check matches using iterator
+            size_t length = 0;
+            for (GPMapIterator it = gp_map_begin(map); it.value != NULL; it = gp_map_next(it))
+            {
+                size_t i = 0;
+                for (; i < gp_arr_length(key_vals); ++i)
+                    if (*(int*)it.value == key_vals[i].val)
+                        break;
+                gp_assert(
+                    i < gp_arr_length(key_vals),
+                    "Value not found.",
+                    *(int*)it.value);
+                ++length;
+            }
+            gp_expect(length == gp_arr_length(key_vals), length, gp_arr_length(key_vals));
+
+            // Remove all values
+            for (size_t i = 0; i < gp_arr_length(key_vals); ++i)
+                gp_assert(
+                    gp_map_remove(&map, NULL, key_vals[i].key),
+                        i, key_vals[i].key, key_vals[i].val);
+            gp_expect(gp_map_begin(map).value == NULL);
+
+            gp_arr_delete(key_vals);
+            gp_map_delete(map);
+        }
+    } // gp_suite("Hash map");
+
+    gp_suite("Hashing");
     {
         gp_test("FNV_1a Hash");
         {
@@ -42,204 +214,9 @@ int main(void)
             const char* str = "I am the Walrus.";
             gp_assert(gp_bytes_hash32(str,  strlen(str)) == 0x249f7959);
             gp_assert(gp_bytes_hash64(str,  strlen(str)) == 0x7a680bab8c51fa39);
-            gp_assert(gp_uint128_equal(gp_bytes_hash128(str, strlen(str)), gp_uint128(0x67dc4bcbf73fe4e5, 0xb72b80a0168bcee1)));
-        }
-
-        const char* key = "This is my key!";
-        gp_test("Pointer elements");
-        {
-            // Maps store pointers by default.
-            GPHashMap* cstr_map = gp_hash_map_new(arena, NULL);
-
-            gp_expect(gp_hash_map_get(cstr_map, key, strlen(key)) == NULL,
-                "No elements yet");
-
-            const char* cstr = "I am the element!";
-            gp_hash_map_put(cstr_map, key, strlen(key), cstr);
-            gp_expect(gp_hash_map_get(cstr_map, key, strlen(key)) == cstr);
-
-            gp_hash_map_remove(cstr_map, key, strlen(key));
-            gp_expect(gp_hash_map_get(cstr_map, key, strlen(key)) == NULL,
-                "Element removed.");
-        }
-
-        gp_test("Integers as pointer elements");
-        {
-            GPHashMap* int_map = gp_hash_map_new(arena, NULL);
-
-            gp_expect(gp_hash_map_get(int_map, key, strlen(key)) == NULL,
-                "No elements yet");
-
-            // Putting and getting integers as pointers by using casts can save
-            // memory.
-            gp_hash_map_put(int_map, key, strlen(key), (void*)7);
-            gp_expect((intptr_t)gp_hash_map_get(int_map, key, strlen(key)) == 7);
-
-            gp_hash_map_remove(int_map, key, strlen(key));
-
-            // However, now the return value of get() can not be used to check
-            // if element is removed. The element could just be set to 0.
-            gp_expect(gp_hash_map_get(int_map, key, strlen(key)) == NULL,
-                "Element removed??");
-        }
-
-        gp_test("Destructor");
-        {
-            // Since elements are pointers by default, free() is a valid
-            // destructor.
-            GPHashMap* cstr_map = gp_hash_map_new(
-                arena, &(GPMapInitializer){.destructor = free });
-
-            gp_expect(gp_hash_map_get(cstr_map, key, strlen(key)) == NULL,
-                "No elements yet");
-
-            const char cstr_init[] = "C-string on heap!";
-            char* cstr = strcpy(malloc(sizeof cstr_init), cstr_init);
-            gp_hash_map_put(cstr_map, key, strlen(key), cstr);
-            gp_expect(gp_hash_map_get(cstr_map, key, strlen(key)) == cstr);
-
-            gp_hash_map_remove(cstr_map, key, strlen(key));
-
-            gp_expect(gp_hash_map_get(cstr_map, key, strlen(key)) == NULL,
-                "Element removed.");
-
-            // The hash maps in the tests above omitted cleanup since they were
-            // allocated in the arena. Here, the objects themselves are pointers
-            // to objects in heap so cleanup is essential to make sure that
-            // free() is being called for all elements even when the map itself
-            // is in arena.
-            gp_hash_map_delete(cstr_map);
-        }
-
-        gp_test("Sized elements");
-        {
-            // Providing a size for elements tells the map to store the actual
-            // elements in the map, not pointers to them. This is especially
-            // useful with types that don't fit to sizeof(void*) so they do not
-            // need a separate allocation.
-            GPHashMap* map = gp_hash_map_new(
-                arena, &(GPMapInitializer){
-                    .element_size = sizeof(MyType), .destructor = destroy });
-
-            const char* key1 = "Key to first object";
-            const char* key2 = "Key to second object";
-            // The scoping operator {} is used to emphasize that init_values are
-            // copied to appropriate slot in map and are not being used after.
-            {
-                MyType init_values = create("Some stuff");
-                gp_hash_map_put(map, key1, strlen(key1), &init_values);
-
-                // Other way of storing elemets is to use the returned pointer.
-                init_values = create("Some other stuff");
-                MyType* elem = gp_hash_map_put(map, key2, strlen(key2), NULL);
-                *elem = init_values;
-            }
-            MyType* obj1 = gp_hash_map_get(map, key1, strlen(key1));
-            gp_expect(memcmp(obj1->data, "Some stuff", obj1->length) == 0);
-            gp_expect( ! obj1->is_destroyed);
-            MyType* obj2 = gp_hash_map_get(map, key2, strlen(key2));
-            gp_expect(memcmp(obj2->data, "Some other stuff", obj2->length) == 0);
-            gp_expect( ! obj2->is_destroyed);
-
-            gp_hash_map_remove(map, key1, strlen(key1));
-            gp_expect(gp_hash_map_get(map, key1, strlen(key1)) == NULL,
-                "Element removed.");
-
-            // Again, size given in map initializer means that the objects are
-            // stored in the map so there is no use-after-free here. However,
-            // the destructor has been called and any store using key1 will
-            // of course overwrite whatever obj1 is pointing to.
-            gp_expect(obj1->is_destroyed);
-
-            gp_hash_map_delete(map);
-
-            // No use after free here since the map is stored in the arena.
-            // However, destructor for all objects have been run.
-            gp_expect(obj2->is_destroyed);
+            gp_assert(gp_uint128_equal(
+                gp_bytes_hash128(str, strlen(str)),
+                gp_uint128(0x67dc4bcbf73fe4e5, 0xb72b80a0168bcee1)));
         }
     }
-
-    gp_suite("Non-hashed map");
-    {
-        GPMapInitializer init = {.destructor = free };
-        GPMap* map = gp_map_new(gp_global_heap, &init);
-
-        int* elem_25 = malloc(sizeof(int));
-        int* elem_67 = malloc(sizeof(int));
-        *elem_25 = 25;
-        *elem_67 = 67;
-        GPUInt128 key_25 = gp_uint128(0,0);
-        GPUInt128 key_67 = gp_uint128(0,0);
-        *gp_uint128_lo_addr(&key_25) = 3;
-        *gp_uint128_hi_addr(&key_25) = 0;
-        *gp_uint128_lo_addr(&key_67) = 3;
-        *gp_uint128_hi_addr(&key_67) = 9;
-
-        gp_map_put(map, key_25, elem_25);
-        gp_map_put(map, key_67, elem_67);
-        gp_expect(*(int*)gp_map_get(map, key_25) == *elem_25);
-        gp_expect(*(int*)gp_map_get(map, key_67) == *elem_67);
-
-        gp_map_delete(map);
-    }
-
-    // -------------------------------------------
-    // Internal tests
-
-    gp_suite("Pointers");
-    {
-        gp_test("Validity after collision");
-        {
-            GPMapInitializer init = {.element_size = sizeof(int) };
-            GPMap* map = gp_map_new(gp_global_heap, &init);
-
-            GPUInt128 key1 = gp_uint128(0,0);
-            GPUInt128 key2 = gp_uint128(0,0);
-            *gp_uint128_lo_addr(&key1) = 3;
-            *gp_uint128_hi_addr(&key1) = 0;
-            *gp_uint128_lo_addr(&key2) = 3;
-            *gp_uint128_hi_addr(&key2) = 9;
-
-            gp_map_put(map, key1, &(int){ 111 });
-            int* elem1 = gp_map_get(map, key1);
-            gp_expect(*elem1 == 111);
-
-            gp_map_put(map, key2, &(int){ 222 });
-            gp_expect(gp_map_get(map, key1) == elem1); // This failed in old impl
-
-            gp_map_delete(map);
-        }
-
-        gp_test("Double free");
-        {
-            GPMapInitializer init = {.destructor = free };
-            GPMap* map = gp_map_new(arena, &init);
-
-            GPUInt128 key1 = gp_uint128(0,0);
-            GPUInt128 key2 = gp_uint128(0,0);
-            *gp_uint128_lo_addr(&key1) = 3;
-            *gp_uint128_hi_addr(&key1) = 0;
-            *gp_uint128_lo_addr(&key2) = 3;
-            *gp_uint128_hi_addr(&key2) = 9;
-
-            gp_map_put(map, key1, malloc(sizeof(int)));
-            gp_map_put(map, key2, malloc(sizeof(int)));
-
-            gp_map_remove(map, key1); // free once
-            gp_map_delete(map);       // are we freeing again?
-        }
-    }
-    #if __GNUC__ && __SIZEOF_INT128__
-    gp_suite("Uint128");
-    {
-        gp_test("Shift key");
-        {
-            GPUInt128 x = gp_uint128(59318, 86453012);
-            size_t shift = 8;
-            gp_expect(gp_s_shift_key(x, shift).u128 == x.u128 >> 3);
-        }
-    }
-    #endif
-
-    gp_arena_delete(_arena);
 }
