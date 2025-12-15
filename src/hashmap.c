@@ -74,7 +74,9 @@ typedef struct gp_map_bucket
     struct gp_map_bucket* children;
 } GPMapBucket;
 
-GP_STATIC_ASSERT((sizeof(struct gp_map) & 0xF) == 0, "16 bytes of alignment required.");
+#if __STDC_VERSION__ >= 201112L
+_Static_assert((sizeof(struct gp_map) & 0xF) == 0, "16 bytes of alignment required.");
+#endif
 
 GPMap gp_map_new(
     size_t       element_size,

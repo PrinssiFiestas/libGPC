@@ -78,7 +78,7 @@ size_t gp_internal_bytes_print_objects(
 static inline void* gp_launder(void* p)
 {
     #if __GNUC__ && !__FILC__
-    asm ("" : "+r"(p));
+    __asm__ ("" : "+r"(p));
     #else // have to add function call overhead, sorry!
     void gp_launder_noinline(void**);
     gp_launder_noinline(&p);

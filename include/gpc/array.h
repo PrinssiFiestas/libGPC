@@ -234,20 +234,16 @@ static inline size_t gp_arr_reserve(
     GPArrayAnyAddr arr_address,
     size_t         capacity)
 {
-    #ifdef GP_STATIC_ANALYSIS // GCC static analyzer can't keep up with conditional
-                              // reallocations, which causes a lot of buffer
-                              // overflow false positives.
-    gp_arr_reallocate(element_size, arr_address, gp_next_power_of_2(capacity));
-    return 0;
-    #else
     GPArrayAny* parr = arr_address;
+    #ifdef GP_STATIC_ANALYSIS  // GCC static analyzer can't keep up with
+    __asm__ ("" : "+r"(parr)); // conditional reallocations, which causes a lot
+    #endif                     // of buffer overflow false positives. Launder.
     if (capacity <= gp_arr_capacity(*parr))
         return 0;
     else if (gp_arr_allocator(*parr) == NULL)
         return capacity - gp_arr_capacity(*parr);
     gp_arr_reallocate(element_size, parr, gp_next_power_of_2(capacity));
     return 0;
-    #endif
 }
 
 /** Copy source array to destination.

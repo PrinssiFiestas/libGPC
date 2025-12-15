@@ -68,6 +68,7 @@ int main(void)
             gp_random_bytes(&rs, &u64, sizeof u64);
         }
 
+        gp_random_bytes(&rs, &u32, sizeof u32);
         gp_test("Leading zeroes (32 bits)"); for (size_t n = 0; n < 32; ++n)
         {
             if ((u32 >> n) == 0)
