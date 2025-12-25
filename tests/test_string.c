@@ -852,7 +852,7 @@ int main(void)
             size_t std_buf_length = mbsrtowcs(std_buf, &src, gp_str_length(str) + sizeof"", &(mbstate_t){0});
 
             GPArray(uint32_t) gp_buf = gp_arr_new(sizeof(uint32_t), &scratch->base, gp_str_length(str));
-            gp_utf8_to_utf32(&gp_buf, str, gp_str_length(str));
+            gp_utf32_from_utf8(&gp_buf, str, gp_str_length(str));
 
             if ( ! gp_expect(gp_bytes_equal(
                 gp_buf,  gp_arr_length(gp_buf) * sizeof gp_buf[0],
@@ -869,7 +869,7 @@ int main(void)
             const size_t std_chars_length = wcsrtombs(std_chars,
                 &pbuf, sizeof std_chars, &(mbstate_t){0});
 
-            gp_utf32_to_utf8(&str, gp_buf, gp_arr_length(gp_buf));
+            gp_utf8_from_utf32(&str, gp_buf, gp_arr_length(gp_buf));
 
             gp_expect(gp_str_equal(str, std_chars, std_chars_length));
         }

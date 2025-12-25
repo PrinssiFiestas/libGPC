@@ -384,6 +384,115 @@ size_t gp_utf8_encode(
     return gp_utf8_encode_unsafe(mem, u32);
 }
 
+// User has dedicated functions for validation, which is why we ignore them in
+// conversion functions for simplicity.
+
+size_t gp_utf32_from_utf8(
+    GPArray(uint32_t)* out_utf32,
+    const void*        _utf8,
+    size_t             utf8_length)
+{
+    gp_arrt_set(uint32_t, *out_utf32)->length = 0;
+    const uint8_t* utf8 = _utf8;
+    size_t trunced = 0;
+
+    for (size_t i = 0; i < utf8_length; ) {
+        uint32_t decoding;
+        i += gp_utf8_decode(&decoding, utf8, utf8_length, i, &(bool){0});
+        trunced += gp_arr_push(sizeof decoding, out_utf32, &decoding);
+    }
+    return trunced;
+}
+
+size_t gp_utf8_from_utf32(
+    GPString*        out_utf8,
+    const uint32_t*  utf32,
+    size_t           utf32_length)
+{
+    gp_str_set(*out_utf8)->length = 0;
+    size_t trunced = 0;
+
+    for (size_t i = 0; i < utf32_length; ++i) {
+        uint8_t encoding[4];
+        size_t  encoding_length = gp_utf8_encode(encoding, utf32[i], &(bool){0});
+        trunced += gp_str_append(out_utf8, encoding, encoding_length);
+    }
+    return trunced + gp_str_truncate_invalid_tail(out_utf8);
+}
+
+size_t gp_utf16_from_utf8(
+    GPArray(uint16_t)* out_utf16,
+    const void*        _utf8,
+    size_t             utf8_length)
+{
+    gp_arrt_set(uint16_t, *out_utf16)->length = 0;
+    const uint8_t* utf8 = _utf8;
+    size_t trunced = 0;
+
+    for (size_t i = 0; i < utf8_length; ) {
+        uint32_t decoding;
+        i += gp_utf8_decode(&decoding, utf8, utf8_length, i, &(bool){0});
+        if (decoding <= UINT16_MAX)
+            trunced += gp_arr_push(sizeof(uint16_t), out_utf16, &(uint16_t){decoding});
+        else {
+            decoding &= ~0x10000;
+            uint16_t surrogate0 = (decoding >> 10)   | 0xD800;
+            uint16_t surrogate1 = (decoding & 0x3FF) | 0xDC00;
+            trunced += gp_arr_push(sizeof(uint16_t), out_utf16, &surrogate0);
+            trunced += gp_arr_push(sizeof(uint16_t), out_utf16, &surrogate1);
+        }
+    }
+    return trunced;
+}
+
+size_t gp_utf8_from_utf16(
+    GPString*        out_utf8,
+    const uint16_t*  utf16,
+    size_t           utf16_length)
+{
+    gp_str_set(*out_utf8)->length = 0;
+    size_t trunced = 0;
+
+    for (size_t i = 0; i < utf16_length; ++i) {
+        uint32_t decoding = utf16[i];
+        if (0xD7FF < decoding && decoding < 0xE000) { // surrogate
+            if (i == utf16_length - 1)
+                return trunced + 2 + gp_str_truncate_invalid_tail(out_utf8);
+            decoding = 0x10000
+                | ((uint32_t)(utf16[i + 0] &~ 0xD800) << 10)
+                | ((uint32_t)(utf16[i + 1] &~ 0xDC00));
+        }
+        uint8_t encoding[4];
+        size_t  encoding_length = gp_utf8_encode(encoding, decoding, &(bool){0});
+        trunced += gp_str_append(out_utf8, encoding, encoding_length);
+    }
+    return trunced + gp_str_truncate_invalid_tail(out_utf8);
+}
+
+size_t gp_wcs_from_utf8(
+    GPArray(wchar_t)* out_wcs,
+    const void*       utf8,
+    size_t            utf8_length)
+{
+    if (sizeof(wchar_t) == sizeof(uint16_t))
+        return gp_utf16_from_utf8((GPArray(uint16_t)*)out_wcs, utf8, utf8_length);
+    return gp_utf32_from_utf8((GPArray(uint32_t)*)out_wcs, utf8, utf8_length);
+}
+
+size_t gp_utf8_from_wcs(
+    GPString*       out_utf8,
+    const wchar_t*  wcs,
+    size_t          wcs_length)
+{
+    if (sizeof(wchar_t) == sizeof(uint16_t))
+        return gp_utf8_from_utf16(out_utf8, (void*)wcs, wcs_length);
+    return gp_utf8_from_utf32(out_utf8, (void*)wcs, wcs_length);
+}
+
+// All gp_utfX_to_utfY() functions skip any Unicode validation. This makes them
+// unsafe, which is why they are private for now. They are faster though, so
+// don't remove, publish as unsafe functions if they turn out to be useful.
+
 size_t gp_utf8_to_utf32(
     GPArray(uint32_t)* u32,
     const void*const   u8,
@@ -425,9 +534,9 @@ static void gp_s_utf8_to_utf32_very_unsafe(
 {
     for (size_t i = 0, codepoint_length; i < u8_length; i += codepoint_length)
     {
-        uint32_t encoding;
-        codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
-        (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = encoding;
+        uint32_t decoding;
+        codepoint_length = gp_utf8_decode_unsafe(&decoding, u8, i);
+        (*u32)[((GPArrayHeader*)*u32 - 1)->length++] = decoding;
     }
 }
 
@@ -559,20 +668,20 @@ size_t gp_utf8_to_utf16(
     ((GPArrayHeader*)*u16 - 1)->length = 0;
     size_t i = 0;
     size_t codepoint_length;
-    uint32_t encoding;
+    uint32_t decoding;
     for (; gp_arr_length(*u16) < gp_arr_capacity(*u16); i += codepoint_length)
     {
         if (i >= u8_length)
             return 0;
-        codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
-        if (encoding <= UINT16_MAX) {
-            (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = encoding;
+        codepoint_length = gp_utf8_decode_unsafe(&decoding, u8, i);
+        if (decoding <= UINT16_MAX) {
+            (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = decoding;
         } else {
             if (GP_UNLIKELY(gp_arr_length(*u16) + 2 > gp_arr_capacity(*u16)))
                 break;
-            encoding &= ~0x10000;
-            (*u16)[gp_arr_length(*u16) + 0] = (encoding >> 10)   | 0xD800;
-            (*u16)[gp_arr_length(*u16) + 1] = (encoding & 0x3FF) | 0xDC00;
+            decoding &= ~0x10000;
+            (*u16)[gp_arr_length(*u16) + 0] = (decoding >> 10)   | 0xD800;
+            (*u16)[gp_arr_length(*u16) + 1] = (decoding & 0x3FF) | 0xDC00;
             ((GPArrayHeader*)*u16 - 1)->length += 2;
         }
     }
@@ -585,25 +694,25 @@ size_t gp_utf8_to_utf16(
 
     if ( ! trunced) for (; i < u8_length; i += codepoint_length)
     {
-        codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
-        if (encoding <= UINT16_MAX) {
-            (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = encoding;
+        codepoint_length = gp_utf8_decode_unsafe(&decoding, u8, i);
+        if (decoding <= UINT16_MAX) {
+            (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = decoding;
         } else {
-            encoding &= ~0x10000;
-            (*u16)[gp_arr_length(*u16) + 0] = (encoding >> 10)   | 0xD800;
-            (*u16)[gp_arr_length(*u16) + 1] = (encoding & 0x3FF) | 0xDC00;
+            decoding &= ~0x10000;
+            (*u16)[gp_arr_length(*u16) + 0] = (decoding >> 10)   | 0xD800;
+            (*u16)[gp_arr_length(*u16) + 1] = (decoding & 0x3FF) | 0xDC00;
             ((GPArrayHeader*)*u16 - 1)->length += 2;
         }
     }
     else for (; i < u8_length && gp_arr_length(*u16) < gp_arr_capacity(*u16); i += codepoint_length)
     {
-        codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
-        if (encoding <= UINT16_MAX) {
-            (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = encoding;
+        codepoint_length = gp_utf8_decode_unsafe(&decoding, u8, i);
+        if (decoding <= UINT16_MAX) {
+            (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = decoding;
         } else {
-            encoding &= ~0x10000;
-            (*u16)[gp_arr_length(*u16) + 0] = (encoding >> 10)   | 0xD800;
-            (*u16)[gp_arr_length(*u16) + 1] = (encoding & 0x3FF) | 0xDC00;
+            decoding &= ~0x10000;
+            (*u16)[gp_arr_length(*u16) + 0] = (decoding >> 10)   | 0xD800;
+            (*u16)[gp_arr_length(*u16) + 1] = (decoding & 0x3FF) | 0xDC00;
             ((GPArrayHeader*)*u16 - 1)->length += 2;
         }
     }
@@ -618,14 +727,14 @@ static void gp_s_utf8_to_utf16_very_unsafe(
 {
     for (size_t i = 0, codepoint_length; i < u8_length; i += codepoint_length)
     {
-        uint32_t encoding;
-        codepoint_length = gp_utf8_decode_unsafe(&encoding, u8, i);
-        if (encoding <= UINT16_MAX)
-            (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = encoding;
+        uint32_t decoding;
+        codepoint_length = gp_utf8_decode_unsafe(&decoding, u8, i);
+        if (decoding <= UINT16_MAX)
+            (*u16)[((GPArrayHeader*)*u16 - 1)->length++] = decoding;
         else {
-            encoding &= ~0x10000;
-            (*u16)[gp_arr_length(*u16) + 0] = (encoding >> 10)   | 0xD800;
-            (*u16)[gp_arr_length(*u16) + 1] = (encoding & 0x3FF) | 0xDC00;
+            decoding &= ~0x10000;
+            (*u16)[gp_arr_length(*u16) + 0] = (decoding >> 10)   | 0xD800;
+            (*u16)[gp_arr_length(*u16) + 1] = (decoding & 0x3FF) | 0xDC00;
             ((GPArrayHeader*)*u16 - 1)->length += 2;
         }
     }
@@ -655,13 +764,13 @@ size_t gp_utf16_to_utf8(
                 (*u8)[gp_str_length(*u8) + 2].c = ((u16[i] & 0x00003F) >>  0) | 0x80;
                 ((GPStringHeader*)*u8 - 1)->length += 3;
             } else { // surrogate pair
-                const uint32_t encoding = 0x10000
+                const uint32_t decoding = 0x10000
                     | ((uint32_t)(u16[i + 0] &~ 0xD800) << 10)
                     | ((uint32_t)(u16[i + 1] &~ 0xDC00));
-                (*u8)[gp_str_length(*u8) + 0].c = ((encoding & 0x1C0000) >> 18) | 0xF0;
-                (*u8)[gp_str_length(*u8) + 1].c = ((encoding & 0x03F000) >> 12) | 0x80;
-                (*u8)[gp_str_length(*u8) + 2].c = ((encoding & 0x000FC0) >>  6) | 0x80;
-                (*u8)[gp_str_length(*u8) + 3].c = ((encoding & 0x00003F) >>  0) | 0x80;
+                (*u8)[gp_str_length(*u8) + 0].c = ((decoding & 0x1C0000) >> 18) | 0xF0;
+                (*u8)[gp_str_length(*u8) + 1].c = ((decoding & 0x03F000) >> 12) | 0x80;
+                (*u8)[gp_str_length(*u8) + 2].c = ((decoding & 0x000FC0) >>  6) | 0x80;
+                (*u8)[gp_str_length(*u8) + 3].c = ((decoding & 0x00003F) >>  0) | 0x80;
                 ((GPStringHeader*)*u8 - 1)->length += 4;
                 ++i;
             }
@@ -763,9 +872,9 @@ size_t gp_utf8_to_wcs(
 {
     size_t trunced;
     if (WCHAR_MAX > UINT16_MAX)
-        trunced = gp_utf8_to_utf32((GPArray(uint32_t)*)wcs, utf8, utf8_length);
+        trunced = gp_utf32_from_utf8((GPArray(uint32_t)*)wcs, utf8, utf8_length);
     else
-        trunced = gp_utf8_to_utf16((GPArray(uint16_t)*)wcs, utf8, utf8_length);
+        trunced = gp_utf16_from_utf8((GPArray(uint16_t)*)wcs, utf8, utf8_length);
     trunced += gp_arr_reserve(sizeof(*wcs)[0], wcs, gp_arr_length(*wcs) + sizeof"");
     if (gp_arrt_length(wchar_t, *wcs) == 0)
         return trunced;
@@ -796,9 +905,9 @@ size_t gp_wcs_to_utf8(
 
 {
     if (WCHAR_MAX > UINT16_MAX)
-        return gp_utf32_to_utf8(utf8, (uint32_t*)wcs, wcs_length);
+        return gp_utf8_from_utf32(utf8, (uint32_t*)wcs, wcs_length);
     else
-        return gp_utf16_to_utf8(utf8, (uint16_t*)wcs, wcs_length);
+        return gp_utf8_from_utf16(utf8, (uint16_t*)wcs, wcs_length);
 }
 
 uint32_t gp_u32_to_upper(uint32_t);

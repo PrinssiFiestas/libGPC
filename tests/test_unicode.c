@@ -30,7 +30,7 @@ int main(void)
             const char16_t wcs[] = u"zß水🍌";
             gp_arr_copy(
                 sizeof utf16[0], &utf16, wcs, sizeof wcs / sizeof*wcs - sizeof"");
-            gp_utf8_to_utf16(&utf16, utf8, gp_str_length(utf8));
+            gp_utf16_from_utf8(&utf16, utf8, gp_str_length(utf8));
             gp_expect(gp_arr_length(utf16) == sizeof wcs / sizeof*wcs - sizeof"",
                 gp_arr_length(utf16), sizeof wcs / sizeof*wcs - sizeof"");
             if ( ! gp_expect(gp_bytes_equal(
@@ -43,9 +43,9 @@ int main(void)
         gp_test("UTF-16 to UTF-8");
         {
             GPStringBuffer(32) buf;
-            GPString decoding = gp_str_buffered(NULL, &buf);
-            gp_utf16_to_utf8(&decoding, utf16, gp_arr_length(utf16));
-            gp_expect(gp_str_equal(utf8, decoding, gp_str_length(decoding)), utf8, decoding);
+            GPString encoding = gp_str_buffered(NULL, &buf);
+            gp_utf8_from_utf16(&encoding, utf16, gp_arr_length(utf16));
+            gp_expect(gp_str_equal(utf8, encoding, gp_str_length(encoding)), utf8, encoding);
         }
 
         gp_test("UTF-32 to UTF-8");
@@ -58,12 +58,12 @@ int main(void)
                 uint32_t, NULL, &u32buf, 'a', 'b', 'c', 'd', 'e', U'😂');
             GPString str = gp_str_buffered(NULL, &u8buf);
 
-            trunced = gp_utf32_to_utf8(&str, u32s, gp_arrt_length(uint32_t, u32s));
+            trunced = gp_utf8_from_utf32(&str, u32s, gp_arrt_length(uint32_t, u32s));
             gp_expect(gp_str_equal(str, "abcde", 5), str);
             gp_expect(trunced == strlen("😂"), "Full codepoint truncated away.", trunced);
 
             gp_str_set(str)->allocator = arena;
-            trunced = gp_utf32_to_utf8(&str, u32s, gp_arrt_length(uint32_t, u32s));
+            trunced = gp_utf8_from_utf32(&str, u32s, gp_arrt_length(uint32_t, u32s));
             gp_expect( ! trunced);
             gp_expect(gp_str_equal(str, "abcde😂", 9), str);
         }
@@ -71,9 +71,14 @@ int main(void)
 
         // All other conversions work pretty much the same. They are tested
         // elsewhere.
+    } // gp_suite("Conversions");
+
+    gp_suite("Invalid Conversions");
+    {
+        // TODO
     }
 
-    gp_suite("String extensions");
+    gp_suite("String Extensions");
     {
         const char* turkish    = "tr_TR";
         const char* lithuanian = "lt_LT";

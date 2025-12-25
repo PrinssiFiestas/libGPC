@@ -25,7 +25,7 @@
 // Use B (byte 8 bits), W (word 16 bits), D (double word 32 bits),
 // Q (quad word 64 bits), and O (octa word 128 bits for GP[U]Int128) as length
 // specifier for fixed width integers. C23 wN ([u]intN_t) and wfN
-// ([u]int_fastN_t), where N is 8, 16, 32, or 128, is also supported and
+// ([u]int_fastN_t), where N is 8, 16, 32, or 128, are also supported and
 // recommended over non-standard BWDQO.
 //
 // At the time of writing, C23 wN and wfN length specifiers are not widely

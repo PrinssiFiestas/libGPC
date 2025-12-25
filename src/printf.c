@@ -102,9 +102,13 @@ static size_t pf_write_wc(
     PFString* out,
     pf_va_list* args)
 {
+    // At the time of wrtiting, pf_printf() doesn't check for errors. Also
+    // invalid UTF16/UTF32 is relatively rare, so unsafe is somewhat ok.
+    // Probably should fix some day...
     size_t gp_utf8_encode_unsafe(void*, uint32_t);
     char encoding[4];
-    const size_t length = gp_utf8_encode_unsafe(encoding, (wint_t)va_arg(args->list, gp_promoted_arg_wint_t));
+    const size_t length = gp_utf8_encode_unsafe(
+        encoding, (wint_t)va_arg(args->list, gp_promoted_arg_wint_t));
     pf_concat(out, encoding, length);
     return length;
 }
