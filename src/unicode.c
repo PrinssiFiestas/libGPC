@@ -380,7 +380,8 @@ size_t gp_utf8_encode(
     }
     else if ((0xD800 <= u32 && u32 <= 0xDFFF) || 0x10FFFF < u32) // surrogates and too large
         *is_valid = false;
-
+    else if (is_valid != NULL)
+        *is_valid = true;
     return gp_utf8_encode_unsafe(mem, u32);
 }
 
@@ -411,13 +412,19 @@ size_t gp_utf8_from_utf32(
 {
     gp_str_set(*out_utf8)->length = 0;
     size_t trunced = 0;
+    bool last_is_valid = false;
 
     for (size_t i = 0; i < utf32_length; ++i) {
         uint8_t encoding[4];
-        size_t  encoding_length = gp_utf8_encode(encoding, utf32[i], &(bool){0});
+        size_t  encoding_length = gp_utf8_encode(encoding, utf32[i], &last_is_valid);
         trunced += gp_str_append(out_utf8, encoding, encoding_length);
     }
-    return trunced + gp_str_truncate_invalid_tail(out_utf8);
+
+    // On one hand, we want to preserve invalid sequences. On the other hand,
+    // we don't want to turn valid sequences to invalid ones by truncation.
+    if (last_is_valid)
+        return trunced + gp_str_truncate_invalid_tail(out_utf8);
+    return trunced;
 }
 
 size_t gp_utf16_from_utf8(
@@ -452,6 +459,7 @@ size_t gp_utf8_from_utf16(
 {
     gp_str_set(*out_utf8)->length = 0;
     size_t trunced = 0;
+    bool last_is_valid = false;
 
     for (size_t i = 0; i < utf16_length; ++i) {
         uint32_t decoding = utf16[i];
@@ -463,10 +471,15 @@ size_t gp_utf8_from_utf16(
                 | ((uint32_t)(utf16[i + 1] &~ 0xDC00));
         }
         uint8_t encoding[4];
-        size_t  encoding_length = gp_utf8_encode(encoding, decoding, &(bool){0});
+        size_t  encoding_length = gp_utf8_encode(encoding, decoding, &last_is_valid);
         trunced += gp_str_append(out_utf8, encoding, encoding_length);
     }
-    return trunced + gp_str_truncate_invalid_tail(out_utf8);
+
+    // On one hand, we want to preserve invalid sequences. On the other hand,
+    // we don't want to turn valid sequences to invalid ones by truncation.
+    if (last_is_valid)
+        return trunced + gp_str_truncate_invalid_tail(out_utf8);
+    return trunced;
 }
 
 size_t gp_wcs_from_utf8(

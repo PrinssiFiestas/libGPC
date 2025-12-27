@@ -84,6 +84,7 @@ int main(void)
 
         gp_test("UTF-8 to UTF-32 and back");
         {
+            gp_str_copy(&utf8, cstr, sizeof cstr - sizeof"");
             gp_utf32_from_utf8(&utf32, utf8, gp_str_length(utf8));
             gp_utf8_from_utf32(&utf8, utf32, gp_arr_length(utf32));
 
