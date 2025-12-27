@@ -173,17 +173,30 @@ test_all:
 	$(MAKE) analyze
 	$(MAKE) tests
 	make clean
-	@echo "\e[92m\nPassed all tests!\e[0m"
+	@echo "\e[92m\nPassed ALL tests!\e[0m"
+endif
+
+GDB_SYSTEM_INIT_PATH = $(dir $(lastword $(shell gdb --help | grep 'system-wide init files')))
+ifneq ($(GDB_SYSTEM_INIT_PATH),) # GDB is installed
+ifeq ($(MSYS_VERSION), 0)
+GDBINIT_PATH      = $(GDB_SYSTEM_INIT_PATH)
+FULL_GDBINIT_PATH = $(GDB_SYSTEM_INIT_PATH)
+else
+GDBINIT_PATH      = $(shell cygpath -u $(GDB_SYSTEM_INIT_PATH))
+FULL_GDBINIT_PATH = $(shell cygpath -m $(GDB_SYSTEM_INIT_PATH))
+endif
+else ifeq ($(MSYS_VERSION), 0)
+GDBINIT_PATH      = /etc/gdb/
+FULL_GDBINIT_PATH = /etc/gdb/
+else
+GDBINIT_PATH      = /$(MSYS_ENVIRONMENT)/etc/
+FULL_GDBINIT_PATH = $(shell cygpath -m /)$(MSYS_ENVIRONMENT)/etc/
 endif
 
 ifeq ($(MSYS_VERSION), 0)
 INSTALL_PATH = /usr/local/
-GDBINIT_PATH = /etc/gdb/
-FULL_GDBINIT_PATH = $(GDBINIT_PATH)
 else
 INSTALL_PATH = /$(MSYS_ENVIRONMENT)/
-GDBINIT_PATH = /$(MSYS_ENVIRONMENT)/etc/
-FULL_GDBINIT_PATH = $(shell cygpath -m /)$(MSYS_ENVIRONMENT)/etc/
 endif
 
 single_header: build/singleheadergen$(EXE_EXT)

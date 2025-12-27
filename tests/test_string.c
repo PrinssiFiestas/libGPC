@@ -504,7 +504,7 @@ int main(void)
             // - left:  continuation byte, overlong, and truncated codepoint
             // - right: truncated codepoint, bunch of continuation bytes, overlong, more continuation bytes
             // Detecting codepoints boundaries from right is a bit tricky, which
-            // is why we do this in a loop.
+            // is why we test this in a loop.
             for (char cstr[] = "\x80\xC0\xAF\xF2 😁 \x80\x80\x80\x80\x80\xC0\xAF\x80\x80\x80\x80\x80\xF2";
                 strlen(cstr) > strlen("\x80\xC0\xAF\xF2 😁 ");
                 cstr[strlen(cstr)-1] = '\0')

@@ -1049,10 +1049,10 @@ void gp_str_join(GPString* out, GPArray(GPString) strs, const char* separator)
 static bool gp_s_is_soft_dotted(const uint32_t encoding)
 {
     switch (encoding) {
-        case 'i':     case 'j':     case 0x012F:  case 0x0249:  case 0x0268:
-        case 0x029D:  case 0x02B2:  case 0x03F3:  case 0x0456:  case 0x0458:
-        case 0x1D62:  case 0x1D96:  case 0x1DA4:  case 0x1DA8:  case 0x1E2D:
-        case 0x1ECB:  case 0x2071:  case 0x2148:  case 0x2149:  case 0x2C7C:
+        case 'i':     case 'j':     case 0x012F : case 0x0249 : case 0x0268 :
+        case 0x029D : case 0x02B2 : case 0x03F3 : case 0x0456 : case 0x0458 :
+        case 0x1D62 : case 0x1D96 : case 0x1DA4 : case 0x1DA8 : case 0x1E2D :
+        case 0x1ECB : case 0x2071 : case 0x2148 : case 0x2149 : case 0x2C7C :
         case 0x1D422: case 0x1D423: case 0x1D456: case 0x1D457: case 0x1D48A:
         case 0x1D48B: case 0x1D4BE: case 0x1D4BF: case 0x1D4F2: case 0x1D4F3:
         case 0x1D526: case 0x1D527: case 0x1D55A: case 0x1D55B: case 0x1D58E:
@@ -1072,7 +1072,7 @@ static bool gp_s_is_diatrical(const uint32_t encoding)
         (0x1DC0 <= encoding && encoding <= 0x1DFF) ||
         (0x20D0 <= encoding && encoding <= 0x20FF) ||
         (0x2DE0 <= encoding && encoding <= 0x2DFF) ||
-        (0xFE20 <= encoding && encoding <= 0xFE2F);
+        (0xFE20 <= encoding && encoding <= 0xFE2F) ;
 }
 
 GP_NONNULL_ARGS()
@@ -1115,26 +1115,26 @@ void gp_str_to_upper_full(
 
     for (size_t i = 0; i < gp_str_length(*str);)
     {
-        const uint32_t encoding = lookahead;
+        const uint32_t decoding = lookahead;
         i += codepoint_length;
         codepoint_length = gp_utf8_decode_unsafe(&lookahead, *str, i);
 
-        if (encoding == 0x0345 && gp_s_is_diatrical(lookahead)) // Combining Greek Ypogegrammeni
+        if (decoding == 0x0345 && gp_s_is_diatrical(lookahead)) // Combining Greek Ypogegrammeni
         { // Move iota-subscript to end of any sequence of combining marks.
             GP_u32_APPEND(lookahead);
-            lookahead = encoding;
+            lookahead = decoding;
             continue;
         }
 
         if (lookahead == 0x0307                &&
             strncmp(locale_code, "lt", 2) == 0 &&
-            gp_s_is_soft_dotted(encoding))
+            gp_s_is_soft_dotted(decoding))
         { // remove DOT ABOVE after "i"
             i += codepoint_length;
             codepoint_length = gp_utf8_decode_unsafe(&lookahead, *str, i);
         }
 
-        switch (encoding) {
+        switch (decoding) {
         case 0x00DF: GP_u32_APPEND('S',    'S'           ); break; // LATIN SMALL LETTER SHARP S
 
         case 0xFB00: GP_u32_APPEND(0x0046, 0x0046        ); break; // LATIN SMALL LIGATURE FF
@@ -1198,20 +1198,20 @@ void gp_str_to_upper_full(
         case 0x1FF7: GP_u32_APPEND(0x03A9, 0x0342, 0x0399); break; // GREEK SMALL LETTER OMEGA WITH PERISPOMENI AND YPOGEGRAMMENI
 
         default:
-            if (0x1F80 <= encoding && encoding <= 0x1FAF) {
-                if      (encoding < 0x1F88) GP_u32_APPEND(0x1F08 + encoding - 0x1F80, 0x0399);
-                else if (encoding < 0x1F90) GP_u32_APPEND(0x1F08 + encoding - 0x1F88, 0x0399);
-                else if (encoding < 0x1F98) GP_u32_APPEND(0x1F28 + encoding - 0x1F90, 0x0399);
-                else if (encoding < 0x1FA0) GP_u32_APPEND(0x1F28 + encoding - 0x1F98, 0x0399);
-                else if (encoding < 0x1FA8) GP_u32_APPEND(0x1F68 + encoding - 0x1FA0, 0x0399);
-                else                        GP_u32_APPEND(0x1F68 + encoding - 0x1FA8, 0x0399);
-            } else if (encoding == 'i') {
+            if (0x1F80 <= decoding && decoding <= 0x1FAF) {
+                if      (decoding < 0x1F88) GP_u32_APPEND(0x1F08 + decoding - 0x1F80, 0x0399);
+                else if (decoding < 0x1F90) GP_u32_APPEND(0x1F08 + decoding - 0x1F88, 0x0399);
+                else if (decoding < 0x1F98) GP_u32_APPEND(0x1F28 + decoding - 0x1F90, 0x0399);
+                else if (decoding < 0x1FA0) GP_u32_APPEND(0x1F28 + decoding - 0x1F98, 0x0399);
+                else if (decoding < 0x1FA8) GP_u32_APPEND(0x1F68 + decoding - 0x1FA0, 0x0399);
+                else                        GP_u32_APPEND(0x1F68 + decoding - 0x1FA8, 0x0399);
+            } else if (decoding == 'i') {
                 if (strncmp(locale_code, "tr", 2) == 0 || strncmp(locale_code, "az", 2) == 0)
                     GP_u32_APPEND(0x0130);
                 else
                     GP_u32_APPEND('I');
             } else {
-                const uint32_t upper = gp_u32_to_upper(encoding);
+                const uint32_t upper = gp_u32_to_upper(decoding);
                 GP_u32_APPEND(upper);
             }
         }
@@ -1227,9 +1227,9 @@ void gp_str_to_upper_full(
     gp_arena_rewind(scratch, gp_arr_allocation(u32));
 }
 
-static bool gp_s_is_lithuanian_accent(uint32_t encoding)
+static bool gp_s_is_lithuanian_accent(uint32_t decoding)
 { // Only relevants for special cases in gp_to_lower_full() listed here.
-    switch (encoding) {
+    switch (decoding) {
     case 0x0300: // grave
     case 0x00B4: // acute
     case 0x0303: // tilde above
@@ -1241,24 +1241,24 @@ static bool gp_s_is_lithuanian_accent(uint32_t encoding)
 
 #if LITHUANIANS_COMPLAIN_ABOUT_NOT_HANDLING_ALL_ACCENTS
 // use this instead of gp_s_is_lithuanian_accent().
-static bool gp_s_is_above_combining_class(const uint32_t encoding)
+static bool gp_s_is_above_combining_class(const uint32_t decoding)
 {
-    switch (encoding) {
+    switch (decoding) {
     case 0x0346: case 0x034A: case 0x034B: case 0x034C: case 0x0350: case 0x0351:
     case 0x0352: case 0x0357: case 0x035B: case 0x05A8: case 0x05A9: case 0x05AB:
     case 0x05AC: case 0x05AF: case 0x05C4: case 0x0653: case 0x0654:
     return true;
     }
-    if      (0x0300 <= encoding && encoding <= 0x0314) return true;
-    else if (0x033D <= encoding && encoding <= 0x0344) return true;
-    else if (0x0363 <= encoding && encoding <= 0x036F) return true;
-    else if (0x0483 <= encoding && encoding <= 0x0487) return true;
-    else if (0x0592 <= encoding && encoding <= 0x0599 && encoding != 0x0596) return true;
-    else if (0x0483 <= encoding && encoding <= 0x0487) return true;
-    else if (0x059C <= encoding && encoding <= 0x05A1) return true;
-    else if (0x0610 <= encoding && encoding <= 0x0617) return true;
-    else if (0x0657 <= encoding && encoding <= 0x065E && encoding != 0x065C) return true;
-    else if (0x06D6 <= encoding && encoding <= 0x06D9) return true;
+    if      (0x0300 <= decoding && decoding <= 0x0314) return true;
+    else if (0x033D <= decoding && decoding <= 0x0344) return true;
+    else if (0x0363 <= decoding && decoding <= 0x036F) return true;
+    else if (0x0483 <= decoding && decoding <= 0x0487) return true;
+    else if (0x0592 <= decoding && decoding <= 0x0599 && decoding != 0x0596) return true;
+    else if (0x0483 <= decoding && decoding <= 0x0487) return true;
+    else if (0x059C <= decoding && decoding <= 0x05A1) return true;
+    else if (0x0610 <= decoding && decoding <= 0x0617) return true;
+    else if (0x0657 <= decoding && decoding <= 0x065E && decoding != 0x065C) return true;
+    else if (0x06D6 <= decoding && decoding <= 0x06D9) return true;
     return false;
 }
 #endif
@@ -1336,15 +1336,15 @@ void gp_str_to_lower_full(
     uint32_t lookahead;
     size_t codepoint_length = gp_utf8_decode_unsafe(&lookahead, *str, 0);
     uint32_t lookbehind = '\0';
-    uint32_t encoding;
+    uint32_t decoding;
 
-    for (size_t i = 0; i < gp_str_length(*str); lookbehind = encoding)
+    for (size_t i = 0; i < gp_str_length(*str); lookbehind = decoding)
     {
-        encoding = lookahead;
+        decoding = lookahead;
         i += codepoint_length;
         codepoint_length = gp_utf8_decode_unsafe(&lookahead, *str, i);
 
-        if (encoding == 0x03A3) // GREEK CAPITAL LETTER SIGMA
+        if (decoding == 0x03A3) // GREEK CAPITAL LETTER SIGMA
         {
             if (gp_s_is_greek_final(lookbehind, lookahead, (char*)*str + i + codepoint_length))
                 GP_u32_APPEND(0x03C2); // GREEK SMALL LETTER FINAL SIGMA
@@ -1353,7 +1353,7 @@ void gp_str_to_lower_full(
             continue;
         }
 
-        if (strncmp(locale_code, "lt", 2) == 0) switch (encoding)
+        if (strncmp(locale_code, "lt", 2) == 0) switch (decoding)
         {
         case 'I':    GP_u32_APPEND('i');    if (gp_s_is_lithuanian_accent(lookahead)) GP_u32_APPEND(0x0307); continue; // LATIN CAPITAL LETTER I
         case 'J':    GP_u32_APPEND('j');    if (gp_s_is_lithuanian_accent(lookahead)) GP_u32_APPEND(0x0307); continue; // LATIN CAPITAL LETTER J
@@ -1363,7 +1363,7 @@ void gp_str_to_lower_full(
         case 0x0128: GP_u32_APPEND('i', 0x0307, 0x0303); continue; // LATIN CAPITAL LETTER I WITH TILDE
         }
 
-        if (encoding == 'I')
+        if (decoding == 'I')
         {
             if (strncmp(locale_code, "tr", 2) == 0 || strncmp(locale_code, "az", 2) == 0)
             {
@@ -1382,7 +1382,7 @@ void gp_str_to_lower_full(
             continue;
         }
 
-        if (encoding == 0x0130) // LATIN CAPITAL LETTER I WITH DOT ABOVE
+        if (decoding == 0x0130) // LATIN CAPITAL LETTER I WITH DOT ABOVE
         {
             if (strncmp(locale_code, "tr", 2) == 0 || strncmp(locale_code, "az", 2) == 0)
                 GP_u32_APPEND('i');
@@ -1391,7 +1391,7 @@ void gp_str_to_lower_full(
             continue;
         }
 
-        const uint32_t lower = gp_u32_to_lower(encoding);
+        const uint32_t lower = gp_u32_to_lower(decoding);
         GP_u32_APPEND(lower);
     }
 
@@ -1453,7 +1453,7 @@ void gp_str_capitalize(
         ((GPStringHeader*)*str - 1)->length -= second_length;
     }
 
-    struct { GPArrayHeader h; uint32_t arr[4]; } u32_mem = {{.capacity = 4}, {0}};
+    struct { GPArrayHeader h; uint32_t arr[4]; } u32_mem = {{.capacity = 4 }, {0}};
     GPArray(uint32_t) u32 = u32_mem.arr;
     size_t required_capacity = 0; // this gets incremented by GP_u32_APPEND()
 

@@ -163,7 +163,7 @@ int main(void)
                     KeyVal kv = {.val = i, .key = gp_bytes_hash(&i, sizeof i) };
                     gp_arr_push(sizeof key_vals[0], &key_vals, &kv);
                     gp_map_put(&map, NULL, kv.key, &kv.val);
-                } else {
+                } else if (gp_arr_length(key_vals) > 0) {
                     size_t j = gp_random_bound(&rs, gp_arr_length(key_vals));
                     bool removed = gp_map_remove(&map, NULL, key_vals[j].key);
                     gp_assert(removed, i, j, key_vals[j].key, key_vals[j].val);

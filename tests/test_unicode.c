@@ -75,7 +75,25 @@ int main(void)
 
     gp_suite("Invalid Conversions");
     {
-        // TODO
+        static const char cstr[] =
+            "\x80\xC0\xAF\xF2 😁 \x80\x80\x80\x80\x80\xC0\xAF\x80\x80\x80\x80\x80\xF2";
+
+        GPStringBuffer(sizeof cstr - 1) utf8_buf;
+        GPString utf8 = gp_str_buffered(NULL, &utf8_buf);
+        GPArray(uint32_t) utf32 = gp_arr_new(sizeof utf32[0], gp_global_heap, 0);
+
+        gp_test("UTF-8 to UTF-32 and back");
+        {
+            gp_utf32_from_utf8(&utf32, utf8, gp_str_length(utf8));
+            gp_utf8_from_utf32(&utf8, utf32, gp_arr_length(utf32));
+
+            gp_expect(
+                gp_str_equal(utf8, cstr, sizeof cstr - sizeof""),
+                "Converting to UTF-32 and back should result to original string, "
+                "even in case of invalid strings.");
+        }
+
+        gp_arr_delete(utf32);
     }
 
     gp_suite("String Extensions");
