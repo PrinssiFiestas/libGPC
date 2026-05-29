@@ -143,7 +143,7 @@ static inline int gp_debugger_detached(void) { return gp_debugger_is_detached();
 #elif GP_HAS_BUILTIN(__builtin_debugtrap)
     #define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_BUILTIN_DEBUGTRAP
 #elif defined(__FILC__) // inline assembly not supported
-    #define GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_BUILTIN_TRAP
+    #define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_BUILTIN_TRAP
 #elif defined(__DMC__) && defined (_M_IX86)
 	#define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_TRAP_INSTRUCTION
     #define GP_TRAP_INSTRUCTION __asm int 3h

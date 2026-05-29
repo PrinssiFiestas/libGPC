@@ -48,7 +48,7 @@ size_t gp_utf8_decode_codepoint_length(
  * Decodes codepoint from @p utf8 at @p utf8_index and stores it to @p decoding.
  * If @p is_valid is NULL, then @p utf8 must point to valid UTF-8 string.
  * Otherwise if no decoding error it will be set true. If decoding error
- * occurres, false will be written to it and an invalid UTF-32 value will be
+ * occurs, false will be written to it and an invalid UTF-32 value will be
  * written to @p decoding that encodes back to the original invalid UTF-8 when
  * passed to @ref gp_utf8_encode().
  * @return amount of bytes read from @p utf8.
@@ -66,8 +66,8 @@ size_t gp_utf8_decode(
  * anywhere from 1 to 4 bytes, so @p encoding should be able to hold at least
  * that many bytes. The result will NOT be null-terminated. If @p is_valid is
  * NULL, then @p decoding must be a valid UTF-32 codepoint. Otherwise if no
- * encoding error it will be set true. If encoding error occurress, false will
- * be written to it and some invalid UTF-8 byte sequence is written to encoding.
+ * encoding error it will be set true. If encoding error occurs, false will be
+ * written to it and some invalid UTF-8 byte sequence is written to encoding.
  * @return encoded UTF-8 codepoint length in bytes.
  */
 GP_NONNULL_ARGS(1)

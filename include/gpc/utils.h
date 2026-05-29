@@ -59,7 +59,7 @@ GP_NODISCARD static inline GP_CONSTEXPR_FUNCTION
 uint64_t gp_next_power_of_2_64(uint64_t x)
 {
     #if __GNUC__ && LLONG_MAX == INT64_MAX // pedantic size check due to clzg() not always available
-    return x == 0 ? 1 : 1 << (64 - __builtin_clzll(x));
+    return x == 0 ? 1 : 1llu << (64 - __builtin_clzll(x));
     #else
     x |= x >> 1;
     x |= x >> 2;
