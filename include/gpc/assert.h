@@ -2,17 +2,10 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-/**
- * @file assert.h
- * @brief Unit testing
- */
-
 #ifndef GP_ASSERT_INCLUDED
 #define GP_ASSERT_INCLUDED 1
 
-#include <gpc/bytes.h>
-#include <gpc/overload.h>
-#include <gpc/attributes.h>
+#include <gpc/types.h>
 #include <gpc/breakpoint.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -27,119 +20,186 @@ extern "C" {
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
-
-
-// On failures, gp_assert() and gp_expect() print formatted information about
-// their arguments to standard error. First, the boolean expression passed as
-// first argument is printed with the location of the assertion. Example:
-/*
-    gp_expect(1 + 1 == 3);  // Prints
-                            // Expectation 1 + 1 == 3 FAILED in line xx file yy.
-*/
-// The exact message of the first line might be slightly different, but it will
-// be along those lines.
-//     Next, information about additionally passed arguments will be printed in
-// form "argument = evaluated_argument". Example:
-/*
-    gp_expect(false, 1 + 1, my_int_var); // Prints
-                            // Expectation false FAILED in line xx file yy.c.
-                            // 1 + 1 = 2
-                            // my_int_var = -39
-*/
-// If not C++, format strings can be passed for custom formatting. In C99, these
-// are required. A string literal without format specifiers is considered a note
-// and will be printed without additional formatting. Example:
-/*
-    gp_expect(0, "My non-formatted note.", "%x", 127); // Prints
-                            // Expectation 0 FAILED in line xx file yy.c.
-                            // My non-formatted note.
-                            // 127 = 7f
-*/
-// If the format string starts with a opening brace and optionally space, they
-// will be added to the evaluated value as well. This makes printing structs and
-// arrays nicer. Example:
-/*
-    gp_expect(0,
-        "{ %s, %zu }", s.str, s.size,
-        "[%i, %i, %i, %i]", arr[0], arr[1], arr[2], arr[3]); // Prints
-                            // Expectation 0 FAILED in line xx file yy.c.
-                            // { s.str, s.size } = { "blah", 4 }
-                            // [arr[0], arr[1], arr[2], arr[3]] = [2, 7, 9, 4]
-*/
+/// @defgroup assert Testing and Assertions
+/// @code
+/// #include <gpc/assert.h>
+/// @endcode
+/// This module provides macros for assertions and functions for unit testing.
+/// All assertion macros can be used for unit testing as well as any other code.
+///
+/// On failures, assertion macros print formatted information about their
+/// arguments to standard error. First, the boolean expression passed as first
+/// argument is printed with the location of the assertion. For example,
+/// @code
+/// gp_expect(1 + 1 == 3);
+/// @endcode
+/// may print
+/// @code
+/// file.c line 10 in main
+/// Condition 1 + 1 == 3 [FAILED]
+/// @endcode
+/// The exact message may change and should not be relied upon.
+///
+/// Next, information about additionally passed arguments will be printed in
+/// form `argument = evaluated_argument`. Example:
+/// @code
+/// const char* my_string = "some characters";
+/// int my_int_var = 0;
+/// float my_float_var = 3.14;
+/// gp_expect(my_int_var + 1 == 3,
+///     my_int_var,
+///     my_float_var,
+///     my_int_var + 1,
+///     my_string + 5);
+/// @endcode
+/// may print
+/// @code
+/// file.c line 16 in main
+/// Condition my_int_var + 1 == 3 [FAILED]
+/// my_int_var = 0
+/// my_float_var = 3.14
+/// my_int_var + 1 = 1
+/// my_string + 5 = "characters"
+/// @endcode
+///
+/// If not C++, format strings can be passed for custom formatting. In C99,
+/// these are required. A string literal without format specifiers is considered
+/// a note and will be printed without additional formatting. Example:
+/// @code
+/// gp_expect(0, "Note: this is a literal.", "%x", 127);
+/// @endcode
+/// may print
+/// @code
+/// file.c line 17 in main
+/// Condition 0 [FAILED]
+/// Note: this is a literal.
+/// 127 = 7f
+/// @endcode
+///
+/// If the format string starts with a opening brace and optionally space, they
+/// will be added to the evaluated value as well. This makes printing structs and
+/// arrays nicer. Example:
+/// @code
+/// gp_expect(0,
+///     "{ %s, %zu }", s.str, s.size,
+///     "[%i, %i, %i, %i]", arr[0], arr[1], arr[2], arr[3]);
+/// @endcode
+/// may print
+/// @code
+/// file.c line 18 in main
+/// Condition 0 [FAILED]
+/// { s.str, s.size } = { "blah", 4 }
+/// [arr[0], arr[1], arr[2], arr[3]] = [2, 7, 4, 9]
+/// @endcode
+/// @{
 
 /** Fatal assertion.
- * @return true if condition is true. If condition is false prints fail message,
- * marks current test and suite (if running tests) as failed, and exits program.
+ * If condition is false prints fail message, marks current test and suite (if
+ * running tests) as failed, and exits program. Unlike standard assert(), this
+ * macro cannot be disabled. Use @ref gp_assume() instead if performance is an
+ * issue.
+ *
+ * @return true if condition is true, will not return otherwise.
  */
-#define gp_assert(/* bool condition, variables*/...) \
+#define gp_assert(/* bool condition, variables */...) \
     (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
-        (GP_FAIL(__VA_ARGS__), GP_DEBUG_BREAKPOINT_TRAP, exit(1), false))
+        (GP_FAIL_MESSAGE(__VA_ARGS__), GP_DEBUG_BREAKPOINT_TRAP, exit(1), false))
 
 /** Non-fatal assertion.
- * @return true if condition is true. If condition is false prints fail message,
- * marks current test and suite (if running tests) as failed, and returns false.
+ * If condition is false prints fail message, marks current test and suite (if
+ * running tests) as failed without ending execution. This is mostly useful when
+ * unit testing, application code will rarely use this.
+ *
+ * @return condition casted to bool.
  */
-#define gp_expect(/* bool condition, variables*/...) \
+#define gp_expect(/* bool condition, variables */...) \
     (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
-        (GP_FAIL(__VA_ARGS__), false))
+        (GP_FAIL_MESSAGE(__VA_ARGS__), false))
 
+/** Optimized assertion.
+ * If NDEBUG is not defined and condition is false, marks current test and suite
+ * (if running tests) as failed, and exits program. If NDEBUG is defined and
+ * condition is false, then undefined behavior is invoked. In practice, this
+ * means that this assertion is often optimized away completely in optimized
+ * builds. This may include the condition itself when there is no side effects,
+ * however, calling functions with side effects in condition is safe. Optimizing
+ * compilers and static analyzers may use the condition for symbolic analysis
+ * to produce better output.
+ *
+ * @return true if condition is true, undefined otherwise.
+ */
+#define gp_assume(/* bool condition, variables */...) \
+    (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
+        (GP_FAIL_MESSAGE(__VA_ARGS__), GP_UNREACHABLE(), false))
+
+/** Invoke undefined behavior.
+ * Equivalent to `gp_assert(false)` when NDEBUG is not defined. Otherwise,
+ * invokes undefined behavior, which may be used by the compiler for better
+ * optimizations like dead code elimination.
+ *
+ * Arguments will be passed to @ref gp_assert() for error messages in debug
+ * builds, ignored otherwise.
+ */
 #ifndef NDEBUG
-/** Fatal assertion that can be disabled.
- * @return true if condition is true. If condition is false prints fail message,
- * marks current test and suite (if running tests) as failed, and exits program.
- */
-#define gp_db_assert(/* bool condition, variables*/...) \
-    (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
-        (GP_FAIL(__VA_ARGS__), GP_DEBUG_BREAKPOINT_TRAP, exit(1), false))
-
-/** Non-fatal assertion that can be disabled.
- * @return true if condition is true. If condition is false prints fail message,
- * marks current test and suite (if running tests) as failed, and returns false.
- */
-#define gp_db_expect(/* bool condition, variables*/...) \
-    (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
-        (GP_FAIL(__VA_ARGS__), false))
-
-#else
-#define gp_db_assert(...) gp_pass_bool(sizeof(GP_1ST_ARG(__VA_ARGS__)))
-#define gp_db_expect(...) gp_pass_bool(sizeof(GP_1ST_ARG(__VA_ARGS__)))
-#endif
-
-/** Control flow assertion.
- * Portably assert that control flow never reaches at a given point. The
- * assertion is fatal in debug builds, otherwise undefined behavior is invoked,
- * which may be used by the compiler for better optimizations like dead code
- * elimination.
- */
-#ifndef NDEBUG
-#define GP_UNREACHABLE(...) \
-do { \
+#  if defined(__GNUC__) && !defined(__cplusplus) && !defined(GP_PEDANTIC) // nicer fail message
+#    define GP_UNREACHABLE(...) \
+({ \
     bool unreachable = 0; \
     gp_assert(unreachable, __VA_ARGS__); \
-} while (0)
+})
+#  else
+#    define GP_UNREACHABLE(...) gp_assert(0, __VA_ARGS__)
+#  endif
 #elif __GNUC__
-#define GP_UNREACHABLE(...) __builtin_unreachable()
+#  define GP_UNREACHABLE(...) __builtin_unreachable()
 #elif _MSC_VER
-#define GP_UNREACHABLE(...) __assume(0)
+#  define GP_UNREACHABLE(...) __assume(0)
 #else
-#define GP_UNREACHABLE(...) (*(char*)0 = 0)
+#  define GP_UNREACHABLE(...) (*(char*)0 = 0)
 #endif
+
+/** Compile-time assertion.
+ *
+ * @a CONDITION is a compile time expression that aborts compilation if it
+ * evaluates to zero in which case @a MESSAGE (passed as a string literal) will
+ * be displayed. Otherwise, does nothing.
+ *
+ * @a MESSAGE is optional and can be omitted. If C99, @a MESSAGE will be ignored
+ * and the error message in case of failing @a CONDITION will be some cryptic
+ * message about negative array size.
+ */
+#ifdef GP_DOXYGEN
+#  define GP_STATIC_ASSERT(CONDITION, MESSAGE) _Static_assert(CONDITION, MESSAGE)
+#elif __STDC_VERSION__ >= 202311L || defined(__cplusplus)
+#  define GP_STATIC_ASSERT(...) static_assert(__VA_ARGS__)
+#elif __STDC_VERSION__ >= 201112L || defined(__TINYC__) || defined(__COMPCERT__)
+#  define GP_STATIC_ASSERT_NO_MSG(E) _Static_assert(E, "")
+#  define GP_STATIC_ASSERT(...) \
+       GP_OVERLOAD2(__VA_ARGS__, _Static_assert, GP_STATIC_ASSERT_NO_MSG)(__VA_ARGS__)
+#else // C99, message will be ignored, it is just there for compatibility
+#  define GP_STATIC_ASSERTION_NAME(LINE) GP_TOKEN_PASTE(_gp_static_assertion_, LINE)
+#  define GP_STATIC_ASSERT_MSG(E, MSG) extern char GP_STATIC_ASSERTION_NAME(__LINE__)[(E) ? 1 : -1]
+#  define GP_STATIC_ASSERT_NO_MSG(E)   extern char GP_STATIC_ASSERTION_NAME(__LINE__)[(E) ? 1 : -1]
+#  define GP_STATIC_ASSERT(...) \
+       GP_OVERLOAD2(__VA_ARGS__, GP_STATIC_ASSERT_MSG, GP_STATIC_ASSERT_NO_MSG)(__VA_ARGS__)
+#endif
+
+/** Start suite and unit testing.
+ * First call starts unit testing. Subsequent calls starts a new suite ending
+ * the last suite and test. If name is NULL last suite will be ended without
+ * starting a new suite. Calling with NULL when suite is not running does
+ * nothing.
+ */
+GP_API void gp_suite(const char* name);
 
 /** Start test.
  * Subsequent calls starts a new test ending the last one. If name
  * is NULL last test will be ended without starting a new test. Calling with
  * NULL when test is not running does nothing.
  */
-void gp_test(const char* name);
+GP_API void gp_test(const char* name);
 
-/** Start suite.
- * Subsequent calls starts a new suite ending the last one. If
- * name is NULL last suite will be ended without starting a new suite. Calling
- * with NULL when suite is not running does nothing. Also ends last test.
- */
-void gp_suite(const char* name);
-
-
+/// @}
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE
@@ -147,16 +207,12 @@ void gp_suite(const char* name);
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+///@cond
 
-
-// Optional explicit end of all testing and report results. If this
-// function is not called explicitly, it will be called when main() returns.
-void gp_end_testing(void);
-
-// Ingore unused value warnings
+// Ignore unused value warnings
 static inline bool gp_pass_bool(bool b) { return b; }
 
-#define GP_FAIL(...) \
+#define GP_FAIL_MESSAGE(...) \
     gp_internal_fail( \
         __FILE__, \
         __LINE__, \
@@ -166,7 +222,26 @@ static inline bool gp_pass_bool(bool b) { return b; }
             { {0}, GP_PROCESS_ALL_ARGS(GP_PRINTABLE, GP_COMMA, __VA_ARGS__) } + 1, \
         __VA_ARGS__)
 //
-void gp_internal_fail(
+typedef struct gp_internal_reflection_data
+{
+    // Created with #. If identifier[0] == '\"', then contains format string.
+    const char* identifier;
+
+    // Simplified specifier. If var_name is not a format string, then this is
+    // used avoiding format string parsing.
+    const enum gp_type type;
+
+    // Actual data is in gp_str_print_internal() variadic args.
+} GPInternalReflectionData;
+
+#if GP_HAS_C11_GENERIC
+#define GP_PRINTABLE(X) { #X, GP_TYPE(X) } // TODO test if this would work in C++ too
+#else
+#define GP_PRINTABLE(X) { #X, INT_MAX - (int)(sizeof(X)) }
+#endif
+
+//
+GP_API void gp_internal_fail(
     const char* file,
     int line,
     const char* func,
@@ -193,8 +268,8 @@ static inline void gp_internal_fail_cpp(
 
 #define GP_STREAM_VAR_INFO(VAR) #VAR " = " << (VAR)
 #define GP_STREAM_INSERT_VAR(...) << "\n" <<
-#undef GP_FAIL
-#define GP_FAIL(...) \
+#undef GP_FAIL_MESSAGE
+#define GP_FAIL_MESSAGE(...) \
     gp_internal_fail_cpp( \
         "", \
         __FILE__, \
@@ -205,4 +280,5 @@ static inline void gp_internal_fail_cpp(
         ).str())
 #endif // __cplusplus
 
+///@endcond
 #endif // GP_ASSERT_INCLUDED

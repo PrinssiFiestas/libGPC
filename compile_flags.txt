@@ -1,2 +1,5 @@
+-D_CLANGD=1
 -I
 include/
+-Wswitch-enum
+-Wundef

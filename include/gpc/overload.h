@@ -2,20 +2,14 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-/**@file overload.h
- * Overloading macros
- */
-
 #ifndef GP_OVERLOAD_INCLUDED
 #define GP_OVERLOAD_INCLUDED 1
 
-#include "attributes.h"
+#include <gpc/attributes.h>
 #include <stdbool.h>
 #include <stddef.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <limits.h>
+#include <stdint.h>
 
 
 // ----------------------------------------------------------------------------
@@ -23,232 +17,215 @@ extern "C" {
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
+/// @defgroup overload Overloading
+/// @code
+/// #include <gpc/overload.h>
+/// @endcode
+/// Macros for function/macro overloading by argument number or types.
+/// @{
 
-
-// Macros in this file assume at most 64 arguments.
-
-
-// Overloading by argument count
-//
-// Overloading functions and macro functions by the number of arguments can be
-// done with OVERLOAD[N]() macros. First arg to OVERLOAD[N]() is always
-// __VA_ARGS__ which is followed by names of functions/macros to be overloaded
-// in descending order. Some compiler settings may also require trailing comma
-// after the names.
-//     The actual arguments also has to be given after OVERLOAD[N](). Zero
-// arguments is not possible using these. If zero arguments is necessary, check
-// this: https://github.com/jason-deng/C99FunctionOverload.
-//
-// Example for max 3 args:
-/*
-void func1(int arg1);
-#define MACRO2(arg1, arg2) somefunc(arg1, arg2)
-int func3(char arg1, void* arg2, const char* arg3);
-
-// Note 3 in the name of the macro and the trailing comma.
-#define func(...) OVERLOAD3(__VA_ARGS__, func3, MACRO2, func1,)(__VA_ARGS__)
-
-int main(void)
-{
-    func(1);
-    func(1, 2);
-    func('1', (void*)2, "3");
-}
-*/
-
-// Helper macros
-
-#define GP_TOKEN_PASTE(A, B) A##B
-#define GP_STRFY(A) #A
-#define GP_STRFY_1ST_ARG(A, ...) #A
-#define GP_1ST_ARG(A, ...) A
-#define GP_ALL_BUT_1ST_ARG(A, ...) __VA_ARGS__
-#define GP_COMMA(...) ,
-#define GP_SEMICOLON(...) ;
-#define GP_DUMP(...)
-#define GP_EVAL(...) __VA_ARGS__
-#define GP_EVAL1(A) A
-
-// Processing variadic arguments
-//
-// Arguments list can be processed with GP_PROCESS_ALL_ARGS() macro. The first
-// argument is a function or a macro that takes a single argument. This function
-// processes the variadic argument list. The second argument determines a
-// separator for the variadic argument list. It has to be a macro function that
-// takes a variadic argument but just expands to the separator without doing
-// anything to __VA_ARGS__ like GP_COMMA() Example uses below:
-/*
-    int add_one(int x) { return x + 1; }
-    int array[] = { GP_PROCESS_ALL_ARGS(add_one, GP_COMMA, 3, 4, 5) };
-    // The line above expands to
-    int array[] = { add_one(3), add_one(4), add_one(5) };
-
-    #define PLUS(...) +
-    int sum = GP_PROCESS_ALL_ARGS(GP_EVAL, PLUS, 2, 3, 4, 5);
-    // The line above expands to
-    int sum = 2 + 3 + 4 + 5
-
-    // Combining the above we can get sum of squares
-    double square(double x) { return x*x; }
-    double sum_of_squares = GP_LIST_ALL(square, PLUS, 3.14, .707);
-    // expands to
-    double sum_of_squares = square(3.14) + square(.707);
-*/
-
-// If __VA_OPT__() is needed with GP_PROCESS_ALL_ARGS(),
-// GP_PROCESS_ALL_BUT_1ST() can be used instead. GP_PROCESS_ALL_BUT_1ST()
-// processes every argument that is passed to it except the first one.
-// __VA_OPT__() can be simulated by using the first argument as a required
-// argument making all variadic arguments optional without needing __VA_OPT__().
-// Example below:
-/*
-    int sq(int x) { return x * x; }
-    #define PLUS(...) +
-
-    // First argument required! In this case it's the format string.
-    #define PRINT_SUM_OF_SQ(...) printf(GP_PROCESS_ALL_BUT_1ST(sq, PLUS, __VA_ARGS__)
-
-    PRINT_INCREMENTED("%i", 1, 2, 3);
-    // expands to
-    printf("%i", sq(1) + sq(2) + sq(3));
-*/
+#ifdef GP_DOXYGEN
+/** Overloading by argument count.
+ * Overloading functions and macro functions by the number of arguments can be
+ * done with these macros by defining a variadic macro that expands to
+ * `GP_OVERLOADN`, which will do the dispatching based on the number of variadic
+ * arguments passed. The first argument to `GP_OVERLOADN` is always
+ * `__VA_ARGS__`, which is followed by names of functions/macros to be
+ * overloaded in descending order. Some compiler settings may also require
+ * trailing comma after names. The arguments also has to be passed to the
+ * dispatched function. Zero arguments is not possible.
+ *
+ * The `N` in `GP_OVERLOADN` should be substituted to maximum number of
+ * arguments. Maximum value for `N` is 64.
+ *
+ * Example use for maximum of three arguments:
+ * @code
+ * void func1(int arg1);
+ * #define MACRO2(arg1, arg2) somefunc(arg1, arg2)
+ * int func3(char arg1, void* arg2, const char* arg3);
+ *
+ * // Note N substituted with 3 in GP_OVERLOADN name and trailing comma.
+ * #define func(...) OVERLOAD3(__VA_ARGS__, func3, MACRO2, func1,)(__VA_ARGS__)
+ *
+ * int main(void)
+ * {
+ *     func(1);
+ *     func(1, 2);
+ *     func('1', (void*)2, "3");
+ * }
+ * @endcode
+ */
+#define GP_OVERLOADN(...)
 
 // ----------------------------------------------------------------------------
+/// @defgroup C11Generic C11 _Generic helpers
+/// C11 `_Generic` requires specifying all types explicitly and does not do
+/// implicit conversions. This gives good control, but is inconvenient in some
+/// cases e.g. you just want to differentiate between an integer and a float. It
+/// is also not fully portable. For example, MSVC does not differentiate between
+/// char and [un]signed char, but GCC does. Using these macros inside `_Generic`
+/// selection fixes the portability issues and increases convenience.
+///
+/// Example use:
+/// @code
+/// intmax_t    fooi(intmax_t x);
+/// uintmax_t   foou(uintmax_t x);
+/// long double foof(long double x);
+/// #define foo(X) _Generic((X), \
+///     GP_C11_GENERIC_SIGNED_INTEGER(fooi), \
+///     GP_C11_GENERIC_UNSIGNED_INTEGER(foou), \
+///     GP_C11_GENERIC_FLOAT(foof)) (X)
+/// @endcode
+/// @{
 
-// typeof() operator. GNUC and MSVC already covers mostly used compilers, but
-// not all compilers are supported.
-#if __STDC_VERSION__ >= 202311L || defined(__TINYC__)
-#define GP_TYPEOF(...) typeof(__VA_ARGS__)
-#elif defined(_MSC_VER) || defined(__GNUC__)
-#define GP_TYPEOF(...) __typeof__(__VA_ARGS__)
-#elif __cplusplus
-#define GP_TYPEOF(...) decltype(__VA_ARGS__)
+/** All signed types.
+ * Signed primitive integers, `GPInt128`, and plain `char` if signed.
+ */
+#define GP_C11_GENERIC_SIGNED_TYPE(A) \
+    char: (A), signed char: (A), short: (A), int: (A), \
+    long: (A), long long: (A), GPInt128: (A)
+
+/** All unsigned types.
+ * Unsigned primitive integers, `GPUInt128`, `bool`, and plain `char` if
+ * unsigned.
+ */
+#define GP_C11_GENERIC_UNSIGNED_TYPE(A) \
+    bool: (A), unsigned char: (A), unsigned short: (A), unsigned: (A), \
+    unsigned long: (A), unsigned long long: (A), GPUInt128: (A)
+
+/** All floats.
+ * `float`, `double`, and `long double`.
+ */
+#define GP_C11_GENERIC_FLOAT(A) float: (A), double: (A), long double: (A)
+
+/** All types that could be considered as numbers.
+ * Primitive integers, floats, `bool`, plain `char`, and `GP[U]Int128`.
+ */
+#define GP_C11_GENERIC_NUMBER(A) \
+    char: (A), signed char: (A), short: (A), int: (A), \
+    long: (A), long long: (A), GPInt128: (A), \
+    bool: (A), unsigned char: (A), unsigned short: (A), unsigned: (A), \
+    unsigned long: (A), unsigned long long: (A), GPUInt128: (A), \
+    float: (A), double: (A), long double: (A)
+
+/** All types that could be considered as integers.
+ * Signed primitive integers, unsigned primitive integers, `GPInt128`,
+ * `GPUInt128`, `bool` and plain `char`.
+ */
+#define GP_C11_GENERIC_INTEGRAL_TYPE(A) \
+    char: (A), signed char: (A), short: (A), int: (A), \
+    long: (A), long long: (A), GPInt128: (A), \
+    bool: (A), unsigned char: (A), unsigned short: (A), unsigned: (A), \
+    unsigned long: (A), unsigned long long: (A), GPUInt128: (A)
+
+/** Signed primitive integers.
+ * Plain `char` is not considered as integer by this macro since it is mostly
+ * commonly used to represent text or raw bytes.
+ */
+#define GP_C11_GENERIC_SIGNED_INTEGER(A) \
+    signed char: (A), short: (A), int: (A), long: (A), long long: (A)
+
+/** Unsigned primitive integers.
+ * Plain `char` is not considered as integer by this macro since it is most
+ * commonly used to represent text or raw bytes. `bool` is also not considered
+ * as integer since it is most commonly used to represent logic.
+ */
+#define GP_C11_GENERIC_UNSIGNED_INTEGER(A) \
+    unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A)
+
+/** All primitive integers.
+ * Plain `char` is not considered as integer by this macro since it is most
+ * commonly used to represent text or raw bytes. `bool` is also not considered
+ * as integer since it is most commonly used to represent logic.
+ */
+#define GP_C11_GENERIC_INTEGER(A) \
+    signed char: (A), short: (A), int: (A), long: (A), long long: (A), \
+    unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A)
+
+/** All arithmetic types.
+ * All primitive integers and floating point types. Plain `char` and `bool` are
+ * excluded.
+ */
+#define GP_C11_GENERIC_ARITHMETIC_TYPE(A) \
+    signed char: (A), short: (A), int: (A), long: (A), long long: (A), \
+    unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A), \
+    float: (A), double: (A), long double: (A)
+
+/** Null-terminated `char*` and `GPString`.*/
+#define GP_C11_GENERIC_STRING(A) char*: (A), const char*: (A), struct gp_char*: (A)
+
+/// @}
+#endif // GP_DOXYGEN
+
+#if CHAR_MAX == INT8_MAX // char is signed
+#define/* bool */gp_type_is_signed(gp_type_t_TYPE)           ((bool)(GP_TYPE_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128 ))
+#define/* bool */gp_type_is_unsigned(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UINT128))
+#else // char is unsigned
+#define/* bool */gp_type_is_signed(gp_type_t_TYPE)           ((bool)(GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128))
+#define/* bool */gp_type_is_unsigned(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL        <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_CHAR  ))
+#endif
+#define/* bool */gp_type_is_float(gp_type_t_TYPE)            ((bool)(GP_TYPE_FLOAT         <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_DOUBLE       ))
+#define/* bool */gp_type_is_number(gp_type_t_TYPE)           ((bool)(GP_TYPE_BOOL          <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_DOUBLE       ))
+#define/* bool */gp_type_is_integral(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL          <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128            ))
+#define/* bool */gp_type_is_signed_integer(gp_type_t_TYPE)   ((bool)(GP_TYPE_SIGNED_CHAR   <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG         ))
+#define/* bool */gp_type_is_unsigned_integer(gp_type_t_TYPE) ((bool)(GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG))
+
+#define/* bool */gp_type_is_integer(gp_type_t_TYPE)          ((bool)( \
+    (GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG) \
+    || (GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG)))
+
+#define/* bool */gp_type_is_arithmetic(gp_type_t_TYPE)       ((bool)( \
+    (GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG) \
+    || (GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG) \
+    || (GP_TYPE_FLOAT <= gp_type_t_TYPE && gp_type_t_TYPE <= GP_TYPE_LONG_DOUBLE)))
+
+#define/* bool */gp_type_is_string(gp_type_t_TYPE)           ((bool)(GP_TYPE_CHAR_PTR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_STRING))
+
+/// @}
+// ----------------------------------------------------------------------------
+//
+//          END OF API REFERENCE
+//
+//          Code below is for internal usage and may change without notice.
+//
+// ----------------------------------------------------------------------------
+///@cond
+
+// _Generic() requires complete types, but we might not want to include
+// int128.h, which is a relatively large header to avoid namespace bloat and to
+// reduce compile times. These macros are defined in int128.h.
+#ifndef GP_INT128_SELECTION
+#define GP_INT128_SELECTION(...)
+#define GP_UINT128_SELECTION(...)
+#endif
+#ifndef GP_TETRA_INT_SELECTION
+#define GP_TETRA_INT_SELECTION(...)
+#define GP_TETRA_UINT_SELECTION(...)
 #endif
 
-// ----------------------------------------------------------------------------
-// Avoiding spiral rule
-
-#if __cplusplus
-#define GP_PTR_TO(...) decltype(new(__VA_ARGS__))
- // decltype(*new(__VA_ARGS__)) is a reference for some reason?? Which is why we
- // need this dummy struct.
-template <typename T> struct GPCPPType { T t; };
-#define GP_TYPEOF_TYPE(...) decltype(GPCPPType<__VA_ARGS__>{}.t)
-#elif defined(GP_TYPEOF)
-#define GP_PTR_TO(...)      GP_TYPEOF(&(__VA_ARGS__){0})
-#define GP_TYPEOF_TYPE(...) GP_TYPEOF( (__VA_ARGS__){0})
-#else // typedefs may be required for function pointers and such
-#define GP_PTR_TO(...) __VA_ARGS__*
-#define GP_TYPEOF_TYPE(...) __VA_ARGS__
+#ifdef GP_HAS_DIFFERENTIATED_LONG_DOUBLE
+#define GP_LONG_DOUBLE_SELECTION(...) long double: __VA_ARGS__
+#else
+#define GP_LONG_DOUBLE_SELECTION(...)
 #endif
 
-// ----------------------------------------------------------------------------
-
-// Use in variadic function arguments with GP_TYPE() macro.
-typedef enum gp_type
-{
-    GP_NO_TYPE,
-    GP_TYPE_BOOL,
-    GP_TYPE_UNSIGNED_CHAR,
-    GP_TYPE_UNSIGNED_SHORT,
-    GP_TYPE_UNSIGNED,
-    GP_TYPE_UNSIGNED_LONG,
-    GP_TYPE_UNSIGNED_LONG_LONG,
-    GP_TYPE_UINT128,
-    GP_TYPE_CHAR,
-    GP_TYPE_SIGNED_CHAR,
-    GP_TYPE_SHORT,
-    GP_TYPE_INT,
-    GP_TYPE_LONG,
-    GP_TYPE_LONG_LONG,
-    GP_TYPE_INT128,
-    GP_TYPE_FLOAT,
-    GP_TYPE_DOUBLE,
-    GP_TYPE_LONG_DOUBLE,
-    GP_TYPE_CHAR_PTR,
-    GP_TYPE_STRING,
-    GP_TYPE_PTR,
-    GP_TYPE_LENGTH
-} gp_type_t;
-
-static inline GP_CONSTEXPR_FUNCTION size_t gp_type_size(const gp_type_t T) {
-    switch (T) {
-        case GP_TYPE_CHAR: case GP_TYPE_SIGNED_CHAR: case GP_TYPE_UNSIGNED_CHAR:
-            return sizeof(char);
-        case GP_TYPE_SHORT: case GP_TYPE_UNSIGNED_SHORT:
-            return sizeof(short);
-        case GP_TYPE_BOOL:
-            return sizeof(bool);
-        case GP_TYPE_INT: case GP_TYPE_UNSIGNED:
-            return sizeof(int);
-        case GP_TYPE_LONG: case GP_TYPE_UNSIGNED_LONG:
-            return sizeof(long);
-        case GP_TYPE_LONG_LONG: case GP_TYPE_UNSIGNED_LONG_LONG:
-            return sizeof(long long);
-        case GP_TYPE_UINT128: case GP_TYPE_INT128:
-            return 16;
-        case GP_TYPE_FLOAT:
-            return sizeof(float);
-        case GP_TYPE_LONG_DOUBLE:
-            #if GP_HAS_LONG_DOUBLE
-            return sizeof(long double);
-            #endif
-        case GP_TYPE_DOUBLE:
-            return sizeof(double);
-        case GP_TYPE_CHAR_PTR: case GP_TYPE_STRING: case GP_TYPE_PTR:
-            return sizeof(char*);
-
-        case GP_NO_TYPE:
-        case GP_TYPE_LENGTH:;
-    }
-    return 0;
-}
-
-// ----------------------------------------------------------------------------
-// Helper macros for C11 _Generic() selection // TODO TEST THESE!!!!!!!!!!!!!
-
-#if __STDC_VERSION__ >= 201112L || defined(__COMPCERT__)
-#define GP_HAS_C11_GENERIC 1
+#ifdef __SDCC
+#define GP_DOUBLE_SELECTION(...) double: __VA_ARGS__
+#else
+#define GP_DOUBLE_SELECTION(...)
 #endif
 
-// C11 _Generic() requires specifying all types explicitly and does not do
-// implicit conversions. This gives good control, but is inconvenient in some
-// cases e.g. you just want to differentiate between an integer and a float. It
-// is also not fully portable. For example, MSVC does not differentiate between
-// char and [un]signed char, but GCC does. Using these macros inside _Generic()
-// selection fixes the portability issues and increase convenience. Available
-// selection macros:
-//
-// - GP_C11_GENERIC_SIGNED_TYPE: signed primitive integers, GPInt128, and plain
-//   char if signed.
-//
-// - GP_C11_GENERIC_UNSIGNED_TYPE: unsigned primitive integers, GPUInt128, bool,
-//   and plain char if unsigned.
-//
-// - GP_C11_GENERIC_FLOAT: float, double, and long double.
-//
-// - GP_C11_GENERIC_NUMBER: all of the above.
-//
-// - GP_C11_GENERIC_INTEGRAL_TYPE: signed primitive integers, unsigned primitive
-//   integers, GPInt128, GPUInt128, bool, and plain char.
-//
-// - GP_C11_GENERIC_SIGNED_INTEGER: signed primitive integers. Plain char is not
-//   considered as integer by this macro since it is most commonly used to
-//   represent raw bytes or text.
-//
-// - GP_C11_GENERIC_UNSIGNED_INTEGER: unsigned primitive integers. Plain char is
-//   not considered as integer by this macro since it is most commonly used to
-//   represent raw bytes or text. bool is also not considered as integer since
-//   it is most commonly used to represent logic.
-//
-// - GP_C11_GENERIC_INTEGER: signed and unsigned primitive integers. Plain char
-//   and bool is excluded.
-//
-// - GP_C11_GENERIC_ARITHMETIC_TYPE: signed and unsigned primitive integers and
-//   floating point types. Plain char and bool is excluded.
-//
-// - GP_C11_GENERIC_STRING: null-terminated char* and GPString.
-#if !_MSC_VER
+#ifndef _MSC_VER
+#define GP_CHAR_SELECTION(...) char: __VA_ARGS__
+#else
+#define GP_CHAR_SELECTION(...)
+#endif
+
+#if __STDC_VERSION__ >= 201112L || defined(__COMPCERT__) || defined(__TINYC__)
+#  define GP_HAS_C11_GENERIC 1
+#endif
+
+#ifndef _MSC_VER
 #  if CHAR_MAX == SCHAR_MAX
 #    define GP_C11_GENERIC_SIGNED_TYPE(A) \
        GP_INT128_SELECTION((A),) \
@@ -288,9 +265,9 @@ static inline GP_CONSTEXPR_FUNCTION size_t gp_type_size(const gp_type_t T) {
        unsigned long: (A), unsigned long long: (A)
 #  endif
 #endif
-#if __SDCC // double not supported
+#ifdef __SDCC // double not supported
 #  define GP_C11_GENERIC_FLOAT(A) float: (A)
-#elif GP_HAS_DIFFERENTIATED_LONG_DOUBLE
+#elif defined(GP_HAS_DIFFERENTIATED_LONG_DOUBLE)
 #  define GP_C11_GENERIC_FLOAT(A) float: (A), double: (A), long double: (A)
 #else
 #  define GP_C11_GENERIC_FLOAT(A) float: (A), double: (A)
@@ -311,290 +288,11 @@ static inline GP_CONSTEXPR_FUNCTION size_t gp_type_size(const gp_type_t T) {
     GP_C11_GENERIC_FLOAT(A)
 #define GP_C11_GENERIC_STRING(A) char*: (A), const char*: (A), struct gp_char*: (A)
 
-// GP_TYPE(): basic reflection
-// User types currently not supported. // TODO we want these!
-#if __cplusplus // defined with overloads
-#else
-// Note: we don't differentiate between gp_tetra_uint_t and GPUInt128 here. This
-// is because gp_tetra_uint_t is supposed to be internal implementation detail,
-// we only added it here so it can be printed for debugging purposes.
-#define GP_TYPE(VAR)                                   \
-_Generic(VAR,                                          \
-    bool:                  GP_TYPE_BOOL,               \
-    short:                 GP_TYPE_SHORT,              \
-    int:                   GP_TYPE_INT,                \
-    long:                  GP_TYPE_LONG,               \
-    long long:             GP_TYPE_LONG_LONG,          \
-    GP_INT128_SELECTION(GP_TYPE_INT128,)               \
-    GP_TETRA_INT_SELECTION(GP_TYPE_INT128,)            \
-    unsigned short:        GP_TYPE_UNSIGNED_SHORT,     \
-    unsigned int:          GP_TYPE_UNSIGNED,           \
-    unsigned long:         GP_TYPE_UNSIGNED_LONG,      \
-    unsigned long long:    GP_TYPE_UNSIGNED_LONG_LONG, \
-    GP_UINT128_SELECTION(GP_TYPE_UINT128,)             \
-    GP_TETRA_UINT_SELECTION(GP_TYPE_UINT128,)          \
-    float:                 GP_TYPE_FLOAT,              \
-    double:                GP_TYPE_DOUBLE,             \
-    GP_LONG_DOUBLE_SELECTION(GP_TYPE_LONG_DOUBLE,)     \
-    GP_CHAR_SELECTION(GP_TYPE_CHAR,)                   \
-    unsigned char:         GP_TYPE_UNSIGNED_CHAR,      \
-    signed char:           GP_TYPE_SIGNED_CHAR,        \
-    char*:                 GP_TYPE_CHAR_PTR,           \
-    const char*:           GP_TYPE_CHAR_PTR,           \
-    struct gp_char*:       GP_TYPE_STRING,             \
-    default:               GP_TYPE_PTR)
-#endif
-
-#if CHAR_MAX == INT8_MAX // char is signed
-#define/* bool */gp_type_is_signed(gp_type_t_TYPE)           ((bool)(GP_TYPE_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128 ))
-#define/* bool */gp_type_is_unsigned(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UINT128))
-#else // char is unsigned
-#define/* bool */gp_type_is_signed(gp_type_t_TYPE)           ((bool)(GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128))
-#define/* bool */gp_type_is_unsigned(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL        <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_CHAR  ))
-#endif
-#define/* bool */gp_type_is_float(gp_type_t_TYPE)            ((bool)(GP_TYPE_FLOAT         <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_DOUBLE       ))
-#define/* bool */gp_type_is_number(gp_type_t_TYPE)           ((bool)(GP_TYPE_BOOL          <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_DOUBLE       ))
-#define/* bool */gp_type_is_integral(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL          <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128            ))
-#define/* bool */gp_type_is_signed_integer(gp_type_t_TYPE)   ((bool)(GP_TYPE_SIGNED_CHAR   <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG         ))
-#define/* bool */gp_type_is_unsigned_integer(gp_type_t_TYPE) ((bool)(GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG))
-
-#define/* bool */gp_type_is_integer(gp_type_t_TYPE)          ((bool)( \
-    (GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG) \
-    || (GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG)))
-
-#define/* bool */gp_type_is_arithmetic(gp_type_t_TYPE)       ((bool)( \
-    (GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG) \
-    || (GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG) \
-    || (GP_TYPE_FLOAT <= gp_type_t_TYPE && gp_type_t_TYPE <= GP_TYPE_LONG_DOUBLE)))
-
-#define/* bool */gp_type_is_string(gp_type_t_TYPE)           ((bool)(GP_TYPE_CHAR_PTR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_STRING))
-
-#if !__cplusplus // Available in C++ as constexpr functions, not availaible in C99.
-#define/* bool */GP_IS_SIGNED(X)           ((bool)_Generic(X, GP_C11_GENERIC_SIGNED_TYPE(1)     , default: 0))
-#define/* bool */GP_IS_UNSIGNED(X)         ((bool)_Generic(X, GP_C11_GENERIC_UNSIGNED_TYPE(1)   , default: 0))
-#define/* bool */GP_IS_FLOAT(X)            ((bool)_Generic(X, GP_C11_GENERIC_FLOAT(1)           , default: 0))
-#define/* bool */GP_IS_NUMBER(X)           ((bool)_Generic(X, GP_C11_GENERIC_NUMBER(1)          , default: 0))
-#define/* bool */GP_IS_INTEGRAL(X)         ((bool)_Generic(X, GP_C11_GENERIC_INTEGRAL_TYPE(1)   , default: 0))
-#define/* bool */GP_IS_SIGNED_INTEGER(X)   ((bool)_Generic(X, GP_C11_GENERIC_SIGNED_INTEGER(1)  , default: 0))
-#define/* bool */GP_IS_UNSIGNED_INTEGER(X) ((bool)_Generic(X, GP_C11_GENERIC_UNSIGNED_INTEGER(1), default: 0))
-#define/* bool */GP_IS_INTEGER(X)          ((bool)_Generic(X, GP_C11_GENERIC_INTEGER(1)         , default: 0))
-#define/* bool */GP_IS_ARITHMETIC(X)       ((bool)_Generic(X, GP_C11_GENERIC_ARITHMETIC_TYPE(1) , default: 0))
-#define/* bool */GP_IS_STRING(X)           ((bool)_Generic(X, GP_C11_GENERIC_STRING(1)          , default: 0))
-#endif
-
-// Returns the number of arguments passed.
-#define GP_COUNT_ARGS(...) GP_OVERLOAD64(__VA_ARGS__, 64, 63, 62, 61, 60, 59, 58, 57, 56,\
-55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34,  \
-33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12,  \
-11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,)
-
-
 // ----------------------------------------------------------------------------
-//
-//          END OF API REFERENCE
-//
-//          Code below is for internal usage and may change without notice.
-//
-// ----------------------------------------------------------------------------
-
-
-// _Generic() requires complete types, but we might not want to include
-// int128.h, which is a relatively large header to avoid namespace bloat and to
-// reduce compile times. These macros are defined in int128.h.
-#ifndef GP_INT128_SELECTION
-#define GP_INT128_SELECTION(...)
-#define GP_UINT128_SELECTION(...)
-#endif
-#ifndef GP_TETRA_INT_SELECTION
-#define GP_TETRA_INT_SELECTION(...)
-#define GP_TETRA_UINT_SELECTION(...)
-#endif
-
-#if GP_HAS_DIFFERENTIATED_LONG_DOUBLE
-#define GP_LONG_DOUBLE_SELECTION(...) long double: __VA_ARGS__
-#else
-#define GP_LONG_DOUBLE_SELECTION(...)
-#endif
-
-#ifdef __SDCC
-#define GP_DOUBLE_SELECTION(...) double: __VA_ARGS__
-#else
-#define GP_DOUBLE_SELECTION(...)
-#endif
-
-#if !_MSC_VER
-#define GP_CHAR_SELECTION(...) char: __VA_ARGS__
-#else
-#define GP_CHAR_SELECTION(...)
-#endif
 
 #if __clang__
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #endif
-
-#if __STDC_VERSION__ >= 201112L
-// C11 allows structs and unions to be unnamed
-#  define GP_ANONYMOUS_STRUCT(_)
-#else
-// Unique struct/union name
-#  define GP_ANONYMOUS_STRUCT(LINE) GP_TOKEN_PASTE(_gp_unique__, LINE)
-#endif
-
-// ----------------------------------------------------------------------------
-// Script generated stuff
-
-#define GP_PROCESS_ALL_ARGS(FUNC, SEPARATOR, ...) GP_OVERLOAD64(__VA_ARGS__, 	\
-GP_PROC64, GP_PROC63, GP_PROC62, GP_PROC61, GP_PROC60, GP_PROC59, GP_PROC58, GP_PROC57, \
-GP_PROC56, GP_PROC55, GP_PROC54, GP_PROC53, GP_PROC52, GP_PROC51, GP_PROC50, GP_PROC49, \
-GP_PROC48, GP_PROC47, GP_PROC46, GP_PROC45, GP_PROC44, GP_PROC43, GP_PROC42, GP_PROC41, \
-GP_PROC40, GP_PROC39, GP_PROC38, GP_PROC37, GP_PROC36, GP_PROC35, GP_PROC34, GP_PROC33, \
-GP_PROC32, GP_PROC31, GP_PROC30, GP_PROC29, GP_PROC28, GP_PROC27, GP_PROC26, GP_PROC25, \
-GP_PROC24, GP_PROC23, GP_PROC22, GP_PROC21, GP_PROC20, GP_PROC19, GP_PROC18, GP_PROC17, \
-GP_PROC16, GP_PROC15, GP_PROC14, GP_PROC13, GP_PROC12, GP_PROC11, GP_PROC10, GP_PROC9, 	\
-GP_PROC8, GP_PROC7, GP_PROC6, GP_PROC5, GP_PROC4, GP_PROC3, GP_PROC2, GP_PROC1,)	\
-(FUNC, SEPARATOR, __VA_ARGS__)
-
-#define GP_PROCESS_ALL_BUT_1ST(FUNC, SEPARATOR, ...) GP_OVERLOAD64(__VA_ARGS__, 	\
-GP_PROC64_1, GP_PROC63_1, GP_PROC62_1, GP_PROC61_1, GP_PROC60_1, GP_PROC59_1, GP_PROC58_1, \
-GP_PROC57_1, GP_PROC56_1, GP_PROC55_1, GP_PROC54_1, GP_PROC53_1, GP_PROC52_1, GP_PROC51_1, \
-GP_PROC50_1, GP_PROC49_1, GP_PROC48_1, GP_PROC47_1, GP_PROC46_1, GP_PROC45_1, GP_PROC44_1, \
-GP_PROC43_1, GP_PROC42_1, GP_PROC41_1, GP_PROC40_1, GP_PROC39_1, GP_PROC38_1, GP_PROC37_1, \
-GP_PROC36_1, GP_PROC35_1, GP_PROC34_1, GP_PROC33_1, GP_PROC32_1, GP_PROC31_1, GP_PROC30_1, \
-GP_PROC29_1, GP_PROC28_1, GP_PROC27_1, GP_PROC26_1, GP_PROC25_1, GP_PROC24_1, GP_PROC23_1, \
-GP_PROC22_1, GP_PROC21_1, GP_PROC20_1, GP_PROC19_1, GP_PROC18_1, GP_PROC17_1, GP_PROC16_1, \
-GP_PROC15_1, GP_PROC14_1, GP_PROC13_1, GP_PROC12_1, GP_PROC11_1, GP_PROC10_1, GP_PROC9_1, \
-GP_PROC8_1, GP_PROC7_1, GP_PROC6_1, GP_PROC5_1, GP_PROC4_1, GP_PROC3_1, GP_PROC2_1, 	\
-GP_PROC1_1,)(FUNC, SEPARATOR, __VA_ARGS__)
-
-#define GP_PROC1(F, SEP, A) F(A)
-#define GP_PROC2(F, SEP, A, ...) F(A) SEP(A) GP_PROC1(F, SEP, __VA_ARGS__)
-#define GP_PROC3(F, SEP, A, ...) F(A) SEP(A) GP_PROC2(F, SEP, __VA_ARGS__)
-#define GP_PROC4(F, SEP, A, ...) F(A) SEP(A) GP_PROC3(F, SEP, __VA_ARGS__)
-#define GP_PROC5(F, SEP, A, ...) F(A) SEP(A) GP_PROC4(F, SEP, __VA_ARGS__)
-#define GP_PROC6(F, SEP, A, ...) F(A) SEP(A) GP_PROC5(F, SEP, __VA_ARGS__)
-#define GP_PROC7(F, SEP, A, ...) F(A) SEP(A) GP_PROC6(F, SEP, __VA_ARGS__)
-#define GP_PROC8(F, SEP, A, ...) F(A) SEP(A) GP_PROC7(F, SEP, __VA_ARGS__)
-#define GP_PROC9(F, SEP, A, ...) F(A) SEP(A) GP_PROC8(F, SEP, __VA_ARGS__)
-#define GP_PROC10(F, SEP, A, ...) F(A) SEP(A) GP_PROC9(F, SEP, __VA_ARGS__)
-#define GP_PROC11(F, SEP, A, ...) F(A) SEP(A) GP_PROC10(F, SEP, __VA_ARGS__)
-#define GP_PROC12(F, SEP, A, ...) F(A) SEP(A) GP_PROC11(F, SEP, __VA_ARGS__)
-#define GP_PROC13(F, SEP, A, ...) F(A) SEP(A) GP_PROC12(F, SEP, __VA_ARGS__)
-#define GP_PROC14(F, SEP, A, ...) F(A) SEP(A) GP_PROC13(F, SEP, __VA_ARGS__)
-#define GP_PROC15(F, SEP, A, ...) F(A) SEP(A) GP_PROC14(F, SEP, __VA_ARGS__)
-#define GP_PROC16(F, SEP, A, ...) F(A) SEP(A) GP_PROC15(F, SEP, __VA_ARGS__)
-#define GP_PROC17(F, SEP, A, ...) F(A) SEP(A) GP_PROC16(F, SEP, __VA_ARGS__)
-#define GP_PROC18(F, SEP, A, ...) F(A) SEP(A) GP_PROC17(F, SEP, __VA_ARGS__)
-#define GP_PROC19(F, SEP, A, ...) F(A) SEP(A) GP_PROC18(F, SEP, __VA_ARGS__)
-#define GP_PROC20(F, SEP, A, ...) F(A) SEP(A) GP_PROC19(F, SEP, __VA_ARGS__)
-#define GP_PROC21(F, SEP, A, ...) F(A) SEP(A) GP_PROC20(F, SEP, __VA_ARGS__)
-#define GP_PROC22(F, SEP, A, ...) F(A) SEP(A) GP_PROC21(F, SEP, __VA_ARGS__)
-#define GP_PROC23(F, SEP, A, ...) F(A) SEP(A) GP_PROC22(F, SEP, __VA_ARGS__)
-#define GP_PROC24(F, SEP, A, ...) F(A) SEP(A) GP_PROC23(F, SEP, __VA_ARGS__)
-#define GP_PROC25(F, SEP, A, ...) F(A) SEP(A) GP_PROC24(F, SEP, __VA_ARGS__)
-#define GP_PROC26(F, SEP, A, ...) F(A) SEP(A) GP_PROC25(F, SEP, __VA_ARGS__)
-#define GP_PROC27(F, SEP, A, ...) F(A) SEP(A) GP_PROC26(F, SEP, __VA_ARGS__)
-#define GP_PROC28(F, SEP, A, ...) F(A) SEP(A) GP_PROC27(F, SEP, __VA_ARGS__)
-#define GP_PROC29(F, SEP, A, ...) F(A) SEP(A) GP_PROC28(F, SEP, __VA_ARGS__)
-#define GP_PROC30(F, SEP, A, ...) F(A) SEP(A) GP_PROC29(F, SEP, __VA_ARGS__)
-#define GP_PROC31(F, SEP, A, ...) F(A) SEP(A) GP_PROC30(F, SEP, __VA_ARGS__)
-#define GP_PROC32(F, SEP, A, ...) F(A) SEP(A) GP_PROC31(F, SEP, __VA_ARGS__)
-#define GP_PROC33(F, SEP, A, ...) F(A) SEP(A) GP_PROC32(F, SEP, __VA_ARGS__)
-#define GP_PROC34(F, SEP, A, ...) F(A) SEP(A) GP_PROC33(F, SEP, __VA_ARGS__)
-#define GP_PROC35(F, SEP, A, ...) F(A) SEP(A) GP_PROC34(F, SEP, __VA_ARGS__)
-#define GP_PROC36(F, SEP, A, ...) F(A) SEP(A) GP_PROC35(F, SEP, __VA_ARGS__)
-#define GP_PROC37(F, SEP, A, ...) F(A) SEP(A) GP_PROC36(F, SEP, __VA_ARGS__)
-#define GP_PROC38(F, SEP, A, ...) F(A) SEP(A) GP_PROC37(F, SEP, __VA_ARGS__)
-#define GP_PROC39(F, SEP, A, ...) F(A) SEP(A) GP_PROC38(F, SEP, __VA_ARGS__)
-#define GP_PROC40(F, SEP, A, ...) F(A) SEP(A) GP_PROC39(F, SEP, __VA_ARGS__)
-#define GP_PROC41(F, SEP, A, ...) F(A) SEP(A) GP_PROC40(F, SEP, __VA_ARGS__)
-#define GP_PROC42(F, SEP, A, ...) F(A) SEP(A) GP_PROC41(F, SEP, __VA_ARGS__)
-#define GP_PROC43(F, SEP, A, ...) F(A) SEP(A) GP_PROC42(F, SEP, __VA_ARGS__)
-#define GP_PROC44(F, SEP, A, ...) F(A) SEP(A) GP_PROC43(F, SEP, __VA_ARGS__)
-#define GP_PROC45(F, SEP, A, ...) F(A) SEP(A) GP_PROC44(F, SEP, __VA_ARGS__)
-#define GP_PROC46(F, SEP, A, ...) F(A) SEP(A) GP_PROC45(F, SEP, __VA_ARGS__)
-#define GP_PROC47(F, SEP, A, ...) F(A) SEP(A) GP_PROC46(F, SEP, __VA_ARGS__)
-#define GP_PROC48(F, SEP, A, ...) F(A) SEP(A) GP_PROC47(F, SEP, __VA_ARGS__)
-#define GP_PROC49(F, SEP, A, ...) F(A) SEP(A) GP_PROC48(F, SEP, __VA_ARGS__)
-#define GP_PROC50(F, SEP, A, ...) F(A) SEP(A) GP_PROC49(F, SEP, __VA_ARGS__)
-#define GP_PROC51(F, SEP, A, ...) F(A) SEP(A) GP_PROC50(F, SEP, __VA_ARGS__)
-#define GP_PROC52(F, SEP, A, ...) F(A) SEP(A) GP_PROC51(F, SEP, __VA_ARGS__)
-#define GP_PROC53(F, SEP, A, ...) F(A) SEP(A) GP_PROC52(F, SEP, __VA_ARGS__)
-#define GP_PROC54(F, SEP, A, ...) F(A) SEP(A) GP_PROC53(F, SEP, __VA_ARGS__)
-#define GP_PROC55(F, SEP, A, ...) F(A) SEP(A) GP_PROC54(F, SEP, __VA_ARGS__)
-#define GP_PROC56(F, SEP, A, ...) F(A) SEP(A) GP_PROC55(F, SEP, __VA_ARGS__)
-#define GP_PROC57(F, SEP, A, ...) F(A) SEP(A) GP_PROC56(F, SEP, __VA_ARGS__)
-#define GP_PROC58(F, SEP, A, ...) F(A) SEP(A) GP_PROC57(F, SEP, __VA_ARGS__)
-#define GP_PROC59(F, SEP, A, ...) F(A) SEP(A) GP_PROC58(F, SEP, __VA_ARGS__)
-#define GP_PROC60(F, SEP, A, ...) F(A) SEP(A) GP_PROC59(F, SEP, __VA_ARGS__)
-#define GP_PROC61(F, SEP, A, ...) F(A) SEP(A) GP_PROC60(F, SEP, __VA_ARGS__)
-#define GP_PROC62(F, SEP, A, ...) F(A) SEP(A) GP_PROC61(F, SEP, __VA_ARGS__)
-#define GP_PROC63(F, SEP, A, ...) F(A) SEP(A) GP_PROC62(F, SEP, __VA_ARGS__)
-#define GP_PROC64(F, SEP, A, ...) F(A) SEP(A) GP_PROC63(F, SEP, __VA_ARGS__)
-
-#define GP_PROC1_1(F, SEP, A) A
-#define GP_PROC2_1(F, SEP, A, ...) A, GP_PROC1(F, SEP, __VA_ARGS__)
-#define GP_PROC3_1(F, SEP, A, ...) A, GP_PROC2(F, SEP, __VA_ARGS__)
-#define GP_PROC4_1(F, SEP, A, ...) A, GP_PROC3(F, SEP, __VA_ARGS__)
-#define GP_PROC5_1(F, SEP, A, ...) A, GP_PROC4(F, SEP, __VA_ARGS__)
-#define GP_PROC6_1(F, SEP, A, ...) A, GP_PROC5(F, SEP, __VA_ARGS__)
-#define GP_PROC7_1(F, SEP, A, ...) A, GP_PROC6(F, SEP, __VA_ARGS__)
-#define GP_PROC8_1(F, SEP, A, ...) A, GP_PROC7(F, SEP, __VA_ARGS__)
-#define GP_PROC9_1(F, SEP, A, ...) A, GP_PROC8(F, SEP, __VA_ARGS__)
-#define GP_PROC10_1(F, SEP, A, ...) A, GP_PROC9(F, SEP, __VA_ARGS__)
-#define GP_PROC11_1(F, SEP, A, ...) A, GP_PROC10(F, SEP, __VA_ARGS__)
-#define GP_PROC12_1(F, SEP, A, ...) A, GP_PROC11(F, SEP, __VA_ARGS__)
-#define GP_PROC13_1(F, SEP, A, ...) A, GP_PROC12(F, SEP, __VA_ARGS__)
-#define GP_PROC14_1(F, SEP, A, ...) A, GP_PROC13(F, SEP, __VA_ARGS__)
-#define GP_PROC15_1(F, SEP, A, ...) A, GP_PROC14(F, SEP, __VA_ARGS__)
-#define GP_PROC16_1(F, SEP, A, ...) A, GP_PROC15(F, SEP, __VA_ARGS__)
-#define GP_PROC17_1(F, SEP, A, ...) A, GP_PROC16(F, SEP, __VA_ARGS__)
-#define GP_PROC18_1(F, SEP, A, ...) A, GP_PROC17(F, SEP, __VA_ARGS__)
-#define GP_PROC19_1(F, SEP, A, ...) A, GP_PROC18(F, SEP, __VA_ARGS__)
-#define GP_PROC20_1(F, SEP, A, ...) A, GP_PROC19(F, SEP, __VA_ARGS__)
-#define GP_PROC21_1(F, SEP, A, ...) A, GP_PROC20(F, SEP, __VA_ARGS__)
-#define GP_PROC22_1(F, SEP, A, ...) A, GP_PROC21(F, SEP, __VA_ARGS__)
-#define GP_PROC23_1(F, SEP, A, ...) A, GP_PROC22(F, SEP, __VA_ARGS__)
-#define GP_PROC24_1(F, SEP, A, ...) A, GP_PROC23(F, SEP, __VA_ARGS__)
-#define GP_PROC25_1(F, SEP, A, ...) A, GP_PROC24(F, SEP, __VA_ARGS__)
-#define GP_PROC26_1(F, SEP, A, ...) A, GP_PROC25(F, SEP, __VA_ARGS__)
-#define GP_PROC27_1(F, SEP, A, ...) A, GP_PROC26(F, SEP, __VA_ARGS__)
-#define GP_PROC28_1(F, SEP, A, ...) A, GP_PROC27(F, SEP, __VA_ARGS__)
-#define GP_PROC29_1(F, SEP, A, ...) A, GP_PROC28(F, SEP, __VA_ARGS__)
-#define GP_PROC30_1(F, SEP, A, ...) A, GP_PROC29(F, SEP, __VA_ARGS__)
-#define GP_PROC31_1(F, SEP, A, ...) A, GP_PROC30(F, SEP, __VA_ARGS__)
-#define GP_PROC32_1(F, SEP, A, ...) A, GP_PROC31(F, SEP, __VA_ARGS__)
-#define GP_PROC33_1(F, SEP, A, ...) A, GP_PROC32(F, SEP, __VA_ARGS__)
-#define GP_PROC34_1(F, SEP, A, ...) A, GP_PROC33(F, SEP, __VA_ARGS__)
-#define GP_PROC35_1(F, SEP, A, ...) A, GP_PROC34(F, SEP, __VA_ARGS__)
-#define GP_PROC36_1(F, SEP, A, ...) A, GP_PROC35(F, SEP, __VA_ARGS__)
-#define GP_PROC37_1(F, SEP, A, ...) A, GP_PROC36(F, SEP, __VA_ARGS__)
-#define GP_PROC38_1(F, SEP, A, ...) A, GP_PROC37(F, SEP, __VA_ARGS__)
-#define GP_PROC39_1(F, SEP, A, ...) A, GP_PROC38(F, SEP, __VA_ARGS__)
-#define GP_PROC40_1(F, SEP, A, ...) A, GP_PROC39(F, SEP, __VA_ARGS__)
-#define GP_PROC41_1(F, SEP, A, ...) A, GP_PROC40(F, SEP, __VA_ARGS__)
-#define GP_PROC42_1(F, SEP, A, ...) A, GP_PROC41(F, SEP, __VA_ARGS__)
-#define GP_PROC43_1(F, SEP, A, ...) A, GP_PROC42(F, SEP, __VA_ARGS__)
-#define GP_PROC44_1(F, SEP, A, ...) A, GP_PROC43(F, SEP, __VA_ARGS__)
-#define GP_PROC45_1(F, SEP, A, ...) A, GP_PROC44(F, SEP, __VA_ARGS__)
-#define GP_PROC46_1(F, SEP, A, ...) A, GP_PROC45(F, SEP, __VA_ARGS__)
-#define GP_PROC47_1(F, SEP, A, ...) A, GP_PROC46(F, SEP, __VA_ARGS__)
-#define GP_PROC48_1(F, SEP, A, ...) A, GP_PROC47(F, SEP, __VA_ARGS__)
-#define GP_PROC49_1(F, SEP, A, ...) A, GP_PROC48(F, SEP, __VA_ARGS__)
-#define GP_PROC50_1(F, SEP, A, ...) A, GP_PROC49(F, SEP, __VA_ARGS__)
-#define GP_PROC51_1(F, SEP, A, ...) A, GP_PROC50(F, SEP, __VA_ARGS__)
-#define GP_PROC52_1(F, SEP, A, ...) A, GP_PROC51(F, SEP, __VA_ARGS__)
-#define GP_PROC53_1(F, SEP, A, ...) A, GP_PROC52(F, SEP, __VA_ARGS__)
-#define GP_PROC54_1(F, SEP, A, ...) A, GP_PROC53(F, SEP, __VA_ARGS__)
-#define GP_PROC55_1(F, SEP, A, ...) A, GP_PROC54(F, SEP, __VA_ARGS__)
-#define GP_PROC56_1(F, SEP, A, ...) A, GP_PROC55(F, SEP, __VA_ARGS__)
-#define GP_PROC57_1(F, SEP, A, ...) A, GP_PROC56(F, SEP, __VA_ARGS__)
-#define GP_PROC58_1(F, SEP, A, ...) A, GP_PROC57(F, SEP, __VA_ARGS__)
-#define GP_PROC59_1(F, SEP, A, ...) A, GP_PROC58(F, SEP, __VA_ARGS__)
-#define GP_PROC60_1(F, SEP, A, ...) A, GP_PROC59(F, SEP, __VA_ARGS__)
-#define GP_PROC61_1(F, SEP, A, ...) A, GP_PROC60(F, SEP, __VA_ARGS__)
-#define GP_PROC62_1(F, SEP, A, ...) A, GP_PROC61(F, SEP, __VA_ARGS__)
-#define GP_PROC63_1(F, SEP, A, ...) A, GP_PROC62(F, SEP, __VA_ARGS__)
-#define GP_PROC64_1(F, SEP, A, ...) A, GP_PROC63(F, SEP, __VA_ARGS__)
 
 #define GP_OVERLOAD1(_0, RESOLVED, ...) RESOLVED
 #define GP_OVERLOAD2(_0, _1, RESOLVED, ...) RESOLVED
@@ -767,42 +465,10 @@ _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, _30, 
 _33, _34, _35, _36, _37, _38, _39, _40, _41, _42, _43, _44, _45, _46, _47, _48, _49, _50, \
 _51, _52, _53, _54, _55, _56, _57, _58, _59, _60, _61, _62, _63, RESOLVED, ...) RESOLVED
 
-#ifdef __cplusplus
-} // extern "C"
+// TODO support for zero arguments using __VA_OPT__ if available or potentially
+// https://medium.com/@pauljlucas/using-advanced-c-preprocessor-macros-for-a-pre-c23-c-20-va-opt-substitute-bccefde27817
+// also check
+// https://www.reddit.com/r/C_Programming/comments/1u2twhq/mimicking_of_function_overloading/
 
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(bool               x) { (void)x; return GP_TYPE_BOOL;               }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(short              x) { (void)x; return GP_TYPE_SHORT;              }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(int                x) { (void)x; return GP_TYPE_INT;                }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(long               x) { (void)x; return GP_TYPE_LONG;               }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(long long          x) { (void)x; return GP_TYPE_LONG_LONG;          }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(GPInt128           x) { (void)x; return GP_TYPE_INT128;             }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned short     x) { (void)x; return GP_TYPE_UNSIGNED_SHORT;     }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned           x) { (void)x; return GP_TYPE_UNSIGNED;           }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned long      x) { (void)x; return GP_TYPE_UNSIGNED_LONG;      }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned long long x) { (void)x; return GP_TYPE_UNSIGNED_LONG_LONG; }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(GPUInt128          x) { (void)x; return GP_TYPE_UINT128;            }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(float              x) { (void)x; return GP_TYPE_FLOAT;              }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(double             x) { (void)x; return GP_TYPE_DOUBLE;             }
-#if !_MSC_VER
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(char               x) { (void)x; return GP_TYPE_CHAR;               }
-#endif
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(unsigned char      x) { (void)x; return GP_TYPE_UNSIGNED_CHAR;      }
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(signed char        x) { (void)x; return GP_TYPE_SIGNED_CHAR;        }
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(char*              x) { (void)x; return GP_TYPE_CHAR_PTR;           }
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(const char*        x) { (void)x; return GP_TYPE_CHAR_PTR;           }
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(struct gp_char*    x) { (void)x; return GP_TYPE_STRING;             }
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(const void*        x) { (void)x; return GP_TYPE_PTR;                }
-
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_SIGNED(T X)           { return gp_type_is_signed(GP_TYPE(X))          ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_UNSIGNED(T X)         { return gp_type_is_unsigned(GP_TYPE(X))        ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_FLOAT(T X)            { return gp_type_is_float(GP_TYPE(X))           ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_NUMBER(T X)           { return gp_type_is_number(GP_TYPE(X))          ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_INTEGRAL(T X)         { return gp_type_is_integral(GP_TYPE(X))        ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_SIGNED_INTEGER(T X)   { return gp_type_is_signed_integer(GP_TYPE(X))  ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_UNSIGNED_INTEGER(T X) { return gp_type_is_unsigned_integer(GP_TYPE(X)); }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_INTEGER(T X)          { return gp_type_is_integer(GP_TYPE(X))         ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_ARITHMETIC(T X)       { return gp_type_is_arithmetic(GP_TYPE(X))      ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_STRING(T X)           { return gp_type_is_string(GP_TYPE(X))          ; }
-#endif
-
+///@endcond
 #endif // GP_OVERLOAD_INCLUDED

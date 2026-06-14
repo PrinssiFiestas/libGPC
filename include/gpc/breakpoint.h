@@ -27,20 +27,16 @@
 // Original library:
 // https://github.com/scottt/debugbreak/tree/master
 //
-// This library is modified to suit the needs of libGPC. Most notably, names
-// have changed from `debug_break` to `GP_BREAKPOINT` with `GP_` namespace.
-// Also, inline functions have been changed to macros, which allows checking
-// their existance in the preprocessor and puts the breakpoint in source code,
-// not this header. This also means that the #error directives can be removed.
+// This library is modified to suit our needs. Most notably, names have changed
+// from `debug_break` to `GP_BREAKPOINT` with `GP_` namespace. Also, inline
+// functions have been changed to macros, which allows checking their existance
+// in the preprocessor and puts the breakpoint in source code, not this header.
+// This also means that the original #error directives could be removed.
 //
 // Some additional platforms are added and bugs fixed.
 
 #ifndef GP_BREAKPOINT_INCLUDED
 #define GP_BREAKPOINT_INCLUDED 1
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 
 // ----------------------------------------------------------------------------
@@ -53,63 +49,33 @@ extern "C" {
 #ifdef GP_DOXYGEN
 
 /** Set breakpoint.
- * #defined in some platforms. Usually crashes porgram if running process is not
- * attached to a debugger, otherwise stepping and continuing execution is
+ * Available in some platforms. Usually crashes program if running process is
+ * not attached to a debugger, otherwise stepping and continuing execution is
  * allowed.
  */
 #define GP_BREAKPOINT /* set breakpoint */
 
 /** Set breakpoint trap.
- * #defined in most platforms. Usually crashes program if running process is not
- * attached to a debugger, otherwise continuing execution may or may not be
+ * Available in most platforms. Usually crashes program if running process is
+ * not attached to a debugger, otherwise continuing execution may or may not be
  * allowed, but examining variables and backtrace will be in most platforms. May
- * cause compiler optimizations to remove following code.
+ * cause compiler optimizations to remove following code in optimized builds.
  */
 #define GP_BREAKPOINT_TRAP /* set breakpoint or trap */
 
 /** Set breakpoint or do nothing.
- * Available in all platforms. Sets breakpoint if @ref GP_BREAKPOINT is
- * #defined and NDEBUG is not #defined, no-op otherwise.
+ * Available in all platforms. Sets breakpoint if @ref GP_BREAKPOINT is defined
+ * and NDEBUG is not defined, no-op otherwise.
  */
 #define GP_DEBUG_BREAKPOINT /* set breakpoint or do nothing */
 
 /** Set breakpoint or trap or do nothing.
  * Available in all platforms. Sets breakpoint/trap if @ref GP_BREAKPOINT_TRAP
- * is #defined and NDEBUG is not #defined, no-op otherwise.
+ * is defined and NDEBUG is not defined, no-op otherwise.
  */
 #define GP_DEBUG_BREAKPOINT_TRAP /* set breakpoint or trap or do nothing */
 
 #endif // GP_DOXYGEN
-
-/** Check if debugger is not present.
- * @return 1 if no debugger present, 0 if debugger present, -1 if undetermined.
- * `errno` MAY be set in the latter case.
- */
-int gp_debugger_is_detached(void);
-
-/** Cached check if debugger was never present.
- * Like @ref gp_debugger_is_detached(), but only does the check once and caches
- * the result to avoid internal IO and parsing overhead.
- * @return on first call: 1 if no debugger preset, 0 if debugger preset, -1 if
- * undetermined, subsequent calls return the previous return value.
- */
-int gp_debugger_was_detached(void);
-
-#ifdef NDEBUG
-/** Cached check if debugger was never present.
- * Like @ref gp_debugger_is_detached(), but only does the check once and caches
- * the result to avoid internal IO and parsing overhead.
- * @return on first call: 1 if no debugger preset, 0 if debugger preset, -1 if
- * undetermined, subsequent calls return the previous return value.
- */
-static inline int gp_debugger_detached(void) { return gp_debugger_was_detached(); }
-#else
-/** Check if debugger is not present.
- * @return 1 if no debugger present, 0 if debugger present, -1 if undetermined.
- * `errno` MAY be set in the latter case.
- */
-static inline int gp_debugger_detached(void) { return gp_debugger_is_detached(); }
-#endif
 
 
 // ----------------------------------------------------------------------------
@@ -119,6 +85,7 @@ static inline int gp_debugger_detached(void) { return gp_debugger_is_detached();
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+///@cond
 
 
 // GP_BREAKPOINT_METHOD values
@@ -128,12 +95,13 @@ static inline int gp_debugger_detached(void) { return gp_debugger_is_detached();
 #define GP_BREAKPOINT_USE_SIGTRAP           3 // raise(SIGTRAP)
 #define GP_BREAKPOINT_USE_BUILTIN_DEBUGTRAP 4 // __builtin_debugtrap()
 #define GP_BREAKPOINT_USE_DEBUGBREAK        5 // __debugbreak()
-#define GP_BREAKPOINT_INVALID_METHOD        6
 
-#ifdef __has_builtin
-#define GP_HAS_BUILTIN(...) __has_builtin(__VA_ARGS__)
-#else
-#define GP_HAS_BUILTIN(...) 0
+#ifndef GP_HAS_BUILTIN
+#  ifdef __has_builtin
+#    define GP_HAS_BUILTIN(...) __has_builtin(__VA_ARGS__)
+#  else
+#    define GP_HAS_BUILTIN(...) 0
+#  endif
 #endif
 
 #ifdef _MSC_VER
@@ -150,6 +118,9 @@ static inline int gp_debugger_detached(void) { return gp_debugger_is_detached();
 #elif defined(__alpha__) && !defined(__osf__) && defined(__GNUC__) && __GNUC__ >= 2
 	#define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_TRAP_INSTRUCTION
     #define GP_TRAP_INSTRUCTION __asm__ __volatile__ ("bpt")
+#elif defined(__TINYC__)
+    #define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_TRAP_INSTRUCTION
+    #define GP_TRAP_INSTRUCTION __asm__ __volatile__("int $0x03")
 // ----------------------------------------------------------------------------
 #elif __GNUC__
 
@@ -247,14 +218,14 @@ static inline int gp_debugger_detached(void) { return gp_debugger_is_detached();
 #elif GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_DEBUGBREAK
     #define GP_BREAKPOINT_IMPLEMENTATION      __debugbreak()
     #define GP_BREAKPOINT_TRAP_IMPLEMENTATION __debugbreak()
-#elif GP_BREAKPOINT_METHOD >= GP_BREAKPOINT_INVALID_METHOD
+#elif GP_BREAKPOINT_METHOD < 0 || GP_BREAKPOINT_USE_DEBUGBREAK < GP_BREAKPOINT_METHOD
     #error Invalid GP_BREAKPOINT_METHOD definition
 #endif
 
 #if defined(GP_BREAKPOINT_IMPLEMENTATION) && !defined(NDEBUG)
     // expressionify, so can be used with comma operator, and preferably put the
     // breakpoint in user source code instead of this file.
-    #if !__cplusplus && __GNUC__ && !defined(GP_PEDANTIC) && GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION
+    #if !defined(__cplusplus) && (defined(__GNUC__) || defined(__TINYC__)) && !defined(GP_PEDANTIC) && GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION
         #define GP_BREAKPOINT       ({GP_BREAKPOINT_IMPLEMENTATION;})
         #define GP_DEBUG_BREAKPOINT ({GP_BREAKPOINT_IMPLEMENTATION;})
     #elif GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION
@@ -275,7 +246,7 @@ static inline int gp_debugger_detached(void) { return gp_debugger_is_detached();
 #if defined(GP_BREAKPOINT_TRAP_IMPLEMENTATION) && !defined(NDEBUG)
     // expressionify, so can be used with comma operator, and preferably put the
     // breakpoint in user source code instead of this file.
-    #if !__cplusplus && __GNUC__ && !defined(GP_PEDANTIC) && GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION
+    #if !defined(__cplusplus) && (defined(__GNUC__) || defined(__TINYC__)) && !defined(GP_PEDANTIC) && GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION
         #define GP_BREAKPOINT_TRAP       ({GP_BREAKPOINT_TRAP_IMPLEMENTATION;})
         #define GP_DEBUG_BREAKPOINT_TRAP ({GP_BREAKPOINT_TRAP_IMPLEMENTATION;})
     #elif GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION
@@ -293,8 +264,5 @@ static inline int gp_debugger_detached(void) { return gp_debugger_is_detached();
     #define GP_DEBUG_BREAKPOINT_TRAP ((void)0)
 #endif
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* ifndef GP_BREAKPOINT_INCLUDED */
+///@endcond
+#endif // GP_BREAKPOINT_INCLUDED
