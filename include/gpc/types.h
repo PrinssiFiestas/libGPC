@@ -277,6 +277,7 @@ _Generic((__VA_ARGS__),                                \
     const char*:           GP_TYPE_CHAR_PTR,           \
     struct gp_char*:       GP_TYPE_STRING,             \
     default:               GP_TYPE_PTR)
+
 #define/* bool */GP_IS_SIGNED(...)           ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_SIGNED_TYPE(1)     , default: 0))
 #define/* bool */GP_IS_UNSIGNED(...)         ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_UNSIGNED_TYPE(1)   , default: 0))
 #define/* bool */GP_IS_FLOAT(...)            ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_FLOAT(1)           , default: 0))

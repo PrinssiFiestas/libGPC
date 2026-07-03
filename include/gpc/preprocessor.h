@@ -98,6 +98,33 @@
 #  define GP_HAS_BUILTIN(...) 0
 #endif
 
+/** Check in preprocessor if a header file exist.
+ *
+ * Some compilers allow to check in preprocessor if any given header file can be
+ * included using `__has_include` operator. However, portable applications
+ * should check the availability of `__has_include` itself before using it,
+ * which is cumbersome and can blow up the complexity of more complex `#if`
+ * expressions. This macro wraps `__has_include` to avoid nested `#if`
+ * expressions.
+ *
+ * The operand should be given in same form as operand for `#include` directive.
+ *
+ * @return zero if the header file passed as argument is not supported or if
+ * `__has_builtin` is not supported. Otherwise, a non-zero integer is returned.
+ *
+ * Example:
+ * @code
+ * #if GP_HAS_INCLUDE(<stdatomic.h>)
+ * #  include <stdatomic.h>
+ * #endif
+ * @endcode
+ */
+#if defined(__has_include) || defined(GP_DOXYGEN)
+#  define GP_HAS_INCLUDE(...) __has_include(__VA_ARGS__)
+#else
+#  define GP_HAS_INCLUDE(...) 0
+#endif
+
 
 /// @}
 // ----------------------------------------------------------------------------

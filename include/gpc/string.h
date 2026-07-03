@@ -13,7 +13,6 @@
 extern "C" {
 #endif
 
-
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
@@ -31,8 +30,8 @@ typedef struct gp_char { uint8_t c; /**< UTF-8 code unit. */ } GPChar;
 
 /** String type.*/
 typedef GPChar* GPString;
-
-#define/* bool */is_something(STR) sbloink
+// TODO once we have array
+// typedef GPArray(GPChar) GPString;
 
 // TODO the rest
 

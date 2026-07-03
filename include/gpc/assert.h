@@ -7,13 +7,13 @@
 
 #include <gpc/types.h>
 #include <gpc/breakpoint.h>
+#include <gpc/preprocessor.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 // ----------------------------------------------------------------------------
 //
@@ -75,6 +75,9 @@ extern "C" {
 /// Note: this is a literal.
 /// 127 = 7f
 /// @endcode
+/// The formats available are the same ones supported by @ref gp_str_print(),
+/// which is based on GNU C Library `printf()`. Format strings are not type
+/// checked, so make sure to double check their correctness when used.
 ///
 /// If the format string starts with a opening brace and optionally space, they
 /// will be added to the evaluated value as well. This makes printing structs and
@@ -130,7 +133,7 @@ extern "C" {
  */
 #define gp_assume(/* bool condition, variables */...) \
     (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
-        (GP_FAIL_MESSAGE(__VA_ARGS__), GP_UNREACHABLE(), false))
+        (GP_FAIL_MESSAGE(__VA_ARGS__), GP_ASSUME_FAIL, false))
 
 /** Invoke undefined behavior.
  * Equivalent to `gp_assert(false)` when NDEBUG is not defined. Otherwise,
@@ -150,9 +153,11 @@ extern "C" {
 #  else
 #    define GP_UNREACHABLE(...) gp_assert(0, __VA_ARGS__)
 #  endif
-#elif __GNUC__
+#elif __STDC_VERSION__ >= 202311L
+#  define GP_UNREACHABLE(...) unreachable()
+#elif defined(__GNUC__)
 #  define GP_UNREACHABLE(...) __builtin_unreachable()
-#elif _MSC_VER
+#elif defined(_MSC_VER)
 #  define GP_UNREACHABLE(...) __assume(0)
 #else
 #  define GP_UNREACHABLE(...) (*(char*)0 = 0)
@@ -173,15 +178,38 @@ extern "C" {
 #elif __STDC_VERSION__ >= 202311L || defined(__cplusplus)
 #  define GP_STATIC_ASSERT(...) static_assert(__VA_ARGS__)
 #elif __STDC_VERSION__ >= 201112L || defined(__TINYC__) || defined(__COMPCERT__)
-#  define GP_STATIC_ASSERT_NO_MSG(E) _Static_assert(E, "")
-#  define GP_STATIC_ASSERT(...) \
-       GP_OVERLOAD2(__VA_ARGS__, _Static_assert, GP_STATIC_ASSERT_NO_MSG)(__VA_ARGS__)
+#  define GP_STATIC_ASSERT(E, ...) _Static_assert((E), ""__VA_ARGS__)
 #else // C99, message will be ignored, it is just there for compatibility
 #  define GP_STATIC_ASSERTION_NAME(LINE) GP_TOKEN_PASTE(_gp_static_assertion_, LINE)
-#  define GP_STATIC_ASSERT_MSG(E, MSG) extern char GP_STATIC_ASSERTION_NAME(__LINE__)[(E) ? 1 : -1]
-#  define GP_STATIC_ASSERT_NO_MSG(E)   extern char GP_STATIC_ASSERTION_NAME(__LINE__)[(E) ? 1 : -1]
-#  define GP_STATIC_ASSERT(...) \
-       GP_OVERLOAD2(__VA_ARGS__, GP_STATIC_ASSERT_MSG, GP_STATIC_ASSERT_NO_MSG)(__VA_ARGS__)
+#  define GP_STATIC_ASSERT(E, ...) extern char GP_STATIC_ASSERTION_NAME(__LINE__)[(E) ? 1 : -1]
+#endif
+
+/** Compile-time assertion as an expression.
+ *
+ * @a CONDITION is a compile time expression that aborts compilation if it
+ * evaluates to zero in which case @a MESSAGE (passed as a string literal) will
+ * be displayed. Otherwise, does nothing.
+ *
+ * Unlike @ref GP_STATIC_ASSERT, which must be used as a stand-alone statement,
+ * this can be used in an expression like any other boolean value, which is
+ * mostly useful for programmatic checks in function macros. This macro must be
+ * used in function scope.
+ *
+ * @a MESSAGE is optional and can be omitted. If not GNU C, @a MESSAGE will be
+ * ignored and the error message in case of failing @a CONDITION will be some
+ * cryptic message about negative array size. The message is less likely to be
+ * ignored with @ref GP_STATIC_ASSERT, which is why it is recommended to use it
+ * instead when applicable.
+ *
+ * @return true if @a CONDITION is true, otherwise will not compile.
+ */
+#ifdef GP_DOXYGEN
+#  define gp_static_assert(CONDITION, MESSAGE) ({_Static_assert(CONDITION, MESSAGE); true})
+#elif (defined(__GNUC__) || defined(__TINYC__)) && !defined(GP_PEDANTIC)
+#  define gp_static_assert(...) \
+        gp_pass_bool(({GP_STATIC_ASSERT(__VA_ARGS__); true;}))
+#else
+#  define gp_static_assert(E, ...) gp_pass_bool(sizeof(char[(E) ? 1 : -1]))
 #endif
 
 /** Start suite and unit testing.
@@ -208,6 +236,12 @@ GP_API void gp_test(const char* name);
 //
 // ----------------------------------------------------------------------------
 ///@cond
+
+#ifndef NDEBUG
+#  define GP_ASSUME_FAIL GP_DEBUG_BREAKPOINT_TRAP, exit(1)
+#else
+#  define GP_ASSUME_FAIL GP_UNREACHABLE()
+#endif
 
 // Ignore unused value warnings
 static inline bool gp_pass_bool(bool b) { return b; }
