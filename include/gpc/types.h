@@ -102,6 +102,16 @@ typedef enum gp_type
 
 #endif // GP_DOXYGEN
 
+/** Cast integer to it's equivalent signed type.
+ * Most useful for casting unsigned types to signed types for comparisons close
+ * to zero. This improves type safety compared to cast by converting to an
+ * integer of inferred size making the conversion typedef agnostic. It also
+ * guarantees that `gp_as_signed(a - b) < 0` will always return 1 for all b > a.
+ * If C99, the return value cannot be inferred and will be long long, but the
+ * comparison property will still hold.
+ */
+#define gp_as_signed(X) GP_AS_SIGNED(X)
+
 /** Get size of type from type descriptor.
  *
  * @return value such that `sizeof(X) == gp_type_size(GP_TYPE(X))`.
@@ -220,6 +230,33 @@ GP_INLINE size_t gp_type_size(const gp_type_t T)
 //
 // ----------------------------------------------------------------------------
 ///@cond
+
+#ifdef GP_HAS_C11_GENERIC
+#define GP_AS_SIGNED(X) _Generic(X,                         \
+    GP_CHAR_SELECTION((signed char)(X),)                    \
+    GP_TETRA_UINT_SELECTION((gp_tetra_int_t)(X),)           \
+    GP_TETRA_INT_SELECTION((X),)                            \
+    unsigned char     : (signed char)(X), signed char: (X), \
+    unsigned short    : (short)(X)      , short      : (X), \
+    unsigned int      : (int)(X)        , int        : (X), \
+    unsigned long     : (long)(X)       , long       : (X), \
+    unsigned long long: (long long)(X)  , long long  : (X))
+#elif defined(__cplusplus)
+static inline constexpr signed char    GP_AS_SIGNED(unsigned char      x) { return x; }
+static inline constexpr short          GP_AS_SIGNED(unsigned short     x) { return x; }
+static inline constexpr int            GP_AS_SIGNED(unsigned int       x) { return x; }
+static inline constexpr long           GP_AS_SIGNED(unsigned long      x) { return x; }
+static inline constexpr long long      GP_AS_SIGNED(unsigned long long x) { return x; }
+#else // C99
+#define GP_AS_SIGNED(X) \
+( \
+    sizeof(X) == 1 ? (int8_t )(X) : \
+    sizeof(X) == 2 ? (int16_t)(X) : \
+    sizeof(X) == 4 ? (int32_t)(X) : \
+    sizeof(X) == 8 ? (int64_t)(X) : \
+    (int64_t)(X)                    \
+)
+#endif
 
 #ifdef __cplusplus
 #define GP_PTR_TO(...) decltype(new(__VA_ARGS__))

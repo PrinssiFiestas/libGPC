@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <limits.h>
+#include <math.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,8 +29,10 @@ void gp_launder_noinline(void**); ///< @private
 /// @endcode
 /// @{
 
-/** Round 32-bit number up to the next power of 2.
- * Always rounds up so 0 -> 1, 1 -> 2, 2 -> 4, etc.
+/** Round 32-bit number up to the next power of two.
+ *
+ * @return number rounded up to the *next* power of two meaning that numbers
+ * that are already powers of two will be raised to the next power too.
  */
 GP_NODISCARD GP_INLINE
 uint32_t gp_next_power_of_2_32(uint32_t x)
@@ -45,8 +48,10 @@ uint32_t gp_next_power_of_2_32(uint32_t x)
     return x + 1;
     #endif
 }
-/** Round 64-bit number up to the next power of 2.
- * Always rounds up so 0 -> 1, 1 -> 2, 2 -> 4, etc.
+/** Round 64-bit number up to the next power of two.
+ *
+ * @return number rounded up to the *next* power of two meaning that numbers
+ * that are already powers of two will be raised to the next power too.
  */
 GP_NODISCARD GP_INLINE
 uint64_t gp_next_power_of_2_64(uint64_t x)
@@ -64,7 +69,9 @@ uint64_t gp_next_power_of_2_64(uint64_t x)
     #endif
 }
 /** Round number of type size_t up to the next power of 2.
- * Always rounds up so 0 -> 1, 1 -> 2, 2 -> 4, etc.
+ *
+ * @return number rounded up to the *next* power of two meaning that numbers
+ * that are already powers of two will be raised to the next power too.
  */
 GP_NODISCARD GP_INLINE
 size_t gp_next_power_of_2(size_t x)
@@ -72,6 +79,93 @@ size_t gp_next_power_of_2(size_t x)
     return sizeof x == sizeof(uint32_t) ?
         gp_next_power_of_2_32(x) : gp_next_power_of_2_64(x);
 }
+
+/** Round number up to alignment boundary.
+ *
+ * @p boundary must be a power of 2.
+ * @return @p x if already aligned.
+ */
+GP_NODISCARD GP_INLINE
+uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary)
+{
+    gp_assume((boundary & (boundary-1)) == 0, "Alignment boundary must be a power of 2.");
+    return x + (boundary - 1) - ((x - 1) & (boundary - 1));
+}
+
+#ifndef __cplusplus // C++ uses templates instead of macros.
+/** Type generic min.
+ *
+ * If one of the arguments is an unsigned integral type, the other one has to be
+ * an unsigned integral type as well. If one of the arguments is a pointer, the
+ * other one has to be a pointer as well. Any other combinations are ok. This
+ * restriction prevents bugs like `gp_min(0, x - y)` always returning zero for
+ * any unsigned x.
+ *
+ * Unlike common generic min macros in C, this only evaluates multiple times if
+ * C99, otherwise arguments are evaluated exactly once.
+ */
+#define gp_min(A, B) gp_generic_min(A, B)
+
+/** Type generic max.
+ *
+ * If one of the arguments is an unsigned integral type, the other one has to be
+ * an unsigned integral type as well. If one of the arguments is a pointer, the
+ * other one has to be a pointer as well. Any other combinations are ok. This
+ * restriction prevents bugs like `gp_max(0, x - y)` always returning x for any
+ * unsigned x.
+ *
+ * Unlike common generic max macros in C, this only evaluates multiple times if
+ * C99, otherwise arguments are evaluated exactly once.
+ */
+#define gp_max(A, B) gp_generic_max(A, B)
+#endif
+
+/** Type generic signed min.
+ *
+ * Converts both integer arguments (signed or unsigned) to their signed
+ * equivalents, sign extends if other one is larger, and then computes the min
+ * of the processed arguments. This is most useful when the other argument is 0
+ * and the other arguments has subtraction on unsigned values to prevent
+ * wraparound. Accepts any combination of integers with different signedness.
+ * For type safety (signedness matching) use @ref gp_min().
+ */
+#define gp_signed_min(A, B) gp_generic_signed_min(A, B)
+
+/** Type generic signed max.
+ *
+ * Converts both integer arguments (signed or unsigned) to their signed
+ * equivalents, sign extends if other one is larger, and then computes the max
+ * of the processed arguments. This is most useful when the other argument is 0
+ * and the other arguments has subtraction on unsigned values to prevent
+ * wraparound. Accepts any combination of integers with different signedness.
+ * For type safety (signedness matching) use @ref gp_max().
+ */
+#define gp_signed_max(A, B) gp_generic_signed_max(A, B)
+
+/** Float comparison.
+ *
+ * Use this instead of `==` to accommodate for floating point precision issues.
+ */
+GP_NODISCARD GP_INLINE
+bool gp_approx(double a, double b, double max_relative_diff) {
+    a = fabs(a);
+    b = fabs(b);
+    return fabs(a - b) <= max_relative_diff * fmax(a, b);
+}
+GP_NODISCARD GP_INLINE
+bool gp_approxf(float a, float b, float max_relative_diff) {
+    a = fabsf(a);
+    b = fabsf(b);
+    return fabsf(a - b) <= max_relative_diff * fmaxf(a, b);
+}
+#if GP_HAS_LONG_DOUBLE
+GP_NODISCARD GP_INLINE
+bool gp_approxl(long double a, long double b, long double max_rel_diff) {
+    a = fabsl(a);
+    b = fabsl(b);
+    return fabsl(a - b) <= max_rel_diff * fmaxl(a, b);
+}
+#endif
 
 GP_NODISCARD GP_INLINE
 size_t gp_trailing_zeros_u32(uint32_t u)
@@ -135,7 +229,6 @@ size_t gp_leading_zeros_u32(uint32_t u)
     uint32_t v = u;
     uint32_t r;
     uint32_t shift;
-
     r     = (v > 0xFFFF    ) << 4; v >>= r;
     shift = (v > 0xFF      ) << 3; v >>= shift; r |= shift;
     shift = (v > 0xF       ) << 2; v >>= shift; r |= shift;
@@ -157,7 +250,6 @@ size_t gp_leading_zeros_u64(uint64_t u)
     uint64_t v = u;
     uint64_t r;
     uint64_t shift;
-
     r =     (v > 0xFFFFFFFF) << 5; v >>= r;
     shift = (v > 0xFFFF    ) << 4; v >>= shift; r |= shift;
     shift = (v > 0xFF      ) << 3; v >>= shift; r |= shift;
@@ -166,17 +258,6 @@ size_t gp_leading_zeros_u64(uint64_t u)
                                                 r |= (v >> 1);
     return 63 - r;
     #endif
-}
-
-/** Round number up to alignment boundary.
- * @p boundary must be a power of 2.
- * @return @p x if already aligned.
- */
-GP_NODISCARD GP_INLINE
-uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary)
-{
-    gp_assume((boundary & (boundary-1)) == 0, "Alignment boundary must be a power of 2.");
-    return x + (boundary - 1) - ((x - 1) & (boundary - 1));
 }
 
 /** Detach pointer from it's origin.
@@ -215,9 +296,146 @@ GP_INLINE void* gp_launder(void* ptr)
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
+/// @cond
+
+GP_NODISCARD static inline char               gp_minc(char x,  char y)                              { return x < y ? x : y; }
+GP_NODISCARD static inline signed char        gp_minhhi(signed char x, signed char y)               { return x < y ? x : y; }
+GP_NODISCARD static inline short              gp_minhi(short x, short y)                            { return x < y ? x : y; }
+GP_NODISCARD static inline int                gp_mini(int x, int y)                                 { return x < y ? x : y; }
+GP_NODISCARD static inline long               gp_minli(long x, long y)                              { return x < y ? x : y; }
+GP_NODISCARD static inline long long          gp_minlli(long long x, long long y)                   { return x < y ? x : y; }
+GP_NODISCARD static inline unsigned char      gp_minhhu(unsigned char x, unsigned char y)           { return x < y ? x : y; }
+GP_NODISCARD static inline unsigned short     gp_minhu(unsigned short x, unsigned short y)          { return x < y ? x : y; }
+GP_NODISCARD static inline unsigned           gp_minu(unsigned x, unsigned y)                       { return x < y ? x : y; }
+GP_NODISCARD static inline unsigned long      gp_minlu(unsigned long x, unsigned long y)            { return x < y ? x : y; }
+GP_NODISCARD static inline unsigned long long gp_minllu(unsigned long long x, unsigned long long y) { return x < y ? x : y; }
+GP_NODISCARD static inline float              gp_minf(float x, float y)                             { return x < y ? x : y; }
+GP_NODISCARD static inline double             gp_mind(double x, double y)                           { return x < y ? x : y; }
+#ifndef __cplusplus
+GP_NODISCARD static inline void*              gp_minp(const void* x, const void* y)                 { return (void*)((char*)x < (char*)y ? x : y); }
+#endif
+#ifdef GP_HAS_LONG_DOUBLE
+GP_NODISCARD static inline long double        gp_minld(long double x, long double y)                { return x < y ? x : y; }
+#endif
+#ifdef GP_INT128_INCLUDED
+GP_NODISCARD static inline  GPInt128           gp_mini128(GPInt128  x, GPInt128  y) { return gp_i128_less_than(x, y) ? x : y; }
+GP_NODISCARD static inline  GPUInt128          gp_minu128(GPUInt128 x, GPUInt128 y) { return gp_u128_less_than(x, y) ? x : y; }
+#endif
+GP_NODISCARD static inline  char               gp_maxc(char x, char y)                               { return x > y ? x : y; }
+GP_NODISCARD static inline  signed char        gp_maxhhi(signed char x, signed char y)               { return x > y ? x : y; }
+GP_NODISCARD static inline  short              gp_maxhi(short x, short y)                            { return x > y ? x : y; }
+GP_NODISCARD static inline  int                gp_maxi(int x, int y)                                 { return x > y ? x : y; }
+GP_NODISCARD static inline  long               gp_maxli(long x, long y)                              { return x > y ? x : y; }
+GP_NODISCARD static inline  long long          gp_maxlli(long long x, long long y)                   { return x > y ? x : y; }
+GP_NODISCARD static inline  unsigned char      gp_maxhhu(unsigned char x, unsigned char y)           { return x > y ? x : y; }
+GP_NODISCARD static inline  unsigned short     gp_maxhu(unsigned short x, unsigned short y)          { return x > y ? x : y; }
+GP_NODISCARD static inline  unsigned           gp_maxu(unsigned x, unsigned y)                       { return x > y ? x : y; }
+GP_NODISCARD static inline  unsigned long      gp_maxlu(unsigned long x, unsigned long y)            { return x > y ? x : y; }
+GP_NODISCARD static inline  unsigned long long gp_maxllu(unsigned long long x, unsigned long long y) { return x > y ? x : y; }
+GP_NODISCARD static inline  float              gp_maxf(float x, float y)                             { return x > y ? x : y; }
+GP_NODISCARD static inline  double             gp_maxd(double x, double y)                           { return x > y ? x : y; }
+#ifndef __cplusplus
+GP_NODISCARD static inline  void*              gp_maxp(const void* x, const void* y)                 { return (void*)((char*)x > (char*)y ? x : y); }
+#endif
+#ifdef GP_HAS_LONG_DOUBLE
+GP_NODISCARD static inline  long double        gp_maxld(long double x, long double y)                { return x > y ? x : y; }
+#endif
+#ifdef GP_INT128_INCLUDED
+GP_NODISCARD static inline  GPInt128           gp_maxi128(GPInt128  x, GPInt128  y) { return gp_i128_greater_than(x, y) ? x : y; }
+GP_NODISCARD static inline  GPUInt128          gp_maxu128(GPUInt128 x, GPUInt128 y) { return gp_u128_greater_than(x, y) ? x : y; }
+#endif
+
+// gp_min() and gp_max() implementations
+#if defined(__GNUC__) && __STDC_VERSION__ >= 201112L && !defined(GP_PEDANTIC) && !defined(GPC_IMPLEMENTATION)
+#  define gp_generic_min(X, Y) ({ \
+    _Static_assert(GP_IS_UNSIGNED(X) == GP_IS_UNSIGNED(Y), \
+        "Signedness of gp_min() arguments must match."); \
+    __typeof__(X) _gp_min_X = (X); __typeof__(Y) _gp_min_Y = (Y); \
+    _gp_min_X < _gp_min_Y ? _gp_min_X : _gp_min_Y; \
+})
+#  define gp_generic_max(X, Y) ({ \
+    _Static_assert(GP_IS_UNSIGNED(X) == GP_IS_UNSIGNED(Y), \
+        "Signedness of gp_min() arguments must match."); \
+    __typeof__(X) _gp_max_X = (X); __typeof__(Y) _gp_max_Y = (Y); \
+    _gp_max_X > _gp_max_Y ? _gp_max_X : _gp_max_Y; \
+})
+#  define gp_generic_signed_min(X, Y) ({ \
+    __typeof__(X) _gp_min_X = (X); __typeof__(Y) _gp_min_Y = (Y); \
+    GP_AS_SIGNED(_gp_min_X) < GP_AS_SIGNED(_gp_min_Y) ? GP_AS_SIGNED(_gp_min_X) : GP_AS_SIGNED(_gp_min_Y); \
+})
+#  define gp_generic_signed_max(X, Y) ({ \
+    __typeof__(X) _gp_max_X = (X); __typeof__(Y) _gp_max_Y = (Y); \
+    GP_AS_SIGNED(_gp_max_X) > GP_AS_SIGNED(_gp_max_Y) ? GP_AS_SIGNED(_gp_max_X) : GP_AS_SIGNED(_gp_max_Y); \
+})
+#elif defined(GP_HAS_C11_GENERIC)
+#  define gp_generic_min(A, B) \
+( \
+    !sizeof(bool[1-2*(GP_IS_UNSIGNED(A)!=GP_IS_UNSIGNED(B))]) ? (A)+(B) : \
+    _Generic((A)+(B), \
+        GP_LONG_DOUBLE_SELECTION(gp_minld,) \
+        GP_DOUBLE_SELECTION(gp_mind,)       \
+        GP_TETRA_UINT_SELECTION(gp_mintu,)  \
+        GP_TETRA_INT_SELECTION(gp_minti,)   \
+        GP_CHAR_SELECTION(gp_minc,)         \
+        signed char: gp_minhhi, unsigned char     : gp_minhhu, \
+        short      : gp_minhi , unsigned short    : gp_minhu , \
+        int        : gp_mini  , unsigned int      : gp_minu  , \
+        long       : gp_minli , unsigned long     : gp_minlu , \
+        long long  : gp_minlli, unsigned long long: gp_minllu, \
+        float      : gp_minf)(A, B) \
+)
+#  define gp_generic_max(A, B) \
+( \
+    !sizeof(bool[1-2*(GP_IS_UNSIGNED(A)!=GP_IS_UNSIGNED(B))]) ? (A)+(B) : \
+    _Generic((A)+(B), \
+        GP_LONG_DOUBLE_SELECTION(gp_maxld,) \
+        GP_DOUBLE_SELECTION(gp_maxd,)       \
+        GP_TETRA_UINT_SELECTION(gp_maxtu,)  \
+        GP_TETRA_INT_SELECTION(gp_maxti,)   \
+        GP_CHAR_SELECTION(gp_maxc,)         \
+        signed char: gp_maxhhi, unsigned char     : gp_maxhhu, \
+        short      : gp_maxhi , unsigned short    : gp_maxhu , \
+        int        : gp_maxi  , unsigned int      : gp_maxu  , \
+        long       : gp_maxli , unsigned long     : gp_maxlu , \
+        long long  : gp_maxlli, unsigned long long: gp_maxllu, \
+        float      : gp_maxf)(A, B) \
+)
+
+#  define gp_generic_signed_min(X, Y) _Generic(GP_AS_SIGNED((X) + (Y)),         \
+    signed char: gp_minhhi, short: gp_minhi, int: gp_mini, long: gp_minli, \
+    long long: gp_minlli)(GP_AS_SIGNED(X), GP_AS_SIGNED(Y))
+
+#  define gp_generic_signed_max(X, Y) _Generic(GP_AS_SIGNED((X) + (Y)),         \
+    signed char: gp_maxhhi, short: gp_maxhi, int: gp_maxi, long: gp_maxli, \
+    long long: gp_maxlli)(GP_AS_SIGNED(X), GP_AS_SIGNED(Y))
+#else // C99
+// Use assume() to detect multiple evaluation bugs e.g. pass i++. Other side
+// effects cannot be detected, so beware!
+#  define gp_generic_min(X, Y) \
+( \
+    gp_assume((X)==(X) && (Y)==(Y), "gp_min() must not have side effects."), \
+    (X) < (Y) ? (X) : (Y) \
+)
+#  define gp_generic_max(X, Y) \
+( \
+    gp_assume((X)==(X) && (Y)==(Y), "gp_max() must not have side effects."), \
+    (X) > (Y) ? (X) : (Y) \
+)
+#  define gp_generic_signed_min(X, Y) \
+( \
+    gp_assume((X)==(X) && (Y)==(Y), "gp_min() must not have side effects."), \
+    GP_AS_SIGNED(X) < GP_AS_SIGNED(Y) ? GP_AS_SIGNED(X) : GP_AS_SIGNED(Y) \
+)
+#  define gp_generic_signed_max(X, Y) \
+( \
+    gp_assume((X)==(X) && (Y)==(Y), "gp_max() must not have side effects."), \
+    GP_AS_SIGNED(X) > GP_AS_SIGNED(Y) ? GP_AS_SIGNED(X) : GP_AS_SIGNED(Y) \
+)
+#endif
 
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
+/// @endcond
 #endif // GP_UTILS_INCLUDED
