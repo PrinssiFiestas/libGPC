@@ -4,7 +4,7 @@
 
 #ifndef GP_ATTRIBUTES_INCLUDED
 #define GP_ATTRIBUTES_INCLUDED 1
-/// @defgroup compile_options Compile-Time Options
+/// @page compile_options Compile-Time Options
 ///
 /// User defined macros for configuring this library. Best practice is to
 /// define these with a value of one e.g. `-DGP_PEDANTIC=1`, but it is not
@@ -31,9 +31,10 @@
 /// #define GPC_IMPLEMENTATION
 /// #include "gpc.h"
 /// @endcode
-/// Example of defining a macro only needed for a specific C source file:
+/// Example of defining a macro only needed for a specific translation unit:
 /// @code
 /// #define GP_NO_FORMAT_STRING_CHECK 1
+/// #include <gpc/io.h>
 /// #include <gpc/string.h>
 ///
 /// void print_string(GPString str)

@@ -7,6 +7,7 @@
 #ifndef GP_ASSERT_INCLUDED
 #define GP_ASSERT_INCLUDED 1
 
+#include <gpc/target.h>
 #include <gpc/types.h>
 #include <gpc/breakpoint.h>
 #include <gpc/preprocessor.h>
@@ -42,8 +43,8 @@ extern "C" {
 /// @endcode
 /// The exact message may change and should not be relied upon.
 ///
-/// Next, information about additionally passed arguments will be printed in
-/// form `argument = evaluated_argument`. Example:
+/// Information about additionally passed arguments will be printed in form
+/// `argument = evaluated_argument`. Example:
 /// @code
 /// const char* my_string = "some characters";
 /// int my_int_var = 0;
@@ -122,14 +123,15 @@ extern "C" {
         (GP_FAIL_MESSAGE(__VA_ARGS__), false))
 
 /** Optimized assertion.
- * If NDEBUG is not defined and condition is false, marks current test and suite
- * (if running tests) as failed, and exits program. If NDEBUG is defined and
- * condition is false, then undefined behavior is invoked. In practice, this
- * means that this assertion is often optimized away completely in optimized
- * builds. This may include the condition itself when there is no side effects,
- * however, calling functions with side effects in condition is safe. Optimizing
- * compilers and static analyzers may use the condition for symbolic analysis
- * to produce better output.
+ *
+ * If @ref GP_TARGET_DEBUG is defined and condition is false, marks current test
+ * and suite (if running tests) as failed, and exits program. If @ref GP_TARGET_DEBUG
+ * is not defined and condition is false, then undefined behavior is invoked. In
+ * practice, this means that this assertion is often optimized away completely
+ * in optimized builds. This may include the condition itself when there is no
+ * side effects, however, calling functions with side effects in condition is
+ * safe. Optimizing compilers and static analyzers may use the condition for
+ * symbolic analysis to produce better output.
  *
  * @return true if condition is true, undefined otherwise.
  */
@@ -138,14 +140,15 @@ extern "C" {
         (GP_FAIL_MESSAGE(__VA_ARGS__), GP_ASSUME_FAIL, false))
 
 /** Invoke undefined behavior.
- * Equivalent to `gp_assert(false)` when NDEBUG is not defined. Otherwise,
- * invokes undefined behavior, which may be used by the compiler for better
- * optimizations like dead code elimination.
+ *
+ * Equivalent to `gp_assert(false)` when @ref GP_TARGET_DEBUG is defined.
+ * Otherwise, invokes undefined behavior, which may be used by the compiler for
+ * better optimizations like dead code elimination.
  *
  * Arguments will be passed to @ref gp_assert() for error messages in debug
  * builds, ignored otherwise.
  */
-#ifndef NDEBUG
+#ifdef GP_TARGET_DEBUG
 #  if defined(__GNUC__) && !defined(__cplusplus) && !defined(GP_PEDANTIC) // nicer fail message
 #    define GP_UNREACHABLE(...) \
 ({ \
@@ -215,6 +218,7 @@ extern "C" {
 #endif
 
 /** Start suite and unit testing.
+ *
  * First call starts unit testing. Subsequent calls starts a new suite ending
  * the last suite and test. If name is NULL last suite will be ended without
  * starting a new suite. Calling with NULL when suite is not running does
@@ -222,7 +226,8 @@ extern "C" {
  */
 GP_API void gp_suite(const char* name);
 
-/** Start test.
+/** Start unit test.
+ *
  * Subsequent calls starts a new test ending the last one. If name
  * is NULL last test will be ended without starting a new test. Calling with
  * NULL when test is not running does nothing.
@@ -239,7 +244,7 @@ GP_API void gp_test(const char* name);
 // ----------------------------------------------------------------------------
 ///@cond
 
-#ifndef NDEBUG
+#ifdef GP_TARGET_DEBUG
 #  define GP_ASSUME_FAIL GP_DEBUG_BREAKPOINT_TRAP, exit(1)
 #else
 #  define GP_ASSUME_FAIL GP_UNREACHABLE()

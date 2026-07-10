@@ -2,23 +2,34 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// TODO dox
-
 #ifndef GP_ENDIAN_INCLUDED
 #define GP_ENDIAN_INCLUDED 1
 
 #include <gpc/attributes.h>
 
-#define GP_ENDIAN_LITTLE 1
-#define GP_ENDIAN_BIG    2
+/// @addtogroup target
+/// @{
+/// @addtogroup compile_options
+/// @{
+#ifdef GP_DOXYGEN
+/** Machine endianness.
+ *
+ * If endianness is detected, then this is defined to be equal to
+ * @ref GP_ENDIAN_LITTLE, @ref GP_ENDIAN_BIG, or nothing in case of mixed
+ * endianness. If endianness cannot be detected, then this macro will not be
+ * defined. In such case, user can define it themselves if needed at compile
+ * time. Endianness can also be checked during runtime using
+ * @ref gp_endian_is_big() and @ref gp_endian_is_little() functions.
+ */
+#  define GP_ENDIAN /* implementation defined */
+/// @}
+#endif
+
+#define GP_ENDIAN_LITTLE 1 ///< Value of @ref GP_ENDIAN if little endian machine.
+#define GP_ENDIAN_BIG    2 ///< Value of @ref GP_ENDIAN if big endian machine.
 
 // Preprocessor endianness check from RapidJSON with added check for C23
-// standard endianness macros. If detected, GP_ENDIAN is defined to
-// GP_ENDIAN_LITTLE, GP_ENDIAN_BIG, or nothing in case of mixed endianness.
-// Undetected endianness leaves GP_ENDIAN undefined. GP_ENDIAN can be user
-// defined to GP_ENDIAN_LITTLE or GP_ENDIAN_BIG. Unlike RapidJSON, undetected
-// endianness will not #error since endianness can still be detected at runtime
-// with gp_is_big_endian() and gp_is_little_endian().
+// standard endianness macros.
 #ifndef GP_ENDIAN
 // Detect with C23. stdbit.h is missing during time of writing even with
 // -std=c23. We can still check the macro, but do NOT include the header, even
@@ -28,7 +39,7 @@
 #      define GP_ENDIAN GP_ENDIAN_LITTLE
 #    elif __STDC_ENDIAN_NATIVE__ == __STDC_ENDIAN_BIG__
 #      define GP_ENDIAN GP_ENDIAN_BIG
-#    elif
+#    else
 #      define GP_ENDIAN // mixed
 #    endif // __STDC_ENDIAN_NATIVE
 // Detect with GCC 4.6's macro
@@ -56,7 +67,7 @@
 #  elif defined(_LITTLE_ENDIAN) && defined(_BIG_ENDIAN)
 #    define GP_ENDIAN // mixed
 // Detect with architecture macros
-#  elif defined(__sparc) || defined(__sparc__) || defined(_POWER) || defined(__powerpc__) || defined(__ppc__) || defined(__hpux) || defined(__hppa) || defined(_MIPSEB) || defined(_POWER) || defined(__s390__)
+#  elif defined(__sparc) || defined(__sparc__) || defined(_POWER) || defined(__powerpc__) || defined(__ppc__) || defined(__hpux) || defined(__hppa) || defined(_MIPSEB) || defined(__s390__)
 #    define GP_ENDIAN GP_ENDIAN_BIG
 #  elif defined(__i386__) || defined(__alpha__) || defined(__ia64) || defined(__ia64__) || defined(_M_IX86) || defined(_M_IA64) || defined(_M_ALPHA) || defined(__amd64) || defined(__amd64__) || defined(_M_AMD64) || defined(__x86_64) || defined(__x86_64__) || defined(_M_X64) || defined(__bfin__)
 #    define GP_ENDIAN GP_ENDIAN_LITTLE
@@ -65,38 +76,51 @@
 #  endif
 #endif // GP_ENDIAN
 
+/// @cond
 #if GP_ENDIAN == GP_ENDIAN_LITTLE
-#  define gp_is_big_endian()    0
-#  define gp_is_little_endian() 1
+#  define gp_endian_is_big()    0
+#  define gp_endian_is_little() 1
 #elif GP_ENDIAN == GP_ENDIAN_BIG
-#  define gp_is_big_endian()    1
-#  define gp_is_little_endian() 0
+#  define gp_endian_is_big()    1
+#  define gp_endian_is_little() 0
 #elif defined(GP_ENDIAN) // mixed endianness
-#  define gp_is_big_endian()    0
-#  define gp_is_little_endian() 0
+#  define gp_endian_is_big()    0
+#  define gp_endian_is_little() 0
 #else
-/** Run-time check if system is big endian.*/
-GP_NODISCARD GP_INLINE
-bool gp_is_big_endian(void)
+/// @endcond
+
+/** Run-time check if machine is big endian.
+ *
+ * If endianness is detected in the preprocessor, then this will be a macro that
+ * expands to one if big endian, zero if little endian.
+ */
+GP_NODISCARD GP_INLINE GP_GNU_ATTRIB(always_inline)
+bool gp_endian_is_big(void)
 {
     union Endianness {
-        uint16_t u16;
-        struct { uint8_t is_little; uint8_t is_big; } endianness;
+        short u16;
+        struct { unsigned char is_little; unsigned char is_big; } endianness;
     } integer;
     integer.u16 = 1;
     return integer.endianness.is_big;
 }
-/** Run-time check if system is little endian.*/
-GP_NODISCARD GP_INLINE
-bool gp_is_little_endian(void)
+
+/** Run-time check if machine is little endian.
+ *
+ * If endianness is detected in the preprocessor, then this will be a macro that
+ * expands to one if little endian, zero if big endian.
+ */
+GP_NODISCARD GP_INLINE GP_GNU_ATTRIB(always_inline)
+bool gp_endian_is_little(void)
 {
     union Endianness {
-        uint16_t u16;
-        struct { uint8_t is_little; uint8_t is_big; } endianness;
+        short u16;
+        struct { unsigned char is_little; unsigned char is_big; } endianness;
     } integer;
     integer.u16 = 1;
     return integer.endianness.is_little;
 }
 #endif // GP_ENDIAN
 
+/// @}
 #endif // GP_ENDIAN_INCLUDED

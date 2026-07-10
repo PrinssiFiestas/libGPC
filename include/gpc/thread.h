@@ -52,30 +52,20 @@ extern "C" {
 /// wrapper over POSIX threads if not Windows, otherwise uses Win32 threads in
 /// it's implementation. POSIX threads can be forced with @ref GP_USE_PTHREADS.
 ///
-/// Significant changes from C11 standard API has been made mostly to increase
-/// portability and inter-op with other parts of the library. Due to these
-/// changes, names have been also changed to follow our conventions and (more
-/// importantly) to make it explicit that this is not the C11 standard header
-/// provided by the implementation.
-///
-/// Unlike C11 threads, we will only define one error constant, @ref GP_THREAD_SUCCESS,
-/// other C11 error codes are redundant. In case of errors, we just return the
-/// `errno` constant that would be returned by the underlying POSIX function.
-///
 /// Our changes to C11 API:
 /// - Added static initializers for mutexes.
 /// - Removed mutex types, only plain is available. This is due to `mtx_timed`
 ///   being implicit and redundant and `mtx_recursive` is a code smell that
 ///   doesn't work well portably with static initialization, which is much more
 ///   important.
-/// - Replaced timespec with seconds and nanoseconds. Nobody likes to deal with
-///   timespec.
+/// - Replaced `struct timespec` with seconds and nanoseconds. Nobody likes to
+///   deal with `struct timespec`.
 /// - Simplified error handling:
 ///   - Errors that don't happen or cannot be meaningfully handled are either
 ///     asserted or removed.
 ///   - Functions that can return many different errors return `errno` constants,
 ///     so we don't define C11 threading error constants, they are redundant and
-///     don't have strerror(). The only constant we define is @ref GP_THREAD_SUCCESS.
+///     don't have `strerror()`. The only constant we define is @ref GP_THREAD_SUCCESS.
 ///   - Functions that only return one meaningful error return a boolean instead.
 /// - The sheer amount of changes mean that this API is significantly different
 ///   from the C11 standard API. Therefore, we changed all names to follow our
@@ -97,14 +87,15 @@ extern "C" {
 /// - With no Windows XP support, `WINNT` stuff is no longer necessary. Also had
 ///   to remove `WIN32_LEAN_AND_MEAN` and `_CRTDBG_MAP_ALLOC` for single header
 ///   users.
-/// - Since we don't use timespec, anything using them had to be rewritten.
-///   Related helpers were removed.
+/// - Since we don't use `struct timespec`, anything using them had to be
+///   rewritten. Related helpers were removed.
 /// - Some UB pointer casts were hacked away using @ref gp_launder(). That's the
 ///   best we can do without including `windows.h` in header files, which might
 ///   break user builds (namespace pollution like `min` and include order
 ///   problems).
 /// @{
 
+    // TODO bad doxygen
 /// @addtogroup compile_options
 /// @{
 #ifdef GP_DOXYGEN
@@ -133,7 +124,7 @@ extern "C" {
 #  define GP_MAYBE_THREAD_LOCAL __declspec(thread)
 #  define GP_HAS_THREAD_LOCAL 1
 #elif __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__) && !defined(__MINGW32__)
-#  define GP_MAYBE_THREAD_LOCAL _Thread_local
+#  define GP_MAYBE_THREAD_LOCAL /* sometimes */_Thread_local
 #  define GP_HAS_THREAD_LOCAL 1
 #elif defined(__GNUC__) && !defined(__MINGW32__)
 #  define GP_MAYBE_THREAD_LOCAL __thread
@@ -659,6 +650,7 @@ void call_once(GPOnce* flag, void (*func)(void));
 //          EXAMPLES
 //
 // ----------------------------------------------------------------------------
+/// @cond
 #ifdef GP_DOXYGEN_EXAMPLE
 
 // ----------------------------------------------------------------------------
@@ -704,7 +696,7 @@ Entity* entity_alloc(void)
 }
 //! [gp_call_once_example]
 // ----------------------------------------------------------------------------
-
+/// @endcond
 #endif // GP_DOXYGEN_EXAMPLE
 /// @}
 // ----------------------------------------------------------------------------

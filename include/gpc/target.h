@@ -8,6 +8,7 @@
 /// @defgroup target Build Target Detection
 /// @code
 /// #include <gpc/target.h>
+/// #include <gpc/endian.h>
 /// @endcode
 /// Macros to portably detect target build, OS, or CPU architecture.
 /// @{

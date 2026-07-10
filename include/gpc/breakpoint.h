@@ -29,7 +29,7 @@
 //
 // This library is modified to suit our needs. Most notably, names have changed
 // from `debug_break` to `GP_BREAKPOINT` with `GP_` namespace. Also, inline
-// functions have been changed to macros, which allows checking their existance
+// functions have been changed to macros, which allows checking their existence
 // in the preprocessor and puts the breakpoint in source code, not this header.
 // This also means that the original #error directives could be removed.
 //
@@ -37,6 +37,8 @@
 
 #ifndef GP_BREAKPOINT_INCLUDED
 #define GP_BREAKPOINT_INCLUDED 1
+
+#include <gpc/target.h> // GP_TARGET_DEBUG
 
 
 // ----------------------------------------------------------------------------
@@ -65,13 +67,13 @@
 
 /** Set breakpoint or do nothing.
  * Available in all platforms. Sets breakpoint if @ref GP_BREAKPOINT is defined
- * and NDEBUG is not defined, no-op otherwise.
+ * and @ref GP_TARGET_DEBUG is defined, no-op otherwise.
  */
 #define GP_DEBUG_BREAKPOINT /* set breakpoint or do nothing */
 
 /** Set breakpoint or trap or do nothing.
  * Available in all platforms. Sets breakpoint/trap if @ref GP_BREAKPOINT_TRAP
- * is defined and NDEBUG is not defined, no-op otherwise.
+ * is defined and @ref GP_TARGET_DEBUG is defined, no-op otherwise.
  */
 #define GP_DEBUG_BREAKPOINT_TRAP /* set breakpoint or trap or do nothing */
 
@@ -122,7 +124,7 @@
     #define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_TRAP_INSTRUCTION
     #define GP_TRAP_INSTRUCTION __asm__ __volatile__("int $0x03")
 // ----------------------------------------------------------------------------
-#elif __GNUC__
+#elif defined(__GNUC__)
 
     #if defined(__i386__) || defined(__x86_64__)
     	#define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_TRAP_INSTRUCTION
@@ -164,7 +166,7 @@
     	 * 'eabi_linux_arm_le_breakpoint' */
     	/* Known problem:
     	 * Same problem and workaround as Thumb mode */
-        #define GP_TRAP_INSTRUCTION  volatile(".inst 0xe7f001f0")
+        #define GP_TRAP_INSTRUCTION __asm__ volatile(".inst 0xe7f001f0")
     // #elif (defined(__aarch64__) && defined(__APPLE__) // from original library, we use __has_builtin()
     // 	#define GP_BREAKPOINT_METHOD GP_BREAKPOINT_USE_BUILTIN_DEBUGTRAP
     #elif defined(__aarch64__)
@@ -222,7 +224,7 @@
     #error Invalid GP_BREAKPOINT_METHOD definition
 #endif
 
-#if defined(GP_BREAKPOINT_IMPLEMENTATION) && !defined(NDEBUG)
+#if defined(GP_BREAKPOINT_IMPLEMENTATION) && defined(GP_TARGET_DEBUG)
     // expressionify, so can be used with comma operator, and preferably put the
     // breakpoint in user source code instead of this file.
     #if !defined(__cplusplus) && (defined(__GNUC__) || defined(__TINYC__)) && !defined(GP_PEDANTIC) && GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION
@@ -243,7 +245,7 @@
     #define GP_DEBUG_BREAKPOINT ((void)0)
 #endif
 
-#if defined(GP_BREAKPOINT_TRAP_IMPLEMENTATION) && !defined(NDEBUG)
+#if defined(GP_BREAKPOINT_TRAP_IMPLEMENTATION) && defined(GP_TARGET_DEBUG)
     // expressionify, so can be used with comma operator, and preferably put the
     // breakpoint in user source code instead of this file.
     #if !defined(__cplusplus) && (defined(__GNUC__) || defined(__TINYC__)) && !defined(GP_PEDANTIC) && GP_BREAKPOINT_METHOD == GP_BREAKPOINT_USE_TRAP_INSTRUCTION

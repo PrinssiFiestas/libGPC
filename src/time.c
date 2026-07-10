@@ -5,7 +5,7 @@
 #include <gpc/time.h>
 #include <gpc/thread.h>
 
-#ifndef _WIN32
+#ifndef GP_TARGET_WINDOWS
 int clock_gettime(clockid_t clockid, struct timespec *tp);
 #  ifndef CLOCK_REALTIME
 #    define CLOCK_REALTIME 0
@@ -21,7 +21,7 @@ static void gp_s_init_global_time(void)
 
 GPUInt128 gp_time_init(void)
 {
-    static GPOnce init_time_once = GP_ONCE_INIT;
+    static GPOnce init_time_once = GP_ONCE_INITIALIZER;
     gp_call_once(&init_time_once, gp_s_init_global_time);
     return gp_global_time;
 }
@@ -39,5 +39,6 @@ GPUInt128 gp_time_begin(void)
         gp_uint128_mul64(1000000000llu, ts.tv_sec),
         gp_uint128(0, ts.tv_nsec));
     #else // no timespec, win32?
+    // TODO
     #endif
 }
