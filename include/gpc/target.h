@@ -5,8 +5,6 @@
 #ifndef GP_TARGET_INCLUDED
 #define GP_TARGET_INCLUDED 1
 
-#include <gpc/preprocessor.h>
-
 /// @defgroup target Build Target Detection
 /// @code
 /// #include <gpc/target.h>
@@ -85,9 +83,12 @@
 #  if defined(__unix__)        \
    || defined(GP_TARGET_OS_MAC) \
    || defined(GP_TARGET_OS_BSD)  \
-   || GP_HAS_INCLUDE(<unistd.h>)  \
    || defined(GP_TARGET_OS_LINUX)
 #    define GP_TARGET_POSIX 1
+#  elif defined(__has_include)
+#    if __has_include(<unistd.h>)
+#      #define GP_TARGET_POSIX 1
+#    endif
 #  endif
 #endif
 /// @}
@@ -102,7 +103,7 @@
 #  define GP_TARGET_ARCH_X86_64 1 ///< Defined if CPU is AMD64/x86_64/x64.
 #  define GP_TARGET_ARCH_X86    1 ///< Defined if CPU is 32-bit X86.
 #  define GP_TARGET_ARCH_ARM64  1 ///< Defined if CPU is 64-bit ARM.
-#  define GP_TARGET_ARCH_ARM32  1 ///< Defined if CPI is 32-bit ARM.
+#  define GP_TARGET_ARCH_ARM32  1 ///< Defined if CPU is 32-bit ARM.
 #else
 #  if defined(_M_X64) \
    || defined(__amd64) \
@@ -134,7 +135,7 @@
      || defined(__thumb__) \
      || defined(__TARGET_ARCH_ARM) \
      || defined(__TARGET_ARCH_THUMB)
-#    define GP_TARGET_ARCH_ARM32
+#    define GP_TARGET_ARCH_ARM32 1
 #  endif
 #endif
 /// @}

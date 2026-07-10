@@ -8,8 +8,7 @@
 #include <gpc/int128.h>
 #include <gpc/target.h>
 
-#if !defined(GP_HAS_TIMESPEC) && \
-    (__STDC_VERSION__ >= 201112L || defined(__unix__) || GP_HAS_INCLUDE(<unistd.h>) == 1)
+#if __STDC_VERSION__ >= 201112L || defined(GP_TARGET_POSIX)
 #include <time.h>
 #define GP_HAS_TIMESPEC 1
 #endif
