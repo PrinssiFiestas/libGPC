@@ -13,14 +13,14 @@
 #include <gpc/assert.h>
 #include <gpc/time.h>
 
-#if defined(_WIN32) && !defined(GP_USE_PTHREADS)
+#if defined(GP_TARGET_OS_WINDOWS) && !defined(GP_USE_PTHREADS)
 #define GP_USE_WINTHREADS 1
 #else
 #include <pthread.h>
 #include <string.h> // strerror
 #endif
 
-#if __STDC_VERSION__ >= 201112L && !defined(_WIN32) // UCRT stdatomic.h broken
+#if __STDC_VERSION__ >= 201112L && !defined(GP_TARGET_OS_WINDOWS) // UCRT stdatomic.h broken
 #include <stdatomic.h>
 #endif
 
@@ -329,7 +329,7 @@ typedef pthread_mutex_t GPMutex;
  */
 #ifdef GP_DOXYGEN
 #define GP_MUTEX_INITIALIZER /* unspecified */
-#elif !defined(NDEBUG)
+#elif defined(GP_TARGET_DEBUG)
 #define GP_MUTEX_INITIALIZER PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
 #else
 #define GP_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
@@ -344,7 +344,7 @@ void gp_mutex_init(GPMutex *mutex)
 {
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
-    #ifndef NDEBUG
+    #ifdef GP_TARGET_DEBUG
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
     #else // use fast mutex for release builds. This also matches Win32.
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);

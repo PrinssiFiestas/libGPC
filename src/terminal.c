@@ -4,7 +4,7 @@
 
 #include <gpc/terminal.h>
 #include <gpc/thread.h>
-#ifdef _WIN32
+#ifdef GP_TARGET_OS_WINDOWS
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -21,13 +21,13 @@ bool gp_ansi_enable(int fd, bool enable)
     static bool is_dumb;
     static GP_MAYBE_ATOMIC bool env_checked;
 
-    #ifndef NDEBUG
+    #ifdef GP_TARGET_DEBUG
     gp_assert(fd < 1024, "File descriptor for terminal output assumed to be small.");
     #endif // too harsh to die, worst thing that can happen is user gets no color.
     if (fd >= 1024)
         return false;
 
-    if ( ! env_checked) { // TODO should we mutex?
+    if ( ! env_checked) { // TODO use GPOnce instead.
         char* term = getenv("TERM");
         is_dumb = term != NULL && strcmp(term, "dumb") == 0;
         env_checked = true;
@@ -35,11 +35,12 @@ bool gp_ansi_enable(int fd, bool enable)
     if (is_dumb)
         return false;
 
-    #ifdef _WIN32
+    #ifdef GP_TARGET_OS_WINDOWS
+    if ( ! _isatty(fd))
     #else
     if ( ! isatty(fd))
-        enable = false;
     #endif
+        enable = false;
 
     size_t ufd = fd;
     gp_s_ansi_is_enabled[ufd >> 4] |= ((uint64_t)enable << (ufd & 0xF));
@@ -51,7 +52,7 @@ bool gp_ansi_is_enabled(int _fd)
 {
     size_t fd = _fd;
 
-    #ifndef NDEBUG
+    #ifdef GP_TARGET_DEBUG
     gp_assert(fd < 1024, "File descriptor for terminal output assumed to be small.");
     #endif // too harsh to die, worst thing that can happen is user gets no color.
     if (fd >= 1024)

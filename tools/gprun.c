@@ -2,7 +2,11 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__WIN32__) || defined(__TOS_WIN__)
+#  define GP_TARGET_OS_WINDOWS 1
+#endif
+
+#ifdef GP_TARGET_OS_WINDOWS
 #include <windows.h>
 #else
 #include <sys/types.h>
@@ -50,7 +54,7 @@ void push(struct DynamicArgv* argv, char* arg)
     argv->argv[argv->argc++] = arg;
 }
 
-#if _WIN32
+#ifdef GP_TARGET_OS_WINDOWS
 char* bootstrap_libgpc_for_cl(void)
 {
     static char libgpc_cl_path[MAX_PATH] = "";
@@ -102,7 +106,7 @@ char* bootstrap_libgpc_for_cl(void)
 
     return libgpc_cl_path;
 }
-#endif // _WIN32
+#endif // GP_TARGET_OS_WINDOWS
 
 int main(int argc, char* argv[])
 {
@@ -116,7 +120,7 @@ int main(int argc, char* argv[])
             *(last--) = '\0';
     }
 
-    #if _WIN32
+    #ifdef GP_TARGET_OS_WINDOWS
         // cl.exe determines executable name from first source file
         char* first_src = NULL;
         char run_out_executable[PATH_MAX] = "./a.exe";
@@ -170,7 +174,7 @@ int main(int argc, char* argv[])
                 arg++;
                 if (arg[0] == '.' && (arg[1] == 'c' || arg[1] == 'C'))
                 {
-                    #if _WIN32
+                    #ifdef GP_TARGET_OS_WINDOWS
                         if (first_src == NULL)
                             first_src = cc_argv.argv[cc_argv.argc - 1];
                     #endif
@@ -192,7 +196,7 @@ int main(int argc, char* argv[])
         if ( ! optimized) {
             push(&cc_argv, (char[]){"-ggdb3"});
             push(&cc_argv, (char[]){"-gdwarf"});
-            #if ! _WIN32
+            #ifndef GP_TARGET_OS_WINDOWS
             push(&cc_argv, (char[]){"-fsanitize=address"});
             push(&cc_argv, (char[]){"-fsanitize=undefined"});
             push(&cc_argv, (char[]){"-static-libasan"}); // avoid LD_PRELOAD problems
@@ -219,7 +223,7 @@ int main(int argc, char* argv[])
     }
 
     // Compile whatever was in argv[1]
-    #if _WIN32
+    #ifdef GP_TARGET_OS_WINDOWS
     {
         STARTUPINFOA start_info = {.cb = sizeof(start_info) };
         PROCESS_INFORMATION process_info = {0};
@@ -320,7 +324,7 @@ int main(int argc, char* argv[])
 
     // Run the compiled executable with rest of argv[]
     int exit_status = 0;
-    #if _WIN32
+    #ifdef GP_TARGET_OS_WINDOWS
     {
         STARTUPINFOA start_info = {.cb = sizeof(start_info) };
         PROCESS_INFORMATION process_info = {0};

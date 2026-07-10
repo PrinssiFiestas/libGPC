@@ -23,7 +23,7 @@ whatever.
 Main project site: https://github.com/jtsiomb/c11threads
 */
 
-#if defined(_WIN32) && !defined(GP_USE_PTHREADS)
+#if defined(GP_TARGET_OS_WINDOWS) && !defined(GP_USE_PTHREADS)
 
 #include <assert.h>
 #include <stddef.h>
@@ -1050,4 +1050,4 @@ bool gp_mutex_timedlock_ns(GPMutex* mutex, uint64_t t_ns)
     return gp_s_mutex_timedlock_ts(mutex, gp_timespec_from_time_ns(gp_uint128(0, t_ns)));
 }
 
-#endif // defined(_WIN32) && !defined(C11THREADS_PTHREAD_WIN32)
+#endif // defined(GP_TARGET_OS_WINDOWS) && !defined(GP_USE_PTHREADS)

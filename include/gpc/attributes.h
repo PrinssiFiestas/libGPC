@@ -2,6 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+#include <gpc/target.h>
+
 #ifndef GP_ATTRIBUTES_INCLUDED
 #define GP_ATTRIBUTES_INCLUDED 1
 /// @page compile_options Compile-Time Options
@@ -405,7 +407,7 @@
  * should be defined instead. Static builds and Unix shared objects do not need
  * to consider any of this.
  */
-#if defined(_WIN32) || defined(__CYGWIN__)
+#if defined(GP_TARGET_OS_WINDOWS) || defined(__CYGWIN__)
 #  ifdef GP_DLL_EXPORT
 #    define GP_API __declspec(dllexport)
 #  elif defined(GP_DLL_IMPORT
