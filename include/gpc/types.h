@@ -22,6 +22,20 @@
 /// Miscellaneous type utilities.
 /// @{
 
+#ifndef __STDC_LIB_EXT1__
+/** Number holding `errno` constants.
+ *
+ * Values of this type are either zero indicating success or a non-zero constant
+ * defined in `errno.h` to indicate an error. This type is the only good thing
+ * to come out of C11 standard's Annex K, it is much better for
+ * self-documentation than plain `int`.
+ *
+ * The fact that the standard defines `errno_t` as `int` means that it is safe
+ * for us to declare it without adding it into `gp_` namespace.
+ */
+typedef int errno_t;
+#endif
+
 /** Type descriptor.
  *
  * Only primitives, `char*`, @ref GPString, `GPUInt128`, and `GPInt128` have
@@ -205,7 +219,8 @@ GP_INLINE size_t gp_type_size(const gp_type_t T)
  * C++. If C11 or higher, then the macro expands to nothing for truly anonymous
  * structures.
  *
- * Example:
+ * ### Example
+ *
  * @code
  * struct GP_ANONYMOUS_STRUCT
  * {

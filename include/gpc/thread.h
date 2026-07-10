@@ -11,18 +11,19 @@
 #define GP_THREAD_INCLUDED 1
 
 #include <gpc/assert.h>
+#include <gpc/time.h>
 
 #if defined(_WIN32) && !defined(GP_USE_PTHREADS)
 #define GP_USE_WINTHREADS 1
 #else
 #include <pthread.h>
+#include <string.h> // strerror
 #endif
 
 #if __STDC_VERSION__ >= 201112L && !defined(_WIN32) // UCRT stdatomic.h broken
 #include <stdatomic.h>
 #endif
 
-#include <time.h>
 
 #ifndef TIME_UTC
 #define TIME_UTC 1
@@ -41,15 +42,15 @@ extern "C" {
 /// @code
 /// #include <gpc/thread.h>
 /// @endcode
-/// Portable threading API based on [C11 threads](https://en.cppreference.com/c/header/threads),
+/// Portable threading API based on [C11 threads API](https://en.cppreference.com/c/header/threads),
 /// including threads, mutual exclusion, condition variables, and thread-local
 /// storage. Implementation is based on [c11threads](https://github.com/jtsiomb/c11threads).
 ///
 /// At the time of writing, GNU libc does not implement standard threading on
 /// Windows. Microsoft UCRT only added standard threading recently, but anyway
-/// it's C11 and we are supposed to support C99. This module is a thin wrapper
-/// over POSIX threads if not Windows, otherwise uses Win32 threads in it's
-/// implementation. POSIX threads can be forced with @ref GP_USE_PTHREADS.
+/// it's C11 and we are supposed to support C99 and C++. This module is a thin
+/// wrapper over POSIX threads if not Windows, otherwise uses Win32 threads in
+/// it's implementation. POSIX threads can be forced with @ref GP_USE_PTHREADS.
 ///
 /// Significant changes from C11 standard API has been made mostly to increase
 /// portability and inter-op with other parts of the library. Due to these
@@ -57,19 +58,51 @@ extern "C" {
 /// importantly) to make it explicit that this is not the C11 standard header
 /// provided by the implementation.
 ///
-/// TODO implement stuff in the list below and remove from docs since outdated.
-/// - Names of all symbols have been changed to be in `gp_` or `GP_` namespace.
-///   This is for consistency and to make it explicit that this is not the
-///   standard library header provided by the implementation. TODO
-/// - Names have been changed to follow our naming conventions, so constants are
-///   CAPITALIZED. TODO
-/// - API using C11 `timespec` has been changed to use [our portable timing API](@ref timing),
-///   so `timespec` has been changed to @ref GPUInt128, which is also easier to use. TODO
-/// - Disabled `thread_local` on MinGW, because it's [completely broken](https://sourceforge.net/p/mingw-w64/bugs/445/).
-/// - Added @ref GP_MTX_INIT, which is equivalent to `PTHREAD_MUTEX_INITIALIZER`. TODO
-/// - Added assertion to enforce no deadlocks, which would be undefined behavior. TODO
-/// - Added @ref GP_MAYBE_THREAD_LOCAL and @ref GP_MAYBE_ATOMIC.
-/// - Added documentation. TODO
+/// Unlike C11 threads, we will only define one error constant, @ref GP_THREAD_SUCCESS,
+/// other C11 error codes are redundant. In case of errors, we just return the
+/// `errno` constant that would be returned by the underlying POSIX function.
+///
+/// Our changes to C11 API:
+/// - Added static initializers for mutexes.
+/// - Removed mutex types, only plain is available. This is due to `mtx_timed`
+///   being implicit and redundant and `mtx_recursive` is a code smell that
+///   doesn't work well portably with static initialization, which is much more
+///   important.
+/// - Replaced timespec with seconds and nanoseconds. Nobody likes to deal with
+///   timespec.
+/// - Simplified error handling:
+///   - Errors that don't happen or cannot be meaningfully handled are either
+///     asserted or removed.
+///   - Functions that can return many different errors return `errno` constants,
+///     so we don't define C11 threading error constants, they are redundant and
+///     don't have strerror(). The only constant we define is @ref GP_THREAD_SUCCESS.
+///   - Functions that only return one meaningful error return a boolean instead.
+/// - The sheer amount of changes mean that this API is significantly different
+///   from the C11 standard API. Therefore, we changed all names to follow our
+///   naming conventions and to make a clear distinction between the APIs.
+///
+/// Our changes to the original [c11threads](https://github.com/jtsiomb/c11threads)
+/// implementation:
+/// - Any changes required by changes described above.
+/// - Pthreads wrappers are practically rewritten from scracth. Nothing wrong
+///   with the original, but the wrapping was so thin that the other changes
+///   just happened to cause an almost full rewrite.
+/// - Rewrote Win32 mutex implementation to use newer SRW locks instead of older
+///   critical section objects. SRW locks are faster and support static
+///   initialization. Unfortunately, this required dropping Windows XP support (RIP).
+/// - Internal critical section objects were also replaced with SRW locks.
+/// - Removed Windows XP support. Loading kernel32.dll functions manually is no
+///   longer necessary. In fact, no initialization is necessary since internal
+///   mutexes were changed to SRW locks that can be initialized statically.
+/// - With no Windows XP support, `WINNT` stuff is no longer necessary. Also had
+///   to remove `WIN32_LEAN_AND_MEAN` and `_CRTDBG_MAP_ALLOC` for single header
+///   users.
+/// - Since we don't use timespec, anything using them had to be rewritten.
+///   Related helpers were removed.
+/// - Some UB pointer casts were hacked away using @ref gp_launder(). That's the
+///   best we can do without including `windows.h` in header files, which might
+///   break user builds (namespace pollution like `min` and include order
+///   problems).
 /// @{
 
 /// @addtogroup compile_options
@@ -86,6 +119,7 @@ extern "C" {
 #endif
 /// @}
 
+// TODO C23 keywords
 /** Sometimes thread local. TODO add always thread local too like C11 standard threads. And atomics too.
  *
  * Use this only when thread local storage would be ideal but not necessary for
@@ -114,25 +148,17 @@ extern "C" {
  */
 #if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
 #  define GP_HAS_ATOMICS 1
-#  define GP_MAYBE_ATOMIC _Atomic
+#  define GP_MAYBE_ATOMIC /* sometimes */_Atomic
 #else
 #  define GP_MAYBE_ATOMIC
 #endif
 
-// TODO docs
-enum {
-    GP_MUTEX_PLAIN     = 0,
-    GP_MUTEX_RECURSIVE = 1,
-    GP_MUTEX_TIMED     = 2,
-};
-
-enum {
-    GP_THREAD_SUCCESS,  ///< Successful return value.
-    GP_THREAD_TIMEDOUT, ///< Timed out return value.
-    GP_THREAD_BUSY,     ///< Unsuccessful return value due to resource temporarily unavailable.
-    GP_THREAD_ERROR,    ///< Unsuccessful return value.
-    GP_THREAD_NOMEM     ///< Unsuccessful return value due to out of memory.
-};
+/** Successfull return value.
+ *
+ * Functions in threading API return this on success, otherwise an appropriate
+ * `errno` constant is returned instead.
+ */
+#define GP_THREAD_SUCCESS 0
 
 // ----------------------------------------------------------------------------
 #ifndef GP_USE_WINTHREADS // use POSIX threads
@@ -143,47 +169,118 @@ enum {
 #include <sched.h> // sched_yield
 #include <sys/time.h>
 
-#define GP_ONCE_FLAG_INIT PTHREAD_ONCE_INIT
+// TODO should we define and use errno_t?
+
 #define GP_THREAD_LOCAL_DESTRUCTOR_ITERATIONS PTHREAD_DESTRUCTOR_ITERATIONS
 
 // ------------------------------------
 /// @defgroup thread_management Thread Management
 /// @{
 
-/** Complete object thread identifier. */
+/** Opaque thread identifier.
+ *
+ * Unique identifier assigned to thread on call to @ref gp_thread_create(). The
+ * ID is only unique within a process and can be reused once a thread
+ * terminates. Trying to use an ID of a terminated thread is undefined. The ID
+ * of the current thread can be fetched using @ref gp_thread_current().
+ *
+ * The underlying type might be an integer or it can be a structure, so
+ * portable application should compare IDs using @ref gp_thread_equal() if
+ * needed.
+ */
+#ifdef GP_DOXYGEN
+typedef /* unspecified */ GPThread;
+#else
 typedef pthread_t GPThread;
+#endif
 
-int gp_thread_create(GPThread*, int(*func)(void*arg), void* arg);
+/** Create thread.
+ *
+ * Creates a new thread, whose ID will be stored to @ref thread, which is used
+ * to refer to that thread. The new thread starts execution by calling @a routine.
+ * @a arg will be passed to the given routine.
+ *
+ * The thread terminates once @a routine returns, calls @ref gp_thread_exit(),
+ * or once the process terminates. The return value of @a routine or value
+ * passed to @ref gp_thread_exit() can be obtained with @ref gp_thread_join().
+ *
+ * @return @ref GP_THREAD_SUCCESS (zero) on success, `EAGAIN` if not enough
+ * resources to create a thread.
+ */
+GP_NONNULL_ARGS(1, 2)
+errno_t gp_thread_create(GPThread* thread, int(*routine)(void*), void* arg);
 
-GP_INLINE void thrd_exit(int res)
+/** Exit current thread.
+ *
+ * Terminates current thread as if it was terminated by returning from routine
+ * passed to @ref gp_thread_create().
+ *
+ * If the calling thread is the last thread running, then the process exits
+ * with an exit status of zero, which is equivalent of calling `exit(0)`.
+ */
+GP_INLINE void gp_thread_exit(int return_value)
 {
-    pthread_exit((void*)(intptr_t)res);
+    pthread_exit((void*)(intptr_t)return_value);
 }
 
-GP_INLINE int gp_thread_join(GPThread thr, int *res)
+/** Wait for given thread to finish and collect it's result.
+ *
+ * Wait for @a thread to terminate. The return value of the given thread will
+ * be stored to @a optional_result if not null. The given thread must not be
+ * detached and multiple threads must not attempt to join the same thread.
+ *
+ * @return @ref GP_THREAD_SUCCESS (zero) on success, `EINVAL` if @a thread is
+ * not joinable or if another thread is trying to join, or `ESRCH` if @a thread
+ * does not exist.
+ */
+GP_INLINE errno_t gp_thread_join(GPThread thread, int *optional_result)
 {
+    errno_t status;
     void *retval;
 
-    if (pthread_join(thr, &retval) != 0) {
-        return GP_THREAD_ERROR;
+    if ((status = pthread_join(thread, &retval)) != GP_THREAD_SUCCESS) {
+        return status;
     }
-    if (res) {
-        *res = (int)(intptr_t)retval;
+    if (optional_result) {
+        *optional_result = (int)(intptr_t)retval;
     }
     return GP_THREAD_SUCCESS;
 }
 
-GP_INLINE int thrd_detach(GPThread thr)
+/** Detach thread.
+ *
+ * Detaches @a thread, which makes it unjoinable. Detaching a detached thread is
+ * undefined. Resources allocated for the thread are freed once @a thread
+ * exits.
+ *
+ * The thread ID @a thread should be considered freed and not be used after
+ * detaching. The ID may be reused for other threads by the implementation.
+ *
+ * @retrun GP_THREAD_SUCCESS (zero) on success, `EINVAL` if @a thread is not
+ * joinable, `ESRCH` if @a thread does not exist.
+ */
+GP_INLINE errno_t gp_thread_detach(GPThread thread)
 {
-    return pthread_detach(thr) == 0 ? GP_THREAD_SUCCESS : GP_THREAD_ERROR;
+    return pthread_detach(thread);
 }
 
-GP_INLINE GPThread thrd_current(void)
+/** Get thread identifier of current thread.
+ *
+ * @return thread identifier of current thread, which is the same as the one
+ * outputted by @ref gp_thread_create() when the thread was created.
+ */
+GP_INLINE GPThread gp_thread_current(void)
 {
     return pthread_self();
 }
 
-GP_INLINE int gp_thread_equal(GPThread a, GPThread b)
+/** Compare threads identifiers.
+ *
+ * The underlying type of @ref GPThread is unspecified and can be a structure
+ * on some implementations. Therefore, portable applications should compare
+ * thread identifiers using this function instead of `==` operator.
+ */
+GP_INLINE bool gp_thread_equal(GPThread a, GPThread b)
 {
     return pthread_equal(a, b);
 }
@@ -191,13 +288,18 @@ GP_INLINE int gp_thread_equal(GPThread a, GPThread b)
 // TODO get rid of this timespec junk
 GP_INLINE int gp_thread_sleep(const struct timespec *ts_in, struct timespec *rem_out)
 {
-	if(nanosleep(ts_in, rem_out) < 0) {
-		if(errno == EINTR) return -1;
-		return -2;
-	}
-	return 0;
+    if(nanosleep(ts_in, rem_out) < 0) {
+        if(errno == EINTR) return -1;
+        return -2;
+    }
+    return 0;
 }
 
+/** Yield execution to another thread.
+ *
+ * Hint the scheduler that other threads can run. Which thread gets ran next is
+ * unspecified and can be the calling thread.
+ */
 GP_INLINE void gp_thread_yield(void)
 {
     sched_yield();
@@ -208,57 +310,134 @@ GP_INLINE void gp_thread_yield(void)
 /// @defgroup mutexes Mutexes
 /// @{
 
-/** Mutex identifier. */
-typedef pthread_mutex_t GPMutex;
-
-GP_INLINE int gp_mutex_init(GPMutex *mtx, int type)
-{
-	int res;
-	pthread_mutexattr_t attr;
-
-	pthread_mutexattr_init(&attr);
-
-	if(type & GP_MUTEX_TIMED) {
-#ifdef PTHREAD_MUTEX_TIMED_NP
-		pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_TIMED_NP);
+/** Opaque mutex identifier.
+ *
+ * A mutex (mutual exclusion) is used to limit access of code segments and
+ * shared data to a single thread at a time.
+ *
+ * Can be initialized statically by using GP_MUTEX_INITIALIZER or dynamically
+ * using @ref gp_mutex_init(). Dynamically created mutexes can be destroyed
+ * using @ref gp_mutex_destroy().
+ *
+ * At the time of writing, only plain mutexes are supported. C11 `mtx_timed` is
+ * redundant, timing is supported by default. C11 `mtx_recursive` is unnecessary
+ * code smell that prevents static initialization, which is much more important.
+ */
+#ifdef GP_DOXYGEN
+typedef /* unspecified */ GPMutex;
 #else
-		pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+typedef pthread_mutex_t GPMutex;
 #endif
-	}
-	if(type & GP_MUTEX_RECURSIVE) {
-		pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-	}
 
-	res = pthread_mutex_init(mtx, &attr) == 0 ? GP_THREAD_SUCCESS : GP_THREAD_ERROR;
-	pthread_mutexattr_destroy(&attr);
-	return res;
+/** Static mutex initialzer.
+ *
+ * Example:
+ * @code
+ * static GPMutex mutex = GP_MUTEX_INITIALIZER;
+ * @endcode
+ */
+#ifdef GP_DOXYGEN
+#define GP_MUTEX_INITIALIZER /* unspecified */
+#elif !defined(NDEBUG)
+#define GP_MUTEX_INITIALIZER PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
+#else
+#define GP_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
+#endif
+
+/** Create mutex dynamically.
+ *
+ * Dynamically created mutexes can be destroyed using @ref gp_mutex_destroy().
+ */
+GP_NONNULL_ARGS() GP_INLINE
+void gp_mutex_init(GPMutex *mutex)
+{
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    #ifndef NDEBUG
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+    #else // use fast mutex for release builds. This also matches Win32.
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+    #endif
+    pthread_mutex_init(mutex, &attr);
+    pthread_mutexattr_destroy(&attr);
 }
 
-GP_INLINE void gp_mutex_destroy(GPMutex *mtx)
+/** Deallocate mutex resources.
+ *
+ * If @a optional_mutex is locked, then behavior is undefined.
+ */
+GP_INLINE
+void gp_mutex_destroy(GPMutex* optional_mutex)
 {
-	pthread_mutex_destroy(mtx);
+    if (optional_mutex != NULL)
+        gp_assume(pthread_mutex_destroy(optional_mutex) == 0, strerror(EBUSY));
 }
 
-GP_INLINE int gp_mutex_lock(GPMutex *mtx)
+/** Lock mutex.
+ *
+ * Locks the @a mutex lock. If the lock is unlocked at the time of calling, the
+ * calling thread can becomes the owner of the lock and the function returns
+ * without blocking.
+ *
+ * If @a mutex was already locked by another thread, then calling thread will be
+ * blocked until the thread owning the lock calls @ref gp_mutex_unlock(). After
+ * that, the calling thread becomes the owner the lock until it calls
+ * @ref gp_mutex_unlock().
+ *
+ * If @a mutex was already locked by the calling thread, then the calling thread
+ * will be blocked causing a deadlock, which is undefined behavior by the C11
+ * standard and cannot be meaningfully handled.
+ */
+GP_NONNULL_ARGS() GP_INLINE
+void gp_mutex_lock(GPMutex *mutex)
 {
-    int res = pthread_mutex_lock(mtx);
-    return res == 0 ? GP_THREAD_SUCCESS : GP_THREAD_ERROR;
+    int result = pthread_mutex_lock(mutex);
+    gp_assume(result == GP_THREAD_SUCCESS, strerror(result));
 }
 
-GP_INLINE int gp_mutex_trylock(GPMutex *mtx)
+/** Try lock mutex without blocking.
+ *
+ * Like @ref gp_mutex_lock(), except doesn't block when the mutex is already
+ * locked.
+ *
+ * @return `true` if acquired lock ownership, `false` otherwise.
+ */
+GP_NONNULL_ARGS() GP_INLINE
+bool gp_mutex_trylock(GPMutex *mtx)
 {
-    int res = pthread_mutex_trylock(mtx);
-    if(res == EBUSY) {
-        return GP_THREAD_BUSY;
-    }
-    return res == 0 ? GP_THREAD_SUCCESS : GP_THREAD_ERROR;
+    return ! pthread_mutex_trylock(mtx);
 }
 
-int mtx_timedlock(GPMutex *mtx, const struct timespec *ts);
+/** Try lock mutex in given time.
+ *
+ * Like @ref gp_mutex_lock(), except only blocks for the maximum of @a time
+ * amount of seconds.
+ *
+ * @return `true` if acquired lock ownership, `false` if timeout expired.
+ */
+GP_NONNULL_ARGS()
+bool gp_mutex_timedlock(GPMutex* mutex, double time);
 
-GP_INLINE int mtx_unlock(GPMutex *mtx)
+/** Try lock mutex in given time.
+ *
+ * Like @ref gp_mutex_lock(), except only blocks for the maximum of @a time_ns
+ * amount of nanoseconds.
+ *
+ * @return `true` if acquired lock ownership, `false` if timeout expired.
+ */
+GP_NONNULL_ARGS()
+bool gp_mutex_timedlock_ns(GPMutex* mutex, uint64_t time_ns);
+
+/** Unlock mutex.
+ *
+ * Unlocks @a mutex lock, which should have been locked by the calling thread.
+ * Trying to unlock a lock owner by another thread is undefined.
+ */
+GP_NONNULL_ARGS() GP_INLINE
+void gp_mutex_unlock(GPMutex* mutex)
 {
-	return pthread_mutex_unlock(mtx) == 0 ? GP_THREAD_SUCCESS : GP_THREAD_ERROR;
+    int result = pthread_mutex_unlock(mutex);
+    gp_assume(result == GP_THREAD_SUCCESS, strerror(result));
 }
 
 /// @}
@@ -266,42 +445,46 @@ GP_INLINE int mtx_unlock(GPMutex *mtx)
 /// @defgroup condition_variables Condition Variables
 /// @{
 
-/** Condition variable identifier. */
-typedef pthread_cond_t  gp_cnd_t;
+/** Opaque condition variable identifier. */ // TODO more docs
+typedef pthread_cond_t GPCond;
 
-GP_INLINE int cnd_init(cnd_t *cond)
+// TODO docs
+#define GP_COND_INITIALIZER PTHREAD_COND_INITIALIZER
+
+// TODO docs
+GP_INLINE int cnd_init(GPCond *cond)
 {
-	return pthread_cond_init(cond, 0) == 0 ? GP_THREAD_SUCCESS : GP_THREAD_ERROR;
+    return pthread_cond_init(cond, 0);
 }
 
-GP_INLINE void cnd_destroy(cnd_t *cond)
+// TODO docs
+GP_INLINE void cnd_destroy(GPCond *cond)
 {
-	pthread_cond_destroy(cond);
+    pthread_cond_destroy(cond);
 }
 
-GP_INLINE int cnd_signal(cnd_t *cond)
+// TODO docs
+GP_INLINE int cnd_signal(GPCond *cond)
 {
-	return pthread_cond_signal(cond) == 0 ? GP_THREAD_SUCCESS : GP_THREAD_ERROR;
+    return pthread_cond_signal(cond);
 }
 
-GP_INLINE int cnd_broadcast(cnd_t *cond)
+// TODO docs
+GP_INLINE int cnd_broadcast(GPCond *cond)
 {
-	return pthread_cond_broadcast(cond) == 0 ? GP_THREAD_SUCCESS : GP_THREAD_ERROR;
+    return pthread_cond_broadcast(cond);
 }
 
-GP_INLINE int cnd_wait(cnd_t *cond, GPMutex *mtx)
+// TODO docs
+GP_INLINE int cnd_wait(GPCond *cond, GPMutex *mtx)
 {
-	return pthread_cond_wait(cond, mtx) == 0 ? GP_THREAD_SUCCESS : GP_THREAD_ERROR;
+    return pthread_cond_wait(cond, mtx);
 }
 
-GP_INLINE int cnd_timedwait(cnd_t *cond, GPMutex *mtx, const struct timespec *ts)
+// TODO get rid of timespec junk
+GP_INLINE int cnd_timedwait(GPCond *cond, GPMutex *mtx, const struct timespec *ts)
 {
-	int res;
-
-	if((res = pthread_cond_timedwait(cond, mtx, ts)) != 0) {
-		return res == ETIMEDOUT ? GP_THREAD_TIMEDOUT : GP_THREAD_ERROR;
-	}
-	return GP_THREAD_SUCCESS;
+    return pthread_cond_timedwait(cond, mtx, ts);
 }
 
 /// @}
@@ -310,26 +493,31 @@ GP_INLINE int cnd_timedwait(cnd_t *cond, GPMutex *mtx, const struct timespec *ts
 /// @{
 
 /** Thread-local storage pointer. */
-typedef pthread_key_t gp_thread_key_t;
+// TODO docs
+typedef pthread_key_t GPThreadKey;
 
-GP_INLINE int tss_create(tss_t *key, tss_dtor_t dtor)
+// TODO docs
+GP_INLINE int tss_create(GPThreadKey *key, tss_dtor_t dtor)
 {
-	return pthread_key_create(key, dtor) == 0 ? GP_THREAD_SUCCESS : GP_THREAD_ERROR;
+    return pthread_key_create(key, dtor);
 }
 
-GP_INLINE void tss_delete(tss_t key)
+// TODO docs
+GP_INLINE void tss_delete(GPThreadKey key)
 {
-	pthread_key_delete(key);
+    pthread_key_delete(key);
 }
 
-GP_INLINE int tss_set(tss_t key, void *val)
+// TODO docs
+GP_INLINE int tss_set(GPThreadKey key, void *val)
 {
-	return pthread_setspecific(key, val) == 0 ? GP_THREAD_SUCCESS : GP_THREAD_ERROR;
+    return pthread_setspecific(key, val);
 }
 
-GP_INLINE void *tss_get(tss_t key)
+// TODO docs
+GP_INLINE void *tss_get(GPThreadKey key)
 {
-	return pthread_getspecific(key);
+    return pthread_getspecific(key);
 }
 
 /// @}
@@ -337,12 +525,39 @@ GP_INLINE void *tss_get(tss_t key)
 /// @defgroup call_once Call Once
 /// @{
 
-/** Complete object type capable of holding flag used by @ref gp_call_once(). */
-typedef pthread_once_t gp_once_flag_t;
+/** Opaque flag used for @ref gp_call_once().
+ *
+ * Indicates if function passed to @ref gp_call_once() has been called.
+ * Should be initialized to @ref GP_ONCE_INIT to indicate that the function has
+ * not been called. After calling @ref gp_call_once(), the value changes to
+ * indicate that the function has been called.
+ */
+#ifdef GP_DOXYGEN
+typedef /* unspecified */ GPOnce;
+#else
+typedef pthread_once_t GPOnce;
+#endif
 
-GP_INLINE void call_once(once_flag *flag, void (*func)(void))
+/** Static initializer for @ref GPOnce. */
+#ifdef GP_DOXYGEN
+#define GP_ONCE_INITIALIZER /* unspecified */
+#else
+#define GP_ONCE_INITIALIZER PTHREAD_ONCE_INIT
+#endif
+
+/** Thread-safe initialization.
+ *
+ * Call function @a func exactly once regardless of how many threads might call
+ * this function. This is usually used to initialize global objects in a thread
+ * safe manner. For any given @a flag, the function @a func will be called and a
+ * value is stored in @a flag to indicate that the function has been called.
+ * Subsequent calls with the same flag do nothing.
+ *
+ * @snippet thread.h gp_call_once_example
+ */
+GP_INLINE void gp_call_once(GPOnce* flag, void (*func)(void))
 {
-	pthread_once(flag, func);
+    pthread_once(flag, func);
 }
 
 /// @}
@@ -351,85 +566,146 @@ GP_INLINE void call_once(once_flag *flag, void (*func)(void))
 // ------------------------------------
 // Thread Management
 
-/** Complete object thread identifier. */
-typedef pthread_t gp_thrd_t;
+typedef unsigned long GPThread;
 
-GP_INLINE int thrd_create(thrd_t *thr, thrd_start_t func, void *arg);
+errno_t gp_thread_create(GPThread *thr, int(*func)(void*), void *arg);
 
-GP_INLINE void thrd_exit(int res);
+void gp_thread_exit(int res);
 
-GP_INLINE int thrd_join(thrd_t thr, int *res);
+errno_t gp_thread_join(GPThread thr, int *res);
 
-GP_INLINE int thrd_detach(thrd_t thr);
+errno_t gp_thread_detach(GPThread thr);
 
-GP_INLINE thrd_t thrd_current(void);
+GPThread gp_thread_current(void);
 
-GP_INLINE int thrd_equal(thrd_t a, thrd_t b);
+bool gp_thread_equal(GPThread a, GPThread b);
 
-GP_INLINE int thrd_sleep(const struct timespec *ts_in, struct timespec *rem_out);
+// TODO get rid of
+int gp_thread_sleep(const struct timespec *ts_in, struct timespec *rem_out);
 
-GP_INLINE void thrd_yield(void);
+void gp_thread_yield(void);
 
 // ------------------------------------
 // Mutexes
 
-/** Mutex identifier. */
-typedef pthread_mutex_t gp_mtx_t;
+typedef struct
+{
+    void* _ptr;
+} GPMutex;
 
-GP_INLINE int mtx_init(mtx_t *mtx, int type);
+#define GP_MUTEX_INITIALIZER {0}
 
-GP_INLINE void mtx_destroy(mtx_t *mtx);
+void gp_mutex_init(GPMutex* mtx);
 
-GP_INLINE int mtx_lock(mtx_t *mtx);
+void gp_mutex_destroy(GPMutex* mtx);
 
-GP_INLINE int mtx_trylock(mtx_t *mtx);
+void gp_mutex_lock(GPMutex* mtx);
 
-GP_INLINE int mtx_timedlock(mtx_t *mtx, const struct timespec *ts);
+bool gp_mutex_trylock(GPMutex* mtx);
 
-GP_INLINE int mtx_unlock(mtx_t *mtx);
+bool gp_mutex_timedlock(GPMutex* mutex, double time);
+
+bool gp_mutex_timedlock_ns(GPMutex* mutex, uint64_t time_ns);
+
+GP_INLINE void gp_mutex_unlock(GPMutex *mtx) { (void)mtx; }
 
 // ------------------------------------
 // Condition Variables
 
-/** Condition variable identifier. */
-typedef pthread_cond_t  gp_cnd_t;
+typedef struct
+{
+    void* _ptr;
+} GPCond;
 
-GP_INLINE int cnd_init(cnd_t *cond);
+int gp_cond_init(GPCond *cond);
 
-GP_INLINE void cnd_destroy(cnd_t *cond);
+void gp_cond_destroy(GPCond *cond);
 
-GP_INLINE int cnd_signal(cnd_t *cond);
+int gp_cond_signal(GPCond *cond);
 
-GP_INLINE int cnd_broadcast(cnd_t *cond);
+int gp_cond_broadcast(GPCond *cond);
 
-GP_INLINE int cnd_wait(cnd_t *cond, mtx_t *mtx);
+int gp_cond_wait(GPCond *cond, GPMutex *mtx);
 
-GP_INLINE int cnd_timedwait(cnd_t *cond, mtx_t *mtx, const struct timespec *ts);
+// TODO get rid of this
+int gp_cond_timedwait(GPCond *cond, GPMutex *mtx, const struct timespec *ts);
 
 // ------------------------------------
 // Thread-Local Storage
 
-/** Thread-local storage pointer. */
-typedef pthread_key_t   gp_tss_t;
+typedef unsigned long GPThreadKey;
 
-GP_INLINE int tss_create(tss_t *key, tss_dtor_t dtor);
+int gp_thread_local_create(GPThreadKey *key, gp_thread_local_dtor_t dtor);
 
-GP_INLINE void tss_delete(tss_t key);
+void gp_thread_local_delete(GPThreadKey key);
 
-GP_INLINE int tss_set(tss_t key, void *val);
+int gp_thread_local_set(GPThreadKey key, void *val);
 
-GP_INLINE void *tss_get(tss_t key);
+void* gp_thread_local_get(GPThreadKey key);
 
 // ------------------------------------
 // Call Once
 
-/** Complete object type capable of holding flag used by @ref gp_call_once(). */
-typedef pthread_once_t gp_once_flag_t;
+typedef void* GPOnce;
 
-GP_INLINE void call_once(once_flag *flag, void (*func)(void));
+void call_once(GPOnce* flag, void (*func)(void));
 
 #endif // GP_USE_WINTHREADS ---------------------------------------------------
 
+// TODO I don't like the examples block, just move large examples to dedicated
+// sections. Less jumping around and easier to find.
+// ----------------------------------------------------------------------------
+//
+//          EXAMPLES
+//
+// ----------------------------------------------------------------------------
+#ifdef GP_DOXYGEN_EXAMPLE
+
+// ----------------------------------------------------------------------------
+//! [gp_call_once_example]
+// A simple yet performant and thread safe object pool/allocator. Any thread
+// can call entity_alloc() at any time and entity pool will be initialized
+// without race conditions. Deallocation logic is not relevant, so it is omitted
+// for brevity. We assume that entities cannot be statically allocated, maybe
+// it would waste memory and/or maybe there is a risk that not enough allocated.
+
+#include <gpc/thread.h>
+#include <gpc/assert.h> // gp_assume()
+#include "entity.h" // Entity, read_entity_config()
+
+static size_t entity_pool_size;
+static Entity* entity_pool;
+static _Atomic size_t entity_pool_index;
+
+void init_entities(void)
+{
+    entity_pool_size = read_entity_config("config.txt").max_entities;
+    entity_pool = calloc(entity_pool_size, sizeof(Entity));
+    gp_assume(entity_pool != NULL, "Allocation failed.");
+}
+
+Entity* entity_alloc(void)
+{
+    #if NOT_THREAD_SAFE // this is logically what we want to do:
+    static bool initialized = false;
+    if ( ! initialized) { // not thread safe!
+        // potential race condition here even if initialized was atomic.
+        initialized = true;
+        init_entities();
+    }
+    #else // correct way of initializing globals in multi-threaded application:
+    static GPOnce initialized = GP_ONCE_INIT;
+    gp_call_once(&initialized, init_entities); // gp_call_once() is thread safe.
+    #endif
+    // Using atomic index, so thread safe.
+    size_t index = entity_pool_index++;
+    gp_assume(index < entity_pool_size, "Too many entities.");
+    return &entity_pool[index];
+}
+//! [gp_call_once_example]
+// ----------------------------------------------------------------------------
+
+#endif // GP_DOXYGEN_EXAMPLE
 /// @}
 // ----------------------------------------------------------------------------
 //

@@ -2,9 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-/**@file endian.h
- * System endianness
- */
+// TODO dox
 
 #ifndef GP_ENDIAN_INCLUDED
 #define GP_ENDIAN_INCLUDED 1
@@ -78,7 +76,7 @@
 #  define gp_is_little_endian() 0
 #else
 /** Run-time check if system is big endian.*/
-GP_NODISCARD static inline
+GP_NODISCARD GP_INLINE
 bool gp_is_big_endian(void)
 {
     union Endianness {
@@ -89,7 +87,7 @@ bool gp_is_big_endian(void)
     return integer.endianness.is_big;
 }
 /** Run-time check if system is little endian.*/
-GP_NODISCARD static inline
+GP_NODISCARD GP_INLINE
 bool gp_is_little_endian(void)
 {
     union Endianness {

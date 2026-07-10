@@ -2,6 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+// TODO gp_expect() should only log on debug builds?
+
 #ifndef GP_ASSERT_INCLUDED
 #define GP_ASSERT_INCLUDED 1
 

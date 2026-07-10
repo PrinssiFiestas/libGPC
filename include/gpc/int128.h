@@ -2,6 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+// TODO Dox
+
 // Note to everybody: Compiler Explorer is your friend.
 
 #ifndef GP_INT128_INCLUDED
@@ -935,7 +937,7 @@ GP_NODISCARD static inline constexpr bool operator >=(GPInt128  a, GPInt128  b) 
 //          Code below is for internal usage and may change without notice.
 //
 // ----------------------------------------------------------------------------
-
+/// @cond
 
 #ifdef __cplusplus
 GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(GPUInt128 x) { (void)x; return GP_UINT128; }
@@ -990,4 +992,5 @@ GP_NODISCARD static inline GPInt128  gp_int128_int128(GPInt128 i) { return i;   
 #  endif
 #endif
 
+/// @endcond
 #endif // GP_INT128_INCLUDED
