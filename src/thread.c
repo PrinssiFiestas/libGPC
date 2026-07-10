@@ -964,21 +964,17 @@ void call_once(once_flag *flag, void (*func)(void))
 
 // Pthreads uses routines of type void*(*)(void*), but the type should be
 // int(*)(void*) for portability. However, just casting the function pointer
-// type would lead to UB when the function gets called. On some systems
-// laundering is good enough, others need a thunk.
+// type would lead to UB when the function gets called. On x86_64, a 32-bit
+// return value will be zero extended and on 32-bit targets the return value
+// fits perfectly. In those systems, pointer laundering is safe enough, others
+// require a thunk with a matching return type.
 
-// TODO MSVC x64 macros and check if laundering is safe according to calling
-// conventions on ARM.
-// TODO we probably should define our own architecture macros.
-#if defined(__x86_64__) || UINTPTR_MAX == UINT_MAX // no need for thunk
-
+#if defined(GP_TARGET_ARCH_X86_64) || UINTPTR_MAX == UINT_MAX // no need for thunk
 int gp_thread_create(GPThread* thr, int(*func)(void*), void *arg)
 {
     return pthread_create(thr, 0, gp_launder(func), arg);
 }
-
 #else // thunk
-
 typedef struct gp_thread_thunk_args
 {
     int(*routine)(void* arg);
@@ -996,18 +992,17 @@ static void* gp_s_thread_thunk(void*_thunk_args)
 int gp_thread_create(GPThread* thr, int(*func)(void*), void *arg)
 {
     int old_errno = errno;
-    GPThreadThunk* thunk_args = malloc(sizeof *thunk_args);
+    GPThreadThunkArgs* thunk_args = malloc(sizeof *thunk_args);
     errno = old_errno;
     if (thunk_args == NULL)
         return EAGAIN;
     thunk_args->routine = func;
     thunk_args->arg = arg;
-    return pthread_create(
-        thr, 0,
-        gp_s_thread_thunk,
-        thunk_args);
+    int result = pthread_create(thr, 0, gp_s_thread_thunk, thunk_args);
+    if (result != 0)
+        free(thunk_args);
+    return result;
 }
-
 #endif // thunk
 
 static bool gp_s_mutex_timedlock_ts(GPMutex *mtx, struct timespec ts)

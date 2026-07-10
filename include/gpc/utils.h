@@ -3,7 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #ifndef GP_UTILS_INCLUDED
-#define GP_UTILS_INCLUDED
+#define GP_UTILS_INCLUDED 1
 
 #include <gpc/assert.h>
 #include <stdint.h>
@@ -260,7 +260,7 @@ size_t gp_leading_zeros_u64(uint64_t u)
     #endif
 }
 
-/** Detach pointer from it's origin.
+/** Detach pointer from its origin.
  *
  * Remove any information about @a ptr as seen by the compiler. Most notably
  * this means that the compiler will not be able to do aliasing analysis, which
@@ -269,10 +269,10 @@ size_t gp_leading_zeros_u64(uint64_t u)
  * undefined by the C implementation.
  *
  * If you don't know what you're doing, then don't use this for anything else
- * than debugging. Detaching pointer from it's origins inhibits optimizations,
+ * than debugging. Detaching pointer from its origins inhibits optimizations,
  * so using it wrongly just degrades performance. Furthermore, using it to fix
  * undefined behavior (like strict aliasing violations) doesn't inherently fix
- * anything, it just confuses the compiler to make the program look valid. Only
+ * anything; it just confuses the compiler to make the program look valid. Only
  * use this in production code if you are well familiar with your target
  * architecture and compiler.
  *
@@ -282,8 +282,9 @@ GP_INLINE void* gp_launder(void* ptr)
 {
     #if defined(__GNUC__) && !defined(__FILC__)
     __asm__ volatile("" : "+r"(ptr));
+    // note: MSVC doesn't have inline assembly for x64 or ARM (why Microsoft, why??).
     #else // can't avoid function call overhead, sorry!
-    gp_launder_noinline(&ptr);
+    gp_launder_noinline(&ptr); // no-op
     #endif
     return ptr;
 }
