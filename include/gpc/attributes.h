@@ -442,5 +442,22 @@
 #  define GP_INLINE
 #endif
 
+// ----------------------------------------------------------------------------
+// No Return
+
+/** Never return.
+ *
+ * Function attribute to indicate that the given function does not return. This
+ * enables some optimizations and improves diagnostics e.g. suppress false
+ * positives of uninitialized variables.
+ */
+#if __STDC_VERSION__ >= 202311L
+#  define GP_NORETURN [[noreturn]]
+#elif defined(__GNUC__)
+#  define GP_NORETURN __attribute__((noreturn))
+#elif defined(_MSC_VER)
+#  define GP_NORETURN __declspec((noreturn))
+#endif
+
 /// @}
 #endif // GP_ATTRIBUTES_INCLUDED

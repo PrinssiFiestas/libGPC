@@ -20,6 +20,7 @@
 #include <string.h> // strerror
 #endif
 
+// TODO move atomics to appropriate header.
 #if __STDC_VERSION__ >= 201112L && !defined(GP_TARGET_OS_WINDOWS) // UCRT stdatomic.h broken
 #include <stdatomic.h>
 #endif
@@ -133,6 +134,7 @@ extern "C" {
 #  define GP_MAYBE_THREAD_LOCAL
 #endif
 
+// TODO move atomics to appropriate header
 /** Sometimes atomic.
  *
  * Use this only when atomics would be ideal but not necessary for correctness.
@@ -546,7 +548,7 @@ typedef pthread_once_t GPOnce;
  *
  * @snippet thread.h gp_call_once_example
  */
-GP_INLINE void gp_call_once(GPOnce* flag, void (*func)(void))
+GP_NONNULL_ARGS() GP_INLINE void gp_call_once(GPOnce* flag, void (*func)(void))
 {
     pthread_once(flag, func);
 }
@@ -559,9 +561,9 @@ GP_INLINE void gp_call_once(GPOnce* flag, void (*func)(void))
 
 typedef unsigned long GPThread;
 
-errno_t gp_thread_create(GPThread *thr, int(*func)(void*), void *arg);
+GP_NONNULL_ARGS(1, 2) errno_t gp_thread_create(GPThread *thr, int(*func)(void*), void *arg);
 
-void gp_thread_exit(int res);
+GP_NORETURN void gp_thread_exit(int res);
 
 errno_t gp_thread_join(GPThread thr, int *res);
 
@@ -586,22 +588,27 @@ typedef struct
 
 #define GP_MUTEX_INITIALIZER {0}
 
-void gp_mutex_init(GPMutex* mtx);
+GP_NONNULL_ARGS() void gp_mutex_init(GPMutex* mtx);
 
-void gp_mutex_destroy(GPMutex* mtx);
+GP_INLINE void gp_mutex_destroy(GPMutex* optional_mtx)
+{
+    (void)optional_mtx;
+}
 
-void gp_mutex_lock(GPMutex* mtx);
+GP_NONNULL_ARGS() void gp_mutex_lock(GPMutex* mtx);
 
-bool gp_mutex_trylock(GPMutex* mtx);
+GP_NONNULL_ARGS() bool gp_mutex_trylock(GPMutex* mtx);
 
-bool gp_mutex_timedlock(GPMutex* mutex, double time);
+GP_NONNULL_ARGS() bool gp_mutex_timedlock(GPMutex* mutex, double time);
 
-bool gp_mutex_timedlock_ns(GPMutex* mutex, uint64_t time_ns);
+GP_NONNULL_ARGS() bool gp_mutex_timedlock_ns(GPMutex* mutex, uint64_t time_ns);
 
-GP_INLINE void gp_mutex_unlock(GPMutex *mtx) { (void)mtx; }
+GP_NONNULL_ARGS() void gp_mutex_unlock(GPMutex *mtx);
 
 // ------------------------------------
 // Condition Variables
+
+// TODO attributes
 
 typedef struct
 {
@@ -624,6 +631,8 @@ int gp_cond_timedwait(GPCond *cond, GPMutex *mtx, const struct timespec *ts);
 // ------------------------------------
 // Thread-Local Storage
 
+// TODO attributes
+
 typedef unsigned long GPThreadKey;
 
 int gp_thread_local_create(GPThreadKey *key, gp_thread_local_dtor_t dtor);
@@ -639,7 +648,7 @@ void* gp_thread_local_get(GPThreadKey key);
 
 typedef void* GPOnce;
 
-void call_once(GPOnce* flag, void (*func)(void));
+GP_NONNULL_ARGS() void call_once(GPOnce* flag, void (*func)(void));
 
 #endif // GP_USE_WINTHREADS ---------------------------------------------------
 
