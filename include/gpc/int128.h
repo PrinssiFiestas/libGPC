@@ -126,7 +126,7 @@ GP_NODISCARD GP_INLINE
 GPUInt128 gp_uint128(uint64_t hi_bits, uint64_t lo_bits)
 {
     GPUInt128 u128;
-    if (gp_is_big_endian()) {
+    if (gp_endian_is_big()) {
         u128.big_endian.hi = hi_bits;
         u128.big_endian.lo = lo_bits;
     } else {
@@ -140,7 +140,7 @@ GP_NODISCARD GP_INLINE
 GPInt128 gp_int128(int64_t hi_bits, uint64_t lo_bits)
 {
     GPInt128 i128;
-    if (gp_is_big_endian()) {
+    if (gp_endian_is_big()) {
         i128.big_endian.hi = hi_bits;
         i128.big_endian.lo = lo_bits;
     } else {

@@ -175,3 +175,9 @@ docs:
 
 clean:
 	rm -rf build
+
+# TODO we don't use -Wconversion, but many people do, so we need to add
+# pragmas to suppress it in single header implementation and have a test target
+# that includes single header without defining GPC_IMPLEMENTATION to enforce
+# always converting in our inline functions. And do the same for C++ just in
+# case.

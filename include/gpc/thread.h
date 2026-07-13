@@ -61,6 +61,8 @@ extern "C" {
 ///   important.
 /// - Replaced `struct timespec` with seconds and nanoseconds. Nobody likes to
 ///   deal with `struct timespec`.
+/// - Removed `thrd_sleep()`, we already have @ref gp_sleep() in our timing
+///   utilities module.
 /// - Simplified error handling:
 ///   - Errors that don't happen or cannot be meaningfully handled are either
 ///     asserted or removed.
@@ -94,6 +96,7 @@ extern "C" {
 ///   best we can do without including `windows.h` in header files, which might
 ///   break user builds (namespace pollution like `min` and include order
 ///   problems).
+/// - Removed 32-bit internal timespec, use 64 bits always with C99 `uint64_t`.
 /// @{
 
     // TODO bad doxygen

@@ -28,11 +28,17 @@ Main project site: https://github.com/jtsiomb/c11threads
 #include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include <windows.h>
 
 
 /* ---- library ---- */
+
+struct _c11threads_win32_timespec64_t {
+    int64_t tv_sec;
+    long tv_nsec;
+};
 
 struct _c11threads_win32_thrd_entry_t {
     struct _c11threads_win32_thrd_entry_t *next;
@@ -83,47 +89,28 @@ void c11threads_win32_destroy(void)
 
 /* ---- utilities ---- */
 
-static int _c11threads_win32_util_is_timespec32_valid(const struct _c11threads_win32_timespec32_t *ts)
-{
-    return ts->tv_sec >= 0 && ts->tv_nsec >= 0 && ts->tv_nsec <= 999999999;
-}
-
 static int _c11threads_win32_util_is_timespec64_valid(const struct _c11threads_win32_timespec64_t *ts)
 {
     return ts->tv_sec >= 0 && ts->tv_nsec >= 0 && ts->tv_nsec <= 999999999;
 }
 
 /* Precondition: 'ts' validated. */
-static __int64 _c11threads_win32_util_timespec32_to_file_time(const struct _c11threads_win32_timespec32_t *ts)
+static int64_t _c11threads_win32_util_timespec64_to_file_time(const struct _c11threads_win32_timespec64_t *ts, size_t *periods)
 {
-    unsigned __int64 sec_res;
-    unsigned __int64 nsec_res;
+    uint64_t sec_res;
+    uint64_t nsec_res;
+    uint64_t res;
 
-    sec_res = (unsigned __int64)ts->tv_sec * (unsigned __int64)10000000;
-
-    /* Add another 100 ns if division yields remainder. */
-    nsec_res = (unsigned long)ts->tv_nsec / 100UL + !!((unsigned long)ts->tv_nsec % 100UL);
-
-    return sec_res + nsec_res;
-}
-
-/* Precondition: 'ts' validated. */
-static __int64 _c11threads_win32_util_timespec64_to_file_time(const struct _c11threads_win32_timespec64_t *ts, size_t *periods)
-{
-    unsigned __int64 sec_res;
-    unsigned __int64 nsec_res;
-    unsigned __int64 res;
-
-    *periods = (unsigned long)((unsigned __int64)ts->tv_sec / (unsigned __int64)922337203685);
-    sec_res = ((unsigned __int64)ts->tv_sec % (unsigned __int64)922337203685) * (unsigned __int64)10000000;
+    *periods = (unsigned long)((uint64_t)ts->tv_sec / (uint64_t)922337203685);
+    sec_res = ((uint64_t)ts->tv_sec % (uint64_t)922337203685) * (uint64_t)10000000;
 
     /* Add another 100 ns if division yields remainder. */
     nsec_res = (unsigned long)ts->tv_nsec / 100UL + !!((unsigned long)ts->tv_nsec % 100UL);
 
     /* 64-bit time_t may cause overflow. */
-    if (nsec_res > (unsigned __int64) - 1 - sec_res) {
+    if (nsec_res > (uint64_t) - 1 - sec_res) {
         ++*periods;
-        nsec_res -= (unsigned __int64) - 1 - sec_res;
+        nsec_res -= (uint64_t) - 1 - sec_res;
         sec_res = 0;
     }
 
@@ -131,34 +118,10 @@ static __int64 _c11threads_win32_util_timespec64_to_file_time(const struct _c11t
 
     if (*periods && !res) {
         --*periods;
-        return (__int64)9223372036850000000;
+        return (int64_t)9223372036850000000;
     }
 
     return res;
-}
-
-/* Precondition: 'ts' validated. */
-static int _c11threads_win32_util_timespec32_to_milliseconds(const struct _c11threads_win32_timespec32_t *ts, unsigned long *ms)
-{
-    unsigned long sec_res;
-    unsigned long nsec_res;
-
-    /* Overflow. */
-    if ((unsigned long)ts->tv_sec > (INFINITE - 1UL) / 1000UL) {
-        return 0;
-    }
-
-    sec_res = (unsigned long)ts->tv_sec * 1000UL;
-    /* Add another millisecond if division yields remainder. */
-    nsec_res = (unsigned long)ts->tv_nsec / 1000000UL + !!((unsigned long)ts->tv_nsec % 1000000UL);
-
-    /* Overflow. */
-    if (nsec_res > INFINITE - 1UL - sec_res) {
-        return 0;
-    }
-
-    *ms = sec_res + nsec_res;
-    return 1;
 }
 
 /* Precondition: 'ts' validated. */
@@ -168,7 +131,7 @@ static int _c11threads_win32_util_timespec64_to_milliseconds(const struct _c11th
     unsigned long nsec_res;
 
     /* Overflow. */
-    if ((unsigned __int64)ts->tv_sec > (INFINITE - 1UL) / 1000UL) {
+    if ((uint64_t)ts->tv_sec > (INFINITE - 1UL) / 1000UL) {
         return 0;
     }
 
@@ -183,36 +146,6 @@ static int _c11threads_win32_util_timespec64_to_milliseconds(const struct _c11th
 
     *ms = sec_res + nsec_res;
     return 1;
-}
-
-/* Precondition: 'current_time' and 'end_time' validated. */
-static unsigned long _c11threads_win32_util_timepoint_to_millisecond_timespan32(
-    const struct _c11threads_win32_timespec32_t *current_time,
-    const struct _c11threads_win32_timespec32_t *end_time,
-    int *clamped)
-{
-    unsigned long wait_time;
-    struct _c11threads_win32_timespec32_t ts;
-
-    *clamped = 0;
-    if (current_time->tv_sec > end_time->tv_sec || (current_time->tv_sec == end_time->tv_sec && current_time->tv_nsec >= end_time->tv_nsec)) {
-        wait_time = 0;
-    } else {
-        ts.tv_sec = end_time->tv_sec - current_time->tv_sec;
-        ts.tv_nsec = end_time->tv_nsec - current_time->tv_nsec;
-        if (ts.tv_nsec < 0) {
-            --ts.tv_sec;
-            ts.tv_nsec += 1000000000;
-        }
-
-        if (!_c11threads_win32_util_timespec32_to_milliseconds(&ts, &wait_time)) {
-            /* Clamp wait_time. Pretend we've had a spurious wakeup if expired. */
-            wait_time = INFINITE - 1;
-            *clamped = 1;
-        }
-    }
-
-    return wait_time;
 }
 
 /* Precondition: 'current_time' and 'end_time' validated. */
@@ -242,28 +175,14 @@ static unsigned long _c11threads_win32_util_timepoint_to_millisecond_timespan64(
 }
 
 // TODO remove timespec junk
+
+// // From original
+// #ifndef _UCRT
+// #define C11THREADS_NO_TIMESPEC_GET
+// #endif
+
+// TODO do we need these after moving to time module?
 #if defined(C11THREADS_NO_TIMESPEC_GET) || !defined(_MSC_VER)
-int _c11threads_win32_timespec32_get(struct _c11threads_win32_timespec32_t *ts, int base)
-{
-    FILETIME file_time;
-    ULARGE_INTEGER li;
-
-    if (base != TIME_UTC) {
-        return 0;
-    }
-
-    GetSystemTimeAsFileTime(&file_time);
-
-    li.LowPart = file_time.dwLowDateTime;
-    li.HighPart = file_time.dwHighDateTime;
-
-    /* Also subtract difference between FILETIME and UNIX time epoch. It's 369 years by the way. */
-    ts->tv_sec = (long)(li.QuadPart / (unsigned __int64)10000000 - (unsigned __int64)11644473600);
-    ts->tv_nsec = (long)(li.QuadPart % (unsigned __int64)10000000) * 100;
-
-    return base;
-}
-
 int _c11threads_win32_timespec64_get(struct _c11threads_win32_timespec64_t *ts, int base)
 {
     FILETIME file_time;
@@ -279,17 +198,12 @@ int _c11threads_win32_timespec64_get(struct _c11threads_win32_timespec64_t *ts, 
     li.HighPart = file_time.dwHighDateTime;
 
     /* Also subtract difference between FILETIME and UNIX time epoch. It's 369 years by the way. */
-    ts->tv_sec = li.QuadPart / (unsigned __int64)10000000 - (unsigned __int64)11644473600;
-    ts->tv_nsec = (long)(li.QuadPart % (unsigned __int64)10000000) * 100;
+    ts->tv_sec = li.QuadPart / (uint64_t)10000000 - (uint64_t)11644473600;
+    ts->tv_nsec = (long)(li.QuadPart % (uint64_t)10000000) * 100;
 
     return base;
 }
 #else
-int _c11threads_win32_timespec32_get(struct _c11threads_win32_timespec32_t *ts, int base)
-{
-    return _timespec32_get((struct _timespec32*)ts, base);
-}
-
 int _c11threads_win32_timespec64_get(struct _c11threads_win32_timespec64_t *ts, int base)
 {
     return _timespec64_get((struct _timespec64*)ts, base);
@@ -533,87 +447,6 @@ int gp_thread_detach(GPThread thr)
 GPThread gp_thread_current(void)
 {
     return GetCurrentThreadId();
-}
-
-static int _c11threads_win32_sleep_common(__int64 file_time_in)
-{
-    void *timer;
-    unsigned long error;
-    LARGE_INTEGER due_time;
-
-    assert(file_time_in >= 0);
-
-    timer = CreateWaitableTimerW(NULL, 1, NULL);
-    if (!timer) {
-        error = GetLastError();
-        return error > 1 ? -(long)error : -ERROR_INTERNAL_ERROR;
-    }
-
-    due_time.QuadPart = -file_time_in;
-    if (!SetWaitableTimer(timer, &due_time, 0, NULL, NULL, 0)) {
-        error = GetLastError();
-        CloseHandle(timer);
-        return error > 1 ? -(long)error : -ERROR_INTERNAL_ERROR;
-    }
-
-    if (WaitForSingleObject(timer, INFINITE) != WAIT_OBJECT_0) {
-        error = GetLastError();
-        CloseHandle(timer);
-        return error > 1 ? -(long)error : -ERROR_INTERNAL_ERROR;
-    }
-
-    CloseHandle(timer);
-    return 0; /* Success. */
-}
-
-int _c11threads_win32_thrd_sleep32(const struct _c11threads_win32_timespec32_t *ts_in, struct _c11threads_win32_timespec32_t *rem_out)
-{
-    __int64 file_time;
-    int res;
-
-    (void)rem_out;
-
-    if (!_c11threads_win32_util_is_timespec32_valid(ts_in)) {
-        return -ERROR_INVALID_PARAMETER;
-    }
-
-    file_time = _c11threads_win32_util_timespec32_to_file_time(ts_in);
-    if (file_time < 0) {
-        return -ERROR_INVALID_PARAMETER;
-    }
-
-    res = _c11threads_win32_sleep_common(file_time);
-
-    return res;
-}
-
-int _c11threads_win32_thrd_sleep64(const struct _c11threads_win32_timespec64_t *ts_in, struct _c11threads_win32_timespec64_t *rem_out)
-{
-    __int64 file_time;
-    size_t periods;
-    int res;
-
-    (void)rem_out;
-
-    if (!_c11threads_win32_util_is_timespec64_valid(ts_in)) {
-        return -ERROR_INVALID_PARAMETER;
-    }
-
-    file_time = _c11threads_win32_util_timespec64_to_file_time(ts_in, &periods);
-    if (file_time < 0) {
-        return -ERROR_INVALID_PARAMETER;
-    }
-
-restart_sleep:
-    res = _c11threads_win32_sleep_common(file_time);
-
-    if (!res && periods) {
-        --periods;
-        file_time = (__int64)9223372036850000000;
-        goto restart_sleep;
-    }
-
-    return res;
 }
 
 void gp_thread_yield(void)

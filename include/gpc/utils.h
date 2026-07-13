@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-GP_GNU_ATTRIB(noinline) GP_OPTIMIZE_NONE
+GP_NOINLINE GP_OPTIMIZE_NONE
 void gp_launder_noinline(void**); ///< @private
 
 // ----------------------------------------------------------------------------
@@ -102,7 +102,7 @@ uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary)
  * any unsigned x.
  *
  * Unlike common generic min macros in C, this only evaluates multiple times if
- * C99, otherwise arguments are evaluated exactly once.
+ * strict C99 (using `-std=c99 -DGP_PEDANTIC` flags), otherwise arguments are
  */
 #define gp_min(A, B) gp_generic_min(A, B)
 
@@ -115,7 +115,8 @@ uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary)
  * unsigned x.
  *
  * Unlike common generic max macros in C, this only evaluates multiple times if
- * C99, otherwise arguments are evaluated exactly once.
+ * strict C99 (using `-std=c99 -DGP_PEDANTIC` flags), otherwise arguments are
+ * evaluated exactly once.
  */
 #define gp_max(A, B) gp_generic_max(A, B)
 #endif

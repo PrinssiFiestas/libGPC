@@ -343,8 +343,10 @@
  *
  * Used for any other attribute that is not part of this library that can be
  * used with GNU C compatible compilers. In practice, this will be any variant
- * of GCC and Clang. Portable code should make sure that both GCC and Clang
- * support given attribute.
+ * of GCC and Clang. Portable code should make sure that all compilers that
+ * define `__GNUC__` that are planned to be supported support the given
+ * attribute. It should not be assumed that Clang automatically supports a GCC
+ * attribute, this is not always true.
  */
 #if defined(__GNUC__) || defined(GP_DOXYGEN)
 #define GP_GNU_ATTRIB(...) __attribute__((__VA_ARGS__))
@@ -457,6 +459,42 @@
 #  define GP_NORETURN __attribute__((noreturn))
 #elif defined(_MSC_VER)
 #  define GP_NORETURN __declspec((noreturn))
+#else
+#  define GP_NORETURN
+#endif
+
+// ----------------------------------------------------------------------------
+// No Inline
+
+/** Never inline.
+ *
+ * Function attribute to indicate that the given function shall not be inlined.
+ */
+#ifdef __GNUC__
+#  define GP_NOINLINE __attribute__((noinline))
+#elif defined(_MSC_VER)
+#  define GP_NOINLINE __declspec((noinline))
+#else
+#  define GP_NOINLINE
+#endif
+
+// ----------------------------------------------------------------------------
+// Deprecated
+
+/** Deprecate function, variable, type, or enumerator.
+ *
+ * Function, variable, type, and enumerator attribute to deprecate a symbol.
+ * Any usage by the user of the given symbol will issue a warning.
+ */
+
+#if defined(GP_DOXYGEN) || (defined(__cplusplus) && __cplusplus >= 201402L)
+#  define GP_DEPRECATED [[deprecated]]
+#elif defined(__GNUC__)
+#  define GP_DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#  define GP_DEPRECATED __declspec(deprecated)
+#else
+#  define GP_DEPRECATED
 #endif
 
 /// @}
