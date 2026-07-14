@@ -155,7 +155,7 @@ GPInt128 gp_time_begin(void)
     #elif defined(GP_TARGET_OS_WINDOWS)
     gp_internal_timespec_get(&ts);
     #else
-    clock_gettime(CLOCK_REALTIME, &s);
+    clock_gettime(CLOCK_REALTIME, &ts);
     #endif
 
     return gp_int128_add(
@@ -170,12 +170,6 @@ void gp_sleep(double seconds)
         return;
 
     GPInternalTimespec ts = gp_internal_timespec_from_time(seconds);
-
-    ts.tv_nsec = 1000000000*modf(seconds, &seconds);
-    if (sizeof(ts.tv_sec) == sizeof(int32_t))
-        ts.tv_sec = fmin(seconds, INT32_MAX);
-    else
-        ts.tv_sec = fmin(seconds, INT64_MAX);
 
     errno_t old_errno = errno;
     bool interrupted;
@@ -222,22 +216,37 @@ void gp_sleep_ns(int64_t nanoseconds)
 
 void gp_sleep_absolute(GPInt128 time_ns)
 {
-    if (gp_int128_hi(time_ns) < 0)
+    if (gp_int128_hi(time_ns) <= 0)
         return;
 
-    #if defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112L
     bool interrupted;
     errno_t old_errno = errno;
+    #if defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112L
     // FIXME: Ignoring hi bits of 128 bit timestamp. But no rush to fix, as of
     // 2026, we still have a couple of hundreds of years before this matters.
     struct timespec ts = gp_internal_timespec_from_time_ns(gp_int128_lo(time_ns));
     do {
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
+        interrupted = clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &ts, NULL);
         if (interrupted)
             gp_assume(errno == EINTR);
     } while (interrupted);
-    errno = old_errno;
-    #else
-    gp_sleep_ns(gp_int128_lo(gp_int128_sub(time_ns, gp_time_begin())));
+    #else // recalculate relative time for each interruption to fix signal drift
+    do {
+        int64_t t_ns = gp_int128_lo(gp_int128_sub(time_ns, gp_time_begin()));
+        if (t_ns <= 0)
+            return;
+        GPInternalTimespec ts = gp_internal_timespec_from_time_ns(t_ns);
+
+        #if defined(GP_USE_C11_THREAD_SLEEP)
+        interrupted = thrd_sleep(&ts, NULL);
+        #elif defined(GP_TARGET_OS_WINDOWS)
+        interrupted = _c11threads_win32_thrd_sleep64(&ts, NULL);
+        #else
+        interrupted = nanosleep(&ts, NULL);
+        #endif
+        if (interrupted)
+            gp_assume(errno == EINTR);
+    } while (interrupted);
     #endif
+    errno = old_errno;
 }

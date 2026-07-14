@@ -808,16 +808,17 @@ static bool gp_s_mutex_timedlock_ts(GPMutex *mtx, struct timespec ts)
     timedlock_return = pthread_mutex_timedlock(mtx, &ts);
     #endif
     gp_assume(timedlock_return == 0 || timedlock_return == ETIMEDOUT, strerror(timedlock_return));
-    return !timedlock_return;
+    return ! timedlock_return;
 }
+
+// FIXME: Ignoring hi bits of 128 bit timestamp in many functions. But no rush to
+// fix, as of 2026, we still have a couple of hundreds of years before this matters.
 
 bool gp_mutex_timedlock_absolute(GPMutex* mutex, GPInt128 t)
 {
     if (gp_int128_hi(t) < 0)
         return false;
 
-    // FIXME: Ignoring hi bits of 128 bit timestamp. But no rush to fix, as of
-    // 2026, we still have a couple of hundreds of years before this matters.
     return gp_s_mutex_timedlock_ts(mutex, gp_internal_timespec_from_time_ns(gp_int128_lo(t)));
 }
 
@@ -830,14 +831,16 @@ bool gp_mutex_timedlock(GPMutex* mutex, double t)
         gp_mutex_lock(mutex);
         return true;
     }
-    return gp_s_mutex_timedlock_ts(mutex, gp_internal_timespec_from_time(t)); // TODO WRONG TIME FORMAT
+    int64_t t_ns = gp_int128_lo(gp_time_begin()) + 1000000000.*t;
+    return gp_s_mutex_timedlock_ts(mutex, gp_internal_timespec_from_time_ns(t_ns));
 }
 
 bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t t_ns)
 {
     if (t_ns < 0)
         return false;
-    return gp_s_mutex_timedlock_ts(mutex, gp_internal_timespec_from_time_ns(t_ns)); // TODO WRONG TIME FORMAT
+    t_ns += gp_int128_lo(gp_time_begin());
+    return gp_s_mutex_timedlock_ts(mutex, gp_internal_timespec_from_time_ns(t_ns));
 }
 
 bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
@@ -849,16 +852,28 @@ bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
         pthread_cond_wait(cond, mutex);
         return true;
     }
-    struct timespec ts = gp_internal_timespec_from_time(t);
-    return pthread_cond_timedwait(cond, mutex, &ts); // TODO WRONG TIME FORMAT
+    int64_t t_ns = gp_int128_lo(gp_time_begin()) + 1000000000.*t;
+    struct timespec ts = gp_internal_timespec_from_time(t_ns);
+    return ! pthread_cond_timedwait(cond, mutex, &ts);
 }
 
 bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t t_ns)
 {
     if (t_ns < 0)
         return false;
+
+    t_ns += gp_int128_lo(gp_time_begin());
     struct timespec ts = gp_internal_timespec_from_time_ns(t_ns);
-    return pthread_cond_timedwait(cond, mutex, &ts); // TODO WRONG TIME FORMAT
+    return ! pthread_cond_timedwait(cond, mutex, &ts); // TODO WRONG TIME FORMAT
+}
+
+bool gp_cond_timedwait_absolute(GPCond* cond, GPMutex* mutex, GPInt128 t)
+{
+    if (gp_int128_hi(t) < 0)
+        return false;
+
+    struct timespec ts = gp_internal_timespec_from_time_ns(gp_int128_lo(t));
+    return ! pthread_cond_timedwait(cond, mutex, &ts);
 }
 
 #endif // defined(GP_TARGET_OS_WINDOWS) && !defined(GP_USE_PTHREADS)
