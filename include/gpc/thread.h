@@ -12,6 +12,7 @@
 
 #include <gpc/assert.h>
 #include <gpc/time.h>
+#include <gpc/int128.h>
 
 #if defined(GP_TARGET_OS_WINDOWS) && !defined(GP_USE_PTHREADS)
 #define GP_USE_WINTHREADS 1
@@ -51,14 +52,17 @@ extern "C" {
 /// Our changes to C11 API:
 /// - Added static initializers for mutexes.
 /// - Added static initializers for condition variables.
+/// - C11 `mtx_timedlock()` and `cnd_timedwait()` and their POSIX counterparts
+///   take calendar timestamp as the timeout bound argument, but Win32
+///   counterparts use relative time instead. We added options for both.
 /// - Removed mutex types, only plain is available. This is due to `mtx_timed`
 ///   being implicit and redundant and `mtx_recursive` is a code smell that
 ///   doesn't work well portably with static initialization, which is much more
 ///   important.
 /// - Replaced `struct timespec` with seconds and nanoseconds. Nobody likes to
 ///   deal with `struct timespec`.
-/// - Removed `thrd_sleep()`, we already have @ref gp_sleep() in our timing
-///   utilities module.
+/// - Removed `thrd_sleep()`, we already have @ref gp_sleep() and @ref gp_sleep_ns()
+///   in our timing utilities module.
 /// - Simplified error handling:
 ///   - Errors that don't happen or cannot be meaningfully handled are either
 ///     undefined (asserted using @ref gp_assume()) or removed.
@@ -422,6 +426,17 @@ bool gp_mutex_timedlock(GPMutex* mutex, double time);
  */
 GP_NONNULL_ARGS()
 bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns);
+
+/** Try lock mutex until given time.
+ *
+ * Like @ref gp_mutex_lock(), except only blocks until a given absolute time
+ * (time since epoch in nanoseconds). Current absolute time can be obtained
+ * using @ref gp_time_begin().
+ *
+ * @return `true` if acquired lock ownership, `false` if timeout expired.
+ */
+GP_NONNULL_ARGS()
+bool gp_mutex_timedlock_absolute(GPMutex* mutex, GPInt128 time_point_ns);
 
 /** Unlock mutex.
  *

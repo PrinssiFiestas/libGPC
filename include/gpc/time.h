@@ -99,6 +99,17 @@ void gp_sleep(double seconds);
  */
 void gp_sleep_ns(int64_t nanoseconds);
 
+/** Sleep until specified time.
+ *
+ * Like @ref gp_sleep(), except only blocks until a given absolute time (time
+ * since epoch in nanoseconds). This may be more accurate if application does
+ * signal handling at a rapid pace, because @ref gp_sleep() and @ref gp_sleep_ns()
+ * are subject to context switching delays.
+ *
+ * Current absolute time can be obtained using @ref gp_time_begin().
+ */
+void gp_sleep_absolute(GPInt128 time_ns);
+
 /// @}
 #ifdef __cplusplus
 } // extern "C"

@@ -5,7 +5,7 @@
 #include "../src/time.c"
 
 // This test just wastes time and is trivial, so just run them manually on changes.
-#ifndef 0 // GP_TIME_TESTS // TODO
+#ifndef 0 // GP_TIME_TESTS // TODO once tested in both Linux and Windows, uncomment
 
 int main(void) {}
 
@@ -85,6 +85,15 @@ int main(void)
             gp_expect(5. < t && t < 5.3, t);
         }
     } // gp_suite("Global Time");
+
+    gp_suite("Absolute Time Sleep");
+    {
+        GPInt128 start = gp_time_begin();
+        GPInt128 end = gp_i128_add(start, 10*1000*1000);
+        gp_sleep_absolute(end);
+        uint64_t t = gp_time_ns(&start);
+        gp_expect(1000*1000 < t && t < 1200*1000, t);
+    } // gp_suite("Absolute Time Sleep");
 }
 
 #endif

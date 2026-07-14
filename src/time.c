@@ -5,6 +5,7 @@
 #include <gpc/time.h>
 #include <gpc/thread.h> // GPOnce
 #include <gpc/utils.h>
+#include "common.h"
 #include <time.h>
 #include <errno.h>
 #include <math.h>
@@ -15,18 +16,13 @@
 #elif defined(GP_TARGET_OS_WINDOWS)
 #  include <windows.h>
 #  define GP_USE_WIN_SLEEP 1
-struct gp_internal_timespec
-{
-    int64_t tv_sec;
-    long tv_nsec;
-};
 #else
 #  define GP_USE_POSIX_SLEEP 1
 #endif
 
 #ifdef GP_USE_WIN_SLEEP // win helpers
 static int64_t _c11threads_win32_util_timespec64_to_file_time(
-    const struct gp_internal_timespec *ts, size_t *periods)
+    const GPInternalTimespec *ts, size_t *periods)
 {
     uint64_t sec_res;
     uint64_t nsec_res;
@@ -87,7 +83,7 @@ static int _c11threads_win32_sleep_common(int64_t file_time_in)
 }
 
 static int _c11threads_win32_thrd_sleep64(
-    const struct gp_internal_timespec *ts_in, struct gp_internal_timespec *rem_out)
+    const GPInternalTimespec *ts_in, GPInternalTimespec *rem_out)
 {
     int64_t file_time;
     size_t periods;
@@ -113,7 +109,7 @@ restart_sleep:
 }
 
 #  ifndef _UCRT
-void gp_internal_timespec_get(struct gp_internal_timespec *ts)
+void gp_internal_timespec_get(GPInternalTimespec *ts)
 {
     FILETIME file_time;
     ULARGE_INTEGER li;
@@ -146,22 +142,20 @@ GPInt128 gp_time_init(void)
 
 GPInt128 gp_time_begin(void)
 {
-    #if __STDC_VERSION__ >= 201112L || defined(GP_USE_POSIX_SLEEP)
-    struct timespec ts;
-    #elif defined(_UCRT)
+    #ifdef _UCRT
     struct _timespec64 ts;
     #else
-    struct gp_internal_timespec ts;
+    GPInternalTimespec ts;
     #endif
 
-    #if __STDC_VERSION__ >= 201112L
-    timespec_get(&ts, TIME_UTC);
-    #elif defined(_UCRT)
+    #ifdef _UCRT
     _timespec64_get(&ts, TIME_UTC);
-    #elif defined(GP_USE_WIN_SLEEP)
+    #elif __STDC_VERSION__ >= 201112L
+    timespec_get(&ts, TIME_UTC);
+    #elif defined(GP_TARGET_OS_WINDOWS)
     gp_internal_timespec_get(&ts);
     #else
-    clock_gettime(CLOCK_REALTIME, &ts);
+    clock_gettime(CLOCK_REALTIME, &s);
     #endif
 
     return gp_int128_add(
@@ -175,11 +169,7 @@ void gp_sleep(double seconds)
     if (seconds < 0.)
         return;
 
-    #if defined(GP_USE_C11_THREAD_SLEEP) || defined(GP_USE_POSIX_SLEEP)
-    struct timespec ts;
-    #else
-    struct gp_internal_timespec ts;
-    #endif
+    GPInternalTimespec ts = gp_internal_timespec_from_time(seconds);
 
     ts.tv_nsec = 1000000000*modf(seconds, &seconds);
     if (sizeof(ts.tv_sec) == sizeof(int32_t))
@@ -211,17 +201,7 @@ void gp_sleep_ns(int64_t nanoseconds)
     if (nanoseconds < 0)
         return;
 
-    #if defined(GP_USE_C11_THREAD_SLEEP) || defined(GP_USE_POSIX_SLEEP)
-    struct timespec ts;
-    #else
-    struct gp_internal_timespec ts;
-    #endif
-
-    ts.tv_nsec = nanoseconds % 1000000000;
-    if (sizeof(ts.tv_sec) == sizeof(int32_t))
-        ts.tv_sec = gp_signed_min(nanoseconds / 1000000000, INT32_MAX);
-    else
-        ts.tv_sec = nanoseconds / 1000000000;
+    GPInternalTimespec ts = gp_internal_timespec_from_time_ns(nanoseconds);
 
     errno_t old_errno = errno;
     bool interrupted;
@@ -238,4 +218,26 @@ void gp_sleep_ns(int64_t nanoseconds)
         }
     } while (interrupted);
     errno = old_errno;
+}
+
+void gp_sleep_absolute(GPInt128 time_ns)
+{
+    if (gp_int128_hi(time_ns) < 0)
+        return;
+
+    #if defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112L
+    bool interrupted;
+    errno_t old_errno = errno;
+    // FIXME: Ignoring hi bits of 128 bit timestamp. But no rush to fix, as of
+    // 2026, we still have a couple of hundreds of years before this matters.
+    struct timespec ts = gp_internal_timespec_from_time_ns(gp_int128_lo(time_ns));
+    do {
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
+        if (interrupted)
+            gp_assume(errno == EINTR);
+    } while (interrupted);
+    errno = old_errno;
+    #else
+    gp_sleep_ns(gp_int128_lo(gp_int128_sub(time_ns, gp_time_begin())));
+    #endif
 }

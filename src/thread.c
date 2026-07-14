@@ -8,6 +8,7 @@
 //   Oliver Old <oliver.old@outlook.com> - win32 implementation
 
 #include <gpc/thread.h>
+#include "common.h"
 
 /*
 Win32 implementation for c11threads.
@@ -810,27 +811,14 @@ static bool gp_s_mutex_timedlock_ts(GPMutex *mtx, struct timespec ts)
     return !timedlock_return;
 }
 
-static struct timespec gp_s_timespec_from_time(double seconds)
+bool gp_mutex_timedlock_absolute(GPMutex* mutex, GPInt128 t)
 {
-    struct timespec ts;
-    ts.tv_nsec = 1000000000*modf(seconds, &seconds);
-    if (sizeof(ts.tv_sec) == sizeof(int32_t))
-        ts.tv_sec = fmin(seconds, INT32_MAX);
-    else
-        ts.tv_sec = fmin(seconds, INT64_MAX);
-}
+    if (gp_int128_hi(t) < 0)
+        return false;
 
-// We know nanoseconds is not negative, use unsigned, which often leads to
-// slightly better optimized integer modulus/division by constant due to rounding.
-static struct timespec gp_s_timespec_from_time_ns(uint64_t nanoseconds)
-{
-    struct timespec ts;
-    ts.tv_nsec = nanoseconds % 1000000000;
-    if (sizeof ts.tv_sec == sizeof(int32_t))
-        ts.tv_sec = gp_signed_min(nanoseconds / 1000000000, INT32_MAX);
-    else
-        ts.tv_sec = nanoseconds / 1000000000;
-    return ts;
+    // FIXME: Ignoring hi bits of 128 bit timestamp. But no rush to fix, as of
+    // 2026, we still have a couple of hundreds of years before this matters.
+    return gp_s_mutex_timedlock_ts(mutex, gp_internal_timespec_from_time_ns(gp_int128_lo(t)));
 }
 
 bool gp_mutex_timedlock(GPMutex* mutex, double t)
@@ -842,14 +830,14 @@ bool gp_mutex_timedlock(GPMutex* mutex, double t)
         gp_mutex_lock(mutex);
         return true;
     }
-    return gp_s_mutex_timedlock_ts(mutex, gp_s_timespec_from_time(t));
+    return gp_s_mutex_timedlock_ts(mutex, gp_internal_timespec_from_time(t)); // TODO WRONG TIME FORMAT
 }
 
 bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t t_ns)
 {
     if (t_ns < 0)
         return false;
-    return gp_s_mutex_timedlock_ts(mutex, gp_s_timespec_from_time_ns(t_ns));
+    return gp_s_mutex_timedlock_ts(mutex, gp_internal_timespec_from_time_ns(t_ns)); // TODO WRONG TIME FORMAT
 }
 
 bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
@@ -861,16 +849,16 @@ bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
         pthread_cond_wait(cond, mutex);
         return true;
     }
-    struct timespec ts = gp_s_timespec_from_time(t);
-    return pthread_cond_timedwait(cond, mutex, &ts);
+    struct timespec ts = gp_internal_timespec_from_time(t);
+    return pthread_cond_timedwait(cond, mutex, &ts); // TODO WRONG TIME FORMAT
 }
 
 bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t t_ns)
 {
     if (t_ns < 0)
         return false;
-    struct timespec ts = gp_s_timespec_from_time_ns(t_ns);
-    return pthread_cond_timedwait(cond, mutex, &ts);
+    struct timespec ts = gp_internal_timespec_from_time_ns(t_ns);
+    return pthread_cond_timedwait(cond, mutex, &ts); // TODO WRONG TIME FORMAT
 }
 
 #endif // defined(GP_TARGET_OS_WINDOWS) && !defined(GP_USE_PTHREADS)
