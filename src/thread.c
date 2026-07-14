@@ -32,6 +32,9 @@ Main project site: https://github.com/jtsiomb/c11threads
 
 #include <windows.h>
 
+#ifndef TIME_UTC
+#define TIME_UTC 1
+#endif
 
 /* ---- library ---- */
 
@@ -89,6 +92,7 @@ void c11threads_win32_destroy(void)
 
 /* ---- utilities ---- */
 
+// TODO only used by cond, do we need this?
 static int _c11threads_win32_util_is_timespec64_valid(const struct _c11threads_win32_timespec64_t *ts)
 {
     return ts->tv_sec >= 0 && ts->tv_nsec >= 0 && ts->tv_nsec <= 999999999;
@@ -124,7 +128,9 @@ static int64_t _c11threads_win32_util_timespec64_to_file_time(const struct _c11t
     return res;
 }
 
-/* Precondition: 'ts' validated. */
+// Only used for _util_timepoint_to_millisecond_timespan64, which is only used for cond_timedwait
+// TODO do we need this?
+/* Precondition: 'ts' validated. Return 0 on overflow, 1 if conversion successful. */
 static int _c11threads_win32_util_timespec64_to_milliseconds(const struct _c11threads_win32_timespec64_t *ts, unsigned long *ms)
 {
     unsigned long sec_res;
@@ -148,15 +154,23 @@ static int _c11threads_win32_util_timespec64_to_milliseconds(const struct _c11th
     return 1;
 }
 
+// Only used for cond_timedwait TODO do we need this?
 /* Precondition: 'current_time' and 'end_time' validated. */
-static unsigned long _c11threads_win32_util_timepoint_to_millisecond_timespan64(const struct _c11threads_win32_timespec64_t *current_time, const struct _c11threads_win32_timespec64_t *end_time, int *clamped) {
+static unsigned long _c11threads_win32_util_timepoint_to_millisecond_timespan64(
+    const struct _c11threads_win32_timespec64_t *current_time,
+    const struct _c11threads_win32_timespec64_t *end_time,
+    int *clamped)
+{
     unsigned long wait_time;
     struct _c11threads_win32_timespec64_t ts;
 
     *clamped = 0;
-    if (current_time->tv_sec > end_time->tv_sec || (current_time->tv_sec == end_time->tv_sec && current_time->tv_nsec >= end_time->tv_nsec)) {
+    if (current_time->tv_sec > end_time->tv_sec
+        || (current_time->tv_sec == end_time->tv_sec && current_time->tv_nsec >= end_time->tv_nsec))
+    { // current time past end time
         wait_time = 0;
     } else {
+        // subtract current time from end time
         ts.tv_sec = end_time->tv_sec - current_time->tv_sec;
         ts.tv_nsec = end_time->tv_nsec - current_time->tv_nsec;
         if (ts.tv_nsec < 0) {
@@ -174,15 +188,8 @@ static unsigned long _c11threads_win32_util_timepoint_to_millisecond_timespan64(
     return wait_time;
 }
 
-// TODO remove timespec junk
-
-// // From original
-// #ifndef _UCRT
-// #define C11THREADS_NO_TIMESPEC_GET
-// #endif
-
-// TODO do we need these after moving to time module?
-#if defined(C11THREADS_NO_TIMESPEC_GET) || !defined(_MSC_VER)
+// TODO only used by cond, do we need this?
+#if !defined(_UCRT)
 int _c11threads_win32_timespec64_get(struct _c11threads_win32_timespec64_t *ts, int base)
 {
     FILETIME file_time;
@@ -471,8 +478,11 @@ bool gp_mutex_trylock(GPMutex *mtx)
     return TryAcquireSRWLockExclusive(gp_launder(mtx));
 }
 
-bool gp_mutex_timedlock_ns(GPMutex* mutex, uint64_t time_ns)
+bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns)
 {
+    if (time_ns < 0)
+        return false;
+
     bool success;
     GPUInt128 start = gp_time_begin();
 
@@ -488,6 +498,14 @@ bool gp_mutex_timedlock_ns(GPMutex* mutex, uint64_t time_ns)
 
 bool gp_mutex_timedlock(GPMutex* mutex, double time)
 {
+    gp_assume( ! isnan(time));
+    if (time < 0.)
+        return false;
+    if (isinf(time)) {
+        AcquireSRWLockExclusive(gp_launder(mtx));
+        return true;
+    }
+
     bool success;
     GPUInt128 start = gp_time_begin();
 
@@ -508,164 +526,53 @@ void gp_mutex_unlock(GPMutex *mtx)
 
 /* ---- condition variables ---- */
 
-struct _c11threads_win32_cnd_t {
-    void *mutex;
-    void *signal_sema;
-    void *broadcast_event;
-    size_t wait_count;
-};
-
 int gp_cond_init(GPCond *cond)
 {
-    if (_c11threads_win32_winver >= _WIN32_WINNT_VISTA) {
-        InitializeConditionVariable(cond);
-        return GP_THREAD_SUCCESS;
-    } else {
-        struct _c11threads_win32_cnd_t *cnd;
-
-        cnd = malloc(sizeof(*cnd));
-        if (!cnd) {
-            return ENOMEM;
-        }
-
-        cnd->mutex = CreateMutexW(NULL, 0, NULL);
-        if (cnd->mutex) {
-            cnd->signal_sema = CreateSemaphoreW(NULL, 0, 0x7fffffff, NULL);
-            if (cnd->signal_sema) {
-                cnd->broadcast_event = CreateEventW(NULL, 1, 0, NULL);
-                if (cnd->broadcast_event) {
-                    cnd->wait_count = 0;
-                    *cond = cnd;
-                    return GP_THREAD_SUCCESS;
-                }
-                CloseHandle(cnd->signal_sema);
-            }
-            CloseHandle(cnd->mutex);
-        }
-
-        free(cnd);
-        return thrd_error;
-    }
+    InitializeConditionVariable(gp_launder(cond));
+    return GP_THREAD_SUCCESS;
 }
 
 void gp_cond_destroy(GPCond *cond)
 {
-    if (_c11threads_win32_winver < _WIN32_WINNT_VISTA) {
-        struct _c11threads_win32_cnd_t *cnd;
-        cnd = *cond;
-        assert(!cnd->wait_count);
-        CloseHandle(cnd->mutex);
-        CloseHandle(cnd->signal_sema);
-        CloseHandle(cnd->broadcast_event);
-        free(cnd);
-    }
+    (void)cond;
 }
 
-int gp_cond_signal(GPCond *cond)
+void gp_cond_signal(GPCond *cond)
 {
-    if (_c11threads_win32_winver >= _WIN32_WINNT_VISTA) {
-        WakeConditionVariable(cond);
-        return GP_THREAD_SUCCESS;
-    } else {
-        struct _c11threads_win32_cnd_t *cnd;
-        int success;
-        unsigned long wait_status;
-
-        cnd = *cond;
-
-        success = 0;
-        wait_status = WaitForSingleObject(cnd->mutex, INFINITE);
-        if (wait_status == WAIT_OBJECT_0) {
-            success = 1;
-        } else if (wait_status == WAIT_ABANDONED) {
-            abort();
-        }
-
-        if (success) {
-            if (cnd->wait_count) {
-                success = ReleaseSemaphore(cnd->signal_sema, 1, NULL) || GetLastError() == ERROR_TOO_MANY_POSTS;
-            }
-            if (!ReleaseMutex(cnd->mutex)) {
-                success = 0;
-            }
-        }
-
-        return success ? GP_THREAD_SUCCESS : thrd_error;
-    }
+    WakeConditionVariable(gp_launder(cond));
 }
 
-int gp_cond_broadcast(GPCond *cond)
+void gp_cond_broadcast(GPCond *cond)
 {
-    if (_c11threads_win32_winver >= _WIN32_WINNT_VISTA) {
-        WakeAllConditionVariable(cond);
-        return GP_THREAD_SUCCESS;
-    } else {
-        struct _c11threads_win32_cnd_t *cnd;
-        int success;
-        unsigned long wait_status;
-
-        cnd = *cond;
-
-        success = 0;
-        wait_status = WaitForSingleObject(cnd->mutex, INFINITE);
-        if (wait_status == WAIT_OBJECT_0) {
-            success = 1;
-        } else if (wait_status == WAIT_ABANDONED) {
-            abort();
-        }
-
-        if (success) {
-            if (cnd->wait_count) {
-                success = SetEvent(cnd->broadcast_event);
-            }
-            if (!ReleaseMutex(cnd->mutex)) {
-                success = 0;
-            }
-        }
-
-        return success ? GP_THREAD_SUCCESS : thrd_error;
-    }
+    WakeAllConditionVariable(gp_launder(cond));
 }
 
-// TODO get rid of critical section stuff including SleepCondVarCS
 static int _c11threads_win32_cnd_wait_common(GPCond *cond, GPMutex *mtx, unsigned long wait_time, int clamped)
 {
-    if (SleepConditionVariableSRW(cond, gp_launder(mtx), wait_time)) {
+    if (SleepConditionVariableSRW(gp_launder(cond), gp_launder(mtx), wait_time)) {
         return GP_THREAD_SUCCESS;
     }
 
     if (GetLastError() == ERROR_TIMEOUT) {
-        return clamped ? GP_THREAD_SUCCESS : GPThreadimedout;
+        return clamped ? GP_THREAD_SUCCESS : ERROR_TIMEOUT;
     }
 
-        return thrd_error;
+    return thrd_error; // TODO error codes
 }
 
-int gp_cond_wait(GPCond *cond, GPMutex *mtx)
+// NOTE: Microsoft only documents timeout error for SleepConditionVariableSRW().
+// Therefore, we cannot meaningfully handle other errors. Anyway real world code
+// (including Microsoft's official examples) ignores other errors, so we'll do
+// that too for simplicity and consistency with POSIX equivalent that man pages
+// state that also do not fail.
+
+void gp_cond_wait(GPCond *cond, GPMutex *mtx)
 {
-    return _c11threads_win32_cnd_wait_common(cond, mtx, INFINITE, 0);
+    SleepConditionVariableSRW(gp_launder(cond), gp_launder(mtx), INFINITE);
 }
 
-int _c11threads_win32_cnd_timedwait32(GPCond *cond, GPMutex *mtx, const struct _c11threads_win32_timespec32_t *ts)
-{
-    struct _c11threads_win32_timespec32_t current_time;
-    unsigned long wait_time;
-    int clamped;
-
-    if (!_c11threads_win32_util_is_timespec32_valid(ts)) {
-        return thrd_error;
-    }
-
-    if (!_c11threads_win32_timespec32_get(&current_time, TIME_UTC)) {
-        return thrd_error;
-    }
-
-    wait_time = _c11threads_win32_util_timepoint_to_millisecond_timespan32(&current_time, ts, &clamped);
-
-    return _c11threads_win32_cnd_wait_common(cond, mtx, wait_time, clamped);
-}
-
-int _c11threads_win32_cnd_timedwait64(GPCond *cond, GPMutex *mtx, const struct _c11threads_win32_timespec64_t *ts)
+int gp_cond_timedwait(
+    GPCond *cond, GPMutex *mtx, const struct _c11threads_win32_timespec64_t *ts)
 {
     struct _c11threads_win32_timespec64_t current_time;
     unsigned long wait_time;
@@ -676,12 +583,46 @@ int _c11threads_win32_cnd_timedwait64(GPCond *cond, GPMutex *mtx, const struct _
     }
 
     if (!_c11threads_win32_timespec64_get(&current_time, TIME_UTC)) {
-        return thrd_error;
+        return thrd_error; // TODO error codes
     }
 
     wait_time = _c11threads_win32_util_timepoint_to_millisecond_timespan64(&current_time, ts, &clamped);
 
     return _c11threads_win32_cnd_wait_common(cond, mtx, wait_time, clamped);
+}
+
+bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
+{
+    gp_assume( ! isnan(t));
+    if (t < 0)
+        return false;
+
+    t *= 1000.;
+    if (isinf(t)) {
+        SleepConditionVariableSRW(gp_launder(cond), gp_launder(mtx), INFINITE);
+        return true;
+    }
+
+    DWORD wait_time = round(t);
+    if (t >= INFINITE - .5)
+        wait_time = INFINITE - 1; // 49 days, pretend that beyond that is spurious wakeup.
+
+    SleepConditionVariableSRW(gp_launder(cond), gp_launder(mutex), wait_time);
+}
+
+bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t t_ns)
+{
+    if (t_ns < 0)
+        return false;
+
+    // t_ns is positive and compilers often optimize division by constant
+    // slightly better when unsigned due to rounding.
+    t_ns = (uint64_t)t_ns / 1000000;
+    DWORD wait_time = t_ns;
+    if (t_ns > INFINITE - 1)
+        wait_time = INFINITE - 1; // 49 days, pretend that beyond that is spurious wakeup.
+
+    SleepConditionVariableSRW(gp_launder(cond), gp_launder(mutex), wait_time);
 }
 
 /* ---- thread-specific data ---- */
@@ -794,6 +735,7 @@ void call_once(once_flag *flag, void (*func)(void))
 #include <gpc/time.h>
 #include <limits.h>
 #include <stdint.h>
+#include <math.h>
 
 // Pthreads uses routines of type void*(*)(void*), but the type should be
 // int(*)(void*) for portability. However, just casting the function pointer
@@ -868,14 +810,67 @@ static bool gp_s_mutex_timedlock_ts(GPMutex *mtx, struct timespec ts)
     return !timedlock_return;
 }
 
-bool gp_mutex_timedlock(GPMutex* mutex, double t)
+static struct timespec gp_s_timespec_from_time(double seconds)
 {
-    return gp_s_mutex_timedlock_ts(mutex, gp_timespec_from_time(t));
+    struct timespec ts;
+    ts.tv_nsec = 1000000000*modf(seconds, &seconds);
+    if (sizeof(ts.tv_sec) == sizeof(int32_t))
+        ts.tv_sec = fmin(seconds, INT32_MAX);
+    else
+        ts.tv_sec = fmin(seconds, INT64_MAX);
 }
 
-bool gp_mutex_timedlock_ns(GPMutex* mutex, uint64_t t_ns)
+// We know nanoseconds is not negative, use unsigned, which often leads to
+// slightly better optimized integer modulus/division by constant due to rounding.
+static struct timespec gp_s_timespec_from_time_ns(uint64_t nanoseconds)
 {
-    return gp_s_mutex_timedlock_ts(mutex, gp_timespec_from_time_ns(gp_uint128(0, t_ns)));
+    struct timespec ts;
+    ts.tv_nsec = nanoseconds % 1000000000;
+    if (sizeof ts.tv_sec == sizeof(int32_t))
+        ts.tv_sec = gp_signed_min(nanoseconds / 1000000000, INT32_MAX);
+    else
+        ts.tv_sec = nanoseconds / 1000000000;
+    return ts;
+}
+
+bool gp_mutex_timedlock(GPMutex* mutex, double t)
+{
+    gp_assume( ! isnan(t));
+    if (t < 0)
+        return false;
+    if (isinf(t)) {
+        gp_mutex_lock(mutex);
+        return true;
+    }
+    return gp_s_mutex_timedlock_ts(mutex, gp_s_timespec_from_time(t));
+}
+
+bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t t_ns)
+{
+    if (t_ns < 0)
+        return false;
+    return gp_s_mutex_timedlock_ts(mutex, gp_s_timespec_from_time_ns(t_ns));
+}
+
+bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
+{
+    gp_assume( ! isnan(t));
+    if (t < 0)
+        return false;
+    if (isinf(t)) {
+        pthread_cond_wait(cond, mutex);
+        return true;
+    }
+    struct timespec ts = gp_s_timespec_from_time(t);
+    return pthread_cond_timedwait(cond, mutex, &ts);
+}
+
+bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t t_ns)
+{
+    if (t_ns < 0)
+        return false;
+    struct timespec ts = gp_s_timespec_from_time_ns(t_ns);
+    return pthread_cond_timedwait(cond, mutex, &ts);
 }
 
 #endif // defined(GP_TARGET_OS_WINDOWS) && !defined(GP_USE_PTHREADS)

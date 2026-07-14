@@ -4,6 +4,7 @@
 
 #include <gpc/time.h>
 #include <gpc/thread.h> // GPOnce
+#include <gpc/utils.h>
 #include <time.h>
 #include <errno.h>
 #include <math.h>
@@ -170,6 +171,7 @@ GPInt128 gp_time_begin(void)
 
 void gp_sleep(double seconds)
 {
+    gp_assume( ! isnan(seconds));
     if (seconds < 0.)
         return;
 
@@ -179,7 +181,7 @@ void gp_sleep(double seconds)
     struct gp_internal_timespec ts;
     #endif
 
-    ts.tv_nsec = 1000*1000*1000*modf(seconds, &seconds);
+    ts.tv_nsec = 1000000000*modf(seconds, &seconds);
     if (sizeof(ts.tv_sec) == sizeof(int32_t))
         ts.tv_sec = fmin(seconds, INT32_MAX);
     else
@@ -201,5 +203,39 @@ void gp_sleep(double seconds)
                 ts.tv_sec = INT32_MAX;
         }
     } while (interrupted || isinf(seconds));
+    errno = old_errno;
+}
+
+void gp_sleep_ns(int64_t nanoseconds)
+{
+    if (nanoseconds < 0)
+        return;
+
+    #if defined(GP_USE_C11_THREAD_SLEEP) || defined(GP_USE_POSIX_SLEEP)
+    struct timespec ts;
+    #else
+    struct gp_internal_timespec ts;
+    #endif
+
+    ts.tv_nsec = nanoseconds % 1000000000;
+    if (sizeof(ts.tv_sec) == sizeof(int32_t))
+        ts.tv_sec = gp_signed_min(nanoseconds / 1000000000, INT32_MAX);
+    else
+        ts.tv_sec = nanoseconds / 1000000000;
+
+    errno_t old_errno = errno;
+    bool interrupted;
+    do {
+        #if defined(GP_USE_C11_THREAD_SLEEP)
+        interrupted = thrd_sleep(&ts, &ts);
+        #elif defined(GP_TARGET_OS_WINDOWS)
+        interrupted = _c11threads_win32_thrd_sleep64(&ts, &ts);
+        #else
+        interrupted = nanosleep(&ts, &ts);
+        #endif
+        if (interrupted) {
+            gp_assume(errno == EINTR);
+        }
+    } while (interrupted);
     errno = old_errno;
 }

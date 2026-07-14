@@ -92,6 +92,13 @@ double gp_time(const GPInt128* optional_start_ns)
  */
 void gp_sleep(double seconds);
 
+/** Sleep specified number of nanoseconds.
+ *
+ * Like @ref gp_sleep(), except takes nanoseconds as a 64 bit integers instead
+ * of seconds as double precision floating point number.
+ */
+void gp_sleep_ns(int64_t nanoseconds);
+
 /// @}
 #ifdef __cplusplus
 } // extern "C"

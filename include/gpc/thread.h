@@ -25,11 +25,6 @@
 #include <stdatomic.h>
 #endif
 
-
-#ifndef TIME_UTC
-#define TIME_UTC 1
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -55,6 +50,7 @@ extern "C" {
 ///
 /// Our changes to C11 API:
 /// - Added static initializers for mutexes.
+/// - Added static initializers for condition variables.
 /// - Removed mutex types, only plain is available. This is due to `mtx_timed`
 ///   being implicit and redundant and `mtx_recursive` is a code smell that
 ///   doesn't work well portably with static initialization, which is much more
@@ -65,7 +61,7 @@ extern "C" {
 ///   utilities module.
 /// - Simplified error handling:
 ///   - Errors that don't happen or cannot be meaningfully handled are either
-///     asserted or removed.
+///     undefined (asserted using @ref gp_assume()) or removed.
 ///   - Functions that can return many different errors return `errno` constants,
 ///     so we don't define C11 threading error constants, they are redundant and
 ///     don't have `strerror()`. The only constant we define is @ref GP_THREAD_SUCCESS.
@@ -89,7 +85,7 @@ extern "C" {
 ///   mutexes were changed to SRW locks that can be initialized statically.
 /// - With no Windows XP support, `WINNT` stuff is no longer necessary. Also had
 ///   to remove `WIN32_LEAN_AND_MEAN` and `_CRTDBG_MAP_ALLOC` for single header
-///   users.
+///   users. All `if (winver < VISTA)` branches were removed.
 /// - Since we don't use `struct timespec`, anything using them had to be
 ///   rewritten. Related helpers were removed.
 /// - Some UB pointer casts were hacked away using @ref gp_launder(). That's the
@@ -97,13 +93,15 @@ extern "C" {
 ///   break user builds (namespace pollution like `min` and include order
 ///   problems).
 /// - Removed 32-bit internal timespec, use 64 bits always with C99 `uint64_t`.
+///   All 32-bit specific functions were removed, they are not needed even for
+///   32-bit builds.
 /// @{
 
     // TODO bad doxygen
 /// @addtogroup compile_options
 /// @{
 #ifdef GP_DOXYGEN
-/** Use POSIX threads even if C11 threads available.
+/** Use POSIX threads.
  *
  * Should be defined globally if needed.
  *
@@ -121,7 +119,7 @@ extern "C" {
  * correctness. Example use might be something logging related that is meant for
  * developers, but end users might not care about.
  *
- * Note: MinGW thread locals are broken, so they are disabled. See
+ * NOTE: MinGW thread locals are broken, so they are disabled. See
  * https://sourceforge.net/p/mingw-w64/bugs/445/
  */
 #ifdef _MSC_VER
@@ -159,13 +157,11 @@ extern "C" {
 // ----------------------------------------------------------------------------
 #ifndef GP_USE_WINTHREADS // use POSIX threads
 
-#include <stdint.h>
-#include <errno.h>
 #include <pthread.h>
 #include <sched.h> // sched_yield
 #include <sys/time.h>
-
-// TODO should we define and use errno_t?
+#include <stdint.h>
+#include <errno.h>
 
 #define GP_THREAD_LOCAL_DESTRUCTOR_ITERATIONS PTHREAD_DESTRUCTOR_ITERATIONS
 
@@ -281,16 +277,6 @@ GP_INLINE bool gp_thread_equal(GPThread a, GPThread b)
     return pthread_equal(a, b);
 }
 
-// TODO get rid of this timespec junk
-GP_INLINE int gp_thread_sleep(const struct timespec *ts_in, struct timespec *rem_out)
-{
-    if(nanosleep(ts_in, rem_out) < 0) {
-        if(errno == EINTR) return -1;
-        return -2;
-    }
-    return 0;
-}
-
 /** Yield execution to another thread.
  *
  * Hint the scheduler that other threads can run. Which thread gets ran next is
@@ -311,9 +297,9 @@ GP_INLINE void gp_thread_yield(void)
  * A mutex (mutual exclusion) is used to limit access of code segments and
  * shared data to a single thread at a time.
  *
- * Can be initialized statically by using GP_MUTEX_INITIALIZER or dynamically
- * using @ref gp_mutex_init(). Dynamically created mutexes can be destroyed
- * using @ref gp_mutex_destroy().
+ * Can be initialized statically by using @ref GP_MUTEX_INITIALIZER or
+ * dynamically using @ref gp_mutex_init(). Dynamically created mutexes can be
+ * destroyed using @ref gp_mutex_destroy().
  *
  * At the time of writing, only plain mutexes are supported. C11 `mtx_timed` is
  * redundant, timing is supported by default. C11 `mtx_recursive` is unnecessary
@@ -333,11 +319,11 @@ typedef pthread_mutex_t GPMutex;
  * @endcode
  */
 #ifdef GP_DOXYGEN
-#define GP_MUTEX_INITIALIZER /* unspecified */
+#  define GP_MUTEX_INITIALIZER /* unspecified */
 #elif defined(GP_TARGET_DEBUG)
-#define GP_MUTEX_INITIALIZER PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
+#  define GP_MUTEX_INITIALIZER PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
 #else
-#define GP_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
+#  define GP_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
 #endif
 
 /** Create mutex dynamically.
@@ -362,11 +348,16 @@ void gp_mutex_init(GPMutex *mutex)
  *
  * If @a optional_mutex is locked, then behavior is undefined.
  */
-GP_INLINE
-void gp_mutex_destroy(GPMutex* optional_mutex)
+GP_INLINE void gp_mutex_destroy(GPMutex* optional_mutex)
 {
+    // Passing NULL makes no sense, but we check it anyway for consistency with
+    // other destructors in our library (NULL always accepted by destructors).
     if (optional_mutex != NULL)
-        gp_assume(pthread_mutex_destroy(optional_mutex) == 0, strerror(EBUSY));
+    #ifdef GP_TARGET_DEBUG // enforce proper usage for portability.
+        gp_assert(pthread_mutex_destroy(optional_mutex) == 0, strerror(EBUSY));
+    #else // asserting too harsh, pthread_mutex_destroy() is no-op in many implementations.
+        pthread_mutex_destroy(optional_mutex);
+    #endif
 }
 
 /** Lock mutex.
@@ -409,7 +400,13 @@ bool gp_mutex_trylock(GPMutex *mtx)
  * Like @ref gp_mutex_lock(), except only blocks for the maximum of @a time
  * amount of seconds.
  *
- * @return `true` if acquired lock ownership, `false` if timeout expired.
+ * It is not an error to pass non-zero negative time, in such case the function
+ * returns immediately. It is also not an error to pass `INFINITY`, in such case
+ * the timeout is ignored and the call is equivalent to calling
+ * @ref gp_mutex_lock(). Passing `NAN` is undefined.
+ *
+ * @return `true` if acquired lock ownership, `false` if timeout expired or
+ * negative number passed.
  */
 GP_NONNULL_ARGS()
 bool gp_mutex_timedlock(GPMutex* mutex, double time);
@@ -417,12 +414,14 @@ bool gp_mutex_timedlock(GPMutex* mutex, double time);
 /** Try lock mutex in given time.
  *
  * Like @ref gp_mutex_lock(), except only blocks for the maximum of @a time_ns
- * amount of nanoseconds.
+ * amount of nanoseconds. It is not an error to pass negative size, in such case
+ * the function returns immediately.
  *
- * @return `true` if acquired lock ownership, `false` if timeout expired.
+ * @return `true` if acquired lock ownership, `false` if timeout expired or
+ * negative number passed.
  */
 GP_NONNULL_ARGS()
-bool gp_mutex_timedlock_ns(GPMutex* mutex, uint64_t time_ns);
+bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns);
 
 /** Unlock mutex.
  *
@@ -441,46 +440,81 @@ void gp_mutex_unlock(GPMutex* mutex)
 /// @defgroup condition_variables Condition Variables
 /// @{
 
-/** Opaque condition variable identifier. */ // TODO more docs
+/** Opaque condition variable identifier.
+ *
+ * Used in conjunction with @ref GPMutex to wait until a condition is met.
+ *
+ * Can be initialized statically by using @ref GP_COND_INITIALIZER or
+ * dynamically using @ref gp_cond_init(). Dynamically created condition
+ * variables can be destroyed using @ref gp_cond_destroy().
+ */
+#ifdef GP_DOXYGEN
+typedef /* unspecified */ GPCond;
+#else
 typedef pthread_cond_t GPCond;
+#endif
 
-// TODO docs
-#define GP_COND_INITIALIZER PTHREAD_COND_INITIALIZER
+/** Static condition variable initialzer.
+ *
+ * Example:
+ * @code
+ * static GPCond mutex = GP_COND_INITIALIZER;
+ * @endcode
+ */
+#ifdef GP_DOXYGEN
+#  define GP_COND_INITIALIZER /* unspecified */
+#else
+#  define GP_COND_INITIALIZER PTHREAD_COND_INITIALIZER
+#endif
 
-// TODO docs
-GP_INLINE int cnd_init(GPCond *cond)
+/** Create condition variable dynamically.
+ *
+ * Dynamically created condition variables can be destroyed using
+ * @ref gp_cond_destroy().
+ */
+GP_INLINE void gp_cond_init(GPCond* cond)
 {
-    return pthread_cond_init(cond, 0);
+    pthread_cond_init(cond, 0);
+}
+
+/** Deallocate condition variable resources.
+ *
+ * If a thread is waiting on @a optional_cond, then behavior is undefined.
+ */
+GP_INLINE void gp_cond_destroy(GPCond* optional_cond)
+{
+    // Passing NULL makes no sense, but we check it anyway for consistency with
+    // other destructors in our library (NULL always accepted by destructors).
+    if (optional_cond != NULL)
+    #ifdef GP_TARGET_DEBUG // enforce proper usage for portability.
+        gp_assert(pthread_cond_destroy(optional_cond) == 0, strerror(EBUSY));
+    #else // asserting too harsh, pthread_cond_destroy() is no-op in many implementations.
+        pthread_cond_destroy(cond);
+    #endif
 }
 
 // TODO docs
-GP_INLINE void cnd_destroy(GPCond *cond)
+GP_INLINE void gp_cond_wait(GPCond *cond, GPMutex *mtx)
 {
-    pthread_cond_destroy(cond);
+    pthread_cond_wait(cond, mtx);
+}
+
+// TODO docs and implementation
+bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double time);
+
+// TODO docs and implementation
+bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t time_ns);
+
+// TODO docs
+GP_INLINE void gp_cond_signal(GPCond *cond)
+{
+    pthread_cond_signal(cond);
 }
 
 // TODO docs
-GP_INLINE int cnd_signal(GPCond *cond)
+GP_INLINE void gp_cond_broadcast(GPCond *cond)
 {
-    return pthread_cond_signal(cond);
-}
-
-// TODO docs
-GP_INLINE int cnd_broadcast(GPCond *cond)
-{
-    return pthread_cond_broadcast(cond);
-}
-
-// TODO docs
-GP_INLINE int cnd_wait(GPCond *cond, GPMutex *mtx)
-{
-    return pthread_cond_wait(cond, mtx);
-}
-
-// TODO get rid of timespec junk
-GP_INLINE int cnd_timedwait(GPCond *cond, GPMutex *mtx, const struct timespec *ts)
-{
-    return pthread_cond_timedwait(cond, mtx, ts);
+    pthread_cond_broadcast(cond);
 }
 
 /// @}
@@ -536,9 +570,9 @@ typedef pthread_once_t GPOnce;
 
 /** Static initializer for @ref GPOnce. */
 #ifdef GP_DOXYGEN
-#define GP_ONCE_INITIALIZER /* unspecified */
+#  define GP_ONCE_INITIALIZER /* unspecified */
 #else
-#define GP_ONCE_INITIALIZER PTHREAD_ONCE_INIT
+#  define GP_ONCE_INITIALIZER PTHREAD_ONCE_INIT
 #endif
 
 /** Thread-safe initialization.
@@ -576,9 +610,6 @@ GPThread gp_thread_current(void);
 
 bool gp_thread_equal(GPThread a, GPThread b);
 
-// TODO get rid of
-int gp_thread_sleep(const struct timespec *ts_in, struct timespec *rem_out);
-
 void gp_thread_yield(void);
 
 // ------------------------------------
@@ -604,19 +635,21 @@ GP_NONNULL_ARGS() bool gp_mutex_trylock(GPMutex* mtx);
 
 GP_NONNULL_ARGS() bool gp_mutex_timedlock(GPMutex* mutex, double time);
 
-GP_NONNULL_ARGS() bool gp_mutex_timedlock_ns(GPMutex* mutex, uint64_t time_ns);
+GP_NONNULL_ARGS() bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns);
 
 GP_NONNULL_ARGS() void gp_mutex_unlock(GPMutex *mtx);
 
 // ------------------------------------
 // Condition Variables
 
-// TODO attributes
+// TODO attributes and return values
 
 typedef struct
 {
     void* _ptr;
 } GPCond;
+
+#define GP_COND_INITIALIZER {0}
 
 int gp_cond_init(GPCond *cond);
 
