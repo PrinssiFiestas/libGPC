@@ -9,8 +9,6 @@
 
 /// @addtogroup target
 /// @{
-/// @addtogroup compile_options
-/// @{
 #ifdef GP_DOXYGEN
 /** Machine endianness.
  *
@@ -22,7 +20,6 @@
  * @ref gp_endian_is_big() and @ref gp_endian_is_little() functions.
  */
 #  define GP_ENDIAN /* implementation defined */
-/// @}
 #endif
 
 #define GP_ENDIAN_LITTLE 1 ///< Value of @ref GP_ENDIAN if little endian machine.
@@ -76,7 +73,6 @@
 #  endif
 #endif // GP_ENDIAN
 
-/// @cond
 #if GP_ENDIAN == GP_ENDIAN_LITTLE
 #  define gp_endian_is_big()    0
 #  define gp_endian_is_little() 1
@@ -87,7 +83,6 @@
 #  define gp_endian_is_big()    0
 #  define gp_endian_is_little() 0
 #else
-/// @endcond
 
 /** Run-time check if machine is big endian.
  *

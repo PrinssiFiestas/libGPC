@@ -37,15 +37,30 @@ typedef unsigned gp_tetra_uint_t __attribute__((mode(TI)));
 typedef int      gp_tetra_int_t  __attribute__((mode(TI)));
 #endif
 
-
 // ----------------------------------------------------------------------------
 //
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
+/// @defgroup int128 128-bit Integers
+/// @code
+/// #include <gpc/int128.h>
+/// @endcode
+/// Portable 128-bit integer types with functions (most inline) and type generic
+/// macros for 128-bit integer arithmetic. All [C arithmetic operators](https://en.cppreference.com/c/language/operator_arithmetic)
+/// are implemented and follow the semantics of regular C arithmetic operators.
+/// Also conversions from/to all integer and floating point types are provided.
+///
+/// These use compiler extensions or intrinsics when availaible for maximum
+/// performance. Otherwise implementations fall back to pure C99 for
+/// maximum portability.
+/// @{
 
-
-/** 128-bit unsigned integer.*/
+/** 128-bit unsigned integer.
+ *
+ * Use @ref gp_uint128() to construct from `uint64_t` parts or @ref gp_u128() to
+ * construct from any built-in arithmetic type.
+ */
 typedef union gp_uint128
 {
     #if defined(GP_HAS_ANONYMOUS_STRUCT) && GP_ENDIAN == GP_ENDIAN_LITTLE
@@ -60,6 +75,7 @@ typedef union gp_uint128
     };
     #endif
 
+    /// @cond
     struct {
         uint64_t lo;
         uint64_t hi;
@@ -73,10 +89,15 @@ typedef union gp_uint128
     #if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
     gp_tetra_uint_t u128;
     #endif
+    /// @endcond
 } GPUInt128;
 
 /** 128-bit signed integer.
- * Overflow is undefined.
+ *
+ * Use @ref gp_int128() to construct from `uint64_t` parts or @ref gp_i128() to
+ * construct from any built-in arithmetic type.
+ *
+ * Overflow is undefined like with regular signed integers.
  */
 typedef union gp_int128
 {
@@ -92,6 +113,7 @@ typedef union gp_int128
     };
     #endif
 
+    /// @cond
     struct {
         uint64_t lo;
         int64_t  hi;
@@ -105,18 +127,23 @@ typedef union gp_int128
     #if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
     gp_tetra_int_t i128;
     #endif
+    /// @endcond
 } GPInt128;
 
 // ----------------------------------------------------------------------------
 // Limits
 
+/** Maximum value of @ref GPUInt128. */
 #define GP_UINT128_MAX gp_uint128(0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF)
+/** Maximum value of @ref GPInt128. */
 #define GP_INT128_MAX  gp_int128(0x7FFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF)
+/** Minimum value of @ref GPInt128. */
 #define GP_INT128_MIN  gp_int128(INT64_MIN, 0)
-
+/// @cond
 #define GP_TETRA_UINT_MAX ((gp_tetra_uint_t)-1)
 #define GP_TETRA_INT_MAX  ((gp_tetra_int_t)((gp_tetra_uint_t)-1 >> 1))
 #define GP_TETRA_INT_MIN  ((gp_tetra_int_t)-1 << 127)
+/// @endcond
 
 // ----------------------------------------------------------------------------
 // Constructors and Accessors
@@ -180,52 +207,52 @@ GP_NODISCARD GP_INLINE   GPInt128 gp_int128_i64(int64_t i)    { return gp_int128
 GP_NODISCARD GP_INLINE
 uint64_t gp_uint128_lo(GPUInt128 u)
 {
-    return gp_is_little_endian() ? u.little_endian.lo : u.big_endian.lo;
+    return gp_endian_is_little() ? u.little_endian.lo : u.big_endian.lo;
 }
 /** Get low bits of 128-bit signed integer.*/
 GP_NODISCARD GP_INLINE
 uint64_t gp_int128_lo(GPInt128 i)
 {
-    return gp_is_little_endian() ? i.little_endian.lo : i.big_endian.lo;
+    return gp_endian_is_little() ? i.little_endian.lo : i.big_endian.lo;
 }
 
 /** Get high bits of 128-bit unsigned integer.*/
 GP_NODISCARD GP_INLINE
 uint64_t gp_uint128_hi(GPUInt128 u)
 {
-    return gp_is_little_endian() ? u.little_endian.hi : u.big_endian.hi;
+    return gp_endian_is_little() ? u.little_endian.hi : u.big_endian.hi;
 }
 /** Get signed high bits of 128-bit signed integer.*/
 GP_NODISCARD GP_INLINE
 int64_t gp_int128_hi(GPInt128 i)
 {
-    return gp_is_little_endian() ? i.little_endian.hi : i.big_endian.hi;
+    return gp_endian_is_little() ? i.little_endian.hi : i.big_endian.hi;
 }
 
 /** Get address of low bits of 128-bit unsigned integer.*/
 GP_NODISCARD GP_NONNULL_ARGS_AND_RETURN
 GP_INLINE uint64_t* gp_uint128_lo_addr(GPUInt128* u)
 {
-    return gp_is_little_endian() ? &u->little_endian.lo : &u->big_endian.lo;
+    return gp_endian_is_little() ? &u->little_endian.lo : &u->big_endian.lo;
 }
 /** Get address of low bits of 128-bit signed integer.*/
 GP_NODISCARD GP_NONNULL_ARGS_AND_RETURN
 GP_INLINE uint64_t* gp_int128_lo_addr(GPInt128* i)
 {
-    return gp_is_little_endian() ? &i->little_endian.lo : &i->big_endian.lo;
+    return gp_endian_is_little() ? &i->little_endian.lo : &i->big_endian.lo;
 }
 
 /** Get address of high bits of 128-bit unsigned integer.*/
 GP_NODISCARD GP_NONNULL_ARGS_AND_RETURN
 GP_INLINE uint64_t* gp_uint128_hi_addr(GPUInt128* u)
 {
-    return gp_is_little_endian() ? &u->little_endian.hi : &u->big_endian.hi;
+    return gp_endian_is_little() ? &u->little_endian.hi : &u->big_endian.hi;
 }
 /** Get address of signed high bits of 128-bit signed integer.*/
 GP_NODISCARD GP_NONNULL_ARGS_AND_RETURN
 GP_INLINE int64_t* gp_int128_hi_addr(GPInt128* i)
 {
-    return gp_is_little_endian() ? &i->little_endian.hi : &i->big_endian.hi;
+    return gp_endian_is_little() ? &i->little_endian.hi : &i->big_endian.hi;
 }
 
 #if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
@@ -245,6 +272,7 @@ GPInt128 gp_int128_tetra_int(gp_tetra_int_t _i)
 }
 #endif
 
+/** Convert double precision floating point number to 128-bit unsigned integer. */
 GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_f64(double d)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -254,6 +282,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_f64(double d)
     return gp_uint128_convert_f64(d);
     #endif
 }
+/** Convert double precision floating point number to 128-bit signed integer. */
 GP_NODISCARD GP_INLINE GPInt128 gp_int128_f64(double d)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -263,6 +292,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_f64(double d)
     return gp_int128_convert_f64(d);
     #endif
 }
+/** Convert single precision floating point number to 128-bit unsigned integer. */
 GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_f32(float f)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -272,6 +302,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_f32(float f)
     return gp_uint128_convert_f32(f);
     #endif
 }
+/** Convert single precision floating point number to 128-bit signed integer. */
 GP_NODISCARD GP_INLINE GPInt128 gp_int128_f32(float f)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -281,7 +312,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_f32(float f)
     return gp_int128_convert_f32(f);
     #endif
 }
-
+/** Convert 128-bit unsigned integer to double precision floating point number. */
 GP_NODISCARD GP_INLINE double gp_f64_uint128(GPUInt128 u)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -291,6 +322,7 @@ GP_NODISCARD GP_INLINE double gp_f64_uint128(GPUInt128 u)
     return gp_f64_convert_uint128(u);
     #endif
 }
+/** Convert 128-bit signed integer to double precision floating point number. */
 GP_NODISCARD GP_INLINE double gp_f64_int128(GPInt128 i)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -300,6 +332,7 @@ GP_NODISCARD GP_INLINE double gp_f64_int128(GPInt128 i)
     return gp_f64_convert_int128(i);
     #endif
 }
+/** Convert 128-bit unsigned integer to single precision floating point number. */
 GP_NODISCARD GP_INLINE float gp_f32_uint128(GPUInt128 u)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -309,6 +342,7 @@ GP_NODISCARD GP_INLINE float gp_f32_uint128(GPUInt128 u)
     return gp_f32_convert_uint128(u);
     #endif
 }
+/** Convert 128-bit signed integer to single precision floating point number. */
 GP_NODISCARD GP_INLINE float gp_f32_int128(GPInt128 i)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -929,7 +963,7 @@ GP_NODISCARD static inline constexpr bool operator >=(GPUInt128 a, GPUInt128 b) 
 GP_NODISCARD static inline constexpr bool operator >=(GPInt128  a, GPInt128  b) { return gp_int128_greater_than_equal(a, b) ; }
 #endif // __cplusplus // operator overloads
 
-
+/// @}
 // ----------------------------------------------------------------------------
 //
 //          END OF API REFERENCE

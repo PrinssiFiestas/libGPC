@@ -73,33 +73,33 @@ extern "C" {
 /// - The sheer amount of changes mean that this API is significantly different
 ///   from the C11 standard API. Therefore, we changed all names to follow our
 ///   naming conventions and to make a clear distinction between the APIs.
-///
-/// Our changes to the original [c11threads](https://github.com/jtsiomb/c11threads)
-/// implementation:
-/// - Any changes required by changes described above.
-/// - Pthreads wrappers are practically rewritten from scracth. Nothing wrong
-///   with the original, but the wrapping was so thin that the other changes
-///   just happened to cause an almost full rewrite.
-/// - Rewrote Win32 mutex implementation to use newer SRW locks instead of older
-///   critical section objects. SRW locks are faster and support static
-///   initialization. Unfortunately, this required dropping Windows XP support (RIP).
-/// - Internal critical section objects were also replaced with SRW locks.
-/// - Removed Windows XP support. Loading kernel32.dll functions manually is no
-///   longer necessary. In fact, no initialization is necessary since internal
-///   mutexes were changed to SRW locks that can be initialized statically.
-/// - With no Windows XP support, `WINNT` stuff is no longer necessary. Also had
-///   to remove `WIN32_LEAN_AND_MEAN` and `_CRTDBG_MAP_ALLOC` for single header
-///   users. All `if (winver < VISTA)` branches were removed.
-/// - Since we don't use `struct timespec`, anything using them had to be
-///   rewritten. Related helpers were removed.
-/// - Some UB pointer casts were hacked away using @ref gp_launder(). That's the
-///   best we can do without including `windows.h` in header files, which might
-///   break user builds (namespace pollution like `min` and include order
-///   problems).
-/// - Removed 32-bit internal timespec, use 64 bits always with C99 `uint64_t`.
-///   All 32-bit specific functions were removed, they are not needed even for
-///   32-bit builds.
 /// @{
+
+// Our changes to the original [c11threads](https://github.com/jtsiomb/c11threads)
+// implementation:
+// - Any changes required by changes described above.
+// - Pthreads wrappers are practically rewritten from scracth. Nothing wrong
+//   with the original, but the wrapping was so thin that the other changes
+//   just happened to cause an almost full rewrite.
+// - Rewrote Win32 mutex implementation to use newer SRW locks instead of older
+//   critical section objects. SRW locks are faster and support static
+//   initialization. Unfortunately, this required dropping Windows XP support (RIP).
+// - Internal critical section objects were also replaced with SRW locks.
+// - Removed Windows XP support. Loading kernel32.dll functions manually is no
+//   longer necessary. In fact, no initialization is necessary since internal
+//   mutexes were changed to SRW locks that can be initialized statically.
+// - With no Windows XP support, `WINNT` stuff is no longer necessary. Also had
+//   to remove `WIN32_LEAN_AND_MEAN` and `_CRTDBG_MAP_ALLOC` for single header
+//   users. All `if (winver < VISTA)` branches were removed.
+// - Since we don't use `struct timespec`, anything using them had to be
+//   rewritten. Related helpers were removed.
+// - Some UB pointer casts were hacked away using @ref gp_launder(). That's the
+//   best we can do without including `windows.h` in header files, which might
+//   break user builds (namespace pollution like `min` and include order
+//   problems).
+// - Removed 32-bit internal timespec, use 64 bits always with C99 `uint64_t`.
+//   All 32-bit specific functions were removed, they are not needed even for
+//   32-bit builds.
 
     // TODO bad doxygen
 /// @addtogroup compile_options
@@ -383,10 +383,10 @@ GP_NONNULL_ARGS() GP_INLINE
 void gp_mutex_lock(GPMutex *mutex)
 {
     int result = pthread_mutex_lock(mutex);
-    gp_assume(result == GP_THREAD_SUCCESS, strerror(result));
+    gp_assume(result == GP_THREAD_SUCCESS, strerror(result)); // deadlock probably
 }
 
-/** Try lock mutex without blocking.
+/** Try to lock mutex without blocking.
  *
  * Like @ref gp_mutex_lock(), except doesn't block when the mutex is already
  * locked.
@@ -399,7 +399,7 @@ bool gp_mutex_trylock(GPMutex *mtx)
     return ! pthread_mutex_trylock(mtx);
 }
 
-/** Try lock mutex in given time.
+/** Try to lock mutex with a timeout in seconds.
  *
  * Like @ref gp_mutex_lock(), except only blocks for the maximum of @a time
  * amount of seconds.
@@ -415,7 +415,7 @@ bool gp_mutex_trylock(GPMutex *mtx)
 GP_NONNULL_ARGS()
 bool gp_mutex_timedlock(GPMutex* mutex, double time);
 
-/** Try lock mutex in given time.
+/** Try to lock mutex with a timeout in nanoseconds.
  *
  * Like @ref gp_mutex_lock(), except only blocks for the maximum of @a time_ns
  * amount of nanoseconds. It is not an error to pass negative size, in such case
@@ -427,7 +427,7 @@ bool gp_mutex_timedlock(GPMutex* mutex, double time);
 GP_NONNULL_ARGS()
 bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns);
 
-/** Try lock mutex until given time.
+/** Try to lock mutex until the given absolute time point.
  *
  * Like @ref gp_mutex_lock(), except only blocks until a given absolute time
  * (time since epoch in nanoseconds). Current absolute time can be obtained
@@ -453,6 +453,14 @@ void gp_mutex_unlock(GPMutex* mutex)
 /// @}
 // ------------------------------------
 /// @defgroup condition_variables Condition Variables
+/// Condition variables are synchronization primitives used to make threads wait
+/// until a given condition is met. The three operations for condition variables
+/// are:
+/// - Wait (@ref gp_cond_wait()): Sleep until signaled.
+/// - Signal (@ref gp_cond_signal()): Wake up potentially sleeping threads.
+/// - Broadcast (@ref gp_cond_broadcast()): Wake up all potentially sleeping threads.
+/// Condition variables work together with mutexes to synchronize any arbitrary
+/// data. The condition itself is any arbitrary condition.
 /// @{
 
 /** Opaque condition variable identifier.
@@ -487,7 +495,8 @@ typedef pthread_cond_t GPCond;
  * Dynamically created condition variables can be destroyed using
  * @ref gp_cond_destroy().
  */
-GP_INLINE void gp_cond_init(GPCond* cond)
+GP_NONNULL_ARGS() GP_INLINE
+void gp_cond_init(GPCond* cond)
 {
     pthread_cond_init(cond, 0);
 }
@@ -508,26 +517,149 @@ GP_INLINE void gp_cond_destroy(GPCond* optional_cond)
     #endif
 }
 
-// TODO docs
-GP_INLINE void gp_cond_wait(GPCond *cond, GPMutex *mtx)
+/** Wait on condition variable to be signaled.
+ *
+ * Atomically unlocks @a mutex and blocks until @a cond is signaled by calling
+ * @ref gp_cond_signal() or @ref gp_cond_broadcast() by another thread. @a mutex
+ * must be locked by the calling thread. @a mutex will be atomically locked on
+ * return with the ownership returned to the calling thread.
+ *
+ * This function may return early due to a spurious wake-up. Therefore, the
+ * function should be called in a loop that repeatedly checks the predicate.
+ *
+ * ### Example
+ * @code
+ * extern GPMutex my_mutex;
+ * extern GPCond my_cond
+ * extern struct data* my_data;
+ *
+ * void wait_for_data(void)
+ * {
+ *     gp_mutex_lock(&my_mutex);
+ *     while (my_data->predicate != DATA_READY)
+ *         gp_cond_wait(&my_cond, &my_mutex);
+ *     my_data->consume(&my_data);
+ *     gp_mutex_unlock(&my_mutex);
+ * }
+ * @endcode
+ */
+GP_NONNULL_ARGS() GP_INLINE
+void gp_cond_wait(GPCond* cond, GPMutex* mutex)
 {
-    pthread_cond_wait(cond, mtx);
+    pthread_cond_wait(cond, mutex);
 }
 
-// TODO docs and implementation
+/** Wait on condition variable with a timeout in seconds.
+ *
+ * Like @ref gp_cond_wait(), except only blocks for maximum of @a time amount of
+ * seconds.
+ *
+ * It is not an error to pass non-zero negative time, in such case the function
+ * returns immediately. It is also not an error to pass `INFINITY`, in such case
+ * the timeout is ignored and call is equivalent to calling @ref gp_cond_wait().
+ * Passing `NAN` is undefined.
+ *
+ * @return `true` if wake-up (spurious or signaled) happened before timeout,
+ * `false if timeout expired or negative number passed.
+ */
+GP_NONNULL_ARGS()
 bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double time);
 
-// TODO docs and implementation
+/** Wait on condition variable with a timeout in nanoseconds. .
+ *
+ * Like @ref gp_cond_wait(), except only blocks for maximum of @a time_ns amount
+ * of seconds.
+ *
+ * It is not an error to pass non-zero negative time, in such case the function
+ * returns immediately.
+ *
+ * @return `true` if wake-up (spurious or signaled) happened before timeout,
+ * `false if timeout expired or negative number passed.
+ */
+GP_NONNULL_ARGS()
 bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t time_ns);
 
-// TODO docs
-GP_INLINE void gp_cond_signal(GPCond *cond)
+/** Wait on condition variable until the given absolute time point.
+ *
+ * Like @ref gp_cond_wait(), except only blocks until a given absolute time
+ * (time since epoch in nanoseconds). Cureent absolute time can be obtained
+ * using @ref gp_time_begin().
+ *
+ * @return `true` if wake-up (spurious or signaled) happened before timeout,
+ * `false if timeout expired.
+ */
+GP_NONNULL_ARGS()
+bool gp_cond_timedwait_absolute(
+    GPCond* cond, GPMutex* mutex, GPInt128 time_point_ns);
+
+/** Wake a single thread waiting on condition variable.
+ *
+ * Wakes a single thread potentially waiting on @ref gp_cond_wait() or its
+ * timeout equivalents. If no thread is waiting, then nothing happens. The
+ * waiting thread will not wake up immediately if the calling thread has locked
+ * the mutex passed to @ref gp_cond_wait(), it only wakes once the mutex is
+ * unlocked by the calling thread.
+ *
+ * Threads are *not* necessarily woken up in the order they went sleeping.
+ *
+ * ### Example
+ * @code
+ * extern GPMutex my_mutex;
+ * extern GPCond my_cond;
+ * extern struct data* my_data;
+ *
+ * void send_data(const void* data, size_t data_size)
+ * {
+ *     gp_mutex_lock(&my_mutex);
+ *     my_data->write(my_data, data, data_size);
+ *     my_data->predicate = DATA_READY;
+ *     gp_cond_signal(&my_cond);
+ *     gp_mutex_unlock(&my_mutex);
+ * }
+ * @endcode
+ */
+GP_NONNULL_ARGS() GP_INLINE
+void gp_cond_signal(GPCond* cond)
 {
     pthread_cond_signal(cond);
 }
 
-// TODO docs
-GP_INLINE void gp_cond_broadcast(GPCond *cond)
+/** Wake all threads waiting on condition variable.
+ *
+ * Wakes all threads potentially waiting on @ref gp_cond_wait() or its timeout
+ * equivalents. If no thread is waiting, then nothing happens. The waiting
+ * threads will not wake up immediately if the calling thread has locked the
+ * mutex passed to @ref gp_cond_wait(). They also do not wake simultaneously;
+ * the first thread to be woken up wakes after the calling thread unlocks the
+ * mutex. The waking thread gets the ownership of the mutex and has to unlock it
+ * before the next thread wakes up. Subsequent threads wake up one by one in a
+ * similar manner.
+ *
+ * Threads are *not* necessarily woken up in the order they went sleeping.
+ *
+ * ### Example
+ * @code
+ * void barrier(void)
+ * {
+ *     static GPMutex mutex = GP_MUTEX_INITIALIZER;
+ *     static GPCond cond = GP_COND_INITIALIZER;
+ *     static size_t threads_waiting = 0;
+ *
+ *     gp_mutex_lock(&mutex);
+ *     threads_waiting++;
+ *     if (threads_waiting < NUM_THREADS)
+ *         while (threads_waiting < NUM_THREADS)
+ *             gp_cond_wait(&cond, &mutex);
+ *     else {
+ *         threads_waiting = 0;
+ *         gp_cond_broadcast(&cond);
+ *     }
+ *     gp_mutex_unlock(&mutex);
+ * }
+ * @endcode
+ */
+GP_NONNULL_ARGS() GP_INLINE
+void gp_cond_broadcast(GPCond* cond)
 {
     pthread_cond_broadcast(cond);
 }
@@ -652,12 +784,12 @@ GP_NONNULL_ARGS() bool gp_mutex_timedlock(GPMutex* mutex, double time);
 
 GP_NONNULL_ARGS() bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns);
 
+GP_NONNULL_ARGS() bool gp_mutex_timedlock_absolute(GPMutex* mutex, GPInt128 time_absolute_ns);
+
 GP_NONNULL_ARGS() void gp_mutex_unlock(GPMutex *mtx);
 
 // ------------------------------------
 // Condition Variables
-
-// TODO attributes and return values
 
 typedef struct
 {
@@ -666,18 +798,21 @@ typedef struct
 
 #define GP_COND_INITIALIZER {0}
 
-int gp_cond_init(GPCond *cond);
+GP_NONNULL_ARGS() void gp_cond_init(GPCond *cond);
 
-void gp_cond_destroy(GPCond *cond);
+void gp_cond_destroy(GPCond* optional_cond);
 
-int gp_cond_signal(GPCond *cond);
+GP_NONNULL_ARGS() void gp_cond_signal(GPCond *cond);
 
-int gp_cond_broadcast(GPCond *cond);
+GP_NONNULL_ARGS() void gp_cond_broadcast(GPCond *cond);
 
-int gp_cond_wait(GPCond *cond, GPMutex *mtx);
+GP_NONNULL_ARGS() void gp_cond_wait(GPCond *cond, GPMutex *mtx);
 
-// TODO get rid of this
-int gp_cond_timedwait(GPCond *cond, GPMutex *mtx, const struct timespec *ts);
+GP_NONNULL_ARGS() bool gp_cond_timedwait(GPCond *cond, GPMutex *mtx, double time);
+
+GP_NONNULL_ARGS() bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t time_ns);
+
+GP_NONNULL_ARGS() bool gp_cond_timedwait_absolute(GPCond* cond, GPMutex* mutex, GPInt128 time_absolute_ns);
 
 // ------------------------------------
 // Thread-Local Storage

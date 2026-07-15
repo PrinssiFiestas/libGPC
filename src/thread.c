@@ -91,133 +91,6 @@ void c11threads_win32_destroy(void)
     }
 }
 
-/* ---- utilities ---- */
-
-// TODO only used by cond, do we need this?
-static int _c11threads_win32_util_is_timespec64_valid(const struct _c11threads_win32_timespec64_t *ts)
-{
-    return ts->tv_sec >= 0 && ts->tv_nsec >= 0 && ts->tv_nsec <= 999999999;
-}
-
-/* Precondition: 'ts' validated. */
-static int64_t _c11threads_win32_util_timespec64_to_file_time(const struct _c11threads_win32_timespec64_t *ts, size_t *periods)
-{
-    uint64_t sec_res;
-    uint64_t nsec_res;
-    uint64_t res;
-
-    *periods = (unsigned long)((uint64_t)ts->tv_sec / (uint64_t)922337203685);
-    sec_res = ((uint64_t)ts->tv_sec % (uint64_t)922337203685) * (uint64_t)10000000;
-
-    /* Add another 100 ns if division yields remainder. */
-    nsec_res = (unsigned long)ts->tv_nsec / 100UL + !!((unsigned long)ts->tv_nsec % 100UL);
-
-    /* 64-bit time_t may cause overflow. */
-    if (nsec_res > (uint64_t) - 1 - sec_res) {
-        ++*periods;
-        nsec_res -= (uint64_t) - 1 - sec_res;
-        sec_res = 0;
-    }
-
-    res = sec_res + nsec_res;
-
-    if (*periods && !res) {
-        --*periods;
-        return (int64_t)9223372036850000000;
-    }
-
-    return res;
-}
-
-// Only used for _util_timepoint_to_millisecond_timespan64, which is only used for cond_timedwait
-// TODO do we need this?
-/* Precondition: 'ts' validated. Return 0 on overflow, 1 if conversion successful. */
-static int _c11threads_win32_util_timespec64_to_milliseconds(const struct _c11threads_win32_timespec64_t *ts, unsigned long *ms)
-{
-    unsigned long sec_res;
-    unsigned long nsec_res;
-
-    /* Overflow. */
-    if ((uint64_t)ts->tv_sec > (INFINITE - 1UL) / 1000UL) {
-        return 0;
-    }
-
-    sec_res = (unsigned long)ts->tv_sec * 1000UL;
-    /* Add another millisecond if division yields remainder. */
-    nsec_res = (unsigned long)ts->tv_nsec / 1000000UL + !!((unsigned long)ts->tv_nsec % 1000000UL);
-
-    /* Overflow. */
-    if (nsec_res > INFINITE - 1UL - sec_res) {
-        return 0;
-    }
-
-    *ms = sec_res + nsec_res;
-    return 1;
-}
-
-// Only used for cond_timedwait TODO do we need this?
-/* Precondition: 'current_time' and 'end_time' validated. */
-static unsigned long _c11threads_win32_util_timepoint_to_millisecond_timespan64(
-    const struct _c11threads_win32_timespec64_t *current_time,
-    const struct _c11threads_win32_timespec64_t *end_time,
-    int *clamped)
-{
-    unsigned long wait_time;
-    struct _c11threads_win32_timespec64_t ts;
-
-    *clamped = 0;
-    if (current_time->tv_sec > end_time->tv_sec
-        || (current_time->tv_sec == end_time->tv_sec && current_time->tv_nsec >= end_time->tv_nsec))
-    { // current time past end time
-        wait_time = 0;
-    } else {
-        // subtract current time from end time
-        ts.tv_sec = end_time->tv_sec - current_time->tv_sec;
-        ts.tv_nsec = end_time->tv_nsec - current_time->tv_nsec;
-        if (ts.tv_nsec < 0) {
-            --ts.tv_sec;
-            ts.tv_nsec += 1000000000;
-        }
-
-        if (!_c11threads_win32_util_timespec64_to_milliseconds(&ts, &wait_time)) {
-            /* Clamp wait_time. Pretend we've had a spurious wakeup if expired. */
-            wait_time = INFINITE - 1;
-            *clamped = 1;
-        }
-    }
-
-    return wait_time;
-}
-
-// TODO only used by cond, do we need this?
-#if !defined(_UCRT)
-int _c11threads_win32_timespec64_get(struct _c11threads_win32_timespec64_t *ts, int base)
-{
-    FILETIME file_time;
-    ULARGE_INTEGER li;
-
-    if (base != TIME_UTC) {
-        return 0;
-    }
-
-    GetSystemTimeAsFileTime(&file_time);
-
-    li.LowPart = file_time.dwLowDateTime;
-    li.HighPart = file_time.dwHighDateTime;
-
-    /* Also subtract difference between FILETIME and UNIX time epoch. It's 369 years by the way. */
-    ts->tv_sec = li.QuadPart / (uint64_t)10000000 - (uint64_t)11644473600;
-    ts->tv_nsec = (long)(li.QuadPart % (uint64_t)10000000) * 100;
-
-    return base;
-}
-#else
-int _c11threads_win32_timespec64_get(struct _c11threads_win32_timespec64_t *ts, int base)
-{
-    return _timespec64_get((struct _timespec64*)ts, base);
-}
-#endif
-
 /* ---- thread management ---- */
 
 static int _c11threads_win32_thrd_register(GPThread thrd, HANDLE h)
@@ -520,6 +393,12 @@ bool gp_mutex_timedlock(GPMutex* mutex, double time)
     return true;
 }
 
+bool gp_mutex_timedlock_absolute(GPMutex* mutex, GPInt128 time_ns)
+{
+    return gp_mutex_timedlock_ns(
+        mutex, gp_int128_lo(gp_int128_sub(time_ns, gp_time_begin())));
+}
+
 void gp_mutex_unlock(GPMutex *mtx)
 {
     ReleaseSRWLockExclusive(gp_launder(mtx));
@@ -527,10 +406,9 @@ void gp_mutex_unlock(GPMutex *mtx)
 
 /* ---- condition variables ---- */
 
-int gp_cond_init(GPCond *cond)
+void gp_cond_init(GPCond *cond)
 {
     InitializeConditionVariable(gp_launder(cond));
-    return GP_THREAD_SUCCESS;
 }
 
 void gp_cond_destroy(GPCond *cond)
@@ -572,26 +450,6 @@ void gp_cond_wait(GPCond *cond, GPMutex *mtx)
     SleepConditionVariableSRW(gp_launder(cond), gp_launder(mtx), INFINITE);
 }
 
-int gp_cond_timedwait(
-    GPCond *cond, GPMutex *mtx, const struct _c11threads_win32_timespec64_t *ts)
-{
-    struct _c11threads_win32_timespec64_t current_time;
-    unsigned long wait_time;
-    int clamped;
-
-    if (!_c11threads_win32_util_is_timespec64_valid(ts)) {
-        return thrd_error;
-    }
-
-    if (!_c11threads_win32_timespec64_get(&current_time, TIME_UTC)) {
-        return thrd_error; // TODO error codes
-    }
-
-    wait_time = _c11threads_win32_util_timepoint_to_millisecond_timespan64(&current_time, ts, &clamped);
-
-    return _c11threads_win32_cnd_wait_common(cond, mtx, wait_time, clamped);
-}
-
 bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
 {
     gp_assume( ! isnan(t));
@@ -624,6 +482,12 @@ bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t t_ns)
         wait_time = INFINITE - 1; // 49 days, pretend that beyond that is spurious wakeup.
 
     SleepConditionVariableSRW(gp_launder(cond), gp_launder(mutex), wait_time);
+}
+
+bool gp_cond_timedwait_absolute(GPCond* cond, GPMutex* mutex, GPInt128 time_ns)
+{
+    return gp_cond_timedwait_ns(
+        cond, mutex, gp_int128_lo(gp_int128_sub(time_ns, gp_time_begin())));
 }
 
 /* ---- thread-specific data ---- */
@@ -729,8 +593,10 @@ void call_once(once_flag *flag, void (*func)(void))
 #endif
 }
 
+
 // ----------------------------------------------------------------------------
 #else // pthreads
+
 
 #include <gpc/utils.h>
 #include <gpc/time.h>
@@ -831,7 +697,7 @@ bool gp_mutex_timedlock(GPMutex* mutex, double t)
         gp_mutex_lock(mutex);
         return true;
     }
-    int64_t t_ns = gp_int128_lo(gp_time_begin()) + 1000000000.*t;
+    int64_t t_ns = gp_int128_lo(gp_time_begin()) + (int64_t)(1000000000.*t);
     return gp_s_mutex_timedlock_ts(mutex, gp_internal_timespec_from_time_ns(t_ns));
 }
 
@@ -852,7 +718,7 @@ bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
         pthread_cond_wait(cond, mutex);
         return true;
     }
-    int64_t t_ns = gp_int128_lo(gp_time_begin()) + 1000000000.*t;
+    int64_t t_ns = gp_int128_lo(gp_time_begin()) + (int64_t)(1000000000.*t);
     struct timespec ts = gp_internal_timespec_from_time(t_ns);
     return ! pthread_cond_timedwait(cond, mutex, &ts);
 }
@@ -864,7 +730,7 @@ bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t t_ns)
 
     t_ns += gp_int128_lo(gp_time_begin());
     struct timespec ts = gp_internal_timespec_from_time_ns(t_ns);
-    return ! pthread_cond_timedwait(cond, mutex, &ts); // TODO WRONG TIME FORMAT
+    return ! pthread_cond_timedwait(cond, mutex, &ts);
 }
 
 bool gp_cond_timedwait_absolute(GPCond* cond, GPMutex* mutex, GPInt128 t)

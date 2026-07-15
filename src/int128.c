@@ -254,7 +254,7 @@ GPInt128 gp_int128_imod(GPInt128 a, GPInt128 b)
 GPUInt128 gp_uint128_convert_f64(double a)
 {
     // These assertions are only conditionally compiled due to CompCert failing
-    // to compile code using isnan() and isinf().
+    // to compile code using isnan() and isinf(). FIXME not just disable for CompCert?
     #if defined(__GNUC__) || defined(_MSC_VER)
     gp_assume( ! isnan(a), "Nan cannot be represented as an integral type.");
     gp_assume( ! isinf(a), "Inf cannot be represented as an integral type.");
@@ -362,7 +362,8 @@ double gp_f64_convert_uint128(GPUInt128 x)
         l.u = A.u | (gp_uint128_lo(x) << 12) >> 12; l.f -= A.f;
         h.u = B.u | gp_uint128_lo(gp_uint128_shift_right(x, 52)); h.f -= B.f;
     } else {
-        l.u = C.u | (gp_uint128_lo(gp_uint128_shift_right(x, 12)) >> 12) | (gp_uint128_lo(x) & 0xFFFFFF); l.f -= C.f;
+        l.u = C.u | (gp_uint128_lo(gp_uint128_shift_right(x, 12)) >> 12) | (gp_uint128_lo(x) & 0xFFFFFF);
+        l.f -= C.f;
         h.u = D.u | gp_uint128_lo(gp_uint128_shift_right(x, 76)); h.f -= D.f;
     }
     return l.f + h.f;
