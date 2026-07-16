@@ -30,6 +30,7 @@ Main project site: https://github.com/jtsiomb/c11threads
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <errno.h>
 
 #include <windows.h>
 
@@ -52,7 +53,7 @@ struct _c11threads_win32_thrd_entry_t {
 
 struct _c11threads_win32_tss_dtor_entry_t {
     struct _c11threads_win32_tss_dtor_entry_t *next;
-    tss_dtor_t dtor;
+    void(*dtor)(void*);
     tss_t key;
 };
 
@@ -158,7 +159,7 @@ static void _c11threads_win32_thrd_run_tss_dtors(void)
 
     AcquireSRWLockExclusive(&_c11threads_win32_tss_dtor_list_srw_lock);
     ran_dtor = 1;
-    for (i = 0; i < TSS_DTOR_ITERATIONS && ran_dtor; ++i) {
+    for (i = 0; i < GP_THREAD_LOCAL_DESTRUCTOR_ITERATIONS && ran_dtor; ++i) {
         ran_dtor = 0;
         prev = NULL;
         curr = _c11threads_win32_tss_dtor_list_head;
@@ -187,53 +188,6 @@ static void _c11threads_win32_thrd_run_tss_dtors(void)
     ReleaseSRWLockExclusive(&_c11threads_win32_tss_dtor_list_srw_lock);
 }
 
-int c11threads_win32_thrd_self_register(void)
-{
-    unsigned long desired_access;
-    void *process;
-    void *thread;
-
-    desired_access = SYNCHRONIZE | THREAD_QUERY_INFORMATION;
-    if (_c11threads_win32_winver >= _WIN32_WINNT_VISTA) {
-        desired_access = SYNCHRONIZE | THREAD_QUERY_LIMITED_INFORMATION;
-    }
-
-    process = GetCurrentProcess();
-    thread = GetCurrentThread();
-    if (!DuplicateHandle(process, thread, process, &thread, desired_access, 0, 0)) {
-        return thrd_error; // TODO error code
-    }
-    if (!_c11threads_win32_thrd_register(GetCurrentThreadId(), thread)) {
-        CloseHandle(thread);
-        return ENOMEM;
-    }
-    return GP_THREAD_SUCCESS;
-}
-
-int c11threads_win32_thrd_register(unsigned long win32_thread_id)
-{
-    /* XXX temporary hack to make this build on MSVC6. Investigate further */
-#ifdef _PROCESSTHREADSAPI_H_
-    unsigned long desired_access;
-    void *h;
-
-    desired_access = SYNCHRONIZE | THREAD_QUERY_INFORMATION;
-    if (_c11threads_win32_winver >= _WIN32_WINNT_VISTA) {
-        desired_access = SYNCHRONIZE | THREAD_QUERY_LIMITED_INFORMATION;
-    }
-
-    h = OpenThread(desired_access, 0, win32_thread_id);
-    if (!h) {
-        return thrd_error; // TODO error code
-    }
-    if (!_c11threads_win32_thrd_register(win32_thread_id, h)) {
-        CloseHandle(h);
-        return ENOMEM;
-    }
-#endif
-    return GP_THREAD_SUCCESS;
-}
-
 struct _c11threads_win32_thrd_start_thunk_parameters_t {
     int(*func)(void*);
     void *arg;
@@ -250,7 +204,7 @@ static int __stdcall _c11threads_win32_thrd_start_thunk(struct _c11threads_win32
     return res;
 }
 
-int gp_thread_create(GPThread *thr, int(*func)(void*), void *arg)
+bool gp_thread_create(GPThread *thr, int(*func)(void*), void *arg)
 {
     struct _c11threads_win32_thrd_start_thunk_parameters_t *thread_start_params;
     struct _c11threads_win32_thrd_entry_t *thread_entry;
@@ -260,7 +214,7 @@ int gp_thread_create(GPThread *thr, int(*func)(void*), void *arg)
     thread_start_params = malloc(sizeof(*thread_start_params));
     if (!thread_start_params) {
         errno = old_errno;
-        return EAGAIN;
+        return false;
     }
 
     thread_start_params->func = func;
@@ -270,7 +224,7 @@ int gp_thread_create(GPThread *thr, int(*func)(void*), void *arg)
     if (!thread_entry) {
         errno = old_errno;
         free(thread_start_params);
-        return EAGAIN;
+        return false;
     }
 
     AcquireSRWLockExclusive(&_c11threads_win32_thrd_list_srw_lock);
@@ -280,7 +234,7 @@ int gp_thread_create(GPThread *thr, int(*func)(void*), void *arg)
         ReleaseSRWLockExclusive(&_c11threads_win32_thrd_list_srw_lock);
         free(thread_start_params);
         free(thread_entry);
-        return EAGAIN;
+        return false;
     }
     thread_entry->next = _c11threads_win32_thrd_list_head;
     thread_entry->h = h;
@@ -288,7 +242,7 @@ int gp_thread_create(GPThread *thr, int(*func)(void*), void *arg)
     _c11threads_win32_thrd_list_head = thread_entry;
     ReleaseSRWLockExclusive(&_c11threads_win32_thrd_list_srw_lock);
 
-    return GP_THREAD_SUCCESS;
+    return true;
 }
 
 void gp_thread_exit(int res)
@@ -297,32 +251,32 @@ void gp_thread_exit(int res)
     ExitThread(res);
 }
 
-int gp_thread_join(GPThread thr, int *res)
+bool gp_thread_join(GPThread thr, int *res)
 {
     int ret;
     void *h;
 
-    // TODO error code
-    ret = thrd_error;
+    ret = false;
     h = _c11threads_win32_thrd_pop_entry(thr);
     DWORD _res;
     if (h) {
         if (WaitForSingleObject(h, INFINITE) == WAIT_OBJECT_0
             && (!res || GetExitCodeThread(h, &_res))) {
-            ret = GP_THREAD_SUCCESS;
+            ret = true;
         }
-        *res = *_res;
+        if (ret && res != NULL)
+            *res = _res;
         CloseHandle(h);
     }
 
     return ret;
 }
 
-int gp_thread_detach(GPThread thr)
+bool gp_thread_detach(GPThread thr)
 {
     void *h;
     h = _c11threads_win32_thrd_pop_entry(thr);
-    return h && CloseHandle(h) ? GP_THREAD_SUCCESS : thrd_error; // TODO error code
+    return h && CloseHandle(h);
 }
 
 GPThread gp_thread_current(void)
@@ -385,7 +339,7 @@ bool gp_mutex_timedlock(GPMutex* mutex, double time)
 
     success = TryAcquireSRWLockExclusive(gp_launder(mtx));
     while ( ! success) {
-        if (gp_time(&start) >= time_ns)
+        if (gp_time(&start) >= time)
             return false;
         Sleep(0);
         success = TryAcquireSRWLockExclusive(gp_launder(mtx));
@@ -426,19 +380,6 @@ void gp_cond_broadcast(GPCond *cond)
     WakeAllConditionVariable(gp_launder(cond));
 }
 
-static int _c11threads_win32_cnd_wait_common(GPCond *cond, GPMutex *mtx, unsigned long wait_time, int clamped)
-{
-    if (SleepConditionVariableSRW(gp_launder(cond), gp_launder(mtx), wait_time)) {
-        return GP_THREAD_SUCCESS;
-    }
-
-    if (GetLastError() == ERROR_TIMEOUT) {
-        return clamped ? GP_THREAD_SUCCESS : ERROR_TIMEOUT;
-    }
-
-    return thrd_error; // TODO error codes
-}
-
 // NOTE: Microsoft only documents timeout error for SleepConditionVariableSRW().
 // Therefore, we cannot meaningfully handle other errors. Anyway real world code
 // (including Microsoft's official examples) ignores other errors, so we'll do
@@ -466,7 +407,7 @@ bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
     if (t >= INFINITE - .5)
         wait_time = INFINITE - 1; // 49 days, pretend that beyond that is spurious wakeup.
 
-    SleepConditionVariableSRW(gp_launder(cond), gp_launder(mutex), wait_time);
+    return SleepConditionVariableSRW(gp_launder(cond), gp_launder(mutex), wait_time);
 }
 
 bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t t_ns)
@@ -492,7 +433,7 @@ bool gp_cond_timedwait_absolute(GPCond* cond, GPMutex* mutex, GPInt128 time_ns)
 
 /* ---- thread-specific data ---- */
 
-static int _c11threads_win32_tss_register(tss_t key, tss_dtor_t dtor) {
+static int _c11threads_win32_tss_register(tss_t key, void(*dtor)(void*)) {
     struct _c11threads_win32_tss_dtor_entry_t *tss_dtor_entry;
 
     tss_dtor_entry = malloc(sizeof(*tss_dtor_entry));
@@ -540,31 +481,31 @@ static void _c11threads_win32_tss_deregister(tss_t key) {
     free(curr);
 }
 
-int tss_create(tss_t *key, tss_dtor_t dtor)
+bool gp_thread_local_create(GPThreadKey* key, void(*dtor)(void*))
 {
     *key = TlsAlloc();
     if (*key == TLS_OUT_OF_INDEXES) {
-        return thrd_error;
+        return false;
     }
     if (dtor && !_c11threads_win32_tss_register(*key, dtor)) {
         TlsFree(*key);
-        return thrd_error;
+        return false;
     }
-    return GP_THREAD_SUCCESS;
+    return true;
 }
 
-void tss_delete(tss_t key)
+void gp_thread_local_delete(GPThreadKey key)
 {
     _c11threads_win32_tss_deregister(key);
     TlsFree(key);
 }
 
-int tss_set(tss_t key, void *val)
+void gp_thread_local_set(GPThreadKey key, const void *val)
 {
-    return TlsSetValue(key, val) ? GP_THREAD_SUCCESS : thrd_error;
+    TlsSetValue(key, (PVOID)val);
 }
 
-void *tss_get(tss_t key)
+void* gp_thread_local_get(GPThreadKey key)
 {
     return TlsGetValue(key);
 }
@@ -579,7 +520,7 @@ static int __stdcall _c11threads_win32_call_once_thunk(void *init_once, void (*f
     return 1;
 }
 
-void call_once(once_flag *flag, void (*func)(void))
+void gp_call_once(GPOnce *flag, void (*func)(void))
 {
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -602,7 +543,6 @@ void call_once(once_flag *flag, void (*func)(void))
 #include <gpc/time.h>
 #include <limits.h>
 #include <stdint.h>
-#include <math.h>
 
 // Pthreads uses routines of type void*(*)(void*), but the type should be
 // int(*)(void*) for portability. However, just casting the function pointer
@@ -612,9 +552,9 @@ void call_once(once_flag *flag, void (*func)(void))
 // require a thunk with a matching return type.
 
 #if defined(GP_TARGET_ARCH_X86_64) || UINTPTR_MAX == UINT_MAX // no need for thunk
-int gp_thread_create(GPThread* thr, int(*func)(void*), void *arg)
+bool gp_thread_create(GPThread* thr, int(*func)(void*), void *arg)
 {
-    return pthread_create(thr, 0, gp_launder(func), arg);
+    return !pthread_create(thr, 0, gp_launder(func), arg);
 }
 #else // thunk
 typedef struct gp_thread_thunk_args
@@ -631,19 +571,19 @@ static void* gp_s_thread_thunk(void*_thunk_args)
     return result;
 }
 
-int gp_thread_create(GPThread* thr, int(*func)(void*), void *arg)
+bool gp_thread_create(GPThread* thr, int(*func)(void*), void *arg)
 {
     int old_errno = errno;
     GPThreadThunkArgs* thunk_args = malloc(sizeof *thunk_args);
     errno = old_errno;
     if (thunk_args == NULL)
-        return EAGAIN;
+        return false;
     thunk_args->routine = func;
     thunk_args->arg = arg;
-    int result = pthread_create(thr, 0, gp_s_thread_thunk, thunk_args);
-    if (result != 0)
+    int error = pthread_create(thr, 0, gp_s_thread_thunk, thunk_args);
+    if (error)
         free(thunk_args);
-    return result;
+    return ! error;
 }
 #endif // thunk
 

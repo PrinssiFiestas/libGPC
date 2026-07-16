@@ -52,6 +52,7 @@ extern "C" {
 /// Our changes to C11 API:
 /// - Added static initializers for mutexes.
 /// - Added static initializers for condition variables.
+/// - Added @ref GP_THREAD_LOCAL_MAX_SLOTS.
 /// - C11 `mtx_timedlock()` and `cnd_timedwait()` and their POSIX counterparts
 ///   take calendar timestamp as the timeout bound argument, but Win32
 ///   counterparts use relative time instead. We added options for both.
@@ -63,13 +64,12 @@ extern "C" {
 ///   deal with `struct timespec`.
 /// - Removed `thrd_sleep()`, we already have @ref gp_sleep() and @ref gp_sleep_ns()
 ///   in our timing utilities module.
-/// - Simplified error handling:
-///   - Errors that don't happen or cannot be meaningfully handled are either
-///     undefined (asserted using @ref gp_assume()) or removed.
-///   - Functions that can return many different errors return `errno` constants,
-///     so we don't define C11 threading error constants, they are redundant and
-///     don't have `strerror()`. The only constant we define is @ref GP_THREAD_SUCCESS.
-///   - Functions that only return one meaningful error return a boolean instead.
+/// - Simplified error handling. C11 defines multiple error constants for
+///   different conditions. Some errors do not occur in our target platforms,
+///   some cannot be handled without causing UB down the line, and others would
+///   be difficult and/or unnecessary to distinguish in a portable manner. This
+///   only left us with zero to one error condition per function, so we just
+///   return a boolean for success status or `void`.
 /// - The sheer amount of changes mean that this API is significantly different
 ///   from the C11 standard API. Therefore, we changed all names to follow our
 ///   naming conventions and to make a clear distinction between the APIs.
@@ -139,24 +139,30 @@ extern "C" {
 #  define GP_MAYBE_THREAD_LOCAL
 #endif
 
+#ifdef GP_HAS_THREAD_LOCAL
+#  define GP_THREAD_LOCAL GP_MAYBE_THREAD_LOCAL
+#endif
+
 // TODO move atomics to appropriate header
+// TODO C++
+// TODO use compiler extensions when available? We probably should yoink another lib.
 /** Sometimes atomic.
  *
  * Use this only when atomics would be ideal but not necessary for correctness.
  */
-#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
+#ifdef __cplusplus
 #  define GP_HAS_ATOMICS 1
-#  define GP_MAYBE_ATOMIC /* sometimes */_Atomic
+#  define GP_MAYBE_ATOMIC(...) std::atomic<__VA_ARGS__>
+#elif __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
+#  define GP_HAS_ATOMICS 1
+#  define GP_MAYBE_ATOMIC(...) /* sometimes */_Atomic(__VA_ARGS__)
 #else
-#  define GP_MAYBE_ATOMIC
+#  define GP_MAYBE_ATOMIC(...)
 #endif
 
-/** Successfull return value.
- *
- * Functions in threading API return this on success, otherwise an appropriate
- * `errno` constant is returned instead.
- */
-#define GP_THREAD_SUCCESS 0
+#ifdef GP_HAS_ATOMICS
+#  define GP_ATOMIC(...) GP_MAYBE_ATOMIC(__VA_ARGS__)
+#endif
 
 // ----------------------------------------------------------------------------
 #ifndef GP_USE_WINTHREADS // use POSIX threads
@@ -165,9 +171,7 @@ extern "C" {
 #include <sched.h> // sched_yield
 #include <sys/time.h>
 #include <stdint.h>
-#include <errno.h>
-
-#define GP_THREAD_LOCAL_DESTRUCTOR_ITERATIONS PTHREAD_DESTRUCTOR_ITERATIONS
+#include <errno.h> // IWYU pragma: keep // "unused include" <- no it's not (EBUSY)??? clangd flipping
 
 // ------------------------------------
 /// @defgroup thread_management Thread Management
@@ -194,17 +198,17 @@ typedef pthread_t GPThread;
  *
  * Creates a new thread, whose ID will be stored to @ref thread, which is used
  * to refer to that thread. The new thread starts execution by calling @a routine.
- * @a arg will be passed to the given routine.
+ * @a optional_arg will be passed to the given routine.
  *
  * The thread terminates once @a routine returns, calls @ref gp_thread_exit(),
  * or once the process terminates. The return value of @a routine or value
  * passed to @ref gp_thread_exit() can be obtained with @ref gp_thread_join().
  *
- * @return @ref GP_THREAD_SUCCESS (zero) on success, `EAGAIN` if not enough
- * resources to create a thread.
+ * @return `true` on success, `false` if not enough resources to create a thread.
  */
 GP_NONNULL_ARGS(1, 2)
-errno_t gp_thread_create(GPThread* thread, int(*routine)(void*), void* arg);
+bool gp_thread_create(
+    GPThread* thread, int(*routine)(void*), void* optional_arg);
 
 /** Exit current thread.
  *
@@ -222,25 +226,19 @@ GP_INLINE void gp_thread_exit(int return_value)
 /** Wait for given thread to finish and collect it's result.
  *
  * Wait for @a thread to terminate. The return value of the given thread will
- * be stored to @a optional_result if not null. The given thread must not be
+ * be stored to @a optional_result if not `NULL`. The given thread must not be
  * detached and multiple threads must not attempt to join the same thread.
  *
- * @return @ref GP_THREAD_SUCCESS (zero) on success, `EINVAL` if @a thread is
- * not joinable or if another thread is trying to join, or `ESRCH` if @a thread
- * does not exist.
+ * @return `true` on success, `false` if @a thread is not joinable or not found.
  */
-GP_INLINE errno_t gp_thread_join(GPThread thread, int *optional_result)
+GP_INLINE bool gp_thread_join(GPThread thread, int *optional_result)
 {
-    errno_t status;
     void *retval;
-
-    if ((status = pthread_join(thread, &retval)) != GP_THREAD_SUCCESS) {
-        return status;
-    }
-    if (optional_result) {
+    if (pthread_join(thread, &retval) != 0)
+        return false;
+    if (optional_result)
         *optional_result = (int)(intptr_t)retval;
-    }
-    return GP_THREAD_SUCCESS;
+    return true;
 }
 
 /** Detach thread.
@@ -252,12 +250,11 @@ GP_INLINE errno_t gp_thread_join(GPThread thread, int *optional_result)
  * The thread ID @a thread should be considered freed and not be used after
  * detaching. The ID may be reused for other threads by the implementation.
  *
- * @retrun GP_THREAD_SUCCESS (zero) on success, `EINVAL` if @a thread is not
- * joinable, `ESRCH` if @a thread does not exist.
+ * @return `true` on success, `false` if @a thread is not joinable or not found.
  */
-GP_INLINE errno_t gp_thread_detach(GPThread thread)
+GP_INLINE bool gp_thread_detach(GPThread thread)
 {
-    return pthread_detach(thread);
+    return ! pthread_detach(thread);
 }
 
 /** Get thread identifier of current thread.
@@ -358,7 +355,7 @@ GP_INLINE void gp_mutex_destroy(GPMutex* optional_mutex)
     // other destructors in our library (NULL always accepted by destructors).
     if (optional_mutex != NULL)
     #ifdef GP_TARGET_DEBUG // enforce proper usage for portability.
-        gp_assert(pthread_mutex_destroy(optional_mutex) == 0, strerror(EBUSY));
+        gp_assert(pthread_mutex_destroy(optional_mutex) == 0, strerror());
     #else // asserting too harsh, pthread_mutex_destroy() is no-op in many implementations.
         pthread_mutex_destroy(optional_mutex);
     #endif
@@ -382,8 +379,8 @@ GP_INLINE void gp_mutex_destroy(GPMutex* optional_mutex)
 GP_NONNULL_ARGS() GP_INLINE
 void gp_mutex_lock(GPMutex *mutex)
 {
-    int result = pthread_mutex_lock(mutex);
-    gp_assume(result == GP_THREAD_SUCCESS, strerror(result)); // deadlock probably
+    int error = pthread_mutex_lock(mutex);
+    gp_assume( ! error, strerror(error)); // deadlock probably
 }
 
 /** Try to lock mutex without blocking.
@@ -446,8 +443,8 @@ bool gp_mutex_timedlock_absolute(GPMutex* mutex, GPInt128 time_point_ns);
 GP_NONNULL_ARGS() GP_INLINE
 void gp_mutex_unlock(GPMutex* mutex)
 {
-    int result = pthread_mutex_unlock(mutex);
-    gp_assume(result == GP_THREAD_SUCCESS, strerror(result));
+    int error = pthread_mutex_unlock(mutex);
+    gp_assume( ! error, strerror(error));
 }
 
 /// @}
@@ -666,33 +663,165 @@ void gp_cond_broadcast(GPCond* cond)
 
 /// @}
 // ------------------------------------
-/// @defgroup thread_local_storage Thread-Local Storage
+/// @defgroup thread_local_storage Thread Local Storage
+///
+/// Thread local storage is global/static data that is unique to each thread.
+/// Its main use is improving thread safety by limiting access of globals to
+/// each thread by having separate memory slots for the given global per thread.
+/// Thread local storage supports automatic resource management on thread exit
+/// using a user defined destructor.
 /// @{
 
-/** Thread-local storage pointer. */
-// TODO docs
+/** Key to thread local storage.
+ *
+ * Key to load/store data from/to thread local storage. In most common
+ * implementations, this is just an integer index to a thread local array of
+ * pointers. Nevertheless, the type should not be assumed and should be treated
+ * as opaque.
+ *
+ * Keys and thread local data are often created on demand using @ref GPOnce.
+ * This can be used to create thread local scratch allocators (like we do with
+ * @ref GPScope) or error strings with automatic memory management.
+ *
+ * ### Example
+ *
+ * This example demonstrates how to implement a function similar to `strerror()`.
+ * @code
+ * static GPThreadKey error_str_key;
+ * static GPOnce error_str_once = GP_ONCE_INITIALIZER;
+ * #define BUF_SIZE 64
+ *
+ * static void error_str_init(void)
+ * {
+ *     if ( ! gp_thread_local_create(&error_str_key, free))
+ *         return; // gp_thread_local_get() will return NULL, handle later.
+ *     char* buf = malloc(BUF_SIZE); // may return NULL, handle later.
+ *     gp_thread_local_set(error_str_key, buf);
+ *     // Note: free() was set as our destructor, it will deallocate buf when
+ *     // thread exits.
+ * }
+ *
+ * char* error_str(enum my_error error_code)
+ * {
+ *     static char backup_buf[BUF_SIZE]; // in case of failures
+ *
+ *     gp_call_once(&error_str_once, error_str_init);
+ *     char* buf = gp_thread_local_get(error_str_key);
+ *     if (buf == NULL) // either gp_thread_local_create() or malloc() failed.
+ *         buf = backup_buf; // not thread safe, but will do for debugging.
+ *
+ *     switch (error_code) {
+ *     case NO_ERROR:              strcpy(buf, "No error."); break;
+ *     case BAD_THINGS_HAPPENED:   strcpy(buf, "Bad things happened."); break;
+ *     case WORSE_THINGS_HAPPENED: strcpy(buf, "Worse things happened."); break;
+ *     case WE_ARE_ALL_DOOMED:     strcpy(buf, "We are all doomed."); break;
+ *     }
+ *     return buf;
+ * }
+ * @endcode
+ */
+#ifdef GP_DOXYGEN
+typedef /* unspecified */ GPThreadKey;
+#else
 typedef pthread_key_t GPThreadKey;
+#endif
 
-// TODO docs
-GP_INLINE int tss_create(GPThreadKey *key, tss_dtor_t dtor)
+/** Maximum number of thread local storage slots.
+ *
+ * The number of available slots is platform specific. On Windows, the number is
+ * 1088. POSIX guarantees that the number is at least 128, but the smallest
+ * we could find for desktop or mobile was on [FreeBSD with 256](https://nmsl.cs.nthu.edu.tw/wp-content/uploads/2011/09/images_courses_CS5432_2016_12-threadctrl.pdf)
+ * slots. Linux has 1024 slots. This library uses one slot if @ref GPScope
+ * allocator is ever used.
+ */
+#ifdef GP_DOXYGEN
+#  define GP_THREAD_LOCAL_MAX_SLOTS /* implementation defined */
+#else
+#  define GP_THREAD_LOCAL_MAX_SLOTS PTHREAD_KEYS_MAX
+#endif
+
+/** Maximum number of times a thread local storage destructor is called.
+ *
+ * Thread local storage destructors are only called once by default. However,
+ * if @ref gp_thread_local_set() is used in a destructor to set new values, then
+ * the destructor might be called again.
+ */
+#ifdef GP_DOXYGEN
+#  define GP_THREAD_LOCAL_DESTRUCTOR_ITERATIONS /* unspecified */
+#else
+#  define GP_THREAD_LOCAL_DESTRUCTOR_ITERATIONS PTHREAD_DESTRUCTOR_ITERATIONS
+#endif
+
+/** Allocate thread local slot and create a key to access it.
+ *
+ * Allocates thread local slot and creates a key to access it, which will be
+ * stored to @a key. There are only @ref GP_THREAD_LOCAL_MAX_SLOTS number of
+ * slots available and the function will fail if all of them are used. In such
+ * case @a key is left unspecified. The key is shared between threads.
+ *
+ * Thread local data pointer will be initialized with `NULL`. Use
+ * @ref gp_thread_local_set() to store data to thread local storage.
+ *
+ * If @a optional_destructor is not `NULL`, and a non `NULL` value has been
+ * stored to thread local slot using @ref gp_thread_local_set(), and @a key has
+ * not been deallocated using @ref gp_thread_local_delete(), then @a optional_destructor
+ * will be called for each thread when they exit. In such case, the value stored to
+ * thread's thread local storage slot on call to @ref gp_thread_local_set() will
+ * be passed as the argument for the destructor. Calling this function from the
+ * destructor is undefined.
+ *
+ * @return `true` on success, `false` if maximum number of thread local storage
+ * slots have been allocated.
+ */
+GP_INLINE GP_NONNULL_ARGS(1)
+bool gp_thread_local_create(GPThreadKey* key, void(*optional_destructor)(void*))
 {
-    return pthread_key_create(key, dtor);
+    return ! pthread_key_create(key, optional_destructor);
 }
 
-// TODO docs
-GP_INLINE void tss_delete(GPThreadKey key)
+/** Deallocate thread local storage slot.
+ *
+ * Deallocates thread local storage slot and allows the given key to be reused.
+ *
+ * A destructor potentially registered for @a key will not be called. This is
+ * because there is no way for the calling thread to call the destructor for
+ * other threads reliably. Therefore, it is not recommended to call this before
+ * all threads potentially using @a key have finished execution.
+ */
+GP_INLINE void gp_thread_local_delete(GPThreadKey key)
 {
     pthread_key_delete(key);
 }
 
-// TODO docs
-GP_INLINE int tss_set(GPThreadKey key, void *val)
+/** Store value to thread local storage slot.
+ *
+ * Stores the given value to the thread local storage slot associated with @a key.
+ * The value can be later retrieved using @ref gp_thread_local_get().
+ */
+GP_INLINE void gp_thread_local_set(GPThreadKey key, const void* optional_value)
 {
-    return pthread_setspecific(key, val);
+    int error = pthread_setspecific(key, optional_value);
+    // pthread_setspecific() errors according to POSIX:
+    // - ENOMEM: Doesn't happen: Implementations we support use preallocated block.
+    // - EINVAL: Very rare, but possible. The most likely scenarios are:
+    //   - uninitialized key,
+    //   - key deleted (basically use after free),
+    //   - sloppy memset() or similar that overwrote key in a struct.
+    //   All of those conditions are clearly programming mistakes that have to
+    //   be fixed, not "handled". Continuing execution would anyway cause mayhem
+    //   since user tries to store data to nowhere, so later they would anyway
+    //   dereference NULL or propagate the bug further. Good news is that this
+    //   error doesn't practically happen for any remotely halfway decent use of TLS.
+    gp_assert( ! error, strerror(error));
 }
 
-// TODO docs
-GP_INLINE void *tss_get(GPThreadKey key)
+/** Access thread local storage slot.
+ *
+ * @return the value stored the calling thread's thread local storage slot on
+ * call to @ref gp_thread_local_set(), or `NULL` if no value has been stored or
+ * @a key is invalid.
+ */
+GP_INLINE void* gp_thread_local_get(GPThreadKey key)
 {
     return pthread_getspecific(key);
 }
@@ -700,14 +829,52 @@ GP_INLINE void *tss_get(GPThreadKey key)
 /// @}
 // ------------------------------------
 /// @defgroup call_once Call Once
+/// @ref gp_call_once() is used for thread safe initialization. A common way to
+/// initialize static objects might look as follows:
+///
+/// @code
+/// static void* foo;
+///
+/// void* get_foo(void)
+/// {
+///     static bool initialized;
+///     if ( ! initialized) {
+///         initialized = true;
+///         init_foo();
+///     }
+///     return foo;
+/// }
+/// @endcode
+///
+/// The code above is not correct in multi threaded code. It has a race
+/// condition at `if ( ! initialized)`. There can be two threads both reading
+/// the boolean flag to be `false` at the same time before the other thread sets
+/// it to `true` which causes `init_foo()` to be ran twice. The correct way to
+/// initialize global data in multi threaded code is to use @ref gp_call_once()
+/// that makes sure that the given initialization function (`init_foo()` in this
+/// case) really only ever gets called once regardless of how many threads call
+/// `get_foo()`.
+///
+/// The example above corrected looks like as follows:
+///
+/// @code
+/// static void* foo;
+///
+/// void* get_foo(void)
+/// {
+///     static GPOnce initialized = GP_ONCE_INITIALIZER;
+///     gp_call_once(&initialized, init_foo);
+///     return foo;
+/// }
+/// @endcode
 /// @{
 
 /** Opaque flag used for @ref gp_call_once().
  *
  * Indicates if function passed to @ref gp_call_once() has been called.
- * Should be initialized to @ref GP_ONCE_INIT to indicate that the function has
- * not been called. After calling @ref gp_call_once(), the value changes to
- * indicate that the function has been called.
+ * Should be initialized to @ref GP_ONCE_INITIALIZER to indicate that the
+ * function has not been called. After calling @ref gp_call_once(), the value
+ * changes to indicate that the function has been called.
  */
 #ifdef GP_DOXYGEN
 typedef /* unspecified */ GPOnce;
@@ -730,9 +897,12 @@ typedef pthread_once_t GPOnce;
  * value is stored in @a flag to indicate that the function has been called.
  * Subsequent calls with the same flag do nothing.
  *
- * @snippet thread.h gp_call_once_example
+ * Value pointed by @a flag should be allocated with global lifetime if one
+ * wants @a func to be truly only ever called once. Value pointed by @a flag
+ * also should be initialized using @ref GP_ONCE_INITIALIZER before call.
  */
-GP_NONNULL_ARGS() GP_INLINE void gp_call_once(GPOnce* flag, void (*func)(void))
+GP_NONNULL_ARGS() GP_INOUT(1) GP_INLINE
+void gp_call_once(GPOnce* flag, void (*func)(void))
 {
     pthread_once(flag, func);
 }
@@ -745,17 +915,22 @@ GP_NONNULL_ARGS() GP_INLINE void gp_call_once(GPOnce* flag, void (*func)(void))
 
 typedef unsigned long GPThread;
 
-GP_NONNULL_ARGS(1, 2) errno_t gp_thread_create(GPThread *thr, int(*func)(void*), void *arg);
+GP_NONNULL_ARGS(1, 2) bool gp_thread_create(GPThread *thr, int(*func)(void*), void *optional_arg);
 
 GP_NORETURN void gp_thread_exit(int res);
 
-errno_t gp_thread_join(GPThread thr, int *res);
+bool gp_thread_join(GPThread thr, int *res);
 
-errno_t gp_thread_detach(GPThread thr);
+bool gp_thread_detach(GPThread thr);
 
 GPThread gp_thread_current(void);
 
-bool gp_thread_equal(GPThread a, GPThread b);
+GP_INLINE bool gp_thread_equal(GPThread a, GPThread b)
+{
+    // In case you're reading this and missed the docs, GPThread is not always
+    // an integer, so don't do this yourself!
+    return a == b;
+}
 
 void gp_thread_yield(void);
 
@@ -817,90 +992,36 @@ GP_NONNULL_ARGS() bool gp_cond_timedwait_absolute(GPCond* cond, GPMutex* mutex, 
 // ------------------------------------
 // Thread-Local Storage
 
-// TODO attributes
+// NOTE: Microsoft documentation only guarantees 64 slots without further
+// explanation. What they don't mention is that they raised the number to 1088
+// already on Windows 2000 (see https://bugs.python.org/msg79503). We only
+// support Vista and newer, so it is safe for us to define this.
+#define GP_THREAD_LOCAL_MAX_SLOTS 1088
+
+#define GP_THREAD_LOCAL_DESTRUCTOR_ITERATIONS 4
 
 typedef unsigned long GPThreadKey;
 
-int gp_thread_local_create(GPThreadKey *key, gp_thread_local_dtor_t dtor);
+GP_NONNULL_ARGS(1) int gp_thread_local_create(GPThreadKey *key, void(*destructor)(void*));
 
 void gp_thread_local_delete(GPThreadKey key);
 
-int gp_thread_local_set(GPThreadKey key, void *val);
+void gp_thread_local_set(GPThreadKey key, const void *val);
 
 void* gp_thread_local_get(GPThreadKey key);
 
 // ------------------------------------
 // Call Once
 
+#define GP_ONCE_INITIALIZER NULL
+
 typedef void* GPOnce;
 
-GP_NONNULL_ARGS() void call_once(GPOnce* flag, void (*func)(void));
+GP_NONNULL_ARGS() void gp_call_once(GPOnce* flag, void (*func)(void));
 
 #endif // GP_USE_WINTHREADS ---------------------------------------------------
 
-// TODO I don't like the examples block, just move large examples to dedicated
-// sections. Less jumping around and easier to find.
-// ----------------------------------------------------------------------------
-//
-//          EXAMPLES
-//
-// ----------------------------------------------------------------------------
-/// @cond
-#ifdef GP_DOXYGEN_EXAMPLE
-
-// ----------------------------------------------------------------------------
-//! [gp_call_once_example]
-// A simple yet performant and thread safe object pool/allocator. Any thread
-// can call entity_alloc() at any time and entity pool will be initialized
-// without race conditions. Deallocation logic is not relevant, so it is omitted
-// for brevity. We assume that entities cannot be statically allocated, maybe
-// it would waste memory and/or maybe there is a risk that not enough allocated.
-
-#include <gpc/thread.h>
-#include <gpc/assert.h> // gp_assume()
-#include "entity.h" // Entity, read_entity_config()
-
-static size_t entity_pool_size;
-static Entity* entity_pool;
-static _Atomic size_t entity_pool_index;
-
-void init_entities(void)
-{
-    entity_pool_size = read_entity_config("config.txt").max_entities;
-    entity_pool = calloc(entity_pool_size, sizeof(Entity));
-    gp_assume(entity_pool != NULL, "Allocation failed.");
-}
-
-Entity* entity_alloc(void)
-{
-    #if NOT_THREAD_SAFE // this is logically what we want to do:
-    static bool initialized = false;
-    if ( ! initialized) { // not thread safe!
-        // potential race condition here even if initialized was atomic.
-        initialized = true;
-        init_entities();
-    }
-    #else // correct way of initializing globals in multi-threaded application:
-    static GPOnce initialized = GP_ONCE_INIT;
-    gp_call_once(&initialized, init_entities); // gp_call_once() is thread safe.
-    #endif
-    // Using atomic index, so thread safe.
-    size_t index = entity_pool_index++;
-    gp_assume(index < entity_pool_size, "Too many entities.");
-    return &entity_pool[index];
-}
-//! [gp_call_once_example]
-// ----------------------------------------------------------------------------
-/// @endcond
-#endif // GP_DOXYGEN_EXAMPLE
 /// @}
-// ----------------------------------------------------------------------------
-//
-//          END OF API REFERENCE
-//
-//          Code below is for internal usage and may change without notice.
-//
-// ----------------------------------------------------------------------------
 
 #ifdef __cplusplus
 } // extern "C"
