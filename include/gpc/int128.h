@@ -148,7 +148,7 @@ typedef union gp_int128
 // ----------------------------------------------------------------------------
 // Constructors and Accessors
 
-/** Create 128-bit unsigned integer.*/
+/** Create 128-bit unsigned integer 64-bit from parts.*/
 GP_NODISCARD GP_INLINE
 GPUInt128 gp_uint128(uint64_t hi_bits, uint64_t lo_bits)
 {
@@ -162,7 +162,7 @@ GPUInt128 gp_uint128(uint64_t hi_bits, uint64_t lo_bits)
     }
     return u128;
 }
-/** Create 128-bit signed integer.*/
+/** Create 128-bit signed integer from 64-bit parts.*/
 GP_NODISCARD GP_INLINE
 GPInt128 gp_int128(int64_t hi_bits, uint64_t lo_bits)
 {
@@ -176,6 +176,22 @@ GPInt128 gp_int128(int64_t hi_bits, uint64_t lo_bits)
     }
     return i128;
 }
+
+#ifdef GP_DOXYGEN
+/** Cast value to an 128-bit unsigned integer.
+ *
+ * Converts @a X to an 128-bit unsigned integer. @a X can be any arithmetic
+ * type, @ref GPUInt128, or @ref GPInt128.
+ */
+#define gp_u128(X) _Generic(X, ...)(X)
+
+/** Cast value to an 128-bit signed integer.
+ *
+ * Converts @a X to an 128-bit signed integer. @a X can be any arithmetic
+ * type, @ref GPUInt128, or @ref GPInt128.
+ */
+#define gp_i128(X) _Generic(X, ...)(X)
+#endif
 
 /** Convert 128-bit signed integer to 128-bit unsigned integer.*/
 GP_NODISCARD GP_INLINE

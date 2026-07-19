@@ -204,11 +204,19 @@ static int __stdcall _c11threads_win32_thrd_start_thunk(struct _c11threads_win32
     return res;
 }
 
+static void gp_s_thread_init_exit_cleanup(void)
+{
+    atexit(c11threads_win32_destroy);
+}
+
 bool gp_thread_create(GPThread *thr, int(*func)(void*), void *arg)
 {
+    static GPOnce initialized = GP_ONCE_INITIALIZER;
     struct _c11threads_win32_thrd_start_thunk_parameters_t *thread_start_params;
     struct _c11threads_win32_thrd_entry_t *thread_entry;
     void *h;
+
+    gp_call_once(&initialized, gp_s_thread_init_exit_cleanup); // shut up sanitizers
 
     int old_errno = errno;
     thread_start_params = malloc(sizeof(*thread_start_params));

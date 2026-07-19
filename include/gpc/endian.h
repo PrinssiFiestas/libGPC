@@ -13,17 +13,20 @@
 /** Machine endianness.
  *
  * If endianness is detected, then this is defined to be equal to
- * @ref GP_ENDIAN_LITTLE, @ref GP_ENDIAN_BIG, or nothing in case of mixed
+ * @ref GP_ENDIAN_LITTLE, @ref GP_ENDIAN_BIG, or something else in case of mixed
  * endianness. If endianness cannot be detected, then this macro will not be
  * defined. In such case, user can define it themselves if needed at compile
  * time. Endianness can also be checked during runtime using
  * @ref gp_endian_is_big() and @ref gp_endian_is_little() functions.
  */
 #  define GP_ENDIAN /* implementation defined */
+
+#  undef GP_ENDIAN
+#  define GP_ENDIAN 0 // avoid preprocessing issues
 #endif
 
-#define GP_ENDIAN_LITTLE 1 ///< Value of @ref GP_ENDIAN if little endian machine.
-#define GP_ENDIAN_BIG    2 ///< Value of @ref GP_ENDIAN if big endian machine.
+#define GP_ENDIAN_LITTLE 1 ///< Value of @ref GP_ENDIAN if detected little endian machine.
+#define GP_ENDIAN_BIG    2 ///< Value of @ref GP_ENDIAN if detected big endian machine.
 
 // Preprocessor endianness check from RapidJSON with added check for C23
 // standard endianness macros.
@@ -37,7 +40,7 @@
 #    elif __STDC_ENDIAN_NATIVE__ == __STDC_ENDIAN_BIG__
 #      define GP_ENDIAN GP_ENDIAN_BIG
 #    else
-#      define GP_ENDIAN // mixed
+#      define GP_ENDIAN 0 // mixed
 #    endif // __STDC_ENDIAN_NATIVE
 // Detect with GCC 4.6's macro
 #  elif defined(__BYTE_ORDER__)
@@ -54,7 +57,7 @@
 #    elif (__BYTE_ORDER == __BIG_ENDIAN)
 #      define GP_ENDIAN GP_ENDIAN_BIG
 #    else
-#      define GP_ENDIAN // mixed
+#      define GP_ENDIAN 0 // mixed
 #   endif // __GLIBC__
 // Detect with _LITTLE_ENDIAN and _BIG_ENDIAN macro
 #  elif defined(_LITTLE_ENDIAN) && !defined(_BIG_ENDIAN)
@@ -62,7 +65,7 @@
 #  elif defined(_BIG_ENDIAN) && !defined(_LITTLE_ENDIAN)
 #    define GP_ENDIAN GP_ENDIAN_BIG
 #  elif defined(_LITTLE_ENDIAN) && defined(_BIG_ENDIAN)
-#    define GP_ENDIAN // mixed
+#    define GP_ENDIAN 0 // mixed
 // Detect with architecture macros
 #  elif defined(__sparc) || defined(__sparc__) || defined(_POWER) || defined(__powerpc__) || defined(__ppc__) || defined(__hpux) || defined(__hppa) || defined(_MIPSEB) || defined(__s390__)
 #    define GP_ENDIAN GP_ENDIAN_BIG

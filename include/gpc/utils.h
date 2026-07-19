@@ -29,6 +29,12 @@ void gp_launder_noinline(void**); ///< @private
 /// @endcode
 /// @{
 
+/** Static C array length.
+ *
+ * @return number of elements in a C array.
+ */
+#  define gp_countof(ARRAY) (sizeof(ARRAY) / sizeof((ARRAY)[0]))
+
 /** Round 32-bit number up to the next power of two.
  *
  * @return number rounded up to the *next* power of two meaning that numbers
@@ -153,13 +159,15 @@ bool gp_approx(double a, double b, double max_relative_diff) {
     b = fabs(b);
     return fabs(a - b) <= max_relative_diff * fmax(a, b);
 }
+/** @copydoc gp_approx */
 GP_NODISCARD GP_INLINE
 bool gp_approxf(float a, float b, float max_relative_diff) {
     a = fabsf(a);
     b = fabsf(b);
     return fabsf(a - b) <= max_relative_diff * fmaxf(a, b);
 }
-#if GP_HAS_LONG_DOUBLE
+#if defined(GP_HAS_LONG_DOUBLE) || defined(GP_DOXYGEN)
+/** @copydoc gp_approx */
 GP_NODISCARD GP_INLINE
 bool gp_approxl(long double a, long double b, long double max_rel_diff) {
     a = fabsl(a);
@@ -168,12 +176,16 @@ bool gp_approxl(long double a, long double b, long double max_rel_diff) {
 }
 #endif
 
+/** Number of trailing zero bits of a 32-bit number.
+ *
+ * If @a u is zero, the result is undefined.
+ */
 GP_NODISCARD GP_INLINE
 size_t gp_trailing_zeros_u32(uint32_t u)
 {
     gp_assume(u != 0, "Invalid argument.");
 
-    // Note: C23 stdc_trailing_zeros() breaks builds, don't use it!
+    // NOTE: C23 stdc_trailing_zeros() breaks builds, don't use it!
     #if __GNUC__ && !defined(GP_TEST_INT128)
     GP_STATIC_ASSERT(sizeof u == sizeof(unsigned)); // be pedantic and paranoid
     return __builtin_ctz(u); // note: generic ctz() not available in older GCC
@@ -192,12 +204,16 @@ size_t gp_trailing_zeros_u32(uint32_t u)
     #endif
 }
 
+/** Number of trailing zero bits of a 64-bit number.
+ *
+ * If @a u is zero, the result is undefined.
+ */
 GP_NODISCARD GP_INLINE
 size_t gp_trailing_zeros_u64(uint64_t u)
 {
     gp_assume(u != 0, "Invalid argument.");
 
-    // Note: C23 stdc_trailing_zeros() breaks builds, don't use it!
+    // NOTE: C23 stdc_trailing_zeros() breaks builds, don't use it!
     #if __GNUC__ && !defined(GP_TEST_INT128)
     GP_STATIC_ASSERT(sizeof u == sizeof(unsigned long long)); // be pedantic and paranoid
     return __builtin_ctzll(u); // note: generic ctz() not available in older GCC
@@ -217,6 +233,10 @@ size_t gp_trailing_zeros_u64(uint64_t u)
     #endif
 }
 
+/** Number of leading zero bits of a 32-bit number.
+ *
+ * If @a u is zero, the result is undefined.
+ */
 GP_NODISCARD GP_INLINE
 size_t gp_leading_zeros_u32(uint32_t u)
 {
@@ -238,6 +258,11 @@ size_t gp_leading_zeros_u32(uint32_t u)
     return 31 - r;
     #endif
 }
+
+/** Number of leading zero bits of a 64-bit number.
+ *
+ * If @a u is zero, the result is undefined.
+ */
 GP_NODISCARD GP_INLINE
 size_t gp_leading_zeros_u64(uint64_t u)
 {

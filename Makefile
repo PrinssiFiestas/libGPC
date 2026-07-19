@@ -66,7 +66,7 @@ endif
 CC = # will be set below to Clang if MacOS or MSYS2 CLANG64, GCC otherwise.
 
 CFLAGS = -Wall -Wextra -Wswitch-enum -Wundef -Iinclude -D_GNU_SOURCE
-LFLAGS = -lm # only relevant for test executables
+LDFLAGS = -lm # only relevant for test executables
 
 DEBUG_CFLAGS   = -ggdb3 -gdwarf
 RELEASE_CFLAGS = -O3 -DNDEBUG
@@ -114,7 +114,7 @@ else ifneq ($(OS), Windows_NT)
 	# debugging experience.
 	ifeq ($(CC), gcc)
 		SANITIZERS = -static-libasan -fno-sanitize-recover=all
-	else ifeq($(CC) clang)
+	else ifeq ($(CC) clang)
 		SANITIZERS = -static-libsan -fsanitize-trap=all
 	endif
 endif

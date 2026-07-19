@@ -100,6 +100,8 @@ extern "C" {
 // - Removed 32-bit internal timespec, use 64 bits always with C99 `uint64_t`.
 //   All 32-bit specific functions were removed, they are not needed even for
 //   32-bit builds.
+// - Removed Win32 specific functions like register and cleanup.
+// - Cleanup now runs automatically at program exit.
 
     // TODO bad doxygen
 /// @addtogroup compile_options
@@ -206,7 +208,7 @@ typedef pthread_t GPThread;
  *
  * @return `true` on success, `false` if not enough resources to create a thread.
  */
-GP_NONNULL_ARGS(1, 2)
+GP_API GP_NONNULL_ARGS(1, 2)
 bool gp_thread_create(
     GPThread* thread, int(*routine)(void*), void* optional_arg);
 
@@ -321,7 +323,7 @@ typedef pthread_mutex_t GPMutex;
  */
 #ifdef GP_DOXYGEN
 #  define GP_MUTEX_INITIALIZER /* unspecified */
-#elif defined(GP_TARGET_DEBUG)
+#elif defined(GP_TARGET_DEBUG) && defined(_GNU_SOURCE)
 #  define GP_MUTEX_INITIALIZER PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
 #else
 #  define GP_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
@@ -355,7 +357,7 @@ GP_INLINE void gp_mutex_destroy(GPMutex* optional_mutex)
     // other destructors in our library (NULL always accepted by destructors).
     if (optional_mutex != NULL)
     #ifdef GP_TARGET_DEBUG // enforce proper usage for portability.
-        gp_assert(pthread_mutex_destroy(optional_mutex) == 0, strerror());
+        gp_assert(pthread_mutex_destroy(optional_mutex) == 0, strerror(EBUSY));
     #else // asserting too harsh, pthread_mutex_destroy() is no-op in many implementations.
         pthread_mutex_destroy(optional_mutex);
     #endif
@@ -409,7 +411,7 @@ bool gp_mutex_trylock(GPMutex *mtx)
  * @return `true` if acquired lock ownership, `false` if timeout expired or
  * negative number passed.
  */
-GP_NONNULL_ARGS()
+GP_API GP_NONNULL_ARGS()
 bool gp_mutex_timedlock(GPMutex* mutex, double time);
 
 /** Try to lock mutex with a timeout in nanoseconds.
@@ -421,7 +423,7 @@ bool gp_mutex_timedlock(GPMutex* mutex, double time);
  * @return `true` if acquired lock ownership, `false` if timeout expired or
  * negative number passed.
  */
-GP_NONNULL_ARGS()
+GP_API GP_NONNULL_ARGS()
 bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns);
 
 /** Try to lock mutex until the given absolute time point.
@@ -432,7 +434,7 @@ bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns);
  *
  * @return `true` if acquired lock ownership, `false` if timeout expired.
  */
-GP_NONNULL_ARGS()
+GP_API GP_NONNULL_ARGS()
 bool gp_mutex_timedlock_absolute(GPMutex* mutex, GPInt128 time_point_ns);
 
 /** Unlock mutex.
@@ -557,9 +559,9 @@ void gp_cond_wait(GPCond* cond, GPMutex* mutex)
  * Passing `NAN` is undefined.
  *
  * @return `true` if wake-up (spurious or signaled) happened before timeout,
- * `false if timeout expired or negative number passed.
+ * `false`if timeout expired or negative number passed.
  */
-GP_NONNULL_ARGS()
+GP_API GP_NONNULL_ARGS()
 bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double time);
 
 /** Wait on condition variable with a timeout in nanoseconds. .
@@ -571,9 +573,9 @@ bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double time);
  * returns immediately.
  *
  * @return `true` if wake-up (spurious or signaled) happened before timeout,
- * `false if timeout expired or negative number passed.
+ * `false`if timeout expired or negative number passed.
  */
-GP_NONNULL_ARGS()
+GP_API GP_NONNULL_ARGS()
 bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t time_ns);
 
 /** Wait on condition variable until the given absolute time point.
@@ -583,9 +585,9 @@ bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t time_ns);
  * using @ref gp_time_begin().
  *
  * @return `true` if wake-up (spurious or signaled) happened before timeout,
- * `false if timeout expired.
+ * `false` if timeout expired.
  */
-GP_NONNULL_ARGS()
+GP_API GP_NONNULL_ARGS()
 bool gp_cond_timedwait_absolute(
     GPCond* cond, GPMutex* mutex, GPInt128 time_point_ns);
 
@@ -809,9 +811,10 @@ GP_INLINE void gp_thread_local_set(GPThreadKey key, const void* optional_value)
     //   - sloppy memset() or similar that overwrote key in a struct.
     //   All of those conditions are clearly programming mistakes that have to
     //   be fixed, not "handled". Continuing execution would anyway cause mayhem
-    //   since user tries to store data to nowhere, so later they would anyway
-    //   dereference NULL or propagate the bug further. Good news is that this
-    //   error doesn't practically happen for any remotely halfway decent use of TLS.
+    //   since user tries to store data to undefined location, so not only UB
+    //   already happened, but also later they would anyway dereference NULL or
+    //   propagate the bug further. Good news is that this error doesn't
+    //   practically happen for any remotely halfway decent use of TLS.
     gp_assert( ! error, strerror(error));
 }
 
@@ -915,15 +918,15 @@ void gp_call_once(GPOnce* flag, void (*func)(void))
 
 typedef unsigned long GPThread;
 
-GP_NONNULL_ARGS(1, 2) bool gp_thread_create(GPThread *thr, int(*func)(void*), void *optional_arg);
+GP_API GP_NONNULL_ARGS(1, 2) bool gp_thread_create(GPThread *thr, int(*func)(void*), void *optional_arg);
 
-GP_NORETURN void gp_thread_exit(int res);
+GP_API GP_NORETURN void gp_thread_exit(int res);
 
-bool gp_thread_join(GPThread thr, int *res);
+GP_API bool gp_thread_join(GPThread thr, int *res);
 
-bool gp_thread_detach(GPThread thr);
+GP_API bool gp_thread_detach(GPThread thr);
 
-GPThread gp_thread_current(void);
+GP_API GPThread gp_thread_current(void);
 
 GP_INLINE bool gp_thread_equal(GPThread a, GPThread b)
 {
@@ -932,7 +935,7 @@ GP_INLINE bool gp_thread_equal(GPThread a, GPThread b)
     return a == b;
 }
 
-void gp_thread_yield(void);
+GP_API void gp_thread_yield(void);
 
 // ------------------------------------
 // Mutexes
@@ -944,24 +947,24 @@ typedef struct
 
 #define GP_MUTEX_INITIALIZER {0}
 
-GP_NONNULL_ARGS() void gp_mutex_init(GPMutex* mtx);
+GP_API GP_NONNULL_ARGS() void gp_mutex_init(GPMutex* mtx);
 
 GP_INLINE void gp_mutex_destroy(GPMutex* optional_mtx)
 {
     (void)optional_mtx;
 }
 
-GP_NONNULL_ARGS() void gp_mutex_lock(GPMutex* mtx);
+GP_API GP_NONNULL_ARGS() void gp_mutex_lock(GPMutex* mtx);
 
-GP_NONNULL_ARGS() bool gp_mutex_trylock(GPMutex* mtx);
+GP_API GP_NONNULL_ARGS() bool gp_mutex_trylock(GPMutex* mtx);
 
-GP_NONNULL_ARGS() bool gp_mutex_timedlock(GPMutex* mutex, double time);
+GP_API GP_NONNULL_ARGS() bool gp_mutex_timedlock(GPMutex* mutex, double time);
 
-GP_NONNULL_ARGS() bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns);
+GP_API GP_NONNULL_ARGS() bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns);
 
-GP_NONNULL_ARGS() bool gp_mutex_timedlock_absolute(GPMutex* mutex, GPInt128 time_absolute_ns);
+GP_API GP_NONNULL_ARGS() bool gp_mutex_timedlock_absolute(GPMutex* mutex, GPInt128 time_absolute_ns);
 
-GP_NONNULL_ARGS() void gp_mutex_unlock(GPMutex *mtx);
+GP_API GP_NONNULL_ARGS() void gp_mutex_unlock(GPMutex *mtx);
 
 // ------------------------------------
 // Condition Variables
@@ -973,21 +976,23 @@ typedef struct
 
 #define GP_COND_INITIALIZER {0}
 
-GP_NONNULL_ARGS() void gp_cond_init(GPCond *cond);
+GP_API GP_NONNULL_ARGS() void gp_cond_init(GPCond *cond);
 
-void gp_cond_destroy(GPCond* optional_cond);
+GP_API void gp_cond_destroy(GPCond* optional_cond);
 
-GP_NONNULL_ARGS() void gp_cond_signal(GPCond *cond);
+GP_API GP_NONNULL_ARGS() void gp_cond_signal(GPCond *cond);
 
-GP_NONNULL_ARGS() void gp_cond_broadcast(GPCond *cond);
+GP_API GP_NONNULL_ARGS() void gp_cond_broadcast(GPCond *cond);
 
-GP_NONNULL_ARGS() void gp_cond_wait(GPCond *cond, GPMutex *mtx);
+GP_API GP_NONNULL_ARGS() void gp_cond_wait(GPCond *cond, GPMutex *mtx);
 
-GP_NONNULL_ARGS() bool gp_cond_timedwait(GPCond *cond, GPMutex *mtx, double time);
+GP_API GP_NONNULL_ARGS() bool gp_cond_timedwait(GPCond *cond, GPMutex *mtx, double time);
 
-GP_NONNULL_ARGS() bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t time_ns);
+GP_API GP_NONNULL_ARGS() bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t time_ns);
 
-GP_NONNULL_ARGS() bool gp_cond_timedwait_absolute(GPCond* cond, GPMutex* mutex, GPInt128 time_absolute_ns);
+GP_API GP_NONNULL_ARGS()
+bool gp_cond_timedwait_absolute(
+    GPCond* cond, GPMutex* mutex, GPInt128 time_absolute_ns);
 
 // ------------------------------------
 // Thread-Local Storage
@@ -1002,13 +1007,14 @@ GP_NONNULL_ARGS() bool gp_cond_timedwait_absolute(GPCond* cond, GPMutex* mutex, 
 
 typedef unsigned long GPThreadKey;
 
-GP_NONNULL_ARGS(1) int gp_thread_local_create(GPThreadKey *key, void(*destructor)(void*));
+GP_API GP_NONNULL_ARGS(1)
+int gp_thread_local_create(GPThreadKey *key, void(*destructor)(void*));
 
-void gp_thread_local_delete(GPThreadKey key);
+GP_API void gp_thread_local_delete(GPThreadKey key);
 
-void gp_thread_local_set(GPThreadKey key, const void *val);
+GP_API void gp_thread_local_set(GPThreadKey key, const void *val);
 
-void* gp_thread_local_get(GPThreadKey key);
+GP_API void* gp_thread_local_get(GPThreadKey key);
 
 // ------------------------------------
 // Call Once
@@ -1017,7 +1023,7 @@ void* gp_thread_local_get(GPThreadKey key);
 
 typedef void* GPOnce;
 
-GP_NONNULL_ARGS() void gp_call_once(GPOnce* flag, void (*func)(void));
+GP_API GP_NONNULL_ARGS() void gp_call_once(GPOnce* flag, void (*func)(void));
 
 #endif // GP_USE_WINTHREADS ---------------------------------------------------
 

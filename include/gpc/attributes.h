@@ -4,6 +4,8 @@
 
 #include <gpc/target.h>
 
+// TODO bad Doxygen
+
 #ifndef GP_ATTRIBUTES_INCLUDED
 #define GP_ATTRIBUTES_INCLUDED 1
 /// @page compile_options Compile-Time Options
@@ -44,7 +46,6 @@
 ///     gp_printf("%S\n", str); // custom format %S for GPString
 /// }
 /// @endcode
-/// @{
 #ifdef GP_DOXYGEN
 
 /** Disable type checking of custom format strings.
@@ -113,7 +114,6 @@
 #define GP_DLL_IMPORT
 
 #endif // GP_DOXYGEN
-/// @}
 // ----------------------------------------------------------------------------
 /// @defgroup attributes Attributes
 /// @code
@@ -158,7 +158,7 @@
 /// the compiler.
 /// @{
 
-#if defined(__GNUC__) || defined(GP_DOXYGEN)
+#ifdef GP_DOXYGEN
 /** Non-null argument pointers.
  *
  * Function attribute used to specify which arguments must not be null pointers.
@@ -185,7 +185,7 @@
  *     void* this_must_not_be_null_either);
  * @endcode
  */
-#  define GP_NONNULL_ARGS(...) __attribute__((nonnull(__VA_ARGS__)))
+#  define GP_NONNULL_ARGS(...) /* implementation defined */
 
 /** Non-null return pointer.
  *
@@ -196,15 +196,18 @@
  * Don't bother check if pointers returned by these functions are null, the
  * compiler will just optimize the check away.
  */
-#  define GP_NONNULL_RETURN __attribute__((returns_nonnull))
+#  define GP_NONNULL_RETURN /* implementation defined */
 
 /** Non-null argument pointers and return value.
  *
  * Combines @ref GP_NONNULL_ARGS and @ref GP_NONNULL_RETURN. No argument shall
  * be null and the return value will not be null either.
  */
+#  define GP_NONNULL_ARGS_AND_RETURN /* implementation defined */
+#elif defined(__GNUC__)
+#  define GP_NONNULL_ARGS(...) __attribute__((nonnull(__VA_ARGS__)))
+#  define GP_NONNULL_RETURN __attribute__((returns_nonnull))
 #  define GP_NONNULL_ARGS_AND_RETURN __attribute__((nonnull, returns_nonnull))
-
 #elif defined(_MSC_VER)
 #  define GP_NONNULL_ARGS(...)
 #  define GP_NONNULL_RETURN _Ret_notnull_
