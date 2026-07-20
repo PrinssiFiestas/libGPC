@@ -1,0 +1,82 @@
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/** @page conventions Conventions
+
+Coding conventions used by this library.
+
+## Pointers
+
+This library mostly assumes that pointers are not `NULL`. Functions will not
+return `NULL` if not documented otherwise and passing `NULL` as arguments is
+undefined if not documented otherwise.
+
+Function parameters that accept `NULL` have their names prefixed with `optional_`.
+Non-null return values and arguments are attributed with @ref GP_NONNULL_ARGS,
+@ref GP_NONNULL_RETURN, and @ref GP_NONNULL_ARGS_AND_RETURN attributes when
+applicable for some enforcement from the compiler, although the attributes will
+be omitted from the HTML documentation.
+
+## Const Correctness
+
+Raw pointers that are not supposed to mutate the data are appropriately marked
+as `const` for the most part. However, we have a few typedefs for some pointer
+types like @ref GPString. We generally avoid typedeffing pointers away, because
+it prevents using `const` and often decreases readability, but it is appropriate
+for some abstractions when the "pointerness" is not important and "constness" is
+obvious or not important. For example, functions accepting @ref GPString as
+output arguments almost always may reallocate, which is only possible if the
+string is passed as `GPString*`, so in case of @ref GPString and @ref GPArray,
+the "constness" is implied using pointers: `GPString` arguments will not mutate,
+`GPString*` will.
+
+## Naming Conventions
+
+Understanding our naming conventions can help with navigating the library and
+memorizing important symbols. Here we only document the conventions that are
+relevant for users. Contributors should just try to follow the conventions of
+the surrounding code when modifying internals.
+
+### Namespacing
+
+All symbols are prefixed with `gp_`, `GP`, or `GP_` depending on casing (see
+below). Functions and macros may be additionally prefixed with an abbreviated
+class name or module name. For example, functions operating on @ref GPString
+belong to @ref GPString class, so they are prefixed with `gp_str_`, and functions
+that allocate memory belong to the memory module, so they are prefixed with
+`gp_mem_`. However, utility functions like @ref gp_next_power_of_two() do not
+belong to any class/module, so the class/module prefix is omitted.
+
+The only exception to these rules is `GPC_IMPLEMENTATION`, which is defined by
+the user when compiling the single header library. This uses `GPC_` prefix
+instead of `GP_` prefix.
+
+### Macros and Enumeration Constants
+
+Macros and enumeration constants are `SCREAMING_SNAKE_CASE`. Exception to this
+are macro functions that behave like regular functions like @ref gp_println(),
+these use `snake_case` instead to indicate that they don't evaluate their
+arguments multiple times during runtime and that they will evaluate to an
+expression, not a statement like `do {...} while(0)`.
+
+### Structures and Unions
+
+Typedefs to compound types or opaque types use PascalCase. However, the
+underlying compound types use snake_case, so the user can choose between `GPType`
+and `struct gp_type` based on their preference. We prefer the former.
+
+### Fundamental Types
+
+Typedefs to fundamental types and enumeration types use snake_case with `_t`
+suffix to indicate that implicit integer conversions may occur and that
+arithmetic operators can be used. Exception to this are opaque types like
+@ref GPThreadKey, which is almost always implemented as an integer, but this is
+not guaranteed and the type is anyway not supposed to be used like a regular
+integer and should be treated as opaque.
+
+One might point out that POSIX reserves `_t` suffixes. We justify our usage of
+`_t` by pointing out that not only `_t` is idiomatic in C (possibly due to
+ignorance of POSIX reserved names, but this makes no difference), but also any
+potential naming collisions are avoided with the `gp_` prefix.
+*/

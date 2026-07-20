@@ -1,0 +1,67 @@
+// MIT License
+// Copyright (c) 2023 Lauri Lorenzo Fiestas
+// https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
+
+/** @page compile_time_options Compile Time Options
+
+User defined macros for configuring this library.
+
+Best practice is to define these with a value of one e.g. `-DGP_PEDANTIC=1`, but
+it is not strictly necessary to assign a value if not documented otherwise.
+
+Some macros need to be defined when compiling the library, some when using
+it, some per header file inclusion, and others globally for compilation and
+usage. Each macro documents when and how they should be defined.
+
+Macros that should be defined when compiling this library can be defined in
+`EXTRA_CFLAGS` when using provided Makefile or they can be defined in the
+file that defines `GPC_IMPLEMENTATION` if using the single header library
+before including it.
+
+Example of defining a macro needed for compiling the library in command line
+using provided Makefile:
+@code{.sh}
+make release "EXTRA_CFLAGS=-DGP_NO_EXPORT_INLINES=1"
+@endcode
+Example of defining a macro needed for compiling the library in C source
+file using the single header library:
+@code
+#define GP_NO_EXPORT_INLINES 1
+#define GPC_IMPLEMENTATION
+#include "gpc.h"
+@endcode
+Example of defining a macro only needed for a specific translation unit:
+@code
+#define GP_NO_FORMAT_STRING_CHECK 1
+#include <gpc/io.h>
+#include <gpc/string.h>
+
+void print_string(GPString str)
+{
+    gp_printf("%S\n", str); // custom format %S for GPString
+}
+@endcode
+
+## Options
+
+| Build Configuration       |                                 |
+| :------------------------ | ------------------------------- |
+| @ref GP_TARGET_DEBUG      | @copybrief GP_TARGET_DEBUG      |
+| @ref GP_TARGET_RELEASE    | @copybrief GP_TARGET_RELEASE    |
+| @ref GP_DLL_EXPORT        | @copybrief GP_DLL_EXPORT        |
+| @ref GP_DLL_IMPORT        | @copybrief GP_DLL_IMPORT        |
+| @ref GP_NO_EXPORT_INLINES | @copybrief GP_NO_EXPORT_INLINES |
+
+| Compiler Extensions            |                                      |
+| :----------------------------- | ------------------------------------ |
+| @ref GP_PEDANTIC               | @copybrief GP_PEDANTIC               |
+| @ref GP_NO_FORMAT_STRING_CHECK | @copybrief GP_NO_FORMAT_STRING_CHECK |
+
+| Threading            |                            |
+| :------------------- | -------------------------- |
+| @ref GP_USE_PTHREADS | @copybrief GP_USE_PTHREADS
+
+| Endianness     |                      |
+| :------------- | -------------------- |
+| @ref GP_ENDIAN | @copybrief GP_ENDIAN |
+*/

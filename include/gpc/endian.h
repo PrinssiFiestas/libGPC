@@ -9,15 +9,20 @@
 
 /// @addtogroup target
 /// @{
+
+/// @defgroup endian Endianness
+/// Machine byte order.
+/// @{
 #ifdef GP_DOXYGEN
 /** Machine endianness.
  *
  * If endianness is detected, then this is defined to be equal to
  * @ref GP_ENDIAN_LITTLE, @ref GP_ENDIAN_BIG, or something else in case of mixed
  * endianness. If endianness cannot be detected, then this macro will not be
- * defined. In such case, user can define it themselves if needed at compile
- * time. Endianness can also be checked during runtime using
- * @ref gp_endian_is_big() and @ref gp_endian_is_little() functions.
+ * defined. In such case, user can define it themselves to @ref GP_ENDIAN_LITTLE
+ * or @ref GP_ENDIAN_BIG if needed at compile time. Endianness can also be
+ * checked during runtime using @ref gp_endian_is_big() and @ref gp_endian_is_little()
+ * functions.
  */
 #  define GP_ENDIAN /* implementation defined */
 
@@ -82,7 +87,7 @@
 #elif GP_ENDIAN == GP_ENDIAN_BIG
 #  define gp_endian_is_big()    1
 #  define gp_endian_is_little() 0
-#elif defined(GP_ENDIAN) // mixed endianness
+#elif defined(GP_ENDIAN) && !defined(GP_DOXYGEN) // mixed endianness
 #  define gp_endian_is_big()    0
 #  define gp_endian_is_little() 0
 #else
@@ -120,5 +125,6 @@ bool gp_endian_is_little(void)
 }
 #endif // GP_ENDIAN
 
+/// @}
 /// @}
 #endif // GP_ENDIAN_INCLUDED

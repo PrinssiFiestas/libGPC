@@ -4,49 +4,21 @@
 
 #include <gpc/target.h>
 
-// TODO bad Doxygen
-
 #ifndef GP_ATTRIBUTES_INCLUDED
 #define GP_ATTRIBUTES_INCLUDED 1
-/// @page compile_options Compile-Time Options
-///
-/// User defined macros for configuring this library. Best practice is to
-/// define these with a value of one e.g. `-DGP_PEDANTIC=1`, but it is not
-/// strictly necessary to assign a value if not documented otherwise.
-///
-/// Some macros need to be defined when compiling the library, some when using
-/// it, some per header file inclusion, and others globally for compilation and
-/// usage. Each macro documents when and how they should be defined.
-///
-/// Macros that should be defined when compiling this library can be defined in
-/// `EXTRA_CFLAGS` when using provided Makefile or they can be defined in the
-/// file that defines `GPC_IMPLEMENTATION` if using the single header library
-/// before including it.
-///
-/// Example of defining a macro needed for compiling the library in command line
-/// using provided Makefile:
-/// @code{.sh}
-/// make release "EXTRA_CFLAGS=-DGP_NO_EXPORT_INLINES=1"
-/// @endcode
-/// Example of defining a macro needed for compiling the library in C source
-/// file using the single header library:
-/// @code
-/// #define GP_NO_EXPORT_INLINES 1
-/// #define GPC_IMPLEMENTATION
-/// #include "gpc.h"
-/// @endcode
-/// Example of defining a macro only needed for a specific translation unit:
-/// @code
-/// #define GP_NO_FORMAT_STRING_CHECK 1
-/// #include <gpc/io.h>
-/// #include <gpc/string.h>
-///
-/// void print_string(GPString str)
-/// {
-///     gp_printf("%S\n", str); // custom format %S for GPString
-/// }
-/// @endcode
+
 #ifdef GP_DOXYGEN
+// ----------------------------------------------------------------------------
+/// @defgroup attributes Attributes
+/// @code
+/// #include <gpc/attributes.h>
+/// @endcode
+/// This module contains portable macros mostly wrapping GNUC attributes.
+/// Attributes are used to give compiler additional information, which can be
+/// used for better diagnostics and better optimizations among other things. All
+/// unsupported macros expand to nothing, so all of these macros can be used
+/// regardless of compiler or C/C++ dialect.
+/// @{
 
 /** Disable type checking of custom format strings.
  *
@@ -114,17 +86,6 @@
 #define GP_DLL_IMPORT
 
 #endif // GP_DOXYGEN
-// ----------------------------------------------------------------------------
-/// @defgroup attributes Attributes
-/// @code
-/// #include <gpc/attributes.h>
-/// @endcode
-/// This module contains portable macros mostly wrapping GNUC attributes.
-/// Attributes are used to give compiler additional information, which can be
-/// used for better diagnostics and better optimizations among other things. All
-/// unsupported macros expand to nothing, so all of these macros can be used
-/// regardless of compiler or C/C++ dialect.
-/// @{
 
 // ----------------------------------------------------------------------------
 // Alignment
@@ -140,23 +101,18 @@
  *
  * Function attribute used when ignoring it's return value is clearly a bug.
  */
-#if defined(__GNUC__) || defined(GP_DOXYGEN)
+#if defined(__GNUC__)
 #  define GP_NODISCARD __attribute__((__warn_unused_result__))
 #elif defined(_MSC_VER)
 #  define GP_NODISCARD _Check_return_
 #elif __cplusplus >= 201703L || __STDC_VERSION__ >= 202311L
 #  define GP_NODISCARD [[nodiscard]]
 #else
-#  define GP_NODISCARD
+#  define GP_NODISCARD /* implementation defined */
 #endif
 
 // ----------------------------------------------------------------------------
 // Nonnull
-/// @defgroup nonnull Non-null Pointers
-/// This library mostly assumes that pointers are not NULL. These macros serve
-/// as documentation and enable some limited enforcement and optimizations from
-/// the compiler.
-/// @{
 
 #ifdef GP_DOXYGEN
 /** Non-null argument pointers.
@@ -194,7 +150,8 @@
  * serves as documentation.
  *
  * Don't bother check if pointers returned by these functions are null, the
- * compiler will just optimize the check away.
+ * compiler will just optimize the check away since it is known that it won't be
+ * null.
  */
 #  define GP_NONNULL_RETURN /* implementation defined */
 
@@ -218,7 +175,6 @@
 #  define GP_NONNULL_ARGS_AND_RETURN
 #endif
 
-/// @}
 // ----------------------------------------------------------------------------
 // Require Initialized Memory
 
@@ -228,10 +184,10 @@
  * other words, which pointers will be read from *and* written to. This allows
  * GCC to warn if an address to an uninitialized value is passed as an argument.
  *
- * @a ARGUMENT_INDEX specifies which argument the attribute applies to.
- * @a SIZE_INDEX is an optional argument that can be omitted. If passed, it
- * specifies which argument contains maximum number of valid elements pointed by
- * the argument in @a ARGUMENT_INDEX.
+ * First argument specifies which argument the attribute applies to. Second
+ * argument is optional and can be omitted. If passed, it specifies which
+ * argument contains maximum number of valid elements pointed by the first
+ * argument.
  *
  * Example:
  * @code
@@ -245,19 +201,17 @@
  * }
  * @endcode
  */
-#ifdef GP_DOXYGEN
-#  define GP_INOUT(ARGUMENT_INDEX, SIZE_INDEX) \
-      __attribute__((access(read_write, ARGUMENT_INDEX, SIZE_INDEX)))
-#elif __GNUC__ >= 11 && !defined(__clang__)
+#if defined(__GNUC__) && __GNUC__ >= 11 && !defined(__clang__)
 #  define GP_INOUT(...) __attribute__((access(read_write, __VA_ARGS__)))
 #else
-#  define GP_INOUT(...)
+#  define GP_INOUT(...) /* implementation defined */
 #endif
 
 // ----------------------------------------------------------------------------
 // Restrict
 
 /** Portable `restrict` qualifier.
+ *
  * `restrict` is a keyword introduced in C99 that is used as a type qualifier
  * for pointer types. Any pointer with such qualifier are non-aliasing.
  *
@@ -274,36 +228,46 @@
 
 // ----------------------------------------------------------------------------
 // Optimize
-/// @defgroup optimize Optimize
-/// Function attributes to control optimizations per function. GCC documentation
-/// discourages the usage of these, but they can be helpful for debugging.
-/// @{
 
 #ifdef __clang__
 #  define GP_OPTIMIZE_NONE __attribute__((optnone))
 #  define GP_OPTIMIZE_HIGH __attribute__((minsize)) // Clang has no -O3 equivalent
 #  define GP_OPTIMIZE_SIZE __attribute__((minsize))
-#elif defined(__GNUC__) || defined(GP_DOXYGEN)
+#elif defined(__GNUC__)
 #  define GP_OPTIMIZE_NONE __attribute__((optimize(0))) ///< Disable optimizations.
 #  define GP_OPTIMIZE_HIGH __attribute__((optimize(3))) ///< Maximum optimizations.
 #  define GP_OPTIMIZE_SIZE __attribute__((optimize("Os"))) ///< Optimize for size.
 #else
-#  define GP_OPTIMIZE_NONE
-#  define GP_OPTIMIZE_SIZE
-#  define GP_OPTIMIZE_HIGH
+/** Function attribute to disable optimizations.
+ *
+ * GCC documentation discourages using this, but this can be helpful for
+ * debugging. GCC and Clang only.
+ */
+#  define GP_OPTIMIZE_NONE /* implementation defined */
+/** Function attribute to optimize for size.
+ *
+ * GCC documentation discourages using this, but this can be helpful for
+ * debugging. GCC and Clang only.
+ */
+#  define GP_OPTIMIZE_SIZE /* implementation defined */
+/** Function attribute to maximize optimizations.
+ *
+ * GCC documentation discourages using this, but this can be helpful for
+ * debugging. GCC and Clang only.
+ */
+#  define GP_OPTIMIZE_HIGH /* implementation defined */
 #endif
 
-/// @}
 // ----------------------------------------------------------------------------
 // Disable sanitizers
 
-#if defined(__GNUC__) || defined(GP_DOXYGEN)
 /** Disable sanitizers.
  *
  * Function attribute to most notably disable the address sanitizer. This can be
- * useful to improve performance of critical and heavy but well tested functions
- * in debug builds.
+ * useful to improve performance of critical and heavy but well tested and/or
+ * memory insensitive functions in debug builds.
  */
+#if defined(__GNUC__)
 #  define GP_NO_SANITIZE __attribute__((no_sanitize("address", "leak", "undefined")))
 #elif defined(_MSC_VER)
 #  define GP_NO_SANITIZE __declspec(no_sanitize_address)
@@ -332,11 +296,11 @@
  * int my_printf(int whatever, const char* format, int something_else, ...);
  * @endcode
  */
-#if (defined(__GNUC__) && !defined(GP_NO_FORMAT_STRING_CHECK)) || defined(GP_DOXYGEN)
+#if (defined(__GNUC__) && !defined(GP_NO_FORMAT_STRING_CHECK))
 #  define GP_CHECK_FORMAT_STRING(FORMAT_STRING_ARGUMENT, FIRST_TO_CHECK) \
       __attribute__((format(printf, FORMAT_STRING_ARGUMENT, FIRST_TO_CHECK)))
 #else
-#  define GP_CHECK_FORMAT_STRING(...)
+#  define GP_CHECK_FORMAT_STRING(FORMAT_STRING_ARGUMENT, FIRST_TO_CHECK) /* implementation defined */
 #endif
 
 // ----------------------------------------------------------------------------
@@ -351,10 +315,10 @@
  * attribute. It should not be assumed that Clang automatically supports a GCC
  * attribute, this is not always true.
  */
-#if defined(__GNUC__) || defined(GP_DOXYGEN)
+#if defined(__GNUC__)
 #define GP_GNU_ATTRIB(...) __attribute__((__VA_ARGS__))
 #else
-#define GP_GNU_ATTRIB(...)
+#define GP_GNU_ATTRIB(...) /* implementation defined */
 #endif
 
 // ----------------------------------------------------------------------------
@@ -377,10 +341,10 @@
  */
 #ifdef __GNUC__
 #  define GP_LIKELY(...)   __builtin_expect(!!(__VA_ARGS__), 1)
-#  define GP_UNLIKELY(...) __builtin_expect(!!(__VA_ARGS__), 0) ///< @copydoc GP_LIKELY
+#  define GP_UNLIKELY(...) __builtin_expect(!!(__VA_ARGS__), 0)
 #else
-#  define GP_LIKELY(...)   (!!(__VA_ARGS__))
-#  define GP_UNLIKELY(...) (!!(__VA_ARGS__))
+#  define GP_LIKELY(...)   /* implementation defined */(!!(__VA_ARGS__))
+#  define GP_UNLIKELY(...) /* implementation defined */(!!(__VA_ARGS__)) ///< @copydoc GP_LIKELY
 #endif
 
 // ----------------------------------------------------------------------------
@@ -412,7 +376,9 @@
  * should be defined instead. Static builds and Unix shared objects do not need
  * to consider any of this.
  */
-#if defined(GP_TARGET_OS_WINDOWS) || defined(__CYGWIN__)
+#ifdef GP_DOXYGEN
+#  define GP_API /* implementation defined */
+#elif defined(GP_TARGET_OS_WINDOWS) || defined(__CYGWIN__)
 #  ifdef GP_DLL_EXPORT
 #    define GP_API __declspec(dllexport)
 #  elif defined(GP_DLL_IMPORT
@@ -424,7 +390,7 @@
 #  if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 3)
 #    define GP_API __attribute__((visibility("default")))
 #  else
-#    define GP_PI
+#    define GP_API
 #  endif
 #endif
 
@@ -439,10 +405,12 @@
  * exported to binary. To prevent exporting inline functions,
  * @ref GP_NO_EXPORT_INLINES should be defined when compiling this library.
  */
-#if !defined(GP_IMPLEMENTATION) || defined(GP_NO_EXPORT_INLINES)
+#ifdef GP_DOXYGEN
+#  define GP_INLINE /** GP_API | static inline */
+#elif !defined(GPC_IMPLEMENTATION) || defined(GP_NO_EXPORT_INLINES)
 #  define GP_INLINE static inline
 #elif defined(GP_SHARED_EXPORT)
-#  define GP_INLINE GP_EXPORT
+#  define GP_INLINE GP_API
 #else
 #  define GP_INLINE
 #endif
@@ -463,7 +431,7 @@
 #elif defined(_MSC_VER)
 #  define GP_NORETURN __declspec((noreturn))
 #else
-#  define GP_NORETURN
+#  define GP_NORETURN /** implementation defined */
 #endif
 
 // ----------------------------------------------------------------------------
@@ -478,7 +446,7 @@
 #elif defined(_MSC_VER)
 #  define GP_NOINLINE __declspec((noinline))
 #else
-#  define GP_NOINLINE
+#  define GP_NOINLINE /** implementation defined */
 #endif
 
 // ----------------------------------------------------------------------------
@@ -490,14 +458,14 @@
  * Any usage by the user of the given symbol will issue a warning.
  */
 
-#if defined(GP_DOXYGEN) || (defined(__cplusplus) && __cplusplus >= 201402L)
+#if defined(__cplusplus) && __cplusplus >= 201402L
 #  define GP_DEPRECATED [[deprecated]]
 #elif defined(__GNUC__)
 #  define GP_DEPRECATED __attribute__((deprecated))
 #elif defined(_MSC_VER)
 #  define GP_DEPRECATED __declspec(deprecated)
 #else
-#  define GP_DEPRECATED
+#  define GP_DEPRECATED /** implementation defined */
 #endif
 
 /// @}

@@ -23,7 +23,7 @@ void gp_launder_noinline(void**); ///< @private
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
-/// @defgroup utils Miscellaneous Utilities
+/// @defgroup utils Other Utilities
 /// @code
 /// #include <gpc/utils.h>
 /// @endcode

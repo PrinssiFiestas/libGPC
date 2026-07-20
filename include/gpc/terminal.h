@@ -120,7 +120,7 @@ GP_API bool gp_ansi_is_enabled(int fd);
  * @return ANSI escape sequence if @a IS_ENABLED is `true`, empty string
  * otherwise.
  */
-#define/* const char* */GP_ANSI(ESCAPE_SEQUENCE,/* bool */IS_ENABLED) \
+#define GP_ANSI(ESCAPE_SEQUENCE, IS_ENABLED) \
 ( \
     (IS_ENABLED) ? (GP_ANSI_##ESCAPE_SEQUENCE) : "" \
 )
@@ -164,6 +164,8 @@ GP_INLINE const char* gp_ansi(const char* escape_sequence, bool is_enabled)
 
 // ----------------------------------------------------------------------------
 /// @defgroup terminal_foreground_color Foreground Color
+/// Preset foreground colors.
+///
 /// The exact RGB values of preset colors (all of these macros except @ref GP_ANSI_RGB)
 /// are set by the terminal and can vary. The user often has control over the
 /// preset colors in their terminal settings. Normal preset foreground colors
@@ -223,6 +225,7 @@ GP_INLINE const char* gp_ansi(const char* escape_sequence, bool is_enabled)
 /// @}
 // ----------------------------------------------------------------------------
 /// @defgroup terminal_background_color Background Color
+/// Preset background colors.
 /// @{
 
 #define GP_ANSI_BLACK_BG            "\033[40m" ///< ANSI escape sequence for black background.
@@ -252,6 +255,7 @@ GP_INLINE const char* gp_ansi(const char* escape_sequence, bool is_enabled)
 /// @}
 // ----------------------------------------------------------------------------
 /// @defgroup terminal_font Font
+/// Terminal font styling.
 /// @{
 
 /** Reset ANSI font to default. */
@@ -286,6 +290,8 @@ GP_INLINE const char* gp_ansi(const char* escape_sequence, bool is_enabled)
 /// @}
 // ----------------------------------------------------------------------------
 /// @defgroup terminal_cursor_movement Cursor Movement
+/// Cursor movement.
+///
 /// Like @ref GP_ANSI_RGB, the arguments to these must be an decimal integer
 /// literals for most normal use.
 /// @code

@@ -2,9 +2,9 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-// TODO Dox
-
 // Note to everybody: Compiler Explorer is your friend.
+
+// TODO string conversions and GDB pretty printers.
 
 #ifndef GP_INT128_INCLUDED
 #define GP_INT128_INCLUDED 1
@@ -48,8 +48,9 @@ typedef int      gp_tetra_int_t  __attribute__((mode(TI)));
 /// @endcode
 /// Portable 128-bit integer types with functions (most inline) and type generic
 /// macros for 128-bit integer arithmetic. All [C arithmetic operators](https://en.cppreference.com/c/language/operator_arithmetic)
-/// are implemented and follow the semantics of regular C arithmetic operators.
-/// Also conversions from/to all integer and floating point types are provided.
+/// are implemented and loosely follow the semantics of regular C arithmetic
+/// operators when applicable. Also conversions from/to all integer and floating
+/// point types are provided.
 ///
 /// These use compiler extensions or intrinsics when availaible for maximum
 /// performance. Otherwise implementations fall back to pure C99 for
@@ -63,9 +64,24 @@ typedef int      gp_tetra_int_t  __attribute__((mode(TI)));
  */
 typedef union gp_uint128
 {
-    #if defined(GP_HAS_ANONYMOUS_STRUCT) && GP_ENDIAN == GP_ENDIAN_LITTLE
+    #if (defined(GP_HAS_ANONYMOUS_STRUCT) && GP_ENDIAN == GP_ENDIAN_LITTLE) || defined(GP_DOXYGEN)
     struct {
+        /** Low 64 bits.
+         *
+         * Only available if compiler supports anonymous structs and endianness
+         * was detected in preprocessor. See @ref GP_HAS_ANONYMOUS_STRUCT and
+         * @ref GP_ENDIAN. Maximum portability applications should use @ref gp_uint128_lo()
+         * instead.
+         */
         uint64_t lo;
+
+        /** High 64 bits.
+         *
+         * Only available if compiler supports anonymous structs and endianness
+         * was detected in preprocessor. See @ref GP_HAS_ANONYMOUS_STRUCT and
+         * @ref GP_ENDIAN. Maximum portability applications should use @ref gp_uint128_hi()
+         * instead.
+         */
         uint64_t hi;
     };
     #elif defined(GP_HAS_ANONYMOUS_STRUCT) && GP_ENDIAN == GP_ENDIAN_BIG
@@ -75,21 +91,19 @@ typedef union gp_uint128
     };
     #endif
 
-    /// @cond
     struct {
-        uint64_t lo;
-        uint64_t hi;
-    } little_endian;
+        uint64_t lo; ///< Low 64 bits.
+        uint64_t hi; ///< High 64 bits.
+    } little_endian; ///< 64-bit parts in a little endian machine.
 
     struct {
-        uint64_t hi;
-        uint64_t lo;
-    } big_endian;
+        uint64_t hi; ///< High 64 bits.
+        uint64_t lo; ///< Low 64 bits.
+    } big_endian;    ///< 64-bit Parts in big endian machine.
 
     #if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
     gp_tetra_uint_t u128;
     #endif
-    /// @endcond
 } GPUInt128;
 
 /** 128-bit signed integer.
@@ -101,10 +115,31 @@ typedef union gp_uint128
  */
 typedef union gp_int128
 {
-    #if defined(GP_HAS_ANONYMOUS_STRUCT) && GP_ENDIAN == GP_ENDIAN_LITTLE
+    #if (defined(GP_HAS_ANONYMOUS_STRUCT) && GP_ENDIAN == GP_ENDIAN_LITTLE) || defined(GP_DOXYGEN)
     struct {
+        /** Low 64 bits.
+         *
+         * Only available if compiler supports anonymous structs and endianness
+         * was detected in preprocessor. See @ref GP_HAS_ANONYMOUS_STRUCT and
+         * @ref GP_ENDIAN. Maximum portability applications should use @ref gp_int128_lo()
+         * instead.
+         *
+         * This is unsigned, because there is no way of determining if the
+         * number is negative based on low bits alone since sign bit is the most
+         * significant bit. Therefore, low bits are just interpreted as raw
+         * bits, which should be unsigned. This also avoids undefined behavior
+         * on overflow, which would happen all the time with large numbers.
+         */
         uint64_t lo;
-        int64_t  hi;
+
+        /** High 64 bits.
+         *
+         * Only available if compiler supports anonymous structs and endianness
+         * was detected in preprocessor. See @ref GP_HAS_ANONYMOUS_STRUCT and
+         * @ref GP_ENDIAN. Maximum portability applications should use @ref gp_int128_hi()
+         * instead.
+         */
+        int64_t hi;
     };
     #elif defined(GP_HAS_ANONYMOUS_STRUCT) && GP_ENDIAN == GP_ENDIAN_BIG
     struct {
@@ -113,21 +148,19 @@ typedef union gp_int128
     };
     #endif
 
-    /// @cond
     struct {
-        uint64_t lo;
-        int64_t  hi;
-    } little_endian;
+        uint64_t lo; ///< Low 64 bits.
+        int64_t  hi; ///< High 64 bits.
+    } little_endian; ///< 64-bit parts in a little endian machine.
 
     struct {
-        int64_t  hi;
-        uint64_t lo;
-    } big_endian;
+        int64_t  hi; ///< High 64 bits.
+        uint64_t lo; ///< Low 64 bits.
+    } big_endian;    ///< 64-bit Parts in big endian machine.
 
     #if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
     gp_tetra_int_t i128;
     #endif
-    /// @endcond
 } GPInt128;
 
 // ----------------------------------------------------------------------------
@@ -181,14 +214,14 @@ GPInt128 gp_int128(int64_t hi_bits, uint64_t lo_bits)
 /** Cast value to an 128-bit unsigned integer.
  *
  * Converts @a X to an 128-bit unsigned integer. @a X can be any arithmetic
- * type, @ref GPUInt128, or @ref GPInt128.
+ * type, @ref GPUInt128, or @ref GPInt128. Not available in strict C99.
  */
 #define gp_u128(X) _Generic(X, ...)(X)
 
 /** Cast value to an 128-bit signed integer.
  *
  * Converts @a X to an 128-bit signed integer. @a X can be any arithmetic
- * type, @ref GPUInt128, or @ref GPInt128.
+ * type, @ref GPUInt128, or @ref GPInt128. Not available in strict C99.
  */
 #define gp_i128(X) _Generic(X, ...)(X)
 #endif
@@ -407,49 +440,56 @@ GP_NODISCARD static inline constexpr GPInt128  gp_i128(gp_tetra_int_t  i) { retu
 #endif
 
 // ----------------------------------------------------------------------------
-// Type-generic Macros
+/// @defgroup generic_int128 Type-generic Macros
+///
+/// Type generic macros for 128-bit arithmetic. These take any combination of
+/// arithmetic types, @ref GPUInt128, and @ref GPInt128 as their arguments and
+/// return a 128-bit integer. All macros with `gp_u128_` prefix return
+/// @ref GPUInt128 and macros with `gp_i128_` prefix return @ref GPInt128. These
+/// are not available in strict C99.
+///
+/// To cast any arithmetic type, @ref GPUInt128, or @ref GPInt128 types to
+/// 128-bit integers, use @ref gp_u128() and @ref gp_i128().
+/// @{
 
-// Macros with more concise name (gp_uint128_xxx -> gp_u128_xxx) that take
-// any combination of integers or floats as arguments and return GPUInt128 or
-// GPInt128.
+#define gp_u128_add(A, B)                gp_uint128_add(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_add(A, B)                gp_int128_add(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_sub(A, B)                gp_uint128_sub(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_sub(A, B)                gp_int128_sub(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_mul(A, B)                gp_uint128_mul(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_mul(A, B)                gp_int128_mul(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_div(A, B)                gp_uint128_div(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_div(A, B)                gp_int128_div(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_mod(A, B)                gp_uint128_mod(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_mod(A, B)                gp_int128_mod(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_negate(A)                gp_uint128_negate(gp_u128(A)) ///< @selfdocumenting
+#define gp_i128_negate(A)                gp_int128_negate(gp_i128(A)) ///< @selfdocumenting
+#define gp_u128_not(A)                   gp_uint128_not(gp_u128(A)) ///< @selfdocumenting
+#define gp_i128_not(A)                   gp_int128_not(gp_i128(A)) ///< @selfdocumenting
+#define gp_u128_and(A, B)                gp_uint128_and(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_and(A, B)                gp_int128_and(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_or(A, B)                 gp_uint128_or(gp_u128(A),  gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_or(A, B)                 gp_int128_or(gp_i128(A),  gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_xor(A, B)                gp_uint128_xor(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_xor(A, B)                gp_int128_xor(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_shift_left(A, B)         gp_uint128_shift_left(gp_u128(A), B) ///< @selfdocumenting
+#define gp_i128_shift_left(A, B)         gp_int128_shift_left(gp_i128(A), B) ///< @selfdocumenting
+#define gp_u128_shift_right(A, B)        gp_uint128_shift_right(gp_u128(A), B) ///< @selfdocumenting
+#define gp_i128_shift_right(A, B)        gp_int128_shift_right(gp_i128(A), B) ///< @selfdocumenting
+#define gp_u128_equal(A, B)              gp_uint128_equal(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_equal(A, B)              gp_int128_equal(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_not_equal(A, B)          gp_uint128_not_equal(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_not_equal(A, B)          gp_int128_not_equal(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_greater_than(A, B)       gp_uint128_greater_than(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_greater_than(A, B)       gp_int128_greater_than(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_less_than(A, B)          gp_uint128_less_than(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_less_than(A, B)          gp_int128_less_than(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_greater_than_equal(A, B) gp_uint128_greater_than_equal(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_greater_than_equal(A, B) gp_int128_greater_than_equal(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
+#define gp_u128_less_than_equal(A, B)    gp_uint128_less_than_equal(gp_u128(A), gp_u128(B)) ///< @selfdocumenting
+#define gp_i128_less_than_equal(A, B)    gp_int128_less_than_equal(gp_i128(A), gp_i128(B)) ///< @selfdocumenting
 
-#define gp_u128_add(A, B)                gp_uint128_add(gp_u128(A), gp_u128(B))
-#define gp_i128_add(A, B)                gp_int128_add(gp_i128(A), gp_i128(B))
-#define gp_u128_sub(A, B)                gp_uint128_sub(gp_u128(A), gp_u128(B))
-#define gp_i128_sub(A, B)                gp_int128_sub(gp_i128(A), gp_i128(B))
-#define gp_u128_mul(A, B)                gp_uint128_mul(gp_u128(A), gp_u128(B))
-#define gp_i128_mul(A, B)                gp_int128_mul(gp_i128(A), gp_i128(B))
-#define gp_u128_div(A, B)                gp_uint128_div(gp_u128(A), gp_u128(B))
-#define gp_i128_div(A, B)                gp_int128_div(gp_i128(A), gp_i128(B))
-#define gp_u128_mod(A, B)                gp_uint128_mod(gp_u128(A), gp_u128(B))
-#define gp_i128_mod(A, B)                gp_int128_mod(gp_i128(A), gp_i128(B))
-#define gp_u128_negate(A)                gp_uint128_negate(gp_u128(A))
-#define gp_i128_negate(A)                gp_int128_negate(gp_i128(A))
-#define gp_u128_not(A)                   gp_uint128_not(gp_u128(A))
-#define gp_i128_not(A)                   gp_int128_not(gp_i128(A))
-#define gp_u128_and(A, B)                gp_uint128_and(gp_u128(A), gp_u128(B))
-#define gp_i128_and(A, B)                gp_int128_and(gp_i128(A), gp_i128(B))
-#define gp_u128_or(A, B)                 gp_uint128_or(gp_u128(A),  gp_u128(B))
-#define gp_i128_or(A, B)                 gp_int128_or(gp_i128(A),  gp_i128(B))
-#define gp_u128_xor(A, B)                gp_uint128_xor(gp_u128(A), gp_u128(B))
-#define gp_i128_xor(A, B)                gp_int128_xor(gp_i128(A), gp_i128(B))
-#define gp_u128_shift_left(A, B)         gp_uint128_shift_left(gp_u128(A), B)
-#define gp_i128_shift_left(A, B)         gp_int128_shift_left(gp_i128(A), B)
-#define gp_u128_shift_right(A, B)        gp_uint128_shift_right(gp_u128(A), B)
-#define gp_i128_shift_right(A, B)        gp_int128_shift_right(gp_i128(A), B)
-#define gp_u128_equal(A, B)              gp_uint128_equal(gp_u128(A), gp_u128(B))
-#define gp_i128_equal(A, B)              gp_int128_equal(gp_i128(A), gp_i128(B))
-#define gp_u128_not_equal(A, B)          gp_uint128_not_equal(gp_u128(A), gp_u128(B))
-#define gp_i128_not_equal(A, B)          gp_int128_not_equal(gp_i128(A), gp_i128(B))
-#define gp_u128_greater_than(A, B)       gp_uint128_greater_than(gp_u128(A), gp_u128(B))
-#define gp_i128_greater_than(A, B)       gp_int128_greater_than(gp_i128(A), gp_i128(B))
-#define gp_u128_less_than(A, B)          gp_uint128_less_than(gp_u128(A), gp_u128(B))
-#define gp_i128_less_than(A, B)          gp_int128_less_than(gp_i128(A), gp_i128(B))
-#define gp_u128_greater_than_equal(A, B) gp_uint128_greater_than_equal(gp_u128(A), gp_u128(B))
-#define gp_i128_greater_than_equal(A, B) gp_int128_greater_than_equal(gp_i128(A), gp_i128(B))
-#define gp_u128_less_than_equal(A, B)    gp_uint128_less_than_equal(gp_u128(A), gp_u128(B))
-#define gp_i128_less_than_equal(A, B)    gp_int128_less_than_equal(gp_i128(A), gp_i128(B))
-
+/// @}
 // ----------------------------------------------------------------------------
 // Bitwise Operations
 
@@ -780,7 +820,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_mod(GPInt128 a, GPInt128 b)
 // ----------------------------------------------------------------------------
 // Comparisons
 
-//
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_equal(GPUInt128 a, GPUInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -789,6 +829,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_equal(GPUInt128 a, GPUInt128 b)
     return a.little_endian.lo == b.little_endian.lo && a.little_endian.hi == b.little_endian.hi;
     #endif
 }
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_equal(GPInt128 a, GPInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -798,6 +839,7 @@ GP_NODISCARD GP_INLINE   bool gp_int128_equal(GPInt128 a, GPInt128 b)
     #endif
 }
 
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_not_equal(GPUInt128 a, GPUInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -806,6 +848,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_not_equal(GPUInt128 a, GPUInt128 b)
     return a.little_endian.lo != b.little_endian.lo || a.little_endian.hi != b.little_endian.hi;
     #endif
 }
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_not_equal(GPInt128 a, GPInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -815,6 +858,7 @@ GP_NODISCARD GP_INLINE   bool gp_int128_not_equal(GPInt128 a, GPInt128 b)
     #endif
 }
 
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_greater_than(GPUInt128 a, GPUInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -825,6 +869,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_greater_than(GPUInt128 a, GPUInt128 b)
     return gp_uint128_hi(a) > gp_uint128_hi(b);
     #endif
 }
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_greater_than(GPInt128 a, GPInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -836,6 +881,7 @@ GP_NODISCARD GP_INLINE   bool gp_int128_greater_than(GPInt128 a, GPInt128 b)
     #endif
 }
 
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_less_than(GPUInt128 a, GPUInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -846,6 +892,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_less_than(GPUInt128 a, GPUInt128 b)
     return gp_uint128_hi(a) < gp_uint128_hi(b);
     #endif
 }
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_less_than(GPInt128 a, GPInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -857,6 +904,7 @@ GP_NODISCARD GP_INLINE   bool gp_int128_less_than(GPInt128 a, GPInt128 b)
     #endif
 }
 
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_greater_than_equal(GPUInt128 a, GPUInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -867,6 +915,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_greater_than_equal(GPUInt128 a, GPUInt1
     return gp_uint128_hi(a) >= gp_uint128_hi(b);
     #endif
 }
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_greater_than_equal(GPInt128 a, GPInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -878,6 +927,7 @@ GP_NODISCARD GP_INLINE   bool gp_int128_greater_than_equal(GPInt128 a, GPInt128 
     #endif
 }
 
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_less_than_equal(GPUInt128 a, GPUInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT
@@ -888,6 +938,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_less_than_equal(GPUInt128 a, GPUInt128 
     return gp_uint128_hi(a) <= gp_uint128_hi(b);
     #endif
 }
+/** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_less_than_equal(GPInt128 a, GPInt128 b)
 {
     #ifdef GP_HAS_TETRA_INT

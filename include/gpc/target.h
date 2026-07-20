@@ -17,12 +17,13 @@
 // Build Configuration
 
 #ifdef GP_DOXYGEN
-/// @addtogroup compile_options Build Configuration
+/// @defgroup debug_release Configuring Debug and Release Builds
+///
 /// Determine if debug or release build. These are defined automatically based
 /// on `_DEBUG` and `NDEBUG` macros. The former is defined by default by
-/// Visual Studio on debug builds, the latter is recognized by the C standard,
-/// although it should not be assumed to be defined by any tooling that doesn't
-/// document so.
+/// Visual Studio on debug builds, the latter is widely used and somewhat
+/// recognized by the C standard, although it should not be assumed to be
+/// defined by any tooling that doesn't document so.
 /// @{
 /** Defined if debug build (default).
  *
@@ -88,7 +89,7 @@
 #    define GP_TARGET_POSIX 1
 #  elif defined(__has_include)
 #    if __has_include(<unistd.h>)
-#      #define GP_TARGET_POSIX 1
+#      define GP_TARGET_POSIX 1
 #    endif
 #  endif
 #endif

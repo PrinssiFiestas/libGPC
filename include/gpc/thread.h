@@ -10,6 +10,7 @@
 #ifndef GP_THREAD_INCLUDED
 #define GP_THREAD_INCLUDED 1
 
+#include <gpc/attributes.h>
 #include <gpc/assert.h>
 #include <gpc/time.h>
 #include <gpc/int128.h>
@@ -40,7 +41,7 @@ extern "C" {
 /// #include <gpc/thread.h>
 /// @endcode
 /// Portable threading API based on [C11 threads API](https://en.cppreference.com/c/header/threads),
-/// including threads, mutual exclusion, condition variables, and thread-local
+/// including threads, mutual exclusion, condition variables, and thread local
 /// storage. Implementation is based on [c11threads](https://github.com/jtsiomb/c11threads).
 ///
 /// At the time of writing, GNU libc does not implement standard threading on
@@ -55,7 +56,7 @@ extern "C" {
 /// - Added @ref GP_THREAD_LOCAL_MAX_SLOTS.
 /// - C11 `mtx_timedlock()` and `cnd_timedwait()` and their POSIX counterparts
 ///   take calendar timestamp as the timeout bound argument, but Win32
-///   counterparts use relative time instead. We added options for both.
+///   counterparts use relative time instead. We added functions for both.
 /// - Removed mutex types, only plain is available. This is due to `mtx_timed`
 ///   being implicit and redundant and `mtx_recursive` is a code smell that
 ///   doesn't work well portably with static initialization, which is much more
@@ -63,7 +64,7 @@ extern "C" {
 /// - Replaced `struct timespec` with seconds and nanoseconds. Nobody likes to
 ///   deal with `struct timespec`.
 /// - Removed `thrd_sleep()`, we already have @ref gp_sleep() and @ref gp_sleep_ns()
-///   in our timing utilities module.
+///   in our timing utilities.
 /// - Simplified error handling. C11 defines multiple error constants for
 ///   different conditions. Some errors do not occur in our target platforms,
 ///   some cannot be handled without causing UB down the line, and others would
@@ -103,9 +104,6 @@ extern "C" {
 // - Removed Win32 specific functions like register and cleanup.
 // - Cleanup now runs automatically at program exit.
 
-    // TODO bad doxygen
-/// @addtogroup compile_options
-/// @{
 #ifdef GP_DOXYGEN
 /** Use POSIX threads.
  *
@@ -116,37 +114,10 @@ extern "C" {
  */
 #define GP_USE_PTHREADS
 #endif
-/// @}
-
-// TODO C23 keywords
-/** Sometimes thread local. TODO add always thread local too like C11 standard threads. And atomics too.
- *
- * Use this only when thread local storage would be ideal but not necessary for
- * correctness. Example use might be something logging related that is meant for
- * developers, but end users might not care about.
- *
- * NOTE: MinGW thread locals are broken, so they are disabled. See
- * https://sourceforge.net/p/mingw-w64/bugs/445/
- */
-#ifdef _MSC_VER
-#  define GP_MAYBE_THREAD_LOCAL __declspec(thread)
-#  define GP_HAS_THREAD_LOCAL 1
-#elif __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__) && !defined(__MINGW32__)
-#  define GP_MAYBE_THREAD_LOCAL /* sometimes */_Thread_local
-#  define GP_HAS_THREAD_LOCAL 1
-#elif defined(__GNUC__) && !defined(__MINGW32__)
-#  define GP_MAYBE_THREAD_LOCAL __thread
-#  define GP_HAS_THREAD_LOCAL 1
-#else
-#  define GP_MAYBE_THREAD_LOCAL
-#endif
-
-#ifdef GP_HAS_THREAD_LOCAL
-#  define GP_THREAD_LOCAL GP_MAYBE_THREAD_LOCAL
-#endif
 
 // TODO move atomics to appropriate header
-// TODO C++
+// TODO C++ and C23
+// TODO always atomics?
 // TODO use compiler extensions when available? We probably should yoink another lib.
 /** Sometimes atomic.
  *
@@ -167,13 +138,13 @@ extern "C" {
 #endif
 
 // ----------------------------------------------------------------------------
-#ifndef GP_USE_WINTHREADS // use POSIX threads
+#if !defined(GP_USE_WINTHREADS) || defined(GP_DOXYGEN) // use POSIX threads
 
 #include <pthread.h>
 #include <sched.h> // sched_yield
 #include <sys/time.h>
 #include <stdint.h>
-#include <errno.h> // IWYU pragma: keep // "unused include" <- no it's not (EBUSY)??? clangd flipping
+#include <errno.h> // IWYU pragma: keep // "unused include" no it's not (EBUSY)??? clangd flipping
 
 // ------------------------------------
 /// @defgroup thread_management Thread Management
@@ -191,7 +162,7 @@ extern "C" {
  * needed.
  */
 #ifdef GP_DOXYGEN
-typedef /* unspecified */ GPThread;
+typedef __unspecified__ GPThread;
 #else
 typedef pthread_t GPThread;
 #endif
@@ -309,7 +280,7 @@ GP_INLINE void gp_thread_yield(void)
  * code smell that prevents static initialization, which is much more important.
  */
 #ifdef GP_DOXYGEN
-typedef /* unspecified */ GPMutex;
+typedef __unspecified__ GPMutex;
 #else
 typedef pthread_mutex_t GPMutex;
 #endif
@@ -452,6 +423,7 @@ void gp_mutex_unlock(GPMutex* mutex)
 /// @}
 // ------------------------------------
 /// @defgroup condition_variables Condition Variables
+///
 /// Condition variables are synchronization primitives used to make threads wait
 /// until a given condition is met. The three operations for condition variables
 /// are:
@@ -471,7 +443,7 @@ void gp_mutex_unlock(GPMutex* mutex)
  * variables can be destroyed using @ref gp_cond_destroy().
  */
 #ifdef GP_DOXYGEN
-typedef /* unspecified */ GPCond;
+typedef __unspecified__ GPCond;
 #else
 typedef pthread_cond_t GPCond;
 #endif
@@ -564,7 +536,7 @@ void gp_cond_wait(GPCond* cond, GPMutex* mutex)
 GP_API GP_NONNULL_ARGS()
 bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double time);
 
-/** Wait on condition variable with a timeout in nanoseconds. .
+/** Wait on condition variable with a timeout in nanoseconds.
  *
  * Like @ref gp_cond_wait(), except only blocks for maximum of @a time_ns amount
  * of seconds.
@@ -670,9 +642,71 @@ void gp_cond_broadcast(GPCond* cond)
 /// Thread local storage is global/static data that is unique to each thread.
 /// Its main use is improving thread safety by limiting access of globals to
 /// each thread by having separate memory slots for the given global per thread.
-/// Thread local storage supports automatic resource management on thread exit
-/// using a user defined destructor.
+/// Runtime thread local storage supports automatic resource management on
+/// thread exit using a user defined destructor.
+///
+/// A global/static variable can be declared thread local using @ref GP_THREAD_LOCAL
+/// and @ref GP_MAYBE_THREAD_LOCAL. These macros expand to portably expand to
+/// `thread_local` keyword or an equivalent compiler extension. Variables
+/// declared as thread local will be automatically allocated and accessed by
+/// the compiler.
+///
+/// Thread local objects can also be created during runtime using @ref GPThreadKey
+/// and `gp_thread_local_*` family of functions. Unlike variables declared with
+/// @ref GP_THREAD_LOCAL keyword, there are only finite number of runtime thread
+/// local variables that can be allocated. However, runtime thread local
+/// variables support destructors that perform automatic cleanup when threads
+/// exits.
 /// @{
+
+/** Sometimes thread local.
+ *
+ * Expands to a variant of `thread_local` keyword if supported or nothing if not
+ * supported. Support can be checked by checking if @ref GP_HAS_THREAD_LOCAL is
+ * defined.
+ *
+ * Use this only when thread local storage would be ideal but not necessary for
+ * correctness. Example use might be something logging related that is meant for
+ * developers, but end users might not care about.
+ */
+#if ((__STDC_VERSION__ >= 202311L && !defined(__STDC_NO_THREADS__)) \
+     || (defined(__cplusplus) && __cplusplus >= 201103L)) && !defined(__MINGW32__)
+#  define GP_MAYBE_THREAD_LOCAL thread_local
+#  define GP_HAS_THREAD_LOCAL 1
+#elif defined(_MSC_VER)
+#  define GP_MAYBE_THREAD_LOCAL __declspec(thread)
+#  define GP_HAS_THREAD_LOCAL 1
+#elif __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__) && !defined(__MINGW32__)
+#  define GP_MAYBE_THREAD_LOCAL /* sometimes */_Thread_local
+#  define GP_HAS_THREAD_LOCAL 1
+#elif defined(__GNUC__) && !defined(__MINGW32__)
+#  define GP_MAYBE_THREAD_LOCAL __thread
+#  define GP_HAS_THREAD_LOCAL 1
+#else
+#  define GP_MAYBE_THREAD_LOCAL
+#endif
+
+#ifdef GP_HAS_THREAD_LOCAL
+#  define GP_THREAD_LOCAL GP_MAYBE_THREAD_LOCAL
+#elif defined(GP_DOXYGEN)
+/** Check if a variant of `thread_local` keyword exist.
+ *
+ * Currently defined with MSVC regardless of C/C++ version and *not* defined
+ * with MinGW regardless of C/C++ version due to a [bug](https://sourceforge.net/p/mingw-w64/bugs/445/)
+ * that makes it completely unusable. Defined with GCC and Clang (if not MinGW)
+ * regardless of C/C++ version. For any other compiler, defined if C11, C++11,
+ * or higher.
+ */
+#  define GP_HAS_THREAD_LOCAL /* implementation defined */
+
+/** Always thread local.
+ *
+ * Expands to a variant of `thread_local` keyword if supported or nothing if not
+ * supported. Support can be checked by checking if @ref GP_HAS_THREAD_LOCAL is
+ * defined.
+ */
+#  define GP_THREAD_LOCAL /* implementation defined */
+#endif
 
 /** Key to thread local storage.
  *
@@ -723,7 +757,7 @@ void gp_cond_broadcast(GPCond* cond)
  * @endcode
  */
 #ifdef GP_DOXYGEN
-typedef /* unspecified */ GPThreadKey;
+typedef __unspecified__ GPThreadKey;
 #else
 typedef pthread_key_t GPThreadKey;
 #endif
@@ -832,6 +866,7 @@ GP_INLINE void* gp_thread_local_get(GPThreadKey key)
 /// @}
 // ------------------------------------
 /// @defgroup call_once Call Once
+///
 /// @ref gp_call_once() is used for thread safe initialization. A common way to
 /// initialize static objects might look as follows:
 ///
@@ -880,7 +915,7 @@ GP_INLINE void* gp_thread_local_get(GPThreadKey key)
  * changes to indicate that the function has been called.
  */
 #ifdef GP_DOXYGEN
-typedef /* unspecified */ GPOnce;
+typedef __unspecified__ GPOnce;
 #else
 typedef pthread_once_t GPOnce;
 #endif
