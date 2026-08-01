@@ -5,7 +5,7 @@
 #ifndef GP_UTILS_INCLUDED
 #define GP_UTILS_INCLUDED 1
 
-#include <gpc/assert.h>
+#include <gpc/gpassert.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <limits.h>
@@ -25,7 +25,7 @@ void gp_launder_noinline(void**); ///< @private
 // ----------------------------------------------------------------------------
 /// @defgroup utils Other Utilities
 /// @code
-/// #include <gpc/utils.h>
+/// #include <gpc/gputils.h>
 /// @endcode
 /// @{
 

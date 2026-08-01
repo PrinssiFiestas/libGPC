@@ -5,7 +5,7 @@
 #ifndef GP_TERMINAL_INCLUDED
 #define GP_TERMINAL_INCLUDED 1
 
-#include <gpc/preprocessor.h>
+#include <gpc/gppreprocessor.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -21,7 +21,7 @@ extern "C" {
 // ----------------------------------------------------------------------------
 /// @defgroup terminal Terminal
 /// @code
-/// #include <gpc/terminal.h>
+/// #include <gpc/gpterminal.h>
 /// @endcode
 /// ANSI escape sequences. Most commonly used to control terminal output color,
 /// but can also control things like terminal cursor movement. These are just

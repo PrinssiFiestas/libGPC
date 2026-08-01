@@ -11,8 +11,8 @@ int main(void) {}
 
 #else
 
-#include <gpc/assert.h>
-#include <gpc/io.h>
+#include <gpc/gpassert.h>
+#include <gpc/gpio.h>
 #include <pthread.h>
 
 // Note: timing is inherently inaccurate, but it is not as inaccurate as the

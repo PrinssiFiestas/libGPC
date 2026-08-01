@@ -5,9 +5,9 @@
 #ifndef GP_TIME_INCLUDED
 #define GP_TIME_INCLUDED 1
 
-#include <gpc/int128.h>
-#include <gpc/assert.h>
-#include <gpc/types.h>
+#include <gpc/gpint128.h>
+#include <gpc/gpassert.h>
+#include <gpc/gptypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,7 +20,7 @@ extern "C" {
 // ----------------------------------------------------------------------------
 /// @defgroup time Timing
 /// @code
-/// #include <gpc/time.h>
+/// #include <gpc/gptime.h>
 /// @endcode
 /// Timing utilities.
 /// @{
@@ -52,7 +52,7 @@ GPInt128 gp_time_init(void);
  * reference start is `NULL`, then the reference start time will be the time
  * that this function or @ref gp_time() or @ref gp_time_init() was first called.
  */
-GP_GNU_ATTRIB(always_inline) GP_NODISCARD GP_INLINE
+GP_NODISCARD GP_ALWAYS_INLINE
 uint64_t gp_time_ns(const GPInt128* optional_start_ns)
 {
     GPInt128 start = optional_start_ns != NULL ? *optional_start_ns : gp_time_init();
@@ -66,7 +66,7 @@ uint64_t gp_time_ns(const GPInt128* optional_start_ns)
  * start is `NULL`, then the reference start time will be the time that this
  * function or @ref gp_time_ns() or @ref gp_time_init() was first called.
  */
-GP_GNU_ATTRIB(always_inline) GP_NODISCARD GP_INLINE
+GP_NODISCARD GP_ALWAYS_INLINE
 double gp_time(const GPInt128* optional_start_ns)
 {
     return (double)gp_time_ns(optional_start_ns) / 1000000000.;

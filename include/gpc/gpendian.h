@@ -5,7 +5,7 @@
 #ifndef GP_ENDIAN_INCLUDED
 #define GP_ENDIAN_INCLUDED 1
 
-#include <gpc/attributes.h>
+#include <gpc/gpattributes.h>
 
 /// @addtogroup target
 /// @{
@@ -97,7 +97,7 @@
  * If endianness is detected in the preprocessor, then this will be a macro that
  * expands to one if big endian, zero if little endian.
  */
-GP_NODISCARD GP_INLINE GP_GNU_ATTRIB(always_inline)
+GP_NODISCARD GP_ALWAYS_INLINE
 bool gp_endian_is_big(void)
 {
     union Endianness {
@@ -113,7 +113,7 @@ bool gp_endian_is_big(void)
  * If endianness is detected in the preprocessor, then this will be a macro that
  * expands to one if little endian, zero if big endian.
  */
-GP_NODISCARD GP_INLINE GP_GNU_ATTRIB(always_inline)
+GP_NODISCARD GP_ALWAYS_INLINE
 bool gp_endian_is_little(void)
 {
     union Endianness {

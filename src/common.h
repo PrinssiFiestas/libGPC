@@ -9,14 +9,14 @@
 extern "C" {
 #endif
 
-#include <gpc/utils.h>
+#include <gpc/gputils.h>
 #include <math.h>
 
 #if __STDC_VERSION__ >= 201112L || defined(GP_TARGET_POSIX)
 #  define GP_GOT_TIMESPEC 1
 typedef struct timespec GPInternalTimespec;
 #else
-typedef struct gp_internal_timespec
+typedef struct GPInternalTimespec
 {
     int64_t tv_sec;
     long tv_nsec;

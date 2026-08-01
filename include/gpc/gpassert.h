@@ -7,10 +7,10 @@
 #ifndef GP_ASSERT_INCLUDED
 #define GP_ASSERT_INCLUDED 1
 
-#include <gpc/target.h>
-#include <gpc/types.h>
-#include <gpc/breakpoint.h>
-#include <gpc/preprocessor.h>
+#include <gpc/gptarget.h>
+#include <gpc/gptypes.h>
+#include <gpc/gpbreakpoint.h>
+#include <gpc/gppreprocessor.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -25,7 +25,7 @@ extern "C" {
 // ----------------------------------------------------------------------------
 /// @defgroup assert Testing and Assertions
 /// @code
-/// #include <gpc/assert.h>
+/// #include <gpc/gpassert.h>
 /// @endcode
 /// This module provides macros for assertions and functions for unit testing.
 /// All assertion macros can be used for unit testing as well as any other code.
@@ -150,22 +150,22 @@ extern "C" {
  */
 #ifdef GP_TARGET_DEBUG
 #  if defined(__GNUC__) && !defined(__cplusplus) && !defined(GP_PEDANTIC) // nicer fail message
-#    define GP_UNREACHABLE(...) \
+#    define gp_unreachable(...) \
 ({ \
     bool unreachable = 0; \
     gp_assert(unreachable, __VA_ARGS__); \
 })
 #  else
-#    define GP_UNREACHABLE(...) gp_assert(0, __VA_ARGS__)
+#    define gp_unreachable(...) gp_assert(0, __VA_ARGS__)
 #  endif
 #elif __STDC_VERSION__ >= 202311L
-#  define GP_UNREACHABLE(...) unreachable()
+#  define gp_unreachable(...) unreachable()
 #elif defined(__GNUC__)
-#  define GP_UNREACHABLE(...) __builtin_unreachable()
+#  define gp_unreachable(...) __builtin_unreachable()
 #elif defined(_MSC_VER)
-#  define GP_UNREACHABLE(...) __assume(0)
+#  define gp_unreachable(...) __assume(0)
 #else
-#  define GP_UNREACHABLE(...) (*(char*)0 = 0)
+#  define gp_unreachable(...) (*(char*)0 = 0)
 #endif
 
 /** Compile-time assertion.
@@ -247,7 +247,7 @@ GP_API void gp_test(const char* name);
 #ifdef GP_TARGET_DEBUG
 #  define GP_ASSUME_FAIL GP_DEBUG_BREAKPOINT_TRAP, exit(1)
 #else
-#  define GP_ASSUME_FAIL GP_UNREACHABLE()
+#  define GP_ASSUME_FAIL gp_unreachable()
 #endif
 
 // Ignore unused value warnings
@@ -270,7 +270,7 @@ typedef struct gp_internal_reflection_data
 
     // Simplified specifier. If var_name is not a format string, then this is
     // used avoiding format string parsing.
-    const enum gp_type type;
+    const enum gp_type_t type;
 
     // Actual data is in gp_str_print_internal() variadic args.
 } GPInternalReflectionData;

@@ -5,8 +5,8 @@
 #ifndef GP_TYPES_INCLUDED
 #define GP_TYPES_INCLUDED 1
 
-#include <gpc/attributes.h>
-#include <gpc/overload.h>
+#include <gpc/gpattributes.h>
+#include <gpc/gpoverload.h>
 #include <stddef.h>
 #include <stdbool.h>
 
@@ -17,7 +17,7 @@
 // ----------------------------------------------------------------------------
 /// @defgroup types Types
 /// @code
-/// #include <gpc/types.h>
+/// #include <gpc/gptypes.h>
 /// @endcode
 /// Miscellaneous type utilities.
 /// @{
@@ -27,30 +27,30 @@
  * Only primitives, `char*`, @ref GPString, `GPUInt128`, and `GPInt128` have
  * distinct enumeration constants, everything else will be assumed to be `void*`.
  */
-typedef enum gp_type
+typedef enum gp_type_t
 {
-    GP_NO_TYPE,
-    GP_TYPE_BOOL,
-    GP_TYPE_UNSIGNED_CHAR,
-    GP_TYPE_UNSIGNED_SHORT,
-    GP_TYPE_UNSIGNED,
-    GP_TYPE_UNSIGNED_LONG,
+    GP_NO_TYPE                ,
+    GP_TYPE_BOOL              ,
+    GP_TYPE_UNSIGNED_CHAR     ,
+    GP_TYPE_UNSIGNED_SHORT    ,
+    GP_TYPE_UNSIGNED          ,
+    GP_TYPE_UNSIGNED_LONG     ,
     GP_TYPE_UNSIGNED_LONG_LONG,
-    GP_TYPE_UINT128,
-    GP_TYPE_CHAR,
-    GP_TYPE_SIGNED_CHAR,
-    GP_TYPE_SHORT,
-    GP_TYPE_INT,
-    GP_TYPE_LONG,
-    GP_TYPE_LONG_LONG,
-    GP_TYPE_INT128,
-    GP_TYPE_FLOAT,
-    GP_TYPE_DOUBLE,
-    GP_TYPE_LONG_DOUBLE,
-    GP_TYPE_CHAR_PTR,
-    GP_TYPE_STRING,
-    GP_TYPE_PTR,
-    #define GP_TYPE_LENGTH (GP_TYPE_PTR + 1) ///< Number of defined `enum gp_type` constants.
+    GP_TYPE_UINT128           ,
+    GP_TYPE_CHAR              ,
+    GP_TYPE_SIGNED_CHAR       ,
+    GP_TYPE_SHORT             ,
+    GP_TYPE_INT               ,
+    GP_TYPE_LONG              ,
+    GP_TYPE_LONG_LONG         ,
+    GP_TYPE_INT128            ,
+    GP_TYPE_FLOAT             ,
+    GP_TYPE_DOUBLE            ,
+    GP_TYPE_LONG_DOUBLE       ,
+    GP_TYPE_CHAR_PTR          ,
+    GP_TYPE_STRING            ,
+    GP_TYPE_PTR               ,
+    #define GP_TYPE_LENGTH 21 ///< Number of `enum gp_type_t` constants.
 } gp_type_t;
 
 #ifdef GP_DOXYGEN
@@ -60,7 +60,10 @@ typedef enum gp_type
  * Yields the type-name representing the type of it's operand. No implicit
  * conversions are applied to the argument.
  *
- * Defined when using C23, GNUC, MSVC, TCC, or C++11.
+ * Defined when using C23, GNUC, MSVC, TCC, or C++11. Different compilers with
+ * different compiler settings require different variants of this operator.
+ * For example, C++ has `decltype` and some compilers might require `__typeof__`.
+ * This portably expands to an appropriate one.
  */
 #define GP_TYPEOF(...) typeof(__VA_ARGS__)
 
@@ -99,6 +102,17 @@ typedef enum gp_type
  * @endcode
  */
 #define GP_TYPEOF_TYPE(...) GP_TYPEOF((__VA_ARGS__){0})
+
+/** Cast to type.
+ *
+ * If @ref GP_TYPEOF is defined, this expands to a cast operator that casts to
+ * the type of the argument. If @ref GP_TYPEOF is not defined, then this expands
+ * to nothing.
+ *
+ * This is most useful to improve type safety of macro functions that return a
+ * `void*`.
+ */
+#define GP_TYPEOF_CAST(...) (GP_TYPEOF(__VA_ARGS__))
 
 #endif // GP_DOXYGEN
 
@@ -273,17 +287,18 @@ template <typename T> struct GPCPPType { T t; };
 #define GP_TYPEOF_TYPE(...) __VA_ARGS__
 #endif
 
-// typeof() operator. GNUC and MSVC already covers mostly used compilers, but
-// not all compilers are supported.
 #if __STDC_VERSION__ >= 202311L || defined(__TINYC__)
-#  define GP_HAS_TYPEOF 1
 #  define GP_TYPEOF(...) typeof(__VA_ARGS__)
 #elif defined(_MSC_VER) || defined(__GNUC__)
-#  define GP_HAS_TYPEOF 1
 #  define GP_TYPEOF(...) __typeof__(__VA_ARGS__)
 #elif __cplusplus >= 201103L
-#  define GP_HAS_TYPEOF 1
 #  define GP_TYPEOF(...) decltype(__VA_ARGS__)
+#endif
+
+#ifdef GP_TYPEOF
+#  define GP_TYPEOF_CAST(...) (GP_TYPEOF(__VA_ARGS__))
+#else
+#  define GP_TYPEOF_CAST(...)
 #endif
 
 #ifndef __cplusplus // Available in C++ as constexpr functions, not availaible in C99.

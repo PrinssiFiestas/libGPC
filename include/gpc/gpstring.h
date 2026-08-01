@@ -20,7 +20,7 @@ extern "C" {
 // ----------------------------------------------------------------------------
 /// @defgroup string String
 /// @code
-/// #include <gpc/string.h>
+/// #include <gpc/gpstring.h>
 /// @endcode
 /// TODO description
 /// @{

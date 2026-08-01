@@ -10,21 +10,16 @@
 #ifndef GP_THREAD_INCLUDED
 #define GP_THREAD_INCLUDED 1
 
-#include <gpc/attributes.h>
-#include <gpc/assert.h>
-#include <gpc/time.h>
-#include <gpc/int128.h>
+#include <gpc/gpattributes.h>
+#include <gpc/gpassert.h>
+#include <gpc/gptime.h>
+#include <gpc/gpint128.h>
 
 #if defined(GP_TARGET_OS_WINDOWS) && !defined(GP_USE_PTHREADS)
 #define GP_USE_WINTHREADS 1
 #else
 #include <pthread.h>
 #include <string.h> // strerror
-#endif
-
-// TODO move atomics to appropriate header.
-#if __STDC_VERSION__ >= 201112L && !defined(GP_TARGET_OS_WINDOWS) // UCRT stdatomic.h broken
-#include <stdatomic.h>
 #endif
 
 #ifdef __cplusplus
@@ -38,7 +33,7 @@ extern "C" {
 // ----------------------------------------------------------------------------
 /// @defgroup thread Threading
 /// @code
-/// #include <gpc/thread.h>
+/// #include <gpc/gpthread.h>
 /// @endcode
 /// Portable threading API based on [C11 threads API](https://en.cppreference.com/c/header/threads),
 /// including threads, mutual exclusion, condition variables, and thread local
@@ -51,6 +46,7 @@ extern "C" {
 /// it's implementation. POSIX threads can be forced with @ref GP_USE_PTHREADS.
 ///
 /// Our changes to C11 API:
+///
 /// - Added static initializers for mutexes.
 /// - Added static initializers for condition variables.
 /// - Added @ref GP_THREAD_LOCAL_MAX_SLOTS.
@@ -97,7 +93,7 @@ extern "C" {
 // - Some UB pointer casts were hacked away using @ref gp_launder(). That's the
 //   best we can do without including `windows.h` in header files, which might
 //   break user builds (namespace pollution like `min` and include order
-//   problems).
+//   problems). FIXME use union with char array instead.
 // - Removed 32-bit internal timespec, use 64 bits always with C99 `uint64_t`.
 //   All 32-bit specific functions were removed, they are not needed even for
 //   32-bit builds.
@@ -113,28 +109,6 @@ extern "C" {
  * using POSIX threads instead.
  */
 #define GP_USE_PTHREADS
-#endif
-
-// TODO move atomics to appropriate header
-// TODO C++ and C23
-// TODO always atomics?
-// TODO use compiler extensions when available? We probably should yoink another lib.
-/** Sometimes atomic.
- *
- * Use this only when atomics would be ideal but not necessary for correctness.
- */
-#ifdef __cplusplus
-#  define GP_HAS_ATOMICS 1
-#  define GP_MAYBE_ATOMIC(...) std::atomic<__VA_ARGS__>
-#elif __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_ATOMICS__)
-#  define GP_HAS_ATOMICS 1
-#  define GP_MAYBE_ATOMIC(...) /* sometimes */_Atomic(__VA_ARGS__)
-#else
-#  define GP_MAYBE_ATOMIC(...)
-#endif
-
-#ifdef GP_HAS_ATOMICS
-#  define GP_ATOMIC(...) GP_MAYBE_ATOMIC(__VA_ARGS__)
 #endif
 
 // ----------------------------------------------------------------------------
@@ -172,6 +146,9 @@ typedef pthread_t GPThread;
  * Creates a new thread, whose ID will be stored to @ref thread, which is used
  * to refer to that thread. The new thread starts execution by calling @a routine.
  * @a optional_arg will be passed to the given routine.
+ *
+ * To release resourced used by threads, one must either join a thread using
+ * @ref gp_thread_join() or detach it using @ref gp_thread_detach().
  *
  * The thread terminates once @a routine returns, calls @ref gp_thread_exit(),
  * or once the process terminates. The return value of @a routine or value
@@ -271,7 +248,7 @@ GP_INLINE void gp_thread_yield(void)
  * A mutex (mutual exclusion) is used to limit access of code segments and
  * shared data to a single thread at a time.
  *
- * Can be initialized statically by using @ref GP_MUTEX_INITIALIZER or
+ * Can be initialized statically by using @ref GP_MUTEX_INIT or
  * dynamically using @ref gp_mutex_init(). Dynamically created mutexes can be
  * destroyed using @ref gp_mutex_destroy().
  *
@@ -289,20 +266,20 @@ typedef pthread_mutex_t GPMutex;
  *
  * Example:
  * @code
- * static GPMutex mutex = GP_MUTEX_INITIALIZER;
+ * static GPMutex mutex = GP_MUTEX_INIT;
  * @endcode
  */
 #ifdef GP_DOXYGEN
-#  define GP_MUTEX_INITIALIZER /* unspecified */
+#  define GP_MUTEX_INIT /* unspecified */
 #elif defined(GP_TARGET_DEBUG) && defined(_GNU_SOURCE)
-#  define GP_MUTEX_INITIALIZER PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
+#  define GP_MUTEX_INIT PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
 #else
-#  define GP_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
+#  define GP_MUTEX_INIT PTHREAD_MUTEX_INITIALIZER
 #endif
 
 /** Create mutex dynamically.
  *
- * Dynamically created mutexes can be destroyed using @ref gp_mutex_destroy().
+ * Dynamically created mutexes must be destroyed using @ref gp_mutex_destroy().
  */
 GP_NONNULL_ARGS() GP_INLINE
 void gp_mutex_init(GPMutex *mutex)
@@ -438,7 +415,7 @@ void gp_mutex_unlock(GPMutex* mutex)
  *
  * Used in conjunction with @ref GPMutex to wait until a condition is met.
  *
- * Can be initialized statically by using @ref GP_COND_INITIALIZER or
+ * Can be initialized statically by using @ref GP_COND_INIT or
  * dynamically using @ref gp_cond_init(). Dynamically created condition
  * variables can be destroyed using @ref gp_cond_destroy().
  */
@@ -452,18 +429,18 @@ typedef pthread_cond_t GPCond;
  *
  * Example:
  * @code
- * static GPCond mutex = GP_COND_INITIALIZER;
+ * static GPCond mutex = GP_COND_INIT;
  * @endcode
  */
 #ifdef GP_DOXYGEN
-#  define GP_COND_INITIALIZER /* unspecified */
+#  define GP_COND_INIT /* unspecified */
 #else
-#  define GP_COND_INITIALIZER PTHREAD_COND_INITIALIZER
+#  define GP_COND_INIT PTHREAD_COND_INITIALIZER
 #endif
 
 /** Create condition variable dynamically.
  *
- * Dynamically created condition variables can be destroyed using
+ * Dynamically created condition variables must be destroyed using
  * @ref gp_cond_destroy().
  */
 GP_NONNULL_ARGS() GP_INLINE
@@ -484,7 +461,7 @@ GP_INLINE void gp_cond_destroy(GPCond* optional_cond)
     #ifdef GP_TARGET_DEBUG // enforce proper usage for portability.
         gp_assert(pthread_cond_destroy(optional_cond) == 0, strerror(EBUSY));
     #else // asserting too harsh, pthread_cond_destroy() is no-op in many implementations.
-        pthread_cond_destroy(cond);
+        pthread_cond_destroy(optional_cond);
     #endif
 }
 
@@ -612,8 +589,8 @@ void gp_cond_signal(GPCond* cond)
  * @code
  * void barrier(void)
  * {
- *     static GPMutex mutex = GP_MUTEX_INITIALIZER;
- *     static GPCond cond = GP_COND_INITIALIZER;
+ *     static GPMutex mutex = GP_MUTEX_INIT;
+ *     static GPCond cond = GP_COND_INIT;
  *     static size_t threads_waiting = 0;
  *
  *     gp_mutex_lock(&mutex);
@@ -724,7 +701,7 @@ void gp_cond_broadcast(GPCond* cond)
  * This example demonstrates how to implement a function similar to `strerror()`.
  * @code
  * static GPThreadKey error_str_key;
- * static GPOnce error_str_once = GP_ONCE_INITIALIZER;
+ * static GPOnce error_str_once = GP_ONCE_INIT;
  * #define BUF_SIZE 64
  *
  * static void error_str_init(void)
@@ -900,7 +877,7 @@ GP_INLINE void* gp_thread_local_get(GPThreadKey key)
 ///
 /// void* get_foo(void)
 /// {
-///     static GPOnce initialized = GP_ONCE_INITIALIZER;
+///     static GPOnce initialized = GP_ONCE_INIT;
 ///     gp_call_once(&initialized, init_foo);
 ///     return foo;
 /// }
@@ -910,7 +887,7 @@ GP_INLINE void* gp_thread_local_get(GPThreadKey key)
 /** Opaque flag used for @ref gp_call_once().
  *
  * Indicates if function passed to @ref gp_call_once() has been called.
- * Should be initialized to @ref GP_ONCE_INITIALIZER to indicate that the
+ * Should be initialized to @ref GP_ONCE_INIT to indicate that the
  * function has not been called. After calling @ref gp_call_once(), the value
  * changes to indicate that the function has been called.
  */
@@ -922,9 +899,9 @@ typedef pthread_once_t GPOnce;
 
 /** Static initializer for @ref GPOnce. */
 #ifdef GP_DOXYGEN
-#  define GP_ONCE_INITIALIZER /* unspecified */
+#  define GP_ONCE_INIT /* unspecified */
 #else
-#  define GP_ONCE_INITIALIZER PTHREAD_ONCE_INIT
+#  define GP_ONCE_INIT PTHREAD_ONCE_INIT
 #endif
 
 /** Thread-safe initialization.
@@ -937,7 +914,7 @@ typedef pthread_once_t GPOnce;
  *
  * Value pointed by @a flag should be allocated with global lifetime if one
  * wants @a func to be truly only ever called once. Value pointed by @a flag
- * also should be initialized using @ref GP_ONCE_INITIALIZER before call.
+ * also should be initialized using @ref GP_ONCE_INIT before call.
  */
 GP_NONNULL_ARGS() GP_INOUT(1) GP_INLINE
 void gp_call_once(GPOnce* flag, void (*func)(void))
@@ -975,12 +952,12 @@ GP_API void gp_thread_yield(void);
 // ------------------------------------
 // Mutexes
 
-typedef struct
+typedef struct GPMutex
 {
     void* _ptr;
 } GPMutex;
 
-#define GP_MUTEX_INITIALIZER {0}
+#define GP_MUTEX_INIT {0}
 
 GP_API GP_NONNULL_ARGS() void gp_mutex_init(GPMutex* mtx);
 
@@ -1004,12 +981,12 @@ GP_API GP_NONNULL_ARGS() void gp_mutex_unlock(GPMutex *mtx);
 // ------------------------------------
 // Condition Variables
 
-typedef struct
+typedef struct GPCond
 {
     void* _ptr;
 } GPCond;
 
-#define GP_COND_INITIALIZER {0}
+#define GP_COND_INIT {0}
 
 GP_API GP_NONNULL_ARGS() void gp_cond_init(GPCond *cond);
 
@@ -1054,7 +1031,7 @@ GP_API void* gp_thread_local_get(GPThreadKey key);
 // ------------------------------------
 // Call Once
 
-#define GP_ONCE_INITIALIZER NULL
+#define GP_ONCE_INIT NULL
 
 typedef void* GPOnce;
 

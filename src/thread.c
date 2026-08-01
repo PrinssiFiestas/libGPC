@@ -7,7 +7,9 @@
 //   John Tsiombikas <nuclear@member.fsf.org> - original POSIX threads wrapper
 //   Oliver Old <oliver.old@outlook.com> - win32 implementation
 
-#include <gpc/thread.h>
+// FIXME: get rid of pointer laundering, single header breaks it, use union and char array instead.
+
+#include <gpc/gpthread.h>
 #include "common.h"
 
 /*
@@ -211,7 +213,7 @@ static void gp_s_thread_init_exit_cleanup(void)
 
 bool gp_thread_create(GPThread *thr, int(*func)(void*), void *arg)
 {
-    static GPOnce initialized = GP_ONCE_INITIALIZER;
+    static GPOnce initialized = GP_ONCE_INIT;
     struct _c11threads_win32_thrd_start_thunk_parameters_t *thread_start_params;
     struct _c11threads_win32_thrd_entry_t *thread_entry;
     void *h;
@@ -547,8 +549,8 @@ void gp_call_once(GPOnce *flag, void (*func)(void))
 #else // pthreads
 
 
-#include <gpc/utils.h>
-#include <gpc/time.h>
+#include <gpc/gputils.h>
+#include <gpc/gptime.h>
 #include <limits.h>
 #include <stdint.h>
 
@@ -565,7 +567,7 @@ bool gp_thread_create(GPThread* thr, int(*func)(void*), void *arg)
     return !pthread_create(thr, 0, gp_launder(func), arg);
 }
 #else // thunk
-typedef struct gp_thread_thunk_args
+typedef struct GPThreadThunkArgs
 {
     int(*routine)(void* arg);
     void* arg;

@@ -52,6 +52,9 @@ The only exception to these rules is `GPC_IMPLEMENTATION`, which is defined by
 the user when compiling the single header library. This uses `GPC_` prefix
 instead of `GP_` prefix.
 
+All public header files are prefixed with `gp`. Most importantly this fixes
+conflicts between standard `string.h` and our `gpstring.h`.
+
 ### Macros and Enumeration Constants
 
 Macros and enumeration constants are `SCREAMING_SNAKE_CASE`. Exception to this
@@ -62,9 +65,8 @@ expression, not a statement like `do {...} while(0)`.
 
 ### Structures and Unions
 
-Typedefs to compound types or opaque types use PascalCase. However, the
-underlying compound types use snake_case, so the user can choose between `GPType`
-and `struct gp_type` based on their preference. We prefer the former.
+Typedefs to compound types or opaque types use PascalCase. Struct tags match
+the typedef alias to enable forward declaration and for C++ compatibility.
 
 ### Fundamental Types
 

@@ -33,8 +33,8 @@ file using the single header library:
 Example of defining a macro only needed for a specific translation unit:
 @code
 #define GP_NO_FORMAT_STRING_CHECK 1
-#include <gpc/io.h>
-#include <gpc/string.h>
+#include <gpc/gpio.h>
+#include <gpc/gpstring.h>
 
 void print_string(GPString str)
 {
@@ -57,9 +57,10 @@ void print_string(GPString str)
 | @ref GP_PEDANTIC               | @copybrief GP_PEDANTIC               |
 | @ref GP_NO_FORMAT_STRING_CHECK | @copybrief GP_NO_FORMAT_STRING_CHECK |
 
-| Threading            |                            |
-| :------------------- | -------------------------- |
-| @ref GP_USE_PTHREADS | @copybrief GP_USE_PTHREADS
+| Threading                             |                                             |
+| :------------------------------------ | ------------------------------------------- |
+| @ref GP_USE_PTHREADS                  | @copybrief GP_USE_PTHREADS                  |
+| @ref GP_USE_MSVC_EXPERIMENTAL_ATOMICS | @copybrief GP_USE_MSVC_EXPERIMENTAL_ATOMICS |
 
 | Endianness     |                      |
 | :------------- | -------------------- |

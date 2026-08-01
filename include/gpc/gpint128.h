@@ -9,9 +9,9 @@
 #ifndef GP_INT128_INCLUDED
 #define GP_INT128_INCLUDED 1
 
-#include <gpc/types.h>
-#include <gpc/overload.h>
-#include <gpc/endian.h>
+#include <gpc/gptypes.h>
+#include <gpc/gpoverload.h>
+#include <gpc/gpendian.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -44,7 +44,7 @@ typedef int      gp_tetra_int_t  __attribute__((mode(TI)));
 // ----------------------------------------------------------------------------
 /// @defgroup int128 128-bit Integers
 /// @code
-/// #include <gpc/int128.h>
+/// #include <gpc/gpint128.h>
 /// @endcode
 /// Portable 128-bit integer types with functions (most inline) and type generic
 /// macros for 128-bit integer arithmetic. All [C arithmetic operators](https://en.cppreference.com/c/language/operator_arithmetic)
@@ -62,7 +62,7 @@ typedef int      gp_tetra_int_t  __attribute__((mode(TI)));
  * Use @ref gp_uint128() to construct from `uint64_t` parts or @ref gp_u128() to
  * construct from any built-in arithmetic type.
  */
-typedef union gp_uint128
+typedef union GPUInt128
 {
     #if (defined(GP_HAS_ANONYMOUS_STRUCT) && GP_ENDIAN == GP_ENDIAN_LITTLE) || defined(GP_DOXYGEN)
     struct {
@@ -113,7 +113,7 @@ typedef union gp_uint128
  *
  * Overflow is undefined like with regular signed integers.
  */
-typedef union gp_int128
+typedef union GPInt128
 {
     #if (defined(GP_HAS_ANONYMOUS_STRUCT) && GP_ENDIAN == GP_ENDIAN_LITTLE) || defined(GP_DOXYGEN)
     struct {

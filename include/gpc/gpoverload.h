@@ -5,7 +5,7 @@
 #ifndef GP_OVERLOAD_INCLUDED
 #define GP_OVERLOAD_INCLUDED 1
 
-#include <gpc/attributes.h>
+#include <gpc/gpattributes.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <limits.h>
@@ -19,13 +19,14 @@
 // ----------------------------------------------------------------------------
 /// @defgroup overload Overloading
 /// @code
-/// #include <gpc/overload.h>
+/// #include <gpc/gpoverload.h>
 /// @endcode
 /// Macros for function/macro overloading by argument number or types.
 /// @{
 
 #ifdef GP_DOXYGEN
 /** Overloading by argument count.
+ *
  * Overloading functions and macro functions by the number of arguments can be
  * done with these macros by defining a variadic macro that expands to
  * `GP_OVERLOADN`, which will do the dispatching based on the number of variadic
@@ -58,25 +59,29 @@
 #define GP_OVERLOADN(...)
 
 // ----------------------------------------------------------------------------
-/// @defgroup C11Generic C11 _Generic helpers
-/// C11 `_Generic` requires specifying all types explicitly and does not do
-/// implicit conversions. This gives good control, but is inconvenient in some
-/// cases e.g. you just want to differentiate between an integer and a float. It
-/// is also not fully portable. For example, MSVC does not differentiate between
-/// char and [un]signed char, but GCC does. Using these macros inside `_Generic`
-/// selection fixes the portability issues and increases convenience.
-///
-/// Example use:
-/// @code
-/// intmax_t    fooi(intmax_t x);
-/// uintmax_t   foou(uintmax_t x);
-/// long double foof(long double x);
-/// #define foo(X) _Generic((X), \
-///     GP_C11_GENERIC_SIGNED_INTEGER(fooi), \
-///     GP_C11_GENERIC_UNSIGNED_INTEGER(foou), \
-///     GP_C11_GENERIC_FLOAT(foof)) (X)
-/// @endcode
-/// @{
+/** @defgroup C11Generic C11 _Generic helpers
+ *
+ * Helpers for writing overloading macros using C11 `_Generic` selection.
+ *
+ * C11 `_Generic` requires specifying all types explicitly and does not do
+ * implicit conversions. This gives good control, but is inconvenient in some
+ * cases e.g. you just want to differentiate between an integer and a float. It
+ * is also not fully portable. For example, MSVC does not differentiate between
+ * char and [un]signed char, but GCC does. Using these macros inside `_Generic`
+ * selection fixes the portability issues and increases convenience.
+ *
+ * Example use:
+ * @code
+ * intmax_t    fooi(intmax_t x);
+ * uintmax_t   foou(uintmax_t x);
+ * long double foof(long double x);
+ * #define foo(X) _Generic((X), \
+ *     GP_C11_GENERIC_SIGNED_INTEGER(fooi), \
+ *     GP_C11_GENERIC_UNSIGNED_INTEGER(foou), \
+ *     GP_C11_GENERIC_FLOAT(foof)) (X)
+ * @endcode
+ * @{
+ */
 
 /** All signed types.
  * Signed primitive integers, `GPInt128`, and plain `char` if signed.

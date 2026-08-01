@@ -2,9 +2,9 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#include <gpc/time.h>
-#include <gpc/thread.h> // GPOnce
-#include <gpc/utils.h>
+#include <gpc/gptime.h>
+#include <gpc/gpthread.h> // GPOnce
+#include <gpc/gputils.h>
 #include "common.h"
 #include <time.h>
 #include <errno.h>
@@ -135,7 +135,7 @@ static void gp_s_init_global_time(void)
 
 GPInt128 gp_time_init(void)
 {
-    static GPOnce init_time_once = GP_ONCE_INITIALIZER;
+    static GPOnce init_time_once = GP_ONCE_INIT
     gp_call_once(&init_time_once, gp_s_init_global_time);
     return gp_s_time;
 }
@@ -171,7 +171,7 @@ void gp_sleep(double seconds)
 
     GPInternalTimespec ts = gp_internal_timespec_from_time(seconds);
 
-    errno_t old_errno = errno;
+    int old_errno = errno;
     bool interrupted;
     do {
         #if defined(GP_USE_C11_THREAD_SLEEP)
@@ -197,7 +197,7 @@ void gp_sleep_ns(int64_t nanoseconds)
 
     GPInternalTimespec ts = gp_internal_timespec_from_time_ns(nanoseconds);
 
-    errno_t old_errno = errno;
+    int old_errno = errno;
     bool interrupted;
     do {
         #if defined(GP_USE_C11_THREAD_SLEEP)
@@ -220,7 +220,7 @@ void gp_sleep_absolute(GPInt128 time_ns)
         return;
 
     bool interrupted;
-    errno_t old_errno = errno;
+    int old_errno = errno;
     #if defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE >= 200112L
     // FIXME: Ignoring hi bits of 128 bit timestamp. But no rush to fix, as of
     // 2026, we still have a couple of hundreds of years before this matters.

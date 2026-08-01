@@ -5,7 +5,7 @@
 // Original: https://github.com/jtsiomb/c11threads/blob/master/test/test.c
 
 #include "../src/thread.c"
-#include <gpc/assert.h>
+#include <gpc/gpassert.h>
 #include <stdio.h>
 
 #define CHK_THRD_EXPECTED(a, b) gp_assert((a) == (b))
@@ -18,7 +18,7 @@ GPMutex mtx2;
 GPCond cnd;
 GPCond cnd2;
 GPThreadKey tss;
-GPOnce once = GP_ONCE_INITIALIZER;
+GPOnce once = GP_ONCE_INIT;
 int flag;
 
 void run_thread_test(void);

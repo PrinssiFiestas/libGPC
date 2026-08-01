@@ -38,7 +38,7 @@
 #ifndef GP_BREAKPOINT_INCLUDED
 #define GP_BREAKPOINT_INCLUDED 1
 
-#include <gpc/target.h> // GP_TARGET_DEBUG
+#include <gpc/gptarget.h> // GP_TARGET_DEBUG
 
 
 // ----------------------------------------------------------------------------

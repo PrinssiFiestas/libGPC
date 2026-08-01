@@ -2,9 +2,9 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#include <gpc/int128.h>
-#include <gpc/assert.h>
-#include <gpc/utils.h>
+#include <gpc/gpint128.h>
+#include <gpc/gpassert.h>
+#include <gpc/gputils.h>
 #include <stdarg.h>
 #include <math.h>
 

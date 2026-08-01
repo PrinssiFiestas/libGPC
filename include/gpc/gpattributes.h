@@ -2,16 +2,16 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#include <gpc/target.h>
+#include <gpc/gptarget.h>
 
 #ifndef GP_ATTRIBUTES_INCLUDED
 #define GP_ATTRIBUTES_INCLUDED 1
 
 #ifdef GP_DOXYGEN
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 /// @defgroup attributes Attributes
 /// @code
-/// #include <gpc/attributes.h>
+/// #include <gpc/gpattributes.h>
 /// @endcode
 /// This module contains portable macros mostly wrapping GNUC attributes.
 /// Attributes are used to give compiler additional information, which can be
@@ -87,14 +87,14 @@
 
 #endif // GP_DOXYGEN
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Alignment
 
 // TODO this probably should go to memory module
 /** Alignment of all pointers returned by any valid allocators.*/
 #define GP_ALLOC_ALIGNMENT (2*sizeof(size_t))
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Nodiscard
 
 /** Warn for ignored return value.
@@ -111,7 +111,7 @@
 #  define GP_NODISCARD /* implementation defined */
 #endif
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Nonnull
 
 #ifdef GP_DOXYGEN
@@ -175,7 +175,7 @@
 #  define GP_NONNULL_ARGS_AND_RETURN
 #endif
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Require Initialized Memory
 
 /** In/out annotation for pointer arguments.
@@ -207,7 +207,7 @@
 #  define GP_INOUT(...) /* implementation defined */
 #endif
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Restrict
 
 /** Portable `restrict` qualifier.
@@ -226,7 +226,7 @@
 #  define GP_RESTRICT restrict
 #endif
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Optimize
 
 #ifdef __clang__
@@ -258,7 +258,7 @@
 #  define GP_OPTIMIZE_HIGH /* implementation defined */
 #endif
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Disable sanitizers
 
 /** Disable sanitizers.
@@ -275,7 +275,7 @@
 #  define GP_NO_SANITIZE
 #endif
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Printf Format String Type Checking
 
 /** Type checking for format strings.
@@ -303,7 +303,7 @@
 #  define GP_CHECK_FORMAT_STRING(FORMAT_STRING_ARGUMENT, FIRST_TO_CHECK) /* implementation defined */
 #endif
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // GNU
 
 /** Any other GNU C attributes.
@@ -321,7 +321,7 @@
 #define GP_GNU_ATTRIB(...) /* implementation defined */
 #endif
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Predict
 
 /** Predict branch.
@@ -347,7 +347,7 @@
 #  define GP_UNLIKELY(...) /* implementation defined */(!!(__VA_ARGS__)) ///< @copydoc GP_LIKELY
 #endif
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // API
 
 /** Hidden global symbol visibility in shared libraries.
@@ -415,7 +415,61 @@
 #  define GP_INLINE
 #endif
 
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// No Inline
+
+/** Never inline.
+ *
+ * Function attribute to indicate that the given function shall not be inlined.
+ */
+#ifdef __GNUC__
+#  define GP_NOINLINE __attribute__((noinline))
+#elif defined(_MSC_VER)
+#  define GP_NOINLINE __declspec((noinline))
+#else
+#  define GP_NOINLINE /** implementation defined */
+#endif
+
+//------------------------------------------------------------------------------
+// Always Inline
+
+/** Always inline.
+ *
+ * Like @ref GP_INLINE except forces major compilers to inline. Careless use
+ * causes code bloat, which may just make the code run slower, so only use this
+ * if there is a specific reason to.
+ */
+#ifdef GP_DOXYGEN
+#  define GP_ALWAYS_INLINE /* implementation defined */
+#elif !defined(GPC_IMPLEMENTATION) || defined(GP_NO_EXPORT_INLINES)
+#  ifdef __GNUC__
+#    define GP_ALWAYS_INLINE __attribute__((always_inline)) static inline
+#  elif defined(_MSC_VER)
+#    define GP_ALWAYS_INLINE static __forceinline
+#  else
+#    define GP_ALWAYS_INLINE static inline
+#  endif
+#elif defined(GP_SHARED_EXPORT)
+#  define GP_ALWAYS_INLINE GP_API
+#else
+#  define GP_ALWAYS_INLINE
+#endif
+
+/** Always inline without exporting function to binary.
+ *
+ * Like @ref GP_ALWAYS_INLINE, except function will not be exported to binary.
+ */
+#ifdef GP_DOXYGEN
+#  define GP_ALWAYS_INLINE_NOEXPORT /* implementation defined */
+#elif defined(__GNUC__)
+#  define GP_ALWAYS_INLINE_NOEXPORT __attribute__((always_inline)) static inline
+#elif defined(_MSC_VER)
+#  define GP_ALWAYS_INLINE_NOEXPORT static __forceinline
+#else
+#  define GP_ALWAYS_INLINE_NOEXPORT static inline
+#endif
+
+//------------------------------------------------------------------------------
 // No Return
 
 /** Never return.
@@ -434,22 +488,7 @@
 #  define GP_NORETURN /** implementation defined */
 #endif
 
-// ----------------------------------------------------------------------------
-// No Inline
-
-/** Never inline.
- *
- * Function attribute to indicate that the given function shall not be inlined.
- */
-#ifdef __GNUC__
-#  define GP_NOINLINE __attribute__((noinline))
-#elif defined(_MSC_VER)
-#  define GP_NOINLINE __declspec((noinline))
-#else
-#  define GP_NOINLINE /** implementation defined */
-#endif
-
-// ----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 // Deprecated
 
 /** Deprecate function, variable, type, or enumerator.

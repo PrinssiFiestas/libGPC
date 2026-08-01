@@ -3,8 +3,8 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include "../src/terminal.c"
-#include <gpc/assert.h>
-#include <gpc/utils.h>
+#include <gpc/gpassert.h>
+#include <gpc/gputils.h>
 
 #ifdef GP_TARGET_OS_WINDOWS
 #  include <windows.h>

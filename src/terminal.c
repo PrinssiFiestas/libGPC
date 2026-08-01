@@ -2,8 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#include <gpc/terminal.h>
-#include <gpc/thread.h>
+#include <gpc/gpterminal.h>
+#include <gpc/gpthread.h>
 #ifdef GP_TARGET_OS_WINDOWS
 #  include <windows.h>
 #  include <io.h>

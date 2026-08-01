@@ -5,7 +5,7 @@
 #ifndef GP_PREPROCESSOR_INCLUDED
 #define GP_PREPROCESSOR_INCLUDED 1
 
-#include <gpc/overload.h>
+#include <gpc/gpoverload.h>
 
 // ----------------------------------------------------------------------------
 //
@@ -14,7 +14,7 @@
 // ----------------------------------------------------------------------------
 /// @defgroup preprocessor Preprocessor
 /// @code
-/// #include <gpc/preprocessor.h>
+/// #include <gpc/gppreprocessor.h>
 /// @endcode
 /// Macros for function/macro overloading by argument number or types.
 /// @{
@@ -54,6 +54,9 @@
 #define GP_TOKEN_TO_STRING(A) #A ///< Convert @a A to a string literal.
 #define GP_TOKEN_EXPAND_TO_STRING(A) GP_TOKEN_TO_STRING(A) ///< Expands @a A (if macro) to a string literal.
 #define GP_1ST_ARG(A, ...) A ///< Ignore all passed arguments except the first.
+#define GP_2ND_ARG(A, ...) A ///< Ignore all passed arguments except the second.
+#define GP_3RD_ARG(A, ...) A ///< Ignore all passed arguments except the third.
+#define GP_4TH_ARG(A, ...) A ///< Ignore all passed arguments except the fourth.
 
 /** Comma token.
  * Expands to a comma. Most useful as a separator for @ref GP_PROCESS_ALL_ARGS.
