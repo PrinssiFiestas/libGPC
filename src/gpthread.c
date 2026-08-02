@@ -322,17 +322,17 @@ void gp_thread_yield(void)
 
 void gp_mutex_init(GPMutex *mtx)
 {
-    InitializeSRWLock(gp_launder(mtx));
+    InitializeSRWLock(GP_LAUNDER_CAST(mtx));
 }
 
 void gp_mutex_lock(GPMutex *mtx)
 {
-    AcquireSRWLockExclusive(gp_launder(mtx));
+    AcquireSRWLockExclusive(GP_LAUNDER_CAST(mtx));
 }
 
 bool gp_mutex_trylock(GPMutex *mtx)
 {
-    return TryAcquireSRWLockExclusive(gp_launder(mtx));
+    return TryAcquireSRWLockExclusive(GP_LAUNDER_CAST(mtx));
 }
 
 bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns)
@@ -343,12 +343,12 @@ bool gp_mutex_timedlock_ns(GPMutex* mutex, int64_t time_ns)
     bool success;
     GPUInt128 start = gp_time_begin();
 
-    success = TryAcquireSRWLockExclusive(gp_launder(mtx));
+    success = TryAcquireSRWLockExclusive(GP_LAUNDER_CAST(mtx));
     while ( ! success) {
         if (gp_time_ns(&start) >= time_ns)
             return false;
         Sleep(0);
-        success = TryAcquireSRWLockExclusive(gp_launder(mtx));
+        success = TryAcquireSRWLockExclusive(GP_LAUNDER_CAST(mtx));
     }
     return true;
 }
@@ -359,19 +359,19 @@ bool gp_mutex_timedlock(GPMutex* mutex, double time)
     if (time < 0.)
         return false;
     if (isinf(time)) {
-        AcquireSRWLockExclusive(gp_launder(mtx));
+        AcquireSRWLockExclusive(GP_LAUNDER_CAST(mtx));
         return true;
     }
 
     bool success;
     GPUInt128 start = gp_time_begin();
 
-    success = TryAcquireSRWLockExclusive(gp_launder(mtx));
+    success = TryAcquireSRWLockExclusive(GP_LAUNDER_CAST(mtx));
     while ( ! success) {
         if (gp_time(&start) >= time)
             return false;
         Sleep(0);
-        success = TryAcquireSRWLockExclusive(gp_launder(mtx));
+        success = TryAcquireSRWLockExclusive(GP_LAUNDER_CAST(mtx));
     }
     return true;
 }
@@ -384,14 +384,14 @@ bool gp_mutex_timedlock_absolute(GPMutex* mutex, GPInt128 time_ns)
 
 void gp_mutex_unlock(GPMutex *mtx)
 {
-    ReleaseSRWLockExclusive(gp_launder(mtx));
+    ReleaseSRWLockExclusive(GP_LAUNDER_CAST(mtx));
 }
 
 /* ---- condition variables ---- */
 
 void gp_cond_init(GPCond *cond)
 {
-    InitializeConditionVariable(gp_launder(cond));
+    InitializeConditionVariable(GP_LAUNDER_CAST(cond));
 }
 
 void gp_cond_destroy(GPCond *cond)
@@ -401,12 +401,12 @@ void gp_cond_destroy(GPCond *cond)
 
 void gp_cond_signal(GPCond *cond)
 {
-    WakeConditionVariable(gp_launder(cond));
+    WakeConditionVariable(GP_LAUNDER_CAST(cond));
 }
 
 void gp_cond_broadcast(GPCond *cond)
 {
-    WakeAllConditionVariable(gp_launder(cond));
+    WakeAllConditionVariable(GP_LAUNDER_CAST(cond));
 }
 
 // NOTE: Microsoft only documents timeout error for SleepConditionVariableSRW().
@@ -417,7 +417,7 @@ void gp_cond_broadcast(GPCond *cond)
 
 void gp_cond_wait(GPCond *cond, GPMutex *mtx)
 {
-    SleepConditionVariableSRW(gp_launder(cond), gp_launder(mtx), INFINITE);
+    SleepConditionVariableSRW(GP_LAUNDER_CAST(cond), GP_LAUNDER_CAST(mtx), INFINITE);
 }
 
 bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
@@ -428,7 +428,7 @@ bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
 
     t *= 1000.;
     if (isinf(t)) {
-        SleepConditionVariableSRW(gp_launder(cond), gp_launder(mtx), INFINITE);
+        SleepConditionVariableSRW(GP_LAUNDER_CAST(cond), GP_LAUNDER_CAST(mtx), INFINITE);
         return true;
     }
 
@@ -436,7 +436,7 @@ bool gp_cond_timedwait(GPCond* cond, GPMutex* mutex, double t)
     if (t >= INFINITE - .5)
         wait_time = INFINITE - 1; // 49 days, pretend that beyond that is spurious wakeup.
 
-    return SleepConditionVariableSRW(gp_launder(cond), gp_launder(mutex), wait_time);
+    return SleepConditionVariableSRW(GP_LAUNDER_CAST(cond), GP_LAUNDER_CAST(mutex), wait_time);
 }
 
 bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t t_ns)
@@ -451,7 +451,7 @@ bool gp_cond_timedwait_ns(GPCond* cond, GPMutex* mutex, int64_t t_ns)
     if (t_ns > INFINITE - 1)
         wait_time = INFINITE - 1; // 49 days, pretend that beyond that is spurious wakeup.
 
-    SleepConditionVariableSRW(gp_launder(cond), gp_launder(mutex), wait_time);
+    SleepConditionVariableSRW(GP_LAUNDER_CAST(cond), GP_LAUNDER_CAST(mutex), wait_time);
 }
 
 bool gp_cond_timedwait_absolute(GPCond* cond, GPMutex* mutex, GPInt128 time_ns)
@@ -583,7 +583,7 @@ void gp_call_once(GPOnce *flag, void (*func)(void))
 #if defined(GP_TARGET_ARCH_X86_64) || UINTPTR_MAX == UINT_MAX // no need for thunk
 bool gp_thread_create(GPThread* thr, int(*func)(void*), void *arg)
 {
-    return !pthread_create(thr, 0, gp_launder(func), arg);
+    return !pthread_create(thr, 0, GP_LAUNDER_CAST(func), arg);
 }
 #else // thunk
 typedef struct GPThreadThunkArgs
