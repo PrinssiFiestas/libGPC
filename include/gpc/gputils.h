@@ -306,6 +306,8 @@ size_t gp_leading_zeros_u64(uint64_t u)
  */
 GP_INLINE void* gp_launder(void* ptr)
 {
+    // TODO FilC has added some inline assembly support, test if this works and
+    // remove the condition if it does.
     #if defined(__GNUC__) && !defined(__FILC__)
     __asm__ volatile("" : "+r"(ptr));
     // note: MSVC doesn't have inline assembly for x64 or ARM (why Microsoft, why??).

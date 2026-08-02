@@ -93,7 +93,7 @@ extern "C" {
 // - Some UB pointer casts were hacked away using @ref gp_launder(). That's the
 //   best we can do without including `windows.h` in header files, which might
 //   break user builds (namespace pollution like `min` and include order
-//   problems). FIXME use union with char array instead.
+//   problems).
 // - Removed 32-bit internal timespec, use 64 bits always with C99 `uint64_t`.
 //   All 32-bit specific functions were removed, they are not needed even for
 //   32-bit builds.

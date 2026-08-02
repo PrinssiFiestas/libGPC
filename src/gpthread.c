@@ -7,8 +7,6 @@
 //   John Tsiombikas <nuclear@member.fsf.org> - original POSIX threads wrapper
 //   Oliver Old <oliver.old@outlook.com> - win32 implementation
 
-// FIXME: get rid of pointer laundering, single header breaks it, use union and char array instead.
-
 #include <gpc/gpthread.h>
 #include "common.h"
 
@@ -300,6 +298,27 @@ void gp_thread_yield(void)
 }
 
 /* ---- mutexes ---- */
+
+// gp_launder() note: We cannot include windows.h in header files, that breaks
+// builds. Therefore, the type that we declare in the header cannot use SRWLOCK.
+// What is unfortunate is that SRWLOCK is a typedef to struct _RTL_SRWLOCk.
+// Since the structure is tagged, there is going to be aliasing issues. We
+// cannot fix this using memcpy(), mutexes are shared resources, so this extra
+// step would introduce a race condition.
+//
+// gp_launder() fixes the issue for GCC and Clang. These compilers are anyway
+// the ones that are most likely to optimize based on TBAA. For other compilers,
+// we just rely on the fact that the Win32 functions are defined elsewhere, so
+// compilers never see the UB pointer dereference. This is actually true for
+// GCC and Clang as well, but knowing that they can be aggressive with aliasing
+// optimizations and that gp_launder() produces no code, the laundering just
+// gives us extra layer of protection, so it's worth doing.
+
+#ifdef __GNUC__
+#  define GP_LAUNDER_CAST(PTR) gp_launder(PTR)
+#else
+#  define GP_LAUNDER_CAST(PTR) ((void*)(PTR))
+#endif
 
 void gp_mutex_init(GPMutex *mtx)
 {

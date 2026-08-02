@@ -4,7 +4,7 @@
 
 // Original: https://github.com/jtsiomb/c11threads/blob/master/test/test.c
 
-#include "../src/thread.c"
+#include "../src/gpthread.c"
 #include <gpc/gpassert.h>
 #include <stdio.h>
 

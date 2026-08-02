@@ -4,6 +4,7 @@
 
 #include <gpc/gpterminal.h>
 #include <gpc/gpthread.h>
+#include <gpc/gpatomic.h>
 #ifdef GP_TARGET_OS_WINDOWS
 #  include <windows.h>
 #  include <io.h>
@@ -15,7 +16,7 @@
 // 16*64=1024 bits, which is default soft limit for open file descriptors. This
 // is anyway overkill, most commonly it's just stdout or stderr that output to
 // terminal.
-static GP_MAYBE_ATOMIC(uint64_t) gp_s_ansi_is_enabled[16];
+static GPAtomicUInt64 gp_s_ansi_is_enabled[16];
 static bool gp_s_terminal_is_dumb;
 static GPOnce gp_s_terminal_is_dumb_checked;
 
@@ -99,9 +100,9 @@ bool gp_ansi_enable(int fd, bool enable)
     set_enabled_bit:;
     size_t ufd = fd;
     if (enable)
-        gp_s_ansi_is_enabled[ufd >> 6] |=  (1llu << (ufd & 0x3F));
+        gp_atomic_fetch_or_u64(&gp_s_ansi_is_enabled[ufd >> 6], 1llu << (ufd & 0x3F));
     else
-        gp_s_ansi_is_enabled[ufd >> 6] &= ~(1llu << (ufd & 0x3F));
+        gp_atomic_fetch_and_u64(&gp_s_ansi_is_enabled[ufd >> 6], ~(1llu << (ufd & 0x3F)));
 
     return enable;
 }

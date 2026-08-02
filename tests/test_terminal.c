@@ -2,7 +2,7 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#include "../src/terminal.c"
+#include "../src/gpterminal.c"
 #include <gpc/gpassert.h>
 #include <gpc/gputils.h>
 

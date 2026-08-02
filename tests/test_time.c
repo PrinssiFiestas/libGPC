@@ -2,14 +2,8 @@
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-#include "../src/time.c"
+#include "../src/gptime.c"
 
-// This test just wastes time and is trivial, so just run them manually on changes.
-#ifndef 0 // GP_TIME_TESTS // TODO once tested in both Linux and Windows, uncomment
-
-int main(void) {}
-
-#else
 
 #include <gpc/gpassert.h>
 #include <gpc/gpio.h>
@@ -21,6 +15,12 @@ int main(void) {}
 
 int main(void)
 {
+    // Testing anything timing related requires wasting huge amount of time.
+    // There is not much to test anyway, the implementation is relatively trivial.
+    #ifndef GP_TEST_EXTRA
+    return 0;
+    #endif
+
     gp_suite("Timing and Sleeping");
     {
         gp_test("Waste a millisecond");
@@ -95,5 +95,3 @@ int main(void)
         gp_expect(1000*1000 < t && t < 1200*1000, t);
     } // gp_suite("Absolute Time Sleep");
 }
-
-#endif
