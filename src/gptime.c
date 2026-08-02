@@ -135,7 +135,7 @@ static void gp_s_init_global_time(void)
 
 GPInt128 gp_time_init(void)
 {
-    static GPOnce init_time_once = GP_ONCE_INIT
+    static GPOnce init_time_once = GP_ONCE_INIT;
     gp_call_once(&init_time_once, gp_s_init_global_time);
     return gp_s_time;
 }

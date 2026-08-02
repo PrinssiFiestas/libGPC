@@ -117,5 +117,5 @@ bool gp_ansi_is_enabled(int _fd)
     if (fd >= 1024)
         return false;
 
-    return gp_s_ansi_is_enabled[fd >> 6] & ((uint64_t)1 << (fd & 0x3F));
+    return gp_atomic_load(&gp_s_ansi_is_enabled[fd >> 6]) & ((uint64_t)1 << (fd & 0x3F));
 }
