@@ -314,12 +314,6 @@ void gp_thread_yield(void)
 // optimizations and that gp_launder() produces no code, the laundering just
 // gives us extra layer of protection, so it's worth doing.
 
-#ifdef __GNUC__
-#  define GP_LAUNDER_CAST(PTR) gp_launder(PTR)
-#else
-#  define GP_LAUNDER_CAST(PTR) ((void*)(PTR))
-#endif
-
 void gp_mutex_init(GPMutex *mtx)
 {
     InitializeSRWLock(GP_LAUNDER_CAST(mtx));

@@ -98,7 +98,7 @@ extern "C" {
 //   All 32-bit specific functions were removed, they are not needed even for
 //   32-bit builds.
 // - Removed Win32 specific functions like register and cleanup.
-// - Cleanup now runs automatically at program exit.
+// - Cleanup now runs automatically at program exit mostly to please sanitizers.
 
 #ifdef GP_DOXYGEN
 /** Use POSIX threads.

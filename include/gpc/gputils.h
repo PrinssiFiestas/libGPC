@@ -302,9 +302,12 @@ size_t gp_leading_zeros_u64(uint64_t u)
  * use this in production code if you are well familiar with your target
  * architecture and compiler.
  *
+ * For GCC and Clang, this produces no code in optimized builds. Otherwise, this
+ * has function call overhead.
+ *
  * @return detached @a ptr.
  */
-GP_INLINE void* gp_launder(void* ptr)
+GP_ALWAYS_INLINE void* gp_launder(void* ptr)
 {
     // TODO FilC has added some inline assembly support, test if this works and
     // remove the condition if it does.
@@ -316,6 +319,23 @@ GP_INLINE void* gp_launder(void* ptr)
     #endif
     return ptr;
 }
+
+/** Sometimes detach pointer from its origin.
+ *
+ * Like @ref gp_launder(), except only launders when @ref gp_launder() produces
+ * no code, otherwise this just casts to `void*`. Laundering is anyway hacky,
+ * but this is even more unsafe, so this is even less recommended to use than
+ * @ref gp_launder().
+ *
+ * For compilers that don't produce code, laundering is based on an opaque
+ * function call. This is redundant if anyway passing the pointer to an
+ * opaque function, which is when this macro is useful.
+ */
+#if defined(__GNUC__) && !defined(__FILC__)
+#  define GP_LAUNDER_CAST(PTR) gp_launder(PTR)
+#else
+#  define GP_LAUNDER_CAST(PTR) ((void*)(PTR))
+#endif
 
 /// @}
 // ----------------------------------------------------------------------------
