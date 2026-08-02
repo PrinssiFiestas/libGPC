@@ -225,9 +225,9 @@ bool gp_atomic_compare_exchange_##WEAK_OR_STRONG##_##POSTFIX (GPT* a, T* b, T c)
     gp_mutex_lock(mutex); \
     bool is_expected = memcmp(a, b, sizeof c) == 0; \
     if (is_expected) \
-        memcpy(a, c, sizeof c); } \
+        memcpy(a, &c, sizeof c); \
     else \
-        memcpy(b, a, sizeof c); } \
+        memcpy(b, a, sizeof c); \
     gp_mutex_unlock(mutex); \
     return is_expected; \
 }

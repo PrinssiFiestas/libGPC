@@ -1111,7 +1111,7 @@ extern GPMutex gp_g_atomic_mutex_pool[128];
 }
 GP_ALWAYS_INLINE_NO_EXPORT long long gp_InterlockedExchange64(volatile long long* a, long long c)
 GP_INTERLOCKED64_BODY(=)
-GP_ALWAYS_INLINE_NO_EXPORT long long gp_InterlockedAdd64(volatile long long* a, long long c)
+GP_ALWAYS_INLINE_NO_EXPORT long long gp_InterlockedExchangeAdd64(volatile long long* a, long long c)
 GP_INTERLOCKED64_BODY(+=)
 GP_ALWAYS_INLINE_NO_EXPORT long long gp_InterlockedOr64(volatile long long* a, long long c)
 GP_INTERLOCKED64_BODY(|=)
@@ -1119,11 +1119,11 @@ GP_ALWAYS_INLINE_NO_EXPORT long long gp_InterlockedXor64(volatile long long* a, 
 GP_INTERLOCKED64_BODY(^=)
 GP_ALWAYS_INLINE_NO_EXPORT long long gp_InterlockedAnd64(volatile long long* a, long long c)
 GP_INTERLOCKED64_BODY(&=)
-#    define _InterlockedExchange64(a, c) gp_InterlockedExchange64(a, c)
-#    define _InterlockedAdd64(a, c)      gp_InterlockedAdd64(a, c)
-#    define _InterlockedOr64(a, c)       gp_InterlockedOr64(a, c)
-#    define _InterlockedXor64(a, c)      gp_InterlockedXor64(a, c)
-#    define _InterlockedAnd64(a, c)      gp_InterlockedAnd64(a, c)
+#    define _InterlockedExchange64(a, c)    gp_InterlockedExchange64(a, c)
+#    define _InterlockedExchangeAdd64(a, c) gp_InterlockedExchangeAdd64(a, c)
+#    define _InterlockedOr64(a, c)          gp_InterlockedOr64(a, c)
+#    define _InterlockedXor64(a, c)         gp_InterlockedXor64(a, c)
+#    define _InterlockedAnd64(a, c)         gp_InterlockedAnd64(a, c)
 long long gp_InterlockedCompareExchange64(volatile long long* a, long long b, long long c)
 {
     long long old;
@@ -1231,25 +1231,37 @@ GP_ALWAYS_INLINE bool gp_internal_compare_exchange_i8(char* a, int8_t* b, int8_t
 {
     char b1 = *b;
     char a1 = _InterlockedCompareExchange8(a, c, b1);
-    return a1 == b1;
+    bool result = a1 == b1;
+    if ( ! result)
+        *b = a1;
+    return result;
 }
 GP_ALWAYS_INLINE bool gp_internal_compare_exchange_i16(short* a, uint16_t* b, uint16_t c)
 {
     short b1 = *b;
     short a1 = _InterlockedCompareExchange16(a, c, b1);
-    return a1 == b1;
+    bool result = a1 == b1;
+    if ( ! result)
+        *b = a1;
+    return result;
 }
 GP_ALWAYS_INLINE bool gp_internal_compare_exchange_i32(long* a, uint32_t* b, uint32_t c)
 {
     long b1 = *b;
     long a1 = _InterlockedCompareExchange(a, c, b1);
-    return a1 == b1;
+    bool result = a1 == b1;
+    if ( ! result)
+        *b = a1;
+    return result;
 }
 GP_ALWAYS_INLINE bool gp_internal_compare_exchange_i64(long long* a, uint64_t* b, uint64_t c)
 {
     long long b1 = *b;
     long long a1 = _InterlockedCompareExchange64(a, c, b1);
-    return a1 == b1;
+    bool result = a1 == b1;
+    if ( ! result)
+        *b = a1;
+    return result;
 }
 
 #define gp_atomic_compare_exchange_strong(A, B, C) \
@@ -1309,28 +1321,28 @@ GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_u64(GPAtomicUInt64* a, uin
 #else
 #define gp_atomic_fetch_add(A, C) ((GP_TYPEOF((A)->nonatomic)) \
 ( \
-    sizeof(*(A)) == 1 ? _InterlockedAdd8 ((char     *)&(A)->_native, (C)) : \
-    sizeof(*(A)) == 2 ? _InterlockedAdd16((short    *)&(A)->_native, (C)) : \
-    sizeof(*(A)) == 4 ? _InterlockedAdd  ((long     *)&(A)->_native, (C)) : \
-                        _InterlockedAdd64((long long*)&(A)->_native, (C))   \
+    sizeof(*(A)) == 1 ? _InterlockedExchangeAdd8 ((char     *)&(A)->_native, (C)) : \
+    sizeof(*(A)) == 2 ? _InterlockedExchangeAdd16((short    *)&(A)->_native, (C)) : \
+    sizeof(*(A)) == 4 ? _InterlockedExchangeAdd  ((long     *)&(A)->_native, (C)) : \
+                        _InterlockedExchangeAdd64((long long*)&(A)->_native, (C))   \
 ))
 #endif
 GP_ALWAYS_INLINE int8_t gp_atomic_fetch_add_i8(GPAtomicInt8* a, int8_t c)
-{ return _InterlockedAdd8(&a->_native, c); }
+{ return _InterlockedExchangeAdd8(&a->_native, c); }
 GP_ALWAYS_INLINE uint8_t gp_atomic_fetch_add_u8(GPAtomicUInt8* a, uint8_t c)
-{ return _InterlockedAdd8(&a->_native, c); }
+{ return _InterlockedExchangeAdd8(&a->_native, c); }
 GP_ALWAYS_INLINE int16_t gp_atomic_fetch_add_i16(GPAtomicInt16* a, int16_t c)
-{ return _InterlockedAdd16(&a->_native, c); }
+{ return _InterlockedExchangeAdd16(&a->_native, c); }
 GP_ALWAYS_INLINE uint16_t gp_atomic_fetch_add_u16(GPAtomicUInt16* a, uint16_t c)
-{ return _InterlockedAdd16(&a->_native, c); }
+{ return _InterlockedExchangeAdd16(&a->_native, c); }
 GP_ALWAYS_INLINE int32_t gp_atomic_fetch_add_i32(GPAtomicInt32* a, int32_t c)
-{ return _InterlockedAdd(&a->_native, c); }
+{ return _InterlockedExchangeAdd(&a->_native, c); }
 GP_ALWAYS_INLINE uint32_t gp_atomic_fetch_add_u32(GPAtomicUInt32* a, uint32_t c)
-{ return _InterlockedAdd(&a->_native, c); }
+{ return _InterlockedExchangeAdd(&a->_native, c); }
 GP_ALWAYS_INLINE int64_t gp_atomic_fetch_add_i64(GPAtomicInt64* a, int64_t c)
-{ return _InterlockedAdd64(&a->_native, c); }
+{ return _InterlockedExchangeAdd64(&a->_native, c); }
 GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_add_u64(GPAtomicUInt64* a, uint64_t c)
-{ return _InterlockedAdd64(&a->_native, c); }
+{ return _InterlockedExchangeAdd64(&a->_native, c); }
 
 #if GP_HAS_C11_GENERIC
 #define gp_atomic_fetch_sub(A, C) _Generic((A), \
@@ -1341,28 +1353,28 @@ GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_add_u64(GPAtomicUInt64* a, uint64_t c)
 #else
 #define gp_atomic_fetch_sub(A, C) ((GP_TYPEOF((A)->nonatomic)) \
 ( \
-    sizeof(*(A)) == 1 ? _InterlockedAdd8 ((char     *)&(A)->_native, -(C)) : \
-    sizeof(*(A)) == 2 ? _InterlockedAdd16((short    *)&(A)->_native, -(C)) : \
-    sizeof(*(A)) == 4 ? _InterlockedAdd  ((long     *)&(A)->_native, -(C)) : \
-                        _InterlockedAdd64((long long*)&(A)->_native, -(C))   \
+    sizeof(*(A)) == 1 ? _InterlockedExchangeAdd8 ((char     *)&(A)->_native, -(C)) : \
+    sizeof(*(A)) == 2 ? _InterlockedExchangeAdd16((short    *)&(A)->_native, -(C)) : \
+    sizeof(*(A)) == 4 ? _InterlockedExchangeAdd  ((long     *)&(A)->_native, -(C)) : \
+                        _InterlockedExchangeAdd64((long long*)&(A)->_native, -(C))   \
 ))
 #endif
 GP_ALWAYS_INLINE int8_t gp_atomic_fetch_sub_i8(GPAtomicInt8* a, int8_t c)
-{ return _InterlockedAdd8(&a->_native, -c); }
+{ return _InterlockedExchangeAdd8(&a->_native, -c); }
 GP_ALWAYS_INLINE uint8_t gp_atomic_fetch_sub_u8(GPAtomicUInt8* a, uint8_t c)
-{ return _InterlockedAdd8(&a->_native, -c); }
+{ return _InterlockedExchangeAdd8(&a->_native, -c); }
 GP_ALWAYS_INLINE int16_t gp_atomic_fetch_sub_i16(GPAtomicInt16* a, int16_t c)
-{ return _InterlockedAdd16(&a->_native, -c); }
+{ return _InterlockedExchangeAdd16(&a->_native, -c); }
 GP_ALWAYS_INLINE uint16_t gp_atomic_fetch_sub_u16(GPAtomicUInt16* a, uint16_t c)
-{ return _InterlockedAdd16(&a->_native, -c); }
+{ return _InterlockedExchangeAdd16(&a->_native, -c); }
 GP_ALWAYS_INLINE int32_t gp_atomic_fetch_sub_i32(GPAtomicInt32* a, int32_t c)
-{ return _InterlockedAdd(&a->_native, -c); }
+{ return _InterlockedExchangeAdd(&a->_native, -c); }
 GP_ALWAYS_INLINE uint32_t gp_atomic_fetch_sub_u32(GPAtomicUInt32* a, uint32_t c)
-{ return _InterlockedAdd(&a->_native, -c); }
+{ return _InterlockedExchangeAdd(&a->_native, -c); }
 GP_ALWAYS_INLINE int64_t gp_atomic_fetch_sub_i64(GPAtomicInt64* a, int64_t c)
-{ return _InterlockedAdd64(&a->_native, -c); }
+{ return _InterlockedExchangeAdd64(&a->_native, -c); }
 GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_sub_u64(GPAtomicUInt64* a, uint64_t c)
-{ return _InterlockedAdd64(&a->_native, -c); }
+{ return _InterlockedExchangeAdd64(&a->_native, -c); }
 
 #if GP_HAS_C11_GENERIC
 #define gp_atomic_fetch_or(A, C) _Generic((A), \
@@ -1485,18 +1497,21 @@ GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_and_u64(GPAtomicUInt64* a, uint64_t c)
 
 GP_ALWAYS_INLINE_NOEXPORT void gp_atomic_thread_fence(gp_memory_order_t mo)
 {
-    #if defined(GP_TARGET_ARCH_X86_64) || defined(GP_TARGET_ARCH_X86)
-    if (mo < GP_MEMORY_ORDER_SEQ_CST)
-    #else
     if (mo == GP_MEMORY_ORDER_RELAXED)
-    #endif
         return;
 
     #if defined(GP_TARGET_ARCH_X86_64)
     // Turns out that this just generates `lock or DWORD PTR [rsp], 0`, but
     // let's keep it anyway, maybe the compiler treats it slightly more
     // appropriately than `_InterlockedOr(&barrier, 0)` (it probably doesn't).
-    __faststorefence();
+    if (mo <= GP_MEMORY_ORDER_ACQUIRE)
+        _ReadBarrier();
+    else if (mo <= GP_MEMORY_ORDER_RELEASE)
+        _WriteBarrier();
+    else
+        _ReadWriteBarrier();
+    if (mo == GP_MEMORY_ORDER_SEQ_CST)
+        __faststorefence();
     #elif defined(GP_TARGET_ARCH_ARM64) // we'll do what MSVC does https://godbolt.org/z/za1bWGqv8
     // NOTE: Don't use `ISHST` for release, LLVM made that mistake in 2013, see
     // https://llvm.googlesource.com/llvm/+/40d0492cdea1023463a9902ee81b3c5251204039
@@ -1515,7 +1530,7 @@ GP_ALWAYS_INLINE_NOEXPORT void gp_atomic_signal_fence(gp_memory_order_t mo)
     case GP_MEMORY_ORDER_RELAXED: (void)0; break;
     case GP_MEMORY_ORDER_CONSUME: case GP_MEMORY_ORDER_ACQUIRE: _ReadBarrier(); break;
     case GP_MEMORY_ORDER_RELEASE: _WriteBarrier(); break;
-    case GP_ATOMIC_ACK_REL: GP_MEMORY_ORDER_SEQ_CST: _ReadWriteBarrier(); break;
+    case GP_ATOMIC_ACQ_REL: case GP_MEMORY_ORDER_SEQ_CST: _ReadWriteBarrier(); break;
     }
 }
 
@@ -1569,21 +1584,21 @@ GP_ALWAYS_INLINE void gp_atomic_store_u64(GPAtomicUInt64* a, uint64_t c)
 {__atomic_store_n(&a->nonatomic, c, GP_MEMORY_ORDER_SEQ_CST);}
 
 GP_ALWAYS_INLINE int8_t   gp_atomic_load_i8 (const GPAtomicInt8  * a)
-{return __atomic_load_n(&a->nonatomic, &y, GP_MEMORY_ORDER_SEQ_CST);}
+{return __atomic_load_n(&a->nonatomic, GP_MEMORY_ORDER_SEQ_CST);}
 GP_ALWAYS_INLINE int16_t  gp_atomic_load_i16(const GPAtomicInt16 * a)
-{return __atomic_load_n(&a->nonatomic, &y, GP_MEMORY_ORDER_SEQ_CST);}
+{return __atomic_load_n(&a->nonatomic, GP_MEMORY_ORDER_SEQ_CST);}
 GP_ALWAYS_INLINE int32_t  gp_atomic_load_i32(const GPAtomicInt32 * a)
-{return __atomic_load_n(&a->nonatomic, &y, GP_MEMORY_ORDER_SEQ_CST);}
+{return __atomic_load_n(&a->nonatomic, GP_MEMORY_ORDER_SEQ_CST);}
 GP_ALWAYS_INLINE int64_t  gp_atomic_load_i64(const GPAtomicInt64 * a)
-{return __atomic_load_n(&a->nonatomic, &y, GP_MEMORY_ORDER_SEQ_CST);}
+{return __atomic_load_n(&a->nonatomic, GP_MEMORY_ORDER_SEQ_CST);}
 GP_ALWAYS_INLINE uint8_t  gp_atomic_load_u8 (const GPAtomicUInt8 * a)
-{return __atomic_load_n(&a->nonatomic, &y, GP_MEMORY_ORDER_SEQ_CST);}
+{return __atomic_load_n(&a->nonatomic, GP_MEMORY_ORDER_SEQ_CST);}
 GP_ALWAYS_INLINE uint16_t gp_atomic_load_u16(const GPAtomicUInt16* a)
-{return __atomic_load_n(&a->nonatomic, &y, GP_MEMORY_ORDER_SEQ_CST);}
+{return __atomic_load_n(&a->nonatomic, GP_MEMORY_ORDER_SEQ_CST);}
 GP_ALWAYS_INLINE uint32_t gp_atomic_load_u32(const GPAtomicUInt32* a)
-{return __atomic_load_n(&a->nonatomic, &y, GP_MEMORY_ORDER_SEQ_CST);}
+{return __atomic_load_n(&a->nonatomic, GP_MEMORY_ORDER_SEQ_CST);}
 GP_ALWAYS_INLINE uint64_t gp_atomic_load_u64(const GPAtomicUInt64* a)
-{return __atomic_load_n(&a->nonatomic, &y, GP_MEMORY_ORDER_SEQ_CST);}
+{return __atomic_load_n(&a->nonatomic, GP_MEMORY_ORDER_SEQ_CST);}
 
 GP_ALWAYS_INLINE int8_t   gp_atomic_exchange_i8 (GPAtomicInt8  * a, int8_t   c)
 { return __atomic_exchange_n(&a->nonatomic, c, GP_MEMORY_ORDER_SEQ_CST); }
@@ -1719,7 +1734,7 @@ GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_u16(GPAtomicUInt16* a, uin
 GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_u32(GPAtomicUInt32* a, uint32_t* b, uint32_t c)
 { return __atomic_compare_exchange_n(&a->nonatomic, b, c, true, GP_MEMORY_ORDER_SEQ_CST, GP_MEMORY_ORDER_SEQ_CST); }
 GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_u64(GPAtomicUInt64* a, uint64_t* b, uint64_t c)
-{ return __atomic_compare_exchange(&a->nonatomic, b, c, true, GP_MEMORY_ORDER_SEQ_CST, GP_MEMORY_ORDER_SEQ_CST); }
+{ return __atomic_compare_exchange_n(&a->nonatomic, b, c, true, GP_MEMORY_ORDER_SEQ_CST, GP_MEMORY_ORDER_SEQ_CST); }
 
 #define gp_atomic_thread_fence(MO) __atomic_thread_fence(MO)
 #define gp_atomic_signal_fence(MO) __atomic_signal_fence(MO)
