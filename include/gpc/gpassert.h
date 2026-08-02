@@ -293,6 +293,8 @@ GP_API void gp_internal_fail(
 #ifdef __cplusplus
 } // extern "C"
 
+#include <string>
+
 #define GP_CURSOR_BACK_CPP(N) "\033[" #N "D"
 static inline void gp_internal_fail_cpp(
     const char*const condition,

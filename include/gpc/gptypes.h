@@ -257,11 +257,15 @@ GP_INLINE size_t gp_type_size(const gp_type_t T)
     unsigned long     : (long)(X)       , long       : (X), \
     unsigned long long: (long long)(X)  , long long  : (X))
 #elif defined(__cplusplus)
-static inline constexpr signed char    GP_AS_SIGNED(unsigned char      x) { return x; }
-static inline constexpr short          GP_AS_SIGNED(unsigned short     x) { return x; }
-static inline constexpr int            GP_AS_SIGNED(unsigned int       x) { return x; }
-static inline constexpr long           GP_AS_SIGNED(unsigned long      x) { return x; }
-static inline constexpr long long      GP_AS_SIGNED(unsigned long long x) { return x; }
+GP_NODISCARD static inline constexpr signed char GP_AS_SIGNED(unsigned char      x) { return x; }
+GP_NODISCARD static inline constexpr short       GP_AS_SIGNED(unsigned short     x) { return x; }
+GP_NODISCARD static inline constexpr int         GP_AS_SIGNED(unsigned int       x) { return x; }
+GP_NODISCARD static inline constexpr long        GP_AS_SIGNED(unsigned long      x) { return x; }
+GP_NODISCARD static inline constexpr long long   GP_AS_SIGNED(unsigned long long x) { return x; }
+#  if defined(GP_HAS_TETRA_INT)
+GP_NODISCARD static inline constexpr gp_tetra_int_t GP_AS_SIGNED(gp_tetra_uint_t x) { return x; }
+#  endif
+template <typename T> GP_NODISCARD static inline constexpr T GP_AS_SIGNED(T x) { return x; }
 #else // C99
 #define GP_AS_SIGNED(X) \
 ( \
@@ -347,23 +351,21 @@ GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(short              x) { (
 GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(int                x) { (void)x; return GP_TYPE_INT;                }
 GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(long               x) { (void)x; return GP_TYPE_LONG;               }
 GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(long long          x) { (void)x; return GP_TYPE_LONG_LONG;          }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(GPInt128           x) { (void)x; return GP_TYPE_INT128;             }
 GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned short     x) { (void)x; return GP_TYPE_UNSIGNED_SHORT;     }
 GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned           x) { (void)x; return GP_TYPE_UNSIGNED;           }
 GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned long      x) { (void)x; return GP_TYPE_UNSIGNED_LONG;      }
 GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned long long x) { (void)x; return GP_TYPE_UNSIGNED_LONG_LONG; }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(GPUInt128          x) { (void)x; return GP_TYPE_UINT128;            }
 GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(float              x) { (void)x; return GP_TYPE_FLOAT;              }
 GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(double             x) { (void)x; return GP_TYPE_DOUBLE;             }
 #if !_MSC_VER
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(char               x) { (void)x; return GP_TYPE_CHAR;               }
+GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(char               x) { (void)x; return GP_TYPE_CHAR;               }
 #endif
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(unsigned char      x) { (void)x; return GP_TYPE_UNSIGNED_CHAR;      }
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(signed char        x) { (void)x; return GP_TYPE_SIGNED_CHAR;        }
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(char*              x) { (void)x; return GP_TYPE_CHAR_PTR;           }
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(const char*        x) { (void)x; return GP_TYPE_CHAR_PTR;           }
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(struct gp_char*    x) { (void)x; return GP_TYPE_STRING;             }
-GP_NODSICARD static inline constexpr gp_type_t GP_TYPE(const void*        x) { (void)x; return GP_TYPE_PTR;                }
+GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned char      x) { (void)x; return GP_TYPE_UNSIGNED_CHAR;      }
+GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(signed char        x) { (void)x; return GP_TYPE_SIGNED_CHAR;        }
+GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(char*              x) { (void)x; return GP_TYPE_CHAR_PTR;           }
+GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(const char*        x) { (void)x; return GP_TYPE_CHAR_PTR;           }
+GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(struct gp_char*    x) { (void)x; return GP_TYPE_STRING;             }
+GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(const void*        x) { (void)x; return GP_TYPE_PTR;                }
 
 template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_SIGNED(T X)           { return gp_type_is_signed(GP_TYPE(X))          ; }
 template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_UNSIGNED(T X)         { return gp_type_is_unsigned(GP_TYPE(X))        ; }

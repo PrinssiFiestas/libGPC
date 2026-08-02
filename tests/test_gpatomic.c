@@ -3,7 +3,11 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include <gpc/gpassert.h>
+#ifndef __cplusplus
 #include "../src/gpatomic.c"
+#else
+#include <gpc/gpatomic.h>
+#endif
 #include <gpc/gputils.h>
 
 // Trying to test absolutely everything would drive us insane, we'll just test

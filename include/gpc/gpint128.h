@@ -418,8 +418,8 @@ gp_u128(T i) { return gp_uint128(-(i<0), i); }
 
 GP_NODISCARD static inline constexpr GPInt128 gp_i128(int64_t hi, uint64_t lo) { return gp_int128(hi, lo); }
 GP_NODISCARD static inline constexpr GPInt128 gp_i128(GPUInt128 u) { return gp_int128_u128(u); }
-GP_NODISCARD static inline constexpr GPInt128 gp_u128(double f)    { return gp_int128_f64(f);  }
-GP_NODISCARD static inline constexpr GPInt128 gp_u128(float f)     { return gp_int128_f32(f);  }
+GP_NODISCARD static inline constexpr GPInt128 gp_i128(double f)    { return gp_int128_f64(f);  }
+GP_NODISCARD static inline constexpr GPInt128 gp_i128(float f)     { return gp_int128_f32(f);  }
 GP_NODISCARD static inline constexpr GPInt128 gp_i128(GPInt128 i)  { return i; } // useful for generics
 
 /** Convert primitive integers to 128-bit signed integer.
@@ -429,9 +429,9 @@ template <typename T> GP_NODISCARD static inline constexpr
 typename std::enable_if<std::is_integral<T>::value, GPInt128>::type
 gp_i128(T i) { return gp_int128(-(i<0), i); }
 
-#  if GP_HAS_TETRA_INT
-GP_NODISCARD static inline constexpr GPUInt128 gp_u128(gp_tetra_uint_t u) { return gp_uint128_tetra_uint(u); }
-GP_NODISCARD static inline constexpr GPInt128  gp_i128(gp_tetra_int_t  i) { return gp_int128_tetra_int(i);   }
+#  ifdef GP_HAS_TETRA_INT
+GP_NODISCARD static inline constexpr GPUInt128 gp_u128(gp_tetra_uint_t u) {return gp_uint128_tetra_uint(u);}
+GP_NODISCARD static inline constexpr GPInt128  gp_i128(gp_tetra_int_t  i) {return gp_int128_tetra_int(i)  ;}
 #  endif
 
 #else // C
@@ -1041,14 +1041,13 @@ GP_NODISCARD static inline constexpr bool operator >=(GPInt128  a, GPInt128  b) 
 /// @cond
 
 #ifdef __cplusplus
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(GPUInt128 x) { (void)x; return GP_UINT128; }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(GPInt128  x) { (void)x; return GP_INT128;  }
-GP_NODISCARD static inline constexpr GPUInt128 GP_AS_SIGNED(GPInt128  x) { return gp_int128_i128(x); }
 GP_NODISCARD static inline constexpr GPInt128  GP_AS_SIGNED(GPUInt128 x) { return gp_int128_u128(x); }
 GP_NODISCARD static inline constexpr GPUInt128 gp_min(GPUInt128 a, GPUInt128 b) { return a < b ? a : b; }
 GP_NODISCARD static inline constexpr GPUInt128 gp_max(GPUInt128 a, GPUInt128 b) { return a > b ? a : b; }
 GP_NODISCARD static inline constexpr GPInt128  gp_min(GPInt128  a, GPInt128  b) { return a < b ? a : b; }
 GP_NODISCARD static inline constexpr GPInt128  gp_max(GPInt128  a, GPInt128  b) { return a > b ? a : b; }
+GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(GPInt128  x) { (void)x; return GP_TYPE_INT128 ; }
+GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(GPUInt128 x) { (void)x; return GP_TYPE_UINT128; }
 #endif
 
 #if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)

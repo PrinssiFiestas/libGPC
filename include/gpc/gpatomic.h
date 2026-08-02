@@ -503,8 +503,10 @@ typedef enum gp_memory_order_t
     GP_MEMORY_ORDER_SEQ_CST, ///< Sequentially consistent memory ordering.
     #define GP_MEMORY_ORDER_LENGTH 6 ///< Number of `enum gp_memory_order_t` constants.
 } gp_memory_order_t;
-// Implementation detail: Values/order of these enum constants are defined by
-// C11/C++11 standards and are consistent with GNU equivalent macros.
+// Implementation detail: Values/order of these enum constants are not specified
+// by the standard, but practical implementations (including Visual Studio)
+// match GNU equivalent macros. These values are the only ones that make sense:
+// 0 is relaxed and increasing the makes it stricter.
 
 #ifdef GP_USE_INTERLOCKED_INTRINSICS
 GP_STATIC_ASSERT(sizeof(char) == sizeof(int8_t), "Expected Win32 types.");
@@ -679,28 +681,28 @@ typedef union GPAtomicInt64  GPAtomicIntPtr;
 #  define gp_atomic_compare_exchange_weak_explicit_iz(A, B, C, MO1, MO2) \
     atomic_compare_exchange_weak_explicit_i32(A, B, C, MO1, MO2)
 #else // 64-bit
-#  define gp_atomic_store_uz(A, C)                      gp_atomic_store_u32(A, C)
-#  define gp_atomic_load_uz(A)                          gp_atomic_load_u32(A)
-#  define gp_atomic_exchange_uz(A, C)                   gp_atomic_exchange_u32(A, C)
-#  define gp_atomic_fetch_add_uz(A, C)                  gp_atomic_fetch_add_u32(A, C)
-#  define gp_atomic_fetch_sub_uz(A, C)                  gp_atomic_fetch_sub_u32(A, C)
-#  define gp_atomic_fetch_or_uz(A, C)                   gp_atomic_fetch_or_u32(A, C)
-#  define gp_atomic_fetch_xor_uz(A, C)                  gp_atomic_fetch_xor_u32(A, C)
-#  define gp_atomic_fetch_and_uz(A, C)                  gp_atomic_fetch_and_u32(A, C)
-#  define gp_atomic_compare_exchange_strong_uz(A, B, C) gp_atomic_compare_exchange_strong_u32(A, B, C)
-#  define gp_atomic_compare_exchange_weak_uz(A, B, C)   gp_atomic_compare_exchange_weak_u32(A, B, C)
-#  define gp_atomic_store_explicit_uz(A, C, MO)         gp_atomic_store_explicit_u32(A, C, MO)
-#  define gp_atomic_load_explicit_uz(A, MO)             gp_atomic_load_explicit_u32(A, MO)
-#  define gp_atomic_exchange_explicit_uz(A, C, MO)      gp_atomic_exchange_explicit_u32(A, C, MO)
-#  define gp_atomic_fetch_add_explicit_uz(A, C, MO)     gp_atomic_fetch_add_explicit_u32(A, C, MO)
-#  define gp_atomic_fetch_sub_explicit_uz(A, C, MO)     gp_atomic_fetch_sub_explicit_u32(A, C, MO)
-#  define gp_atomic_fetch_or_explicit_uz(A, C, MO)      gp_atomic_fetch_or_explicit_u32(A, C, MO)
-#  define gp_atomic_fetch_xor_explicit_uz(A, C, MO)     gp_atomic_fetch_xor_explicit_u32(A, C, MO)
-#  define gp_atomic_fetch_and_explicit_uz(A, C, MO)     gp_atomic_fetch_and_explicit_u32(A, C, MO)
+#  define gp_atomic_store_uz(A, C)                      gp_atomic_store_u64(A, C)
+#  define gp_atomic_load_uz(A)                          gp_atomic_load_u64(A)
+#  define gp_atomic_exchange_uz(A, C)                   gp_atomic_exchange_u64(A, C)
+#  define gp_atomic_fetch_add_uz(A, C)                  gp_atomic_fetch_add_u64(A, C)
+#  define gp_atomic_fetch_sub_uz(A, C)                  gp_atomic_fetch_sub_u64(A, C)
+#  define gp_atomic_fetch_or_uz(A, C)                   gp_atomic_fetch_or_u64(A, C)
+#  define gp_atomic_fetch_xor_uz(A, C)                  gp_atomic_fetch_xor_u64(A, C)
+#  define gp_atomic_fetch_and_uz(A, C)                  gp_atomic_fetch_and_u64(A, C)
+#  define gp_atomic_compare_exchange_strong_uz(A, B, C) gp_atomic_compare_exchange_strong_u64(A, B, C)
+#  define gp_atomic_compare_exchange_weak_uz(A, B, C)   gp_atomic_compare_exchange_weak_u64(A, B, C)
+#  define gp_atomic_store_explicit_uz(A, C, MO)         gp_atomic_store_explicit_u64(A, C, MO)
+#  define gp_atomic_load_explicit_uz(A, MO)             gp_atomic_load_explicit_u64(A, MO)
+#  define gp_atomic_exchange_explicit_uz(A, C, MO)      gp_atomic_exchange_explicit_u64(A, C, MO)
+#  define gp_atomic_fetch_add_explicit_uz(A, C, MO)     gp_atomic_fetch_add_explicit_u64(A, C, MO)
+#  define gp_atomic_fetch_sub_explicit_uz(A, C, MO)     gp_atomic_fetch_sub_explicit_u64(A, C, MO)
+#  define gp_atomic_fetch_or_explicit_uz(A, C, MO)      gp_atomic_fetch_or_explicit_u64(A, C, MO)
+#  define gp_atomic_fetch_xor_explicit_uz(A, C, MO)     gp_atomic_fetch_xor_explicit_u64(A, C, MO)
+#  define gp_atomic_fetch_and_explicit_uz(A, C, MO)     gp_atomic_fetch_and_explicit_u64(A, C, MO)
 #  define gp_atomic_compare_exchange_strong_explicit_uz(A, B, C, MO1, MO2) \
-    atomic_compare_exchange_strong_explicit_u32(A, B, C, MO1, MO2)
+    atomic_compare_exchange_strong_explicit_u64(A, B, C, MO1, MO2)
 #  define gp_atomic_compare_exchange_weak_explicit_uz(A, B, C, MO1, MO2) \
-    atomic_compare_exchange_weak_explicit_u32(A, B, C, MO1, MO2)
+    atomic_compare_exchange_weak_explicit_u64(A, B, C, MO1, MO2)
 #  define gp_atomic_store_iz(A, C)                      gp_atomic_store_i64(A, C)
 #  define gp_atomic_load_iz(A)                          gp_atomic_load_i64(A)
 #  define gp_atomic_exchange_iz(A, C)                   gp_atomic_exchange_i64(A, C)
@@ -726,7 +728,7 @@ typedef union GPAtomicInt64  GPAtomicIntPtr;
 #endif
 
 //-------------------------------------
-#ifdef GP_USE_STD_ATOMICS
+#ifdef GP_USE_C11_ATOMICS
 
 #define gp_atomic_store(A, C)                      atomic_store(&(A)->atomic, C)
 #define gp_atomic_load(A)                          atomic_load(&(A)->atomic)
@@ -907,6 +909,189 @@ GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_u64(GPAtomicUInt64* a, uin
 
 #define gp_atomic_thread_fence(MO) atomic_thread_fence(MO)
 #define gp_atomic_signal_fence(MO) atomic_signal_fence(MO)
+
+// ------------------------------------
+#elif defined(GP_USE_CPP_ATOIMCS)
+
+#define gp_atomic_store(A, C)                      std::atomic_store(&(A)->atomic, C)
+#define gp_atomic_load(A)                          std::atomic_load(&(A)->atomic)
+#define gp_atomic_exchange(A, C)                   std::atomic_exchange(&(A)->atomic, C)
+#define gp_atomic_fetch_add(A, C)                  std::atomic_fetch_add(&(A)->atomic, C)
+#define gp_atomic_fetch_sub(A, C)                  std::atomic_fetch_sub(&(A)->atomic, C)
+#define gp_atomic_fetch_or(A, C)                   std::atomic_fetch_or(&(A)->atomic, C)
+#define gp_atomic_fetch_xor(A, C)                  std::atomic_fetch_xor(&(A)->atomic, C)
+#define gp_atomic_fetch_and(A, C)                  std::atomic_fetch_and(&(A)->atomic, C)
+#define gp_atomic_compare_exchange_strong(A, B, C) std::atomic_compare_exchange_strong(&(A)->atomic, B, C)
+#define gp_atomic_compare_exchange_weak(A, B, C)   std::atomic_compare_exchange_weak(&(A)->atomic, B, C)
+#define gp_atomic_store_explicit(A, C, MO)         std::atomic_store_explicit(&(A)->atomic, C, MO)
+#define gp_atomic_load_explicit(A, MO)             std::atomic_load_explicit(&(A)->atomic, MO)
+#define gp_atomic_exchange_explicit(A, C, MO)      std::atomic_exchange_explicit(&(A)->atomic, C, MO)
+#define gp_atomic_fetch_add_explicit(A, C, MO)     std::atomic_fetch_add_explicit(&(A)->atomic, C, MO)
+#define gp_atomic_fetch_sub_explicit(A, C, MO)     std::atomic_fetch_sub_explicit(&(A)->atomic, C, MO)
+#define gp_atomic_fetch_or_explicit(A, C, MO)      std::atomic_fetch_or_explicit(&(A)->atomic, C, MO)
+#define gp_atomic_fetch_xor_explicit(A, C, MO)     std::atomic_fetch_xor_explicit(&(A)->atomic, C, MO)
+#define gp_atomic_fetch_and_explicit(A, C, MO)     std::atomic_fetch_and_explicit(&(A)->atomic, C, MO)
+#define gp_atomic_compare_exchange_strong_explicit(A, B, C, MO1, MO2) \
+    std::atomic_compare_exchange_strong_explicit(&(A)->atomic, B, C, MO1, MO2)
+#define gp_atomic_compare_exchange_weak_explicit(A, B, C, MO1, MO2) \
+    std::atomic_compare_exchange_weak_explicit(&(A)->atomic, B, C, MO1, MO2)
+
+GP_ALWAYS_INLINE void gp_atomic_store_i8 (GPAtomicInt8  * a, int8_t   c) {std::atomic_store(&a->atomic, c);}
+GP_ALWAYS_INLINE void gp_atomic_store_i16(GPAtomicInt16 * a, int16_t  c) {std::atomic_store(&a->atomic, c);}
+GP_ALWAYS_INLINE void gp_atomic_store_i32(GPAtomicInt32 * a, int32_t  c) {std::atomic_store(&a->atomic, c);}
+GP_ALWAYS_INLINE void gp_atomic_store_i64(GPAtomicInt64 * a, int64_t  c) {std::atomic_store(&a->atomic, c);}
+GP_ALWAYS_INLINE void gp_atomic_store_u8 (GPAtomicUInt8 * a, uint8_t  c) {std::atomic_store(&a->atomic, c);}
+GP_ALWAYS_INLINE void gp_atomic_store_u16(GPAtomicUInt16* a, uint16_t c) {std::atomic_store(&a->atomic, c);}
+GP_ALWAYS_INLINE void gp_atomic_store_u32(GPAtomicUInt32* a, uint32_t c) {std::atomic_store(&a->atomic, c);}
+GP_ALWAYS_INLINE void gp_atomic_store_u64(GPAtomicUInt64* a, uint64_t c) {std::atomic_store(&a->atomic, c);}
+
+GP_ALWAYS_INLINE int8_t   gp_atomic_load_i8 (const GPAtomicInt8  * a) {return std::atomic_load(&a->atomic);}
+GP_ALWAYS_INLINE int16_t  gp_atomic_load_i16(const GPAtomicInt16 * a) {return std::atomic_load(&a->atomic);}
+GP_ALWAYS_INLINE int32_t  gp_atomic_load_i32(const GPAtomicInt32 * a) {return std::atomic_load(&a->atomic);}
+GP_ALWAYS_INLINE int64_t  gp_atomic_load_i64(const GPAtomicInt64 * a) {return std::atomic_load(&a->atomic);}
+GP_ALWAYS_INLINE uint8_t  gp_atomic_load_u8 (const GPAtomicUInt8 * a) {return std::atomic_load(&a->atomic);}
+GP_ALWAYS_INLINE uint16_t gp_atomic_load_u16(const GPAtomicUInt16* a) {return std::atomic_load(&a->atomic);}
+GP_ALWAYS_INLINE uint32_t gp_atomic_load_u32(const GPAtomicUInt32* a) {return std::atomic_load(&a->atomic);}
+GP_ALWAYS_INLINE uint64_t gp_atomic_load_u64(const GPAtomicUInt64* a) {return std::atomic_load(&a->atomic);}
+
+GP_ALWAYS_INLINE int8_t   gp_atomic_exchange_i8 (GPAtomicInt8  * a, int8_t   c)
+{ return std::atomic_exchange(&a->atomic, c); }
+GP_ALWAYS_INLINE int16_t  gp_atomic_exchange_i16(GPAtomicInt16 * a, int16_t  c)
+{ return std::atomic_exchange(&a->atomic, c); }
+GP_ALWAYS_INLINE int32_t  gp_atomic_exchange_i32(GPAtomicInt32 * a, int32_t  c)
+{ return std::atomic_exchange(&a->atomic, c); }
+GP_ALWAYS_INLINE int64_t  gp_atomic_exchange_i64(GPAtomicInt64 * a, int64_t  c)
+{ return std::atomic_exchange(&a->atomic, c); }
+GP_ALWAYS_INLINE uint8_t  gp_atomic_exchange_u8 (GPAtomicUInt8 * a, uint8_t  c)
+{ return std::atomic_exchange(&a->atomic, c); }
+GP_ALWAYS_INLINE uint16_t gp_atomic_exchange_u16(GPAtomicUInt16* a, uint16_t c)
+{ return std::atomic_exchange(&a->atomic, c); }
+GP_ALWAYS_INLINE uint32_t gp_atomic_exchange_u32(GPAtomicUInt32* a, uint32_t c)
+{ return std::atomic_exchange(&a->atomic, c); }
+GP_ALWAYS_INLINE uint64_t gp_atomic_exchange_u64(GPAtomicUInt64* a, uint64_t c)
+{ return std::atomic_exchange(&a->atomic, c); }
+
+GP_ALWAYS_INLINE int8_t   gp_atomic_fetch_add_i8 (GPAtomicInt8  * a, int8_t   c)
+{ return std::atomic_fetch_add(&a->atomic, c); }
+GP_ALWAYS_INLINE int16_t  gp_atomic_fetch_add_i16(GPAtomicInt16 * a, int16_t  c)
+{ return std::atomic_fetch_add(&a->atomic, c); }
+GP_ALWAYS_INLINE int32_t  gp_atomic_fetch_add_i32(GPAtomicInt32 * a, int32_t  c)
+{ return std::atomic_fetch_add(&a->atomic, c); }
+GP_ALWAYS_INLINE int64_t  gp_atomic_fetch_add_i64(GPAtomicInt64 * a, int64_t  c)
+{ return std::atomic_fetch_add(&a->atomic, c); }
+GP_ALWAYS_INLINE uint8_t  gp_atomic_fetch_add_u8 (GPAtomicUInt8 * a, uint8_t  c)
+{ return std::atomic_fetch_add(&a->atomic, c); }
+GP_ALWAYS_INLINE uint16_t gp_atomic_fetch_add_u16(GPAtomicUInt16* a, uint16_t c)
+{ return std::atomic_fetch_add(&a->atomic, c); }
+GP_ALWAYS_INLINE uint32_t gp_atomic_fetch_add_u32(GPAtomicUInt32* a, uint32_t c)
+{ return std::atomic_fetch_add(&a->atomic, c); }
+GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_add_u64(GPAtomicUInt64* a, uint64_t c)
+{ return std::atomic_fetch_add(&a->atomic, c); }
+
+GP_ALWAYS_INLINE int8_t   gp_atomic_fetch_sub_i8 (GPAtomicInt8  * a, int8_t   c)
+{ return std::atomic_fetch_sub(&a->atomic, c); }
+GP_ALWAYS_INLINE int16_t  gp_atomic_fetch_sub_i16(GPAtomicInt16 * a, int16_t  c)
+{ return std::atomic_fetch_sub(&a->atomic, c); }
+GP_ALWAYS_INLINE int32_t  gp_atomic_fetch_sub_i32(GPAtomicInt32 * a, int32_t  c)
+{ return std::atomic_fetch_sub(&a->atomic, c); }
+GP_ALWAYS_INLINE int64_t  gp_atomic_fetch_sub_i64(GPAtomicInt64 * a, int64_t  c)
+{ return std::atomic_fetch_sub(&a->atomic, c); }
+GP_ALWAYS_INLINE uint8_t  gp_atomic_fetch_sub_u8 (GPAtomicUInt8 * a, uint8_t  c)
+{ return std::atomic_fetch_sub(&a->atomic, c); }
+GP_ALWAYS_INLINE uint16_t gp_atomic_fetch_sub_u16(GPAtomicUInt16* a, uint16_t c)
+{ return std::atomic_fetch_sub(&a->atomic, c); }
+GP_ALWAYS_INLINE uint32_t gp_atomic_fetch_sub_u32(GPAtomicUInt32* a, uint32_t c)
+{ return std::atomic_fetch_sub(&a->atomic, c); }
+GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_sub_u64(GPAtomicUInt64* a, uint64_t c)
+{ return std::atomic_fetch_sub(&a->atomic, c); }
+
+GP_ALWAYS_INLINE int8_t   gp_atomic_fetch_or_i8 (GPAtomicInt8  * a, int8_t   c)
+{ return std::atomic_fetch_or(&a->atomic, c); }
+GP_ALWAYS_INLINE int16_t  gp_atomic_fetch_or_i16(GPAtomicInt16 * a, int16_t  c)
+{ return std::atomic_fetch_or(&a->atomic, c); }
+GP_ALWAYS_INLINE int32_t  gp_atomic_fetch_or_i32(GPAtomicInt32 * a, int32_t  c)
+{ return std::atomic_fetch_or(&a->atomic, c); }
+GP_ALWAYS_INLINE int64_t  gp_atomic_fetch_or_i64(GPAtomicInt64 * a, int64_t  c)
+{ return std::atomic_fetch_or(&a->atomic, c); }
+GP_ALWAYS_INLINE uint8_t  gp_atomic_fetch_or_u8 (GPAtomicUInt8 * a, uint8_t  c)
+{ return std::atomic_fetch_or(&a->atomic, c); }
+GP_ALWAYS_INLINE uint16_t gp_atomic_fetch_or_u16(GPAtomicUInt16* a, uint16_t c)
+{ return std::atomic_fetch_or(&a->atomic, c); }
+GP_ALWAYS_INLINE uint32_t gp_atomic_fetch_or_u32(GPAtomicUInt32* a, uint32_t c)
+{ return std::atomic_fetch_or(&a->atomic, c); }
+GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_or_u64(GPAtomicUInt64* a, uint64_t c)
+{ return std::atomic_fetch_or(&a->atomic, c); }
+
+GP_ALWAYS_INLINE int8_t   gp_atomic_fetch_xor_i8 (GPAtomicInt8  * a, int8_t   c)
+{ return std::atomic_fetch_xor(&a->atomic, c); }
+GP_ALWAYS_INLINE int16_t  gp_atomic_fetch_xor_i16(GPAtomicInt16 * a, int16_t  c)
+{ return std::atomic_fetch_xor(&a->atomic, c); }
+GP_ALWAYS_INLINE int32_t  gp_atomic_fetch_xor_i32(GPAtomicInt32 * a, int32_t  c)
+{ return std::atomic_fetch_xor(&a->atomic, c); }
+GP_ALWAYS_INLINE int64_t  gp_atomic_fetch_xor_i64(GPAtomicInt64 * a, int64_t  c)
+{ return std::atomic_fetch_xor(&a->atomic, c); }
+GP_ALWAYS_INLINE uint8_t  gp_atomic_fetch_xor_u8 (GPAtomicUInt8 * a, uint8_t  c)
+{ return std::atomic_fetch_xor(&a->atomic, c); }
+GP_ALWAYS_INLINE uint16_t gp_atomic_fetch_xor_u16(GPAtomicUInt16* a, uint16_t c)
+{ return std::atomic_fetch_xor(&a->atomic, c); }
+GP_ALWAYS_INLINE uint32_t gp_atomic_fetch_xor_u32(GPAtomicUInt32* a, uint32_t c)
+{ return std::atomic_fetch_xor(&a->atomic, c); }
+GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_xor_u64(GPAtomicUInt64* a, uint64_t c)
+{ return std::atomic_fetch_xor(&a->atomic, c); }
+
+GP_ALWAYS_INLINE int8_t   gp_atomic_fetch_and_i8 (GPAtomicInt8  * a, int8_t   c)
+{ return std::atomic_fetch_and(&a->atomic, c); }
+GP_ALWAYS_INLINE int16_t  gp_atomic_fetch_and_i16(GPAtomicInt16 * a, int16_t  c)
+{ return std::atomic_fetch_and(&a->atomic, c); }
+GP_ALWAYS_INLINE int32_t  gp_atomic_fetch_and_i32(GPAtomicInt32 * a, int32_t  c)
+{ return std::atomic_fetch_and(&a->atomic, c); }
+GP_ALWAYS_INLINE int64_t  gp_atomic_fetch_and_i64(GPAtomicInt64 * a, int64_t  c)
+{ return std::atomic_fetch_and(&a->atomic, c); }
+GP_ALWAYS_INLINE uint8_t  gp_atomic_fetch_and_u8 (GPAtomicUInt8 * a, uint8_t  c)
+{ return std::atomic_fetch_and(&a->atomic, c); }
+GP_ALWAYS_INLINE uint16_t gp_atomic_fetch_and_u16(GPAtomicUInt16* a, uint16_t c)
+{ return std::atomic_fetch_and(&a->atomic, c); }
+GP_ALWAYS_INLINE uint32_t gp_atomic_fetch_and_u32(GPAtomicUInt32* a, uint32_t c)
+{ return std::atomic_fetch_and(&a->atomic, c); }
+GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_and_u64(GPAtomicUInt64* a, uint64_t c)
+{ return std::atomic_fetch_and(&a->atomic, c); }
+
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_strong_i8 (GPAtomicInt8  * a, int8_t  * b, int8_t   c)
+{ return std::atomic_compare_exchange_strong(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_strong_i16(GPAtomicInt16 * a, int16_t * b, int16_t  c)
+{ return std::atomic_compare_exchange_strong(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_strong_i32(GPAtomicInt32 * a, int32_t * b, int32_t  c)
+{ return std::atomic_compare_exchange_strong(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_strong_i64(GPAtomicInt64 * a, int64_t * b, int64_t  c)
+{ return std::atomic_compare_exchange_strong(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_strong_u8 (GPAtomicUInt8 * a, uint8_t * b, uint8_t  c)
+{ return std::atomic_compare_exchange_strong(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_strong_u16(GPAtomicUInt16* a, uint16_t* b, uint16_t c)
+{ return std::atomic_compare_exchange_strong(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_strong_u32(GPAtomicUInt32* a, uint32_t* b, uint32_t c)
+{ return std::atomic_compare_exchange_strong(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_strong_u64(GPAtomicUInt64* a, uint64_t* b, uint64_t c)
+{ return std::atomic_compare_exchange_strong(&a->atomic, b, c); }
+
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_i8 (GPAtomicInt8  * a, int8_t  * b, int8_t   c)
+{ return std::atomic_compare_exchange_weak(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_i16(GPAtomicInt16 * a, int16_t * b, int16_t  c)
+{ return std::atomic_compare_exchange_weak(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_i32(GPAtomicInt32 * a, int32_t * b, int32_t  c)
+{ return std::atomic_compare_exchange_weak(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_i64(GPAtomicInt64 * a, int64_t * b, int64_t  c)
+{ return std::atomic_compare_exchange_weak(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_u8 (GPAtomicUInt8 * a, uint8_t * b, uint8_t  c)
+{ return std::atomic_compare_exchange_weak(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_u16(GPAtomicUInt16* a, uint16_t* b, uint16_t c)
+{ return std::atomic_compare_exchange_weak(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_u32(GPAtomicUInt32* a, uint32_t* b, uint32_t c)
+{ return std::atomic_compare_exchange_weak(&a->atomic, b, c); }
+GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_u64(GPAtomicUInt64* a, uint64_t* b, uint64_t c)
+{ return std::atomic_compare_exchange_weak(&a->atomic, b, c); }
+
+#define gp_atomic_thread_fence(MO) std::atomic_thread_fence(MO)
+#define gp_atomic_signal_fence(MO) std::atomic_signal_fence(MO)
 
 // ------------------------------------
 #elif defined(GP_USE_INTERLOCKED_INTRINSICS)
@@ -1541,6 +1726,10 @@ GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_u64(GPAtomicUInt64* a, uin
 
 //-------------------------------------
 #else // use locks
+
+// No inline functions here, this allows less capable compilers to use actual
+// atomics when using the installed library that is built with the more capable
+// compiler.
 
 #define gp_atomic_store(A, C) ( \
 ( \
