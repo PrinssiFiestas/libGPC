@@ -65,4 +65,8 @@ void print_string(GPString str)
 | Endianness     |                      |
 | :------------- | -------------------- |
 | @ref GP_ENDIAN | @copybrief GP_ENDIAN |
+
+| Memory                 |                              |
+| :--------------------- | ---------------------------- |
+| @ref GP_MAX_ALLOC_SIZE | @copybrief GP_MAX_ALLOC_SIZE |
 */

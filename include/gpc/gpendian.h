@@ -19,7 +19,7 @@
  * If endianness is detected, then this is defined to be equal to
  * @ref GP_ENDIAN_LITTLE, @ref GP_ENDIAN_BIG, or something else in case of mixed
  * endianness. If endianness cannot be detected, then this macro will not be
- * defined. In such case, user can define it themselves to @ref GP_ENDIAN_LITTLE
+ * defined. In such case, user can define it globally themselves to @ref GP_ENDIAN_LITTLE
  * or @ref GP_ENDIAN_BIG if needed at compile time. Endianness can also be
  * checked during runtime using @ref gp_endian_is_big() and @ref gp_endian_is_little()
  * functions.

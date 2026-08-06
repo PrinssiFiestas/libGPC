@@ -41,7 +41,7 @@ void gp_launder_noinline(void**); ///< @private
  * that are already powers of two will be raised to the next power too.
  */
 GP_NODISCARD GP_INLINE
-uint32_t gp_next_power_of_2_32(uint32_t x)
+uint32_t gp_next_power_of_two_32(uint32_t x)
 {
     #if __GNUC__ && INT_MAX == INT32_MAX // pedantic size check due to clzg() not always available
     return x == 0 ? 1 : 1 << (64 - __builtin_clz(x));
@@ -60,7 +60,7 @@ uint32_t gp_next_power_of_2_32(uint32_t x)
  * that are already powers of two will be raised to the next power too.
  */
 GP_NODISCARD GP_INLINE
-uint64_t gp_next_power_of_2_64(uint64_t x)
+uint64_t gp_next_power_of_two_64(uint64_t x)
 {
     #if __GNUC__ && LLONG_MAX == INT64_MAX // pedantic size check due to clzg() not always available
     return x == 0 ? 1 : 1llu << (64 - __builtin_clzll(x));
@@ -80,10 +80,10 @@ uint64_t gp_next_power_of_2_64(uint64_t x)
  * that are already powers of two will be raised to the next power too.
  */
 GP_NODISCARD GP_INLINE
-size_t gp_next_power_of_2(size_t x)
+size_t gp_next_power_of_two(size_t x)
 {
     return sizeof x == sizeof(uint32_t) ?
-        gp_next_power_of_2_32(x) : gp_next_power_of_2_64(x);
+        gp_next_power_of_two_32(x) : gp_next_power_of_two_64(x);
 }
 
 /** Round number up to alignment boundary.
@@ -181,7 +181,7 @@ bool gp_approxl(long double a, long double b, long double max_rel_diff) {
  * If @a u is zero, the result is undefined.
  */
 GP_NODISCARD GP_INLINE
-size_t gp_trailing_zeros_u32(uint32_t u)
+size_t gp_trailing_zeros_32(uint32_t u)
 {
     gp_assume(u != 0, "Invalid argument.");
 
@@ -209,7 +209,7 @@ size_t gp_trailing_zeros_u32(uint32_t u)
  * If @a u is zero, the result is undefined.
  */
 GP_NODISCARD GP_INLINE
-size_t gp_trailing_zeros_u64(uint64_t u)
+size_t gp_trailing_zeros_64(uint64_t u)
 {
     gp_assume(u != 0, "Invalid argument.");
 
@@ -238,7 +238,7 @@ size_t gp_trailing_zeros_u64(uint64_t u)
  * If @a u is zero, the result is undefined.
  */
 GP_NODISCARD GP_INLINE
-size_t gp_leading_zeros_u32(uint32_t u)
+size_t gp_leading_zeros_32(uint32_t u)
 {
     gp_assume(u != 0, "Invalid argument.");
 
@@ -264,7 +264,7 @@ size_t gp_leading_zeros_u32(uint32_t u)
  * If @a u is zero, the result is undefined.
  */
 GP_NODISCARD GP_INLINE
-size_t gp_leading_zeros_u64(uint64_t u)
+size_t gp_leading_zeros_64(uint64_t u)
 {
     gp_assume(u != 0, "Invalid argument.");
 

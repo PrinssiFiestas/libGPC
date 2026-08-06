@@ -7,51 +7,84 @@
 
 #include <gpc/gpthread.h>
 
-/// @defgroup atomic Atomics
-/// @code
-/// #include <gpc/gpatomic.h>
-/// @endcode
-/// This module provides portable atomic integers regardless of C/C++ dialect or
-/// compiler. All functionality in this module can be used even in strict C99
-/// and even if the compiler has no support whatsoever for atomics. In that
-/// case, locking atomics are used, however, most compilers do support atomics
-/// possibly as an extension to C99, so locks are rarely used.
-///
-/// C11 standard allows the compiler to insert locks with atomic types. This
-/// means that you cannot expect `sizeof(_Atomic(inN_t))` to equal to `sizeof(intN_t)`.
-/// This can cause ABI incompatibilities for different compilers even on the
-/// same target platform. In our implementation, even when locks are used, this
-/// will not happen. We guarantee that `sizeof(GPAtomicIntN)` is always to equal
-/// to `sizeof(intN_t)`.
-///
-/// Our API is based on [C11 atomics API](https://en.cppreference.com/c/atomic)
-/// with the following changes:
-///
-/// - We currently only support 8, 16, 32, and 64 bit fixed width integers,
-///   although we also provide typedefs for size and pointer types. Atomic flag
-///   is not provided, it's requirements make it impossible to implement
-///   portably and loosening up the requirements would make it redundant.
-/// - Our types are strongly typed (unions with `nonatomic` field instead of
-///   typedefs inspired by [turf](https://github.com/preshing/turf)). This is
-///   the only sensible way of making sure that the semantics of our types
-///   remain consistent across platforms.
-/// - In addition of type generic functions, we also export all functions as
-///   @ref GP_ALWAYS_INLINE functions with `_i8`, `_u8`, `_i16`, `_u16`, `_i32`,
-///   `_u32`, `_i64`, and `_u64` suffixes for all of our fixed width types
-///   respectively. We also provide macros with `_uz` and `_iz` suffixes that
-///   take `GPAtomicSize/GPAtomicUIntPtr` and `GPAtomicPtrDiff/GPAtomicIntPtr`
-///   arguments respectively. These should be used with compilers that do not
-///   provide enough generic utilities to implement the generic functions,
-///   however, the most widely used compilers do support generic functions. Only
-///   generic functions have dedicated documentation for brevity, non-generics
-///   only differ by having stricter and more explicit typing.
-/// - Our types are guaranteed to have the same size as their underlying type.
-///   The compiler will never allocate a mutex with the value.
-/// - Runtime `atomic_is_lock_free()` currently unavailable. However, we do have
-///   `GP_ATOMIC_TYPE_LOCK_FREE` macros, which is what you want most of the time.
-/// - Removed `kill_dependency()`. It is only needed for `memory_order_consume`,
-///   which is [deprecated by C++26](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3475r1.pdf).
-/// @{
+/** @defgroup atomic Atomics
+ * ```c
+ * #include <gpc/gpatomic.h>
+ * ```
+ * This module provides portable atomic integers regardless of C/C++ dialect or
+ * compiler. All functionality in this module can be used even in strict C99
+ * and even if the compiler has no support whatsoever for atomics. In that
+ * case, locking atomics are used, however, most compilers do support atomics
+ * possibly as an extension to C99, so locks are rarely used.
+ *
+ * C11 standard allows the compiler to insert locks with atomic types. This
+ * means that you cannot expect `sizeof(_Atomic(inN_t))` to equal to `sizeof(intN_t)`.
+ * This can cause ABI incompatibilities for different compilers even on the
+ * same target platform. In our implementation, even when locks are used, this
+ * will not happen. We guarantee that `sizeof(GPAtomicIntN)` is always to equal
+ * to `sizeof(intN_t)`.
+ *
+ * Our API is based on [C11 atomics API](https://en.cppreference.com/c/atomic)
+ * with the following changes:
+ *
+ * - We currently only support 8, 16, 32, and 64 bit fixed width integers,
+ *   although we also provide typedefs for size and pointer types. Atomic flag
+ *   is not provided, it's requirements make it impossible to implement
+ *   portably and loosening up the requirements would make it redundant.
+ * - Our types are strongly typed (unions with `nonatomic` field instead of
+ *   typedefs inspired by [turf](https://github.com/preshing/turf)). This is
+ *   the only sensible way of making sure that the semantics of our types
+ *   remain consistent across platforms.
+ * - In addition of type generic functions, we also export all functions as
+ *   @ref GP_ALWAYS_INLINE functions with `_i8`, `_u8`, `_i16`, `_u16`, `_i32`,
+ *   `_u32`, `_i64`, and `_u64` suffixes for all of our fixed width types
+ *   respectively. We also provide macros with `_uz` and `_iz` suffixes that
+ *   take `GPAtomicSize/GPAtomicUIntPtr` and `GPAtomicPtrDiff/GPAtomicIntPtr`
+ *   arguments respectively. These are recommended be used with compilers that
+ *   do not provide enough generic utilities to implement the generic functions,
+ *   however, the most widely used compilers do support generic functions. Only
+ *   generic functions have dedicated documentation for brevity, non-generics
+ *   only differ by having stricter and more explicit typing.
+ * - Our types are guaranteed to have the same size as their underlying type.
+ *   The compiler will never allocate a mutex with the value.
+ * - Runtime `atomic_is_lock_free()` currently unavailable. However, we do have
+ *   `GP_ATOMIC_TYPE_LOCK_FREE` macros, which is what you want most of the time.
+ * - Removed `kill_dependency()`. It is only needed for `memory_order_consume`,
+ *   which is [deprecated by C++26](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p3475r1.pdf).
+ *
+ * Strict C99 (no `_Generic` and no @ref GP_TYPEOF) doesn't provide enough
+ * utilities to implement correct return type for generic functions. Therefore,
+ * maximum portability applications or code that require strict C99 has to cast
+ * the return value of most generic functions to desired type if the size of
+ * the return type doesn't match the size of the expression.
+ *
+ * ```c
+ * extern GPAtomicUInt8 x;
+ *
+ * void foo(void)
+ * {
+ *     // WRONG: x will sign extend even though
+ *     // unsigned.
+ *     unsigned u32 = gp_atomic_load(&x);
+ *
+ *     // Correct: Explicit cast to target type
+ *     // ensures proper zero extension. This
+ *     // is the recommended practice.
+ *     u32 = (uint8_t)gp_atomic_load(&x);
+ *
+ *     // Ok: Assigning to a type with the same
+ *     // size. Signedness does not matter due
+ *     // to two's complement. Slightly more bug
+ *     // prone, so explicit cast recommended
+ *     // anyway.
+ *     int8_t i8 = gp_atomic_load(&x);
+ * }
+ * ```
+ *
+ * The exception is variants of `gp_compare_exchange()`, which always return a
+ * `bool` and `gp_atomic_store()` that doesn't return anything.
+ * @{
+ */
 
 #ifdef GP_DOXYGEN
 /** Use MSVC experimental C11 atomics.
@@ -159,6 +192,20 @@ typedef GPAtomicIntN GPAtomicIntPtr;
  */
 #define GP_HAS_ATOMIC_INTRINSICS 1
 
+/** Check if no atomics available.
+ *
+ * Defined if neither @ref GP_HAS_ATOMIC_TYPES nor @ref GP_HAS_ATOMIC_INTRINSICS
+ * is defined. In such case, locks are used to implement atomics when compiling
+ * this library. However, if this library has been compiled with a compiler that
+ * does support atomics and is linked with an application that is compiled using
+ * a compiler that doesn't support atomics, then no locks are used regardless of
+ * this macro. The less capable compiler will just call atomic functions
+ * exported by the more capable compiler. However, in such case, the memory
+ * ordering will always be @ref GP_MEMORY_ORDER_SEQ_CST and the memory ordering
+ * parameter of explicit functions is ignored.
+ */
+#define GP_USE_LOCKS_FOR_ATOMICS 1
+
 /** Atomic type.
  *
  * `_Atomic(T)` if C11, `std::atomic<T>` if C++11. Only defined if @ref GP_HAS_ATOMIC_TYPES
@@ -260,25 +307,6 @@ typedef GPAtomicIntN GPAtomicIntPtr;
  */
 T_or_void_or_bool gp_atomic_OP_SUFFIX(GPAtomicT* destination, T operands...);
 
-/** Generic functions with explicit memory ordering.
- *
- * All generic functions have counterparts with `_explicit` suffix that take
- * an additional @a MEMORY_ORDER parameter, which is one of @ref gp_memory_order_t
- * constants. All the functions without the `_explicit` suffix are equivalent of
- * calling this with @a MEMORY_ORDER equal to @ref GP_MEMORY_ORDER_SEQ_CST.
- *
- * We will only have operation specific documentation for generic macros for
- * brevity.
- *
- * `OP` is any operation we support, which would be one of `store`, `load`,
- * `exchange`, `fetch_add`, `fetch_sub`, `fetch_or`, `fetch_xor`, `fetch_and`,
- * `compare_exchange_strong`, or `compare_exchange_weak`.
- *
- * Some implementations ignore the memory ordering parameter. In such case, the
- * memory ordering will always be sequentially consistent.
- */
-#define gp_atomic_OP_explicit(ARGS..., MEMORY_ORDER) /* unspecified */
-
 /** Atomically store a value to an atomic type.
  *
  * Atomically stores @a T__value to the value pointed by @a GPAtomicTPtr__a.
@@ -366,6 +394,25 @@ T_or_void_or_bool gp_atomic_OP_SUFFIX(GPAtomicT* destination, T operands...);
  * allowed to fail spuriously. This can give better performance in [CAS loops](https://preshing.com/20150402/you-can-do-any-kind-of-atomic-read-modify-write-operation/).
  */
 #  define gp_atomic_compare_exchange_weak(GPAtomicTPtr__a, TPtr__expected, T__desired) /* unspecified */
+
+/** Generic functions with explicit memory ordering.
+ *
+ * All generic functions have counterparts with `_explicit` suffix that take
+ * an additional @a MEMORY_ORDER parameter, which is one of @ref gp_memory_order_t
+ * constants. All the functions without the `_explicit` suffix are equivalent of
+ * calling this with @a MEMORY_ORDER equal to @ref GP_MEMORY_ORDER_SEQ_CST.
+ *
+ * We will only have operation specific documentation for generic macros for
+ * brevity.
+ *
+ * `OP` is any operation we support, which would be one of `store`, `load`,
+ * `exchange`, `fetch_add`, `fetch_sub`, `fetch_or`, `fetch_xor`, `fetch_and`,
+ * `compare_exchange_strong`, or `compare_exchange_weak`.
+ *
+ * Some implementations ignore the memory ordering parameter. In such case, the
+ * memory ordering will always be sequentially consistent.
+ */
+#define gp_atomic_OP_explicit(ARGS..., MEMORY_ORDER) /* unspecified */
 
 /** CPU and compiler memory fence.
  *
@@ -1170,7 +1217,7 @@ GP_ALWAYS_INLINE void gp_atomic_store_u64(GPAtomicUInt64* a, uint64_t c)
     GPAtomicInt32*: gp_atomic_load_i32, GPAtomicUInt32*: gp_atomic_load_u32, \
     GPAtomicInt64*: gp_atomic_load_i64, GPAtomicUInt64*: gp_atomic_load_u64)(A)
 #else
-#define gp_atomic_load(A) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_load(A) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? _InterlockedOr8 ((char     *)&(A)->_native, 0) : \
     sizeof(*(A)) == 2 ? _InterlockedOr16((short    *)&(A)->_native, 0) : \
@@ -1202,7 +1249,7 @@ GP_ALWAYS_INLINE uint64_t gp_atomic_load_u64(const GPAtomicUInt64* a)
     GPAtomicInt32*: gp_atomic_exchange_i32, GPAtomicUInt32*: gp_atomic_exchange_u32, \
     GPAtomicInt64*: gp_atomic_exchange_i64, GPAtomicUInt64*: gp_atomic_exchange_u64)((A), (C))
 #else
-#define gp_atomic_exchange(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_exchange(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? _InterlockedExchange8 ((char     *)&(A)->_native, (C)) : \
     sizeof(*(A)) == 2 ? _InterlockedExchange16((short    *)&(A)->_native, (C)) : \
@@ -1266,10 +1313,10 @@ GP_ALWAYS_INLINE bool gp_internal_compare_exchange_i64(long long* a, uint64_t* b
 
 #define gp_atomic_compare_exchange_strong(A, B, C) \
 ( \
-    sizeof(*(A)) == 1 ? gp_internal_compare_exchange_i8 (&(A)->_native, (B), (C)) : \
-    sizeof(*(A)) == 2 ? gp_internal_compare_exchange_i16(&(A)->_native, (B), (C)) : \
-    sizeof(*(A)) == 4 ? gp_internal_compare_exchange_i32(&(A)->_native, (B), (C)) : \
-                        gp_internal_compare_exchange_i64(&(A)->_native, (B), (C))   \
+    sizeof(*(A)) == 1 ? gp_internal_compare_exchange_i8 ((char     *)&(A)->_native, (B), (C)) : \
+    sizeof(*(A)) == 2 ? gp_internal_compare_exchange_i16((short    *)&(A)->_native, (B), (C)) : \
+    sizeof(*(A)) == 4 ? gp_internal_compare_exchange_i32((long     *)&(A)->_native, (B), (C)) : \
+                        gp_internal_compare_exchange_i64((long long*)&(A)->_native, (B), (C))   \
 ))
 GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_strong_i8(GPAtomicInt8* a, int8_t* b, int8_t c)
 { return gp_internal_compare_exchange_i8(&a->_native, b, c); }
@@ -1290,10 +1337,10 @@ GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_strong_u64(GPAtomicUInt64* a, u
 
 #define gp_atomic_compare_exchange_weak(A, B, C) \
 ( \
-    sizeof(*(A)) == 1 ? gp_internal_compare_exchange_i8 (&(A)->_native, (B), (C)) : \
-    sizeof(*(A)) == 2 ? gp_internal_compare_exchange_i16(&(A)->_native, (B), (C)) : \
-    sizeof(*(A)) == 4 ? gp_internal_compare_exchange_i32(&(A)->_native, (B), (C)) : \
-                        gp_internal_compare_exchange_i64(&(A)->_native, (B), (C))   \
+    sizeof(*(A)) == 1 ? gp_internal_compare_exchange_i8 ((char     *)&(A)->_native, (B), (C)) : \
+    sizeof(*(A)) == 2 ? gp_internal_compare_exchange_i16((short    *)&(A)->_native, (B), (C)) : \
+    sizeof(*(A)) == 4 ? gp_internal_compare_exchange_i32((long     *)&(A)->_native, (B), (C)) : \
+                        gp_internal_compare_exchange_i64((long long*)&(A)->_native, (B), (C))   \
 ))
 GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_i8(GPAtomicInt8* a, int8_t* b, int8_t c)
 { return gp_internal_compare_exchange_i8(&a->_native, b, c); }
@@ -1319,7 +1366,7 @@ GP_ALWAYS_INLINE bool gp_atomic_compare_exchange_weak_u64(GPAtomicUInt64* a, uin
     GPAtomicInt32*: gp_atomic_fetch_add_i32, GPAtomicUInt32*: gp_atomic_fetch_add_u32, \
     GPAtomicInt64*: gp_atomic_fetch_add_i64, GPAtomicUInt64*: gp_atomic_fetch_add_u64)((A), (C))
 #else
-#define gp_atomic_fetch_add(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_fetch_add(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? _InterlockedExchangeAdd8 ((char     *)&(A)->_native, (C)) : \
     sizeof(*(A)) == 2 ? _InterlockedExchangeAdd16((short    *)&(A)->_native, (C)) : \
@@ -1351,7 +1398,7 @@ GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_add_u64(GPAtomicUInt64* a, uint64_t c)
     GPAtomicInt32*: gp_atomic_fetch_sub_i32, GPAtomicUInt32*: gp_atomic_fetch_sub_u32, \
     GPAtomicInt64*: gp_atomic_fetch_sub_i64, GPAtomicUInt64*: gp_atomic_fetch_sub_u64)((A), (C))
 #else
-#define gp_atomic_fetch_sub(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_fetch_sub(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? _InterlockedExchangeAdd8 ((char     *)&(A)->_native, -(C)) : \
     sizeof(*(A)) == 2 ? _InterlockedExchangeAdd16((short    *)&(A)->_native, -(C)) : \
@@ -1383,7 +1430,7 @@ GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_sub_u64(GPAtomicUInt64* a, uint64_t c)
     GPAtomicInt32*: gp_atomic_fetch_or_i32, GPAtomicUInt32*: gp_atomic_fetch_or_u32, \
     GPAtomicInt64*: gp_atomic_fetch_or_i64, GPAtomicUInt64*: gp_atomic_fetch_or_u64)((A), (C))
 #else
-#define gp_atomic_fetch_or(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_fetch_or(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? _InterlockedOr8 ((char     *)&(A)->_native, (C)) : \
     sizeof(*(A)) == 2 ? _InterlockedOr16((short    *)&(A)->_native, (C)) : \
@@ -1415,7 +1462,7 @@ GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_or_u64(GPAtomicUInt64* a, uint64_t c)
     GPAtomicInt32*: gp_atomic_fetch_xor_i32, GPAtomicUInt32*: gp_atomic_fetch_xor_u32, \
     GPAtomicInt64*: gp_atomic_fetch_xor_i64, GPAtomicUInt64*: gp_atomic_fetch_xor_u64)((A), (C))
 #else
-#define gp_atomic_fetch_xor(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_fetch_xor(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? _InterlockedXor8 ((char     *)&(A)->_native, (C)) : \
     sizeof(*(A)) == 2 ? _InterlockedXor16((short    *)&(A)->_native, (C)) : \
@@ -1447,7 +1494,7 @@ GP_ALWAYS_INLINE uint64_t gp_atomic_fetch_xor_u64(GPAtomicUInt64* a, uint64_t c)
     GPAtomicInt32*: gp_atomic_fetch_and_i32, GPAtomicUInt32*: gp_atomic_fetch_and_u32, \
     GPAtomicInt64*: gp_atomic_fetch_and_i64, GPAtomicUInt64*: gp_atomic_fetch_and_u64)((A), (C))
 #else
-#define gp_atomic_fetch_and(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_fetch_and(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? _InterlockedAnd8 ((char     *)&(A)->_native, (C)) : \
     sizeof(*(A)) == 2 ? _InterlockedAnd16((short    *)&(A)->_native, (C)) : \
@@ -1769,7 +1816,7 @@ GP_API void gp_atomic_store_u64(GPAtomicUInt64*, uint64_t);
     GPAtomicInt32*: gp_atomic_load_i32, GPAtomicUInt32*: gp_atomic_load_u32, \
     GPAtomicInt64*: gp_atomic_load_i64, GPAtomicUInt64*: gp_atomic_load_u64)(A)
 #else
-#define gp_atomic_load(A) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_load(A) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? gp_atomic_load_i8 ((GPAtomicInt8 *)(A), 0) : \
     sizeof(*(A)) == 2 ? gp_atomic_load_i16((GPAtomicInt16*)(A), 0) : \
@@ -1793,7 +1840,7 @@ GP_API uint64_t gp_atomic_load_u64(GPAtomicUInt64*, uint64_t);
     GPAtomicInt32*: gp_atomic_exchange_i32, GPAtomicUInt32*: gp_atomic_exchange_u32, \
     GPAtomicInt64*: gp_atomic_exchange_i64, GPAtomicUInt64*: gp_atomic_exchange_u64)((A), (C))
 #else
-#define gp_atomic_exchange(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_exchange(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? gp_atomic_exchange_i8 ((GPAtomicInt8 *)(A), (C)) : \
     sizeof(*(A)) == 2 ? gp_atomic_exchange_i16((GPAtomicInt16*)(A), (C)) : \
@@ -1817,7 +1864,7 @@ GP_API uint64_t gp_atomic_exchange_u64(GPAtomicUInt64*, uint64_t);
     GPAtomicInt32*: gp_atomic_fetch_add_i32, GPAtomicUInt32*: gp_atomic_fetch_add_u32, \
     GPAtomicInt64*: gp_atomic_fetch_add_i64, GPAtomicUInt64*: gp_atomic_fetch_add_u64)((A), (C))
 #else
-#define gp_atomic_fetch_add(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_fetch_add(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? gp_atomic_fetch_add_i8 ((GPAtomicInt8 *)(A), (C)) : \
     sizeof(*(A)) == 2 ? gp_atomic_fetch_add_i16((GPAtomicInt16*)(A), (C)) : \
@@ -1841,7 +1888,7 @@ GP_API uint64_t gp_fetch_add_u64(GPAtomicUInt64*, uint64_t);
     GPAtomicInt32*: gp_atomic_fetch_sub_i32, GPAtomicUInt32*: gp_atomic_fetch_sub_u32, \
     GPAtomicInt64*: gp_atomic_fetch_sub_i64, GPAtomicUInt64*: gp_atomic_fetch_sub_u64)((A), (C))
 #else
-#define gp_atomic_fetch_sub(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_fetch_sub(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? gp_atomic_fetch_sub_i8 ((GPAtomicInt8 *)(A), (C)) : \
     sizeof(*(A)) == 2 ? gp_atomic_fetch_sub_i16((GPAtomicInt16*)(A), (C)) : \
@@ -1865,7 +1912,7 @@ GP_API uint64_t gp_fetch_sub_u64(GPAtomicUInt64*, uint64_t);
     GPAtomicInt32*: gp_atomic_fetch_or_i32, GPAtomicUInt32*: gp_atomic_fetch_or_u32, \
     GPAtomicInt64*: gp_atomic_fetch_or_i64, GPAtomicUInt64*: gp_atomic_fetch_or_u64)((A), (C))
 #else
-#define gp_atomic_fetch_or(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_fetch_or(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? gp_atomic_fetch_or_i8 ((GPAtomicInt8 *)(A), (C)) : \
     sizeof(*(A)) == 2 ? gp_atomic_fetch_or_i16((GPAtomicInt16*)(A), (C)) : \
@@ -1889,7 +1936,7 @@ GP_API uint64_t gp_fetch_or_u64(GPAtomicUInt64*, uint64_t);
     GPAtomicInt32*: gp_atomic_fetch_xor_i32, GPAtomicUInt32*: gp_atomic_fetch_xor_u32, \
     GPAtomicInt64*: gp_atomic_fetch_xor_i64, GPAtomicUInt64*: gp_atomic_fetch_xor_u64)((A), (C))
 #else
-#define gp_atomic_fetch_xor(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_fetch_xor(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? gp_atomic_fetch_xor_i8 ((GPAtomicInt8 *)(A), (C)) : \
     sizeof(*(A)) == 2 ? gp_atomic_fetch_xor_i16((GPAtomicInt16*)(A), (C)) : \
@@ -1913,7 +1960,7 @@ GP_API uint64_t gp_fetch_xor_u64(GPAtomicUInt64*, uint64_t);
     GPAtomicInt32*: gp_atomic_fetch_and_i32, GPAtomicUInt32*: gp_atomic_fetch_and_u32, \
     GPAtomicInt64*: gp_atomic_fetch_and_i64, GPAtomicUInt64*: gp_atomic_fetch_and_u64)((A), (C))
 #else
-#define gp_atomic_fetch_and(A, C) ((GP_TYPEOF((A)->nonatomic)) \
+#define gp_atomic_fetch_and(A, C) (GP_TYPEOF_CAST((A)->nonatomic) \
 ( \
     sizeof(*(A)) == 1 ? gp_atomic_fetch_and_i8 ((GPAtomicInt8 *)(A), (C)) : \
     sizeof(*(A)) == 2 ? gp_atomic_fetch_and_i16((GPAtomicInt16*)(A), (C)) : \
