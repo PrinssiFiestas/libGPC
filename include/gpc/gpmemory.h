@@ -50,7 +50,9 @@ extern "C" {
 //------------------------------------------------------------------------------
 /** @defgroup memory Memory Management
  *
- * Memory allocators and other memory management utilities.
+ * ```c
+ * #include <gpc/gpmemory.h>
+ * ```
  *
  * @{
  */ // TODO more docs for description.

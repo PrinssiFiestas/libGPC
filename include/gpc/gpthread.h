@@ -248,7 +248,7 @@ GP_INLINE void gp_thread_yield(void)
  * A mutex (mutual exclusion) is used to limit access of code segments and
  * shared data to a single thread at a time.
  *
- * Can be initialized statically by using @ref GP_MUTEX_INIT or
+ * Should be initialized statically by using @ref GP_MUTEX_INIT or
  * dynamically using @ref gp_mutex_init(). Dynamically created mutexes can be
  * destroyed using @ref gp_mutex_destroy().
  *
@@ -264,13 +264,13 @@ typedef pthread_mutex_t GPMutex;
 
 /** Static mutex initialzer.
  *
- * Example:
+ * Initializer list used to initialize mutexes statically. Example:
  * @code
  * static GPMutex mutex = GP_MUTEX_INIT;
  * @endcode
  */
 #ifdef GP_DOXYGEN
-#  define GP_MUTEX_INIT /* unspecified */
+#  define GP_MUTEX_INIT {/* unspecified */}
 #elif defined(GP_TARGET_DEBUG) && defined(_GNU_SOURCE)
 #  define GP_MUTEX_INIT PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP
 #else
@@ -415,7 +415,7 @@ void gp_mutex_unlock(GPMutex* mutex)
  *
  * Used in conjunction with @ref GPMutex to wait until a condition is met.
  *
- * Can be initialized statically by using @ref GP_COND_INIT or
+ * Should be initialized statically by using @ref GP_COND_INIT or
  * dynamically using @ref gp_cond_init(). Dynamically created condition
  * variables can be destroyed using @ref gp_cond_destroy().
  */
@@ -427,13 +427,13 @@ typedef pthread_cond_t GPCond;
 
 /** Static condition variable initialzer.
  *
- * Example:
+ * Initializer list used to initialize condition variables statically. Example:
  * @code
- * static GPCond mutex = GP_COND_INIT;
+ * static GPCond cond = GP_COND_INIT;
  * @endcode
  */
 #ifdef GP_DOXYGEN
-#  define GP_COND_INIT /* unspecified */
+#  define GP_COND_INIT {/* unspecified */}
 #else
 #  define GP_COND_INIT PTHREAD_COND_INITIALIZER
 #endif
@@ -897,9 +897,16 @@ typedef __unspecified__ GPOnce;
 typedef pthread_once_t GPOnce;
 #endif
 
-/** Static initializer for @ref GPOnce. */
+/** Static initializer for @ref GPOnce.
+ *
+ * Initializer list used to initialize once flags statically. Example:
+ *
+ * ```c
+ * static GPOnce initialized = GP_ONCE_INIT;
+ * ```
+ */
 #ifdef GP_DOXYGEN
-#  define GP_ONCE_INIT /* unspecified */
+#  define GP_ONCE_INIT {/* unspecified */}
 #else
 #  define GP_ONCE_INIT PTHREAD_ONCE_INIT
 #endif
