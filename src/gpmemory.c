@@ -30,11 +30,17 @@ static void* gp_s_global_heap_alloc(
     (void)unused;
     (void)optional_old_block_size;
 
+    // Standard aligned_alloc() and posix_memalign() require size to be a
+    // multiple of alignment, but _aligned_realloc() and our manual alignment
+    // implementation does not. Requiring size to be a multiple of alignment
+    // makes this much harder to use: it should be allowed to allocate say
+    // `char[3]` with alignment of GP_ALLOC_ALIGNMENT. Therefore, we'll just
+    // round up the size for aligned_alloc() and posix_memalign().
+
     #ifdef GP_TARGET_OS_WINDOWS // aligned_alloc() not available even in C11
     void* mem = _aligned_realloc(optional_old_block, block_size, alignment);
     #elif __STDC_VERSION__ >= 201112L
     void* mem;
-    // Size has to be a multiple of alignment, which is wasteful, so only round here.
     block_size = gp_round_to_aligned(block_size, alignment);
 
     // aligned_alloc() doesn't play well with realloc(), so have to handle
@@ -44,9 +50,10 @@ static void* gp_s_global_heap_alloc(
         mem = realloc(optional_old_block, block_size);
     else if (optional_old_block == NULL)
         mem = aligned_alloc(alignment, block_size);
-    else if (block_size <= optional_old_block_size)
+    else if (block_size <= optional_old_block_size) {
         mem = optional_old_block;
-    else {
+        block_size = optional_old_block_size; // in case user uses actual_size for dealloc
+    } else {
         mem = aligned_alloc(alignment, block_size);
         if (mem != NULL) {
             memcpy(mem, optional_old_block, optional_old_block_size);
@@ -62,12 +69,16 @@ static void* gp_s_global_heap_alloc(
     // `2*sizeof(size_t)`, but we'll play it even safer and just not use realloc()
     // for now. Might want to optimize later for known targets though.
     void* mem = NULL;
+    if (alignment < sizeof(void*))
+        alignment = sizeof(void*); // required by posix_memalign().
+    block_size = gp_round_to_aligned(block_size, alignment);
+
     posix_memalign(&mem, alignment, block_size);
     if (optional_old_block != NULL && mem != NULL) {
         memcpy(mem, optional_old_block, optional_old_block_size);
         free(optional_old_block);
     }
-    #else // have to align manually
+    #else // have to align manually.
     void* mem = NULL;
     void* mem_start = realloc(
         optional_old_block, block_size + gp_round_to_aligned(sizeof(void*), alignment));
@@ -117,7 +128,7 @@ static bool gp_s_global_heap_dealloc(
     memcpy(&block, (void**)block - 1, sizeof block);
     free(block);
     #endif
-    return true; // TODO document that UB invoked if failed.
+    return true;
 }
 
 GPAllocator gp_mallocator =

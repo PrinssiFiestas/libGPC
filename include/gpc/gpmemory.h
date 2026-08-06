@@ -162,10 +162,105 @@ GP_INLINE GP_NODISCARD bool gp_size_mul(size_t* result, size_t n, size_t m)
     return false;
 }
 
+/** Polymorphic memory allocator.
+ *
+ * Polymorphic memory allocators can be used to dispatch allocation and
+ * deallocation functions at runtime. Some allocators may provide concrete
+ * functions, but runtime dispatch is useful when embedding allocators to other
+ * data structure. For example, @ref GPArray takes a pointer to an allocator as
+ * a parameter to it's constructor and the array object will use the specified
+ * allocator to reallocate if needed without having to know the concrete type of
+ * the given allocator.
+ *
+ * Calling the member functions directly gives maximum control and may allow
+ * some error handling for some allocators. However, these are somewhat
+ * difficult to use and have strict requirements, so it is generally recommended
+ * to use @ref gp_mem_alloc(), @ref gp_mem_alloc_array(), @ref gp_realloc(), and
+ * @ref gp_dealloc() instead. Those functions are used to pass some default
+ * parameters and do some basic checks that makes them easier to use. However,
+ * calling these member functions directly is currently the only way of handling
+ * errors and allocating memory with non-default alignment.
+ *
+ * Custom memory allocators can be written by inheriting from this structure by
+ * having this as the first member of the custom allocator structure. See the
+ * definition of any of our other allocators for examples of this.
+ *
+ * Allocator implementations are free to loosen up some requirements documented
+ * for the member functions (e.g. requiring matching size and alignment for
+ * deallocations). However, users of the allocator can only break them if the
+ * given allocator documents that it is safe to do so. Otherwise, breaking the
+ * requirements leads to undefined behavior.
+ *
+ * Requirements for a custom allocator have "allocators must" or similar wording
+ * in this documentation. Of course users are free to implement whatever they
+ * like if they know that they are the only user of their custom allocator, but
+ * this library assumes that these invariants hold and _will_ exploit them
+ * internally, so generally speaking the requirements should be respected.
+ */
 typedef struct GPAllocator
 {
+    /** Allocate or reallocate memory.
+     *
+     * Allocates a new block of memory or reallocates an old one. Many
+     * allocators like @ref gp_heap require freeing the memory using
+     * @ref GPAllocator.dealloc(), but some allocators might have dedicated
+     * functions to free multiple pointers at once, in which case deallocation
+     * is optional. However, even when optional, it is recommended to deallocate
+     * most pointers, many allocators might do optimizations and might do debug
+     * poisoning to catch use-after-free bugs on deallocations even if actual
+     * deallocation did not happen.
+     *
+     * This may fail and return `NULL` if the allocator or it's backing
+     * allocator (if any) runs out of memory. However, our allocators are
+     * implemented in a way that they almost never fail and some parts of this
+     * library (including @ref gp_mem_alloc()) do in fact assume that failure is
+     * a non-recoverable critical error that doesn't happen for most of our
+     * targets. Custom allocators are encouraged to be implemented in a similar
+     * manner. For example, any allocation request that cannot be satisfied by
+     * the given custom allocator could be outsourced to @ref gp_heap().
+     *
+     * @param[inout] me
+     *     Pointer to this object. Use like so: `alc->alloc(alc, ...);`
+     *
+     * @param optional_old_block
+     *     If `NULL`, then the operation is basic memory allocation. Otherwise,
+     *     the operation is a reallocation and this parameter must be a pointer
+     *     previously returned by this function that has not been deallocated.
+     *
+     * @param optional_old_block_size
+     *     If not reallocating, then this parameter is ignored. Otherwise, this
+     *     should match the size passed to `size` or returned by `actual_size`
+     *     parameter of the previous call to this function.
+     *
+     * @param size
+     *     Requested allocation size. Must not be zero. Allocators must return a
+     *     memory block that has at least this size. Should be below @ref GP_MAX_ALLOC_SIZE.
+     *     Allocators must _not_ assume that size is a multiple of alignment.
+     *
+     * @param alignment
+     *     Requested allocation alignment. Must be a power of two. Allocators
+     *     must return a memory block whose address is a multiple of this value.
+     *
+     * @param uninitialized
+     *     Determines if memory should be zeroed. If `false` or 0, then
+     *     allocators must zero initialize the newly allocated memory block.
+     *     Otherwise, the new contents have undefined contents and reading them
+     *     before writing leads to undefined behavior.
+     *
+     * @param[out] actual_size
+     *     Many allocators (but not all) might round up the `size` parameter
+     *     most notably to respect alignment requirements. The rounded up number
+     *     is returned via this parameter and allocators must set it to at least
+     *     `size` on allocations. This is useful to reduce fragmentation when the exact size of
+     *     the allocation is not important. However, the amount of rounding
+     *     completely depends on the given allocator and some may not round at
+     *     all, so you should not rely on any exact values. Do not pass `NULL`,
+     *     pass an address of a dummy variable to ignore.
+     *
+     * @return pointer to allocated memory or `NULL` if out of memory.
+     */
     void* (*alloc)(
-        struct GPAllocator*,
+        struct GPAllocator* me,
         void*   optional_old_block,
         size_t  optional_old_block_size,
         size_t  size,
@@ -173,8 +268,32 @@ typedef struct GPAllocator
         bool    uninitialized,
         size_t* actual_size);
 
+    /** Deallocate memory.
+     *
+     * Deallocate memory allocated with @ref GPAllocator.alloc(). Memory that
+     * has been deallocated should not be accessed after deallocation.
+     *
+     * @param[inout] me
+     *     Pointer to this object. Use like so: `alc->dealloc(alc, ...);`
+     *
+     * @param block
+     *     Pointer to the object to be freed. This must be the non-null return
+     *     value of @ref GPAllocator.alloc() and must not be already deallocated.
+     *
+     * @param size
+     *     This must either be the `size` parameter passed to @ref GPAllocator.alloc()
+     *     or the value returned by `actual_size` parameter of @ref GPAllocator.alloc().
+     *     Any other value invokes undefined behavior.
+     *
+     * @param alignment
+     *     This must be the `alignment` parameter passed to @ref GPAllocator.alloc().
+     *     Any other value invokes undefined behavior.
+     *
+     * @return `true` if deallocation succeeded, `false` otherwise. Most
+     * allocators never return `false`.
+     */
     bool (*dealloc)(
-        struct GPAllocator*,
+        struct GPAllocator* me,
         void* block,
         size_t size,
         size_t alignment);
@@ -183,6 +302,7 @@ typedef struct GPAllocator
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_INLINE
 void* gp_mem_alloc(GPAllocator* alc, size_t size)
 {
+    gp_assume(size < GP_MAX_ALLOC_SIZE);
     void* memory = alc->alloc(
         alc, NULL, 0, size, GP_ALLOC_ALIGNMENT, true, &size);
     gp_assume(memory != NULL);
@@ -202,8 +322,9 @@ void* gp_mem_alloc_array(GPAllocator* alc, size_t n, size_t m, bool uninitialize
 
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD GP_INLINE
 void* gp_mem_realloc(
-    GPAllocator* alc, void*restrict old_block, size_t old_size, size_t new_size)
+    GPAllocator* alc, void* old_block, size_t old_size, size_t new_size)
 {
+    gp_assume(new_size < GP_MAX_ALLOC_SIZE);
     void* memory = alc->alloc(
         alc, old_block, old_size, new_size, GP_ALLOC_ALIGNMENT, true, &new_size);
     gp_assume(memory != NULL);
@@ -300,6 +421,7 @@ GP_INLINE void gp_sptr_dealloc(void* optional_block)
 {
     if (optional_block == NULL)
         return;
+
     GPSizePtrHeader* sptr = ((GPSizePtrHeader*)optional_block - 1);
     bool success = sptr->allocator->dealloc(
         sptr->allocator, optional_block, sptr->size + sizeof(GPSizePtrHeader), GP_ALLOC_ALIGNMENT);
@@ -326,6 +448,12 @@ extern GPAllocator* gp_heap;
  * Allocator used for standard heap allocations. You generally should use this
  * trough the @ref gp_heap pointer instead of directly using this to ensure that
  * the global heap is in fact globally overridable.
+ *
+ * Unlike C11 `aligned_alloc()`, this allocator accepts any power of two
+ * alignment and allocation sizes do not have to be a multiple of alignment. If
+ * C23, deallocation uses `free_aligned_sized()`, which requires size and
+ * alignment to match allocation size and alignment, otherwise undefined
+ * behavior is invoked.
  *
  * Attempting to mutate this is undefined behavior and may trap on some targets.
  * This is to ensure that there the global heap can always be accessed even if

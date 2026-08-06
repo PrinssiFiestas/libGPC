@@ -15,7 +15,7 @@
 //          API REFERENCE
 //
 // ----------------------------------------------------------------------------
-/// @defgroup types Types
+/// @defgroup types Type Utilities
 /// @code
 /// #include <gpc/gptypes.h>
 /// @endcode
