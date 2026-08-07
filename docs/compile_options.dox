@@ -68,5 +68,5 @@ void print_string(GPString str)
 
 | Memory                 |                              |
 | :--------------------- | ---------------------------- |
-| @ref GP_MAX_ALLOC_SIZE | @copybrief GP_MAX_ALLOC_SIZE |
+| @ref GP_ALLOC_MAX_SIZE | @copybrief GP_MAX_ALLOC_SIZE |
 */

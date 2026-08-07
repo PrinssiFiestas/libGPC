@@ -88,13 +88,6 @@
 #endif // GP_DOXYGEN
 
 //------------------------------------------------------------------------------
-// Alignment
-
-// TODO this probably should go to memory module
-/** Alignment of all pointers returned by any valid allocators.*/
-#define GP_ALLOC_ALIGNMENT (2*sizeof(size_t))
-
-//------------------------------------------------------------------------------
 // Nodiscard
 
 /** Warn for ignored return value.

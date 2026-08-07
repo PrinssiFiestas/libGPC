@@ -42,7 +42,6 @@
 extern "C" {
 #endif
 
-
 //------------------------------------------------------------------------------
 //
 //          API REFERENCE
@@ -56,15 +55,6 @@ extern "C" {
  *
  * @{
  */ // TODO more docs for description.
-
-/** Check if compiling with address sanitizer.
- *
- * Defined to 1 if compiling with `-fsanitize=address`, 0 otherwise. Tested with
- * GCC, Clang, and MSVC. Other compilers may be defined to a false negative.
- */
-#ifdef GP_DOXYGEN
-#  define GP_HAS_SANITIZER /* 0 or 1 */
-#endif
 
 /** Maximum allocation size.
  *
@@ -80,12 +70,36 @@ extern "C" {
  * allocate more would anyway cause undefined behavior down the line, so it
  * makes no sense to have it larger even if user space is larger than 2 GB.
  */
-#ifndef GP_MAX_ALLOC_SIZE
+#ifndef GP_ALLOC_MAX_SIZE
 #  if SIZE_MAX <= UINT32_MAX
-#    define GP_MAX_ALLOC_SIZE PTRDIFF_MAX
-#  else // virtual address space is 48 bits, can be larger but this sensible default anyway.
-#    define GP_MAX_ALLOC_SIZE ((size_t)1 << 48)
+#    define GP_ALLOC_MAX_SIZE PTRDIFF_MAX
+#  else
+#    define GP_ALLOC_MAX_SIZE ((size_t)1 << 48)
 #  endif
+#endif
+
+/** Default dynamic allocation alignment.
+ *
+ * All pointers allocated dynamically by this library can be assumed to have an
+ * alignment of `2 * sizeof(size_t)` (8 on 32-bit systems, 16 on 64-bit systems).
+ * Pointers may have some other alignments, but they are always explicitly
+ * requested (most notably using @ref GPAllocator.alloc()).
+ *
+ * For most common targets, this equals `alignof(max_align_t)`, but this is not
+ * guaranteed and should not be relied upon. We intentionally simplified this to
+ * always have the same value for the same architecture instead of using
+ * `alignof(max_align_t)`, which depends not just on the target machine, but
+ * sometimes also the capabilities of the compiler.
+ */
+#define GP_ALLOC_ALIGNMENT (2 * sizeof(size_t))
+
+/** Check if compiling with address sanitizer.
+ *
+ * Defined to 1 if compiling with `-fsanitize=address`, 0 otherwise. Tested with
+ * GCC, Clang, and MSVC. Other compilers may be defined to a false negative.
+ */
+#ifdef GP_DOXYGEN
+#  define GP_HAS_SANITIZER /* 0 or 1 */
 #endif
 
 /** Poison memory region for address sanitizer.
@@ -130,7 +144,7 @@ GP_INLINE void gp_asan_unpoison(void* region, size_t region_size)
 /** Safely multiply sizes.
  *
  * Multiplies @a n with @a m. If the result of the multiplication does not
- * exceed @ref GP_MAX_ALLOC_SIZE, then the result is stored to @a result.
+ * exceed @ref GP_ALLOC_MAX_SIZE, then the result is stored to @a result.
  * Otherwise, value pointed by @a result is left unmodified.
  *
  * Unlike `calloc()`, our allocation functions either do not check for size
@@ -139,22 +153,22 @@ GP_INLINE void gp_asan_unpoison(void* region, size_t region_size)
  * unconditionally as an out of memory error without checking `errno`. Failed
  * allocations and failed multiplications are very much different errors that
  * would require very different handling. Therefore, this should be called
- * _before_ allocating if there is a possibility of an overflow.
+ * before allocating if there is a possibility of an overflow.
  *
  * @return `true` if multiplication of @a n and @a m stayed within
- * @ref GP_MAX_ALLOC_SIZE, `false` otherwise.
+ * @ref GP_ALLOC_MAX_SIZE, `false` otherwise.
  */
 GP_INLINE GP_NODISCARD bool gp_size_mul(size_t* result, size_t n, size_t m)
 {
     #if SIZE_MAX == UINT32_MAX
-    uint64_t size = n * x;
-    if (size < GP_MAX_ALLOC_SIZE) {
+    uint64_t size = (uint64_t)n * (uint64_t)m;
+    if (size < GP_ALLOC_MAX_SIZE) {
         *result = size;
         return true;
     }
     #else
     GPUInt128 size = gp_uint128_mul64(n, m);
-    if (gp_uint128_lo(size) < GP_MAX_ALLOC_SIZE && gp_uint128_hi(size) == 0) {
+    if (gp_uint128_lo(size) < GP_ALLOC_MAX_SIZE && gp_uint128_hi(size) == 0) {
         *result = gp_uint128_lo(size);
         return true;
     }
@@ -234,12 +248,22 @@ typedef struct GPAllocator
      *
      * @param size
      *     Requested allocation size. Must not be zero. Allocators must return a
-     *     memory block that has at least this size. Should be below @ref GP_MAX_ALLOC_SIZE.
+     *     memory block that has at least this size. Should be below @ref GP_ALLOC_MAX_SIZE.
      *     Allocators must _not_ assume that size is a multiple of alignment.
      *
      * @param alignment
-     *     Requested allocation alignment. Must be a power of two. Allocators
-     *     must return a memory block whose address is a multiple of this value.
+     *     Requested allocation alignment. Must be a power of two. This library
+     *     mostly assumes that pointers are aligned to @ref GP_ALLOC_ALIGNMENT
+     *     boundaries. However, this can be set to some other value to
+     *     explicitly request some other alignment. If unsure, set this to
+     *     @ref GP_ALLOC_ALIGNMENT.
+     *
+     *     Allocators must return a memory block whose address is a multiple of
+     *     this value. Allocators must not assume that @ref GP_ALLOC_ALIGNMENT,
+     *     `alignof(max_align_t)`, or whatever the system heap allocator uses
+     *     is the minimum alignment: allocators must be able to handle smaller
+     *     alignments as well, although simply rounding up the requested value
+     *     to whatever the allocator requires is a valid implementation.
      *
      * @param uninitialized
      *     Determines if memory should be zeroed. If `false` or 0, then
@@ -299,39 +323,92 @@ typedef struct GPAllocator
         size_t alignment);
 } GPAllocator;
 
+/** Allocate memory.
+ *
+ * Allocates uninitialized memory block of size @a size, where @a size must be
+ * larger than zero and smaller than @ref GP_ALLOC_MAX_SIZE.
+ *
+ * This function asserts that the given allocator does not fail or that
+ * recovering from a failure is practically impossible. This is true for all of
+ * our allocators. Custom allocators that do not give this guarantee should
+ * directly call @ref GPAllocator.alloc() instead.
+ */
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_INLINE
 void* gp_mem_alloc(GPAllocator* alc, size_t size)
 {
-    gp_assume(size < GP_MAX_ALLOC_SIZE);
+    // We shouldn't assert 0<size here, 0 is valid for GPStadium.
+    gp_assume(size < GP_ALLOC_MAX_SIZE);
     void* memory = alc->alloc(
         alc, NULL, 0, size, GP_ALLOC_ALIGNMENT, true, &size);
-    gp_assume(memory != NULL);
+    gp_assert(memory != NULL);
     return memory;
 }
 
+/** Allocate an array.
+ *
+ * Allocates memory block of size `n * m` bytes, where @a n and @a m are number
+ * of elements and element size. The order of @a n and @a m arguments does not
+ * matter. The result of `n * m` should be below @a GP_ALLOC_MAX_SIZE. This can
+ * be checked using @ref gp_size_mul().
+ *
+ * @a uninitialized determines if memory should be zeroed. If `false` or 0, then
+ * allocators must zero initialize the newly allocated memory block. Otherwise,
+ * the new contents have undefined contents and reading them before writing
+ * leads to undefined behavior.
+ *
+ * Like @ref gp_mem_alloc(), this asserts that allocators will not fail.
+ */
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_INLINE
 void* gp_mem_alloc_array(GPAllocator* alc, size_t n, size_t m, bool uninitialized)
 {
     size_t size;
-    gp_assume(gp_size_mul(&size, n, m), "Multiplication exceeded GP_MAX_ALLOC_SIZE.");
+    gp_assume(gp_size_mul(&size, n, m), "Multiplication exceeded GP_ALLOC_MAX_SIZE.");
     void* memory = alc->alloc(
         alc, NULL, 0, size, GP_ALLOC_ALIGNMENT, uninitialized, &size);
-    gp_assume(memory != NULL);
+    gp_assert(memory != NULL);
     return memory;
 }
 
+/** Reallocate memory.
+ *
+ * Request changing size of @a optional_block. If @a optional_block is `NULL`,
+ * then the call is equivalent to `gp_mem_alloc(alc, new_size)`. Otherwise, @a alc
+ * and @a optional_size must match the values passed to an allocation function
+ * and @a optional_block must be a pointer returned by that allocation function.
+ *
+ * @return new memory if @a optional_block is `NULL`, `optional_block` if the
+ * allocator was able to change the size of the allocation without moving the
+ * memory, or new memory with contents of @a optional_block copied to it
+ * otherwise. The new memory is uninitialized aside from the copied contents.
+ *
+ * Like @ref gp_mem_alloc(), this asserts that allocators will not fail.
+ */
 GP_NONNULL_ARGS(1) GP_NONNULL_RETURN GP_NODISCARD GP_INLINE
 void* gp_mem_realloc(
-    GPAllocator* alc, void* old_block, size_t old_size, size_t new_size)
+    GPAllocator* alc,
+    void* optional_block,
+    size_t optional_size,
+    size_t new_size)
 {
-    gp_assume(new_size < GP_MAX_ALLOC_SIZE);
+    gp_assume(new_size < GP_ALLOC_MAX_SIZE);
     void* memory = alc->alloc(
-        alc, old_block, old_size, new_size, GP_ALLOC_ALIGNMENT, true, &new_size);
-    gp_assume(memory != NULL);
+        alc, optional_block, optional_size, new_size, GP_ALLOC_ALIGNMENT, true, &new_size);
+    gp_assert(memory != NULL);
     return memory;
 }
 
-GP_NONNULL_ARGS(1) GP_INLINE
+/** Deallocate memory.
+ *
+ * Deallocate @a optional_block. If @a optional_block is `NULL`, then this
+ * function does nothing and the other parameters are ignored. Otherwise, @a alc
+ * and @a optional_block_size must match the values passed to an allocation
+ * function and @a optional_block mute be a pointer returned by that allocation
+ * function.
+ *
+ * The success status of the deallocation is asserted. This prevents security
+ * issues caused by invalid arguments.
+ */
+GP_INLINE
 void gp_mem_dealloc(
     GPAllocator* alc,
     void* optional_block,
@@ -339,93 +416,10 @@ void gp_mem_dealloc(
 {
     if (optional_block == NULL)
         return;
+
     bool success = alc->dealloc(
         alc, optional_block, optional_block_size, GP_ALLOC_ALIGNMENT);
-    gp_assume(success);
-}
-
-typedef struct GPSizePtrHeader
-{
-    GPAllocator* allocator; ///< Allocator used to allocate the sized pointer.
-    size_t size;            ///< Requested allocation size in bytes.
-} GPSizePtrHeader;
-
-GP_NODISCARD GP_INLINE size_t gp_sptr_size(void* sptr)
-{
-    return ((GPSizePtrHeader*)sptr - 1)->size;
-}
-
-#define gp_sptr_countof(SPTR) (gp_sptr_size(SPTR) / sizeof (SPTR)[0])
-
-GP_NODISCARD GP_INLINE GPAllocator* gp_sptr_allocator(void* sptr)
-{
-    return ((GPSizePtrHeader*)sptr - 1)->allocator;
-}
-
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_INLINE
-void* gp_sptr_alloc(GPAllocator* alc, size_t size)
-{
-    size_t ignore_out_size;
-    char* memory = alc->alloc(
-        alc, NULL, 0, size + sizeof(GPSizePtrHeader), GP_ALLOC_ALIGNMENT, true, &ignore_out_size);
-    gp_assume(memory != NULL);
-    ((GPSizePtrHeader*)memory)->size = size;
-    ((GPSizePtrHeader*)memory)->allocator = alc;
-    return memory + sizeof(GPSizePtrHeader);
-}
-
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_INLINE
-void* gp_sptr_alloc_array(GPAllocator* alc, size_t n, size_t m, bool uninitialized)
-{
-    size_t size;
-    size_t ignore_out_size;
-    gp_assume(gp_size_mul(&size, n, m), "Multiplication exceeded GP_MAX_ALLOC_SIZE.");
-    gp_assume(size + sizeof(GPSizePtrHeader) < GP_MAX_ALLOC_SIZE);
-    char* memory = alc->alloc(
-        alc, NULL, 0, size + sizeof(GPSizePtrHeader), GP_ALLOC_ALIGNMENT, uninitialized, &ignore_out_size);
-    gp_assume(memory != NULL);
-    ((GPSizePtrHeader*)memory)->size = size;
-    ((GPSizePtrHeader*)memory)->allocator = alc;
-    return memory + sizeof(GPSizePtrHeader);
-}
-
-/** TODO
- *
- * TODO
- *
- * Unlike standard `realloc()`, @a old_block must not be `NULL`. This is because
- * our library is made to be used with custom allocators and we cannot assume
- * that the user wants any specific one.
- *
- * TODO
- */
-GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_INLINE
-void* gp_sptr_realloc(void* old_block, size_t new_size)
-{
-    GPSizePtrHeader* sptr = ((GPSizePtrHeader*)old_block - 1);
-    size_t ignore_out_size;
-    char* memory = sptr->allocator->alloc(
-        sptr->allocator,
-        sptr,
-        sptr->size + sizeof *sptr,
-        new_size + sizeof *sptr,
-        GP_ALLOC_ALIGNMENT,
-        true,
-        &ignore_out_size);
-    gp_assume(memory != NULL);
-    ((GPSizePtrHeader*)memory)->size = new_size;
-    return memory + sizeof *sptr;
-}
-
-GP_INLINE void gp_sptr_dealloc(void* optional_block)
-{
-    if (optional_block == NULL)
-        return;
-
-    GPSizePtrHeader* sptr = ((GPSizePtrHeader*)optional_block - 1);
-    bool success = sptr->allocator->dealloc(
-        sptr->allocator, optional_block, sptr->size + sizeof(GPSizePtrHeader), GP_ALLOC_ALIGNMENT);
-    gp_assume(success);
+    gp_assert(success);
 }
 
 /** Pointer to the heap allocator.
@@ -450,10 +444,15 @@ extern GPAllocator* gp_heap;
  * the global heap is in fact globally overridable.
  *
  * Unlike C11 `aligned_alloc()`, this allocator accepts any power of two
- * alignment and allocation sizes do not have to be a multiple of alignment. If
- * C23, deallocation uses `free_aligned_sized()`, which requires size and
+ * alignment (meaning also less than what would be accepted by the
+ * implementation) and allocation sizes do not have to be a multiples of
+ * alignment. Also, reallocation is possible for any alignment.
+ *
+ * If C23, deallocation uses `free_aligned_sized()`, which requires size and
  * alignment to match allocation size and alignment, otherwise undefined
- * behavior is invoked.
+ * behavior is invoked. This improves performance and security and matches
+ * requirements for some of our other allocators, but may be inconvenient
+ * sometimes. If this is an issue, use @ref sized_ptr or @ref GPArray.
  *
  * Attempting to mutate this is undefined behavior and may trap on some targets.
  * This is to ensure that there the global heap can always be accessed even if
@@ -465,6 +464,151 @@ extern GPAllocator* gp_heap;
 GP_GNU_ATTRIB(section("rodata"))
 #endif
 extern GPAllocator gp_mallocator;
+
+//-------------------------------------
+/** @defgroup sized_ptr Sized Pointers
+ *
+ * Pointers with size and allocator information.
+ *
+ * Our default deallocation interface (@ref gp_mem_dealloc() and @ref GPAllocator.dealloc())
+ * require passing allocator and size that matches the corresponding allocation.
+ * This can massively reduce the complexity of some allocators (e.g. power of
+ * two allocators) and can significantly improve performance. However, this
+ * might be inconvenient for the user of the allocator since now they have to
+ * keep track of allocation size and the allocator used for the allocation. For
+ * some applications, the user of the pointer might not care how the pointer was
+ * allocated. For example, this is the case for generic destructors like the one
+ * passed to @ref gp_thread_local_create().
+ *
+ * Sized pointers do not require the user to keep track of size, allocator, nor
+ * alignment for deallocations and reallocations regardless of allocator used.
+ * Internally this works by allocating a bit of extra memory (two pointers) for
+ * the size and allocator information, but of course the pointers returned to
+ * the user point just past the metadata, so that the pointers can be used just
+ * like any other pointer.
+ *
+ * Currently sized pointers can only be used with an alignment of @ref GP_ALLOC_ALIGNMENT.
+ * If other alignments are needed, use @ref GPArray instead.
+ * @{
+ */
+
+typedef struct GPSizePtrHeader
+{
+    GPAllocator* allocator; ///< Allocator used to allocate the sized pointer.
+    size_t size;            ///< Requested allocation size in bytes.
+} GPSizePtrHeader;
+
+/** Get requested allocation size of a sized pointer.
+ *
+ * @return size passed to the function used to allocate the given sized pointer.
+ */
+GP_NODISCARD GP_INLINE size_t gp_sptr_size(const void* sptr)
+{
+    return ((GPSizePtrHeader*)sptr - 1)->size;
+}
+
+/** Get number of allocated elements pointed by a sized pointer.
+ *
+ * @return number of elements that fit in the given sized pointer.
+ */
+#define gp_sptr_countof(SPTR) (gp_sptr_size(SPTR) / sizeof (SPTR)[0])
+
+/** Get allocator used to allocate a sized pointer.
+ *
+ * @return allocator passed to the function used to allocate the given sized pointer.
+ */
+GP_NODISCARD GP_INLINE GPAllocator* gp_sptr_allocator(const void* sptr)
+{
+    return ((GPSizePtrHeader*)sptr - 1)->allocator;
+}
+
+/** Allocate a sized pointer.
+ *
+ * Like @ref gp_mem_alloc() except returns a sized pointer.
+ */
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_INLINE
+void* gp_sptr_alloc(GPAllocator* alc, size_t size)
+{
+    size_t ignore_out_size;
+    char* memory = alc->alloc(
+        alc, NULL, 0, size + sizeof(GPSizePtrHeader), GP_ALLOC_ALIGNMENT, true, &ignore_out_size);
+    gp_assume(memory != NULL);
+    ((GPSizePtrHeader*)memory)->size = size;
+    ((GPSizePtrHeader*)memory)->allocator = alc;
+    return memory + sizeof(GPSizePtrHeader);
+}
+
+/** Allocate an array as a sized pointer.
+ *
+ * Like @ref gp_mem_alloc_array() except returns a sized pointer.
+ */
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_INLINE
+void* gp_sptr_alloc_array(GPAllocator* alc, size_t n, size_t m, bool uninitialized)
+{
+    size_t size;
+    size_t ignore_out_size;
+    gp_assume(gp_size_mul(&size, n, m), "Multiplication exceeded GP_ALLOC_MAX_SIZE.");
+    gp_assume(size + sizeof(GPSizePtrHeader) < GP_ALLOC_MAX_SIZE);
+    char* memory = alc->alloc(
+        alc, NULL, 0, size + sizeof(GPSizePtrHeader), GP_ALLOC_ALIGNMENT, uninitialized, &ignore_out_size);
+    gp_assert(memory != NULL);
+    ((GPSizePtrHeader*)memory)->size = size;
+    ((GPSizePtrHeader*)memory)->allocator = alc;
+    return memory + sizeof(GPSizePtrHeader);
+}
+
+/** Reallocate a sized pointer.
+ *
+ * Like @ref gp_mem_realloc() except doesn't need old size as @a old_block is
+ * a sized pointer. @a old block must be allocated with functions allocating
+ * sized pointers like @ref gp_sptr_alloc() instead of our basic allocation
+ * functions like @ref gp_mem_alloc().
+ *
+ * Unlike @ref gp_mem_realloc() and unlike standard `realloc()`, @a old_block
+ * must _not_ be `NULL`. This is because our library is made to be used with
+ * custom allocators and we cannot assume that the user wants to use any
+ * specific one.
+ */
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_INLINE
+void* gp_sptr_realloc(void* old_block, size_t new_size)
+{
+    gp_assume(new_size < GP_ALLOC_MAX_SIZE - sizeof(GPSizePtrHeader));
+    GPSizePtrHeader* header = ((GPSizePtrHeader*)old_block - 1);
+    size_t ignore_out_size;
+    char* memory = header->allocator->alloc(
+        header->allocator,
+        header,
+        header->size + sizeof *header,
+        new_size + sizeof *header,
+        GP_ALLOC_ALIGNMENT,
+        true,
+        &ignore_out_size);
+    gp_assert(memory != NULL);
+    ((GPSizePtrHeader*)memory)->size = new_size;
+    return memory + sizeof *header;
+}
+
+/** Deallocate a sized pointer.
+ *
+ * Deallocate @a optional_block. If @a optional_block is `NULL`, then this
+ * function does nothing. Otherwise, @a optional_block must be a sized pointer
+ * returned by a function that allocates sized pointers like @ref gp_sptr_alloc().
+ *
+ * The success status of the deallocation is asserted. This prevents security
+ * issues caused by passing an invalid pointer.
+ */
+GP_INLINE void gp_sptr_dealloc(void* optional_block)
+{
+    if (optional_block == NULL)
+        return;
+
+    GPSizePtrHeader* header = ((GPSizePtrHeader*)optional_block - 1);
+    bool success = header->allocator->dealloc(
+        header->allocator, header, header->size + sizeof(GPSizePtrHeader), GP_ALLOC_ALIGNMENT);
+    gp_assert(success);
+}
+
+/// @}
 
 /// @}
 //------------------------------------------------------------------------------

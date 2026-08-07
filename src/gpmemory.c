@@ -70,7 +70,7 @@ static void* gp_s_global_heap_alloc(
     // for now. Might want to optimize later for known targets though.
     void* mem = NULL;
     if (alignment < sizeof(void*))
-        alignment = sizeof(void*); // required by posix_memalign().
+        alignment = sizeof(void*);
     block_size = gp_round_to_aligned(block_size, alignment);
 
     posix_memalign(&mem, alignment, block_size);
