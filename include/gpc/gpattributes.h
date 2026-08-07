@@ -101,7 +101,7 @@
 #elif __cplusplus >= 201703L || __STDC_VERSION__ >= 202311L
 #  define GP_NODISCARD [[nodiscard]]
 #else
-#  define GP_NODISCARD /* implementation defined */
+#  define GP_NODISCARD /* unspecified */
 #endif
 
 //------------------------------------------------------------------------------
@@ -134,7 +134,7 @@
  *     void* this_must_not_be_null_either);
  * @endcode
  */
-#  define GP_NONNULL_ARGS(...) /* implementation defined */
+#  define GP_NONNULL_ARGS(...) /* unspecified */
 
 /** Non-null return pointer.
  *
@@ -146,14 +146,14 @@
  * compiler will just optimize the check away since it is known that it won't be
  * null.
  */
-#  define GP_NONNULL_RETURN /* implementation defined */
+#  define GP_NONNULL_RETURN /* unspecified */
 
 /** Non-null argument pointers and return value.
  *
  * Combines @ref GP_NONNULL_ARGS and @ref GP_NONNULL_RETURN. No argument shall
  * be null and the return value will not be null either.
  */
-#  define GP_NONNULL_ARGS_AND_RETURN /* implementation defined */
+#  define GP_NONNULL_ARGS_AND_RETURN /* unspecified */
 #elif defined(__GNUC__)
 #  define GP_NONNULL_ARGS(...) __attribute__((nonnull(__VA_ARGS__)))
 #  define GP_NONNULL_RETURN __attribute__((returns_nonnull))
@@ -197,7 +197,7 @@
 #if defined(__GNUC__) && __GNUC__ >= 11 && !defined(__clang__)
 #  define GP_INOUT(...) __attribute__((access(read_write, __VA_ARGS__)))
 #else
-#  define GP_INOUT(...) /* implementation defined */
+#  define GP_INOUT(...) /* unspecified */
 #endif
 
 //------------------------------------------------------------------------------
@@ -236,19 +236,19 @@
  * GCC documentation discourages using this, but this can be helpful for
  * debugging. GCC and Clang only.
  */
-#  define GP_OPTIMIZE_NONE /* implementation defined */
+#  define GP_OPTIMIZE_NONE /* unspecified */
 /** Function attribute to optimize for size.
  *
  * GCC documentation discourages using this, but this can be helpful for
  * debugging. GCC and Clang only.
  */
-#  define GP_OPTIMIZE_SIZE /* implementation defined */
+#  define GP_OPTIMIZE_SIZE /* unspecified */
 /** Function attribute to maximize optimizations.
  *
  * GCC documentation discourages using this, but this can be helpful for
  * debugging. GCC and Clang only.
  */
-#  define GP_OPTIMIZE_HIGH /* implementation defined */
+#  define GP_OPTIMIZE_HIGH /* unspecified */
 #endif
 
 //------------------------------------------------------------------------------
@@ -293,7 +293,7 @@
 #  define GP_CHECK_FORMAT_STRING(FORMAT_STRING_ARGUMENT, FIRST_TO_CHECK) \
       __attribute__((format(printf, FORMAT_STRING_ARGUMENT, FIRST_TO_CHECK)))
 #else
-#  define GP_CHECK_FORMAT_STRING(FORMAT_STRING_ARGUMENT, FIRST_TO_CHECK) /* implementation defined */
+#  define GP_CHECK_FORMAT_STRING(FORMAT_STRING_ARGUMENT, FIRST_TO_CHECK) /* unspecified */
 #endif
 
 //------------------------------------------------------------------------------
@@ -311,7 +311,7 @@
 #if defined(__GNUC__)
 #define GP_GNU_ATTRIB(...) __attribute__((__VA_ARGS__))
 #else
-#define GP_GNU_ATTRIB(...) /* implementation defined */
+#define GP_GNU_ATTRIB(...) /* unspecified */
 #endif
 
 //------------------------------------------------------------------------------
@@ -336,8 +336,8 @@
 #  define GP_LIKELY(...)   __builtin_expect(!!(__VA_ARGS__), 1)
 #  define GP_UNLIKELY(...) __builtin_expect(!!(__VA_ARGS__), 0)
 #else
-#  define GP_LIKELY(...)   /* implementation defined */(!!(__VA_ARGS__))
-#  define GP_UNLIKELY(...) /* implementation defined */(!!(__VA_ARGS__)) ///< @copydoc GP_LIKELY
+#  define GP_LIKELY(...)   /* unspecified */(!!(__VA_ARGS__))
+#  define GP_UNLIKELY(...) /* unspecified */(!!(__VA_ARGS__)) ///< @copydoc GP_LIKELY
 #endif
 
 //------------------------------------------------------------------------------
@@ -370,7 +370,7 @@
  * to consider any of this.
  */
 #ifdef GP_DOXYGEN
-#  define GP_API /* implementation defined */
+#  define GP_API /* unspecified */
 #elif defined(GP_TARGET_OS_WINDOWS) || defined(__CYGWIN__)
 #  ifdef GP_DLL_EXPORT
 #    define GP_API __declspec(dllexport)
@@ -420,7 +420,7 @@
 #elif defined(_MSC_VER)
 #  define GP_NOINLINE __declspec((noinline))
 #else
-#  define GP_NOINLINE /** implementation defined */
+#  define GP_NOINLINE /** unspecified */
 #endif
 
 //------------------------------------------------------------------------------
@@ -433,7 +433,7 @@
  * if there is a specific reason to.
  */
 #ifdef GP_DOXYGEN
-#  define GP_ALWAYS_INLINE /* implementation defined */
+#  define GP_ALWAYS_INLINE /* unspecified */
 #elif !defined(GPC_IMPLEMENTATION) || defined(GP_NO_EXPORT_INLINES)
 #  ifdef __GNUC__
 #    define GP_ALWAYS_INLINE __attribute__((always_inline)) static inline
@@ -453,7 +453,7 @@
  * Like @ref GP_ALWAYS_INLINE, except function will not be exported to binary.
  */
 #ifdef GP_DOXYGEN
-#  define GP_ALWAYS_INLINE_NOEXPORT /* implementation defined */
+#  define GP_ALWAYS_INLINE_NOEXPORT /* unspecified */
 #elif defined(__GNUC__)
 #  define GP_ALWAYS_INLINE_NOEXPORT __attribute__((always_inline)) static inline
 #elif defined(_MSC_VER)
@@ -478,7 +478,7 @@
 #elif defined(_MSC_VER)
 #  define GP_NORETURN __declspec((noreturn))
 #else
-#  define GP_NORETURN /** implementation defined */
+#  define GP_NORETURN /** unspecified */
 #endif
 
 //------------------------------------------------------------------------------
@@ -489,7 +489,6 @@
  * Function, variable, type, and enumerator attribute to deprecate a symbol.
  * Any usage by the user of the given symbol will issue a warning.
  */
-
 #if defined(__cplusplus) && __cplusplus >= 201402L
 #  define GP_DEPRECATED [[deprecated]]
 #elif defined(__GNUC__)
@@ -497,7 +496,39 @@
 #elif defined(_MSC_VER)
 #  define GP_DEPRECATED __declspec(deprecated)
 #else
-#  define GP_DEPRECATED /** implementation defined */
+#  define GP_DEPRECATED /** unspecified */
+#endif
+
+//------------------------------------------------------------------------------
+// Pure Functions
+
+/** Pure function without pointer arguments.
+ *
+ * Function attribute to specify that the given function doesn't have side
+ * effects. Allows the compiler to cache the return value of the given function
+ * if called with the same arguments. Should not used for functions with pointer
+ * arguments. This is because this attribute assumes that the function always
+ * returns the same value for the same arguments, but data behind pointers may
+ * change. Use @ref GP_PURE for pure functions with pointer arguments instead.
+ */
+#if defined(__GNUC__)
+#  define GP_CONST_FUNCTION __attribute__((const))
+#elif __STDC_VERSION__ >= 202311L
+#  define GP_CONST_FUNCTION [[unsequenced]]
+#else
+#  define GP_CONST_FUNCTION /* unspecified */
+#endif
+
+/** Pure function with pointer arguments.
+ *
+ * Like @ref GP_CONST_FUNCTION, except allows reading from pointers.
+ */
+#if defined(__GNUC__)
+#  define GP_PURE __attribute__((pure))
+#elif __STDC_VERSION__ >= 202311L
+#  define GP_PURE [[reproducible]]
+#else
+#  define GP_PURE /* unspecified */
 #endif
 
 /// @}

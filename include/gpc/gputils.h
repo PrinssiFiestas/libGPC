@@ -242,7 +242,7 @@ size_t gp_leading_zeros_32(uint32_t u)
 {
     gp_assume(u != 0, "Invalid argument.");
 
-    // Note: C23 stdc_leading_zeros() breaks builds, don't use it!
+    // NOTE: C23 stdc_leading_zeros() breaks builds, don't use it!
     #if __GNUC__ && !defined(GP_TEST_INT128)
     GP_STATIC_ASSERT(sizeof u == sizeof(unsigned)); // be pedantic and paranoid
     return __builtin_clz(u); // note: generic clz() not available in older GCC

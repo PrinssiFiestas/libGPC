@@ -327,7 +327,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_f64(double d)
     #ifdef GP_HAS_TETRA_INT
     return gp_uint128_tetra_uint((gp_tetra_uint_t)d);
     #else
-    GPUInt128 gp_uint128_convert_f64(double);
+    GP_HIDDEN GP_CONST GPUInt128 gp_uint128_convert_f64(double);
     return gp_uint128_convert_f64(d);
     #endif
 }
@@ -337,7 +337,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_f64(double d)
     #ifdef GP_HAS_TETRA_INT
     return gp_int128_tetra_int((gp_tetra_uint_t)d);
     #else
-    GPInt128 gp_int128_convert_f64(double);
+    GP_HIDDEN GP_CONST GPInt128 gp_int128_convert_f64(double);
     return gp_int128_convert_f64(d);
     #endif
 }
@@ -347,7 +347,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_f32(float f)
     #ifdef GP_HAS_TETRA_INT
     return gp_uint128_tetra_uint((gp_tetra_uint_t)f);
     #else
-    GPUInt128 gp_uint128_convert_f32(float);
+    GP_HIDDEN GP_CONST GPUInt128 gp_uint128_convert_f32(float);
     return gp_uint128_convert_f32(f);
     #endif
 }
@@ -357,7 +357,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_f32(float f)
     #ifdef GP_HAS_TETRA_INT
     return gp_int128_tetra_int((gp_tetra_uint_t)f);
     #else
-    GPInt128 gp_int128_convert_f32(float);
+    GP_HIDDEN GP_CONST GPInt128 gp_int128_convert_f32(float);
     return gp_int128_convert_f32(f);
     #endif
 }
@@ -367,7 +367,7 @@ GP_NODISCARD GP_INLINE double gp_f64_uint128(GPUInt128 u)
     #ifdef GP_HAS_TETRA_INT
     return u.u128;
     #else
-    double gp_f64_convert_uint128(GPUInt128);
+    GP_HIDDEN GP_CONST double gp_f64_convert_uint128(GPUInt128);
     return gp_f64_convert_uint128(u);
     #endif
 }
@@ -377,7 +377,7 @@ GP_NODISCARD GP_INLINE double gp_f64_int128(GPInt128 i)
     #ifdef GP_HAS_TETRA_INT
     return i.i128;
     #else
-    double gp_f64_convert_int128(GPInt128);
+    GP_HIDDEN GP_CONST double gp_f64_convert_int128(GPInt128);
     return gp_f64_convert_int128(i);
     #endif
 }
@@ -387,7 +387,7 @@ GP_NODISCARD GP_INLINE float gp_f32_uint128(GPUInt128 u)
     #ifdef GP_HAS_TETRA_INT
     return u.u128;
     #else
-    float gp_f32_convert_uint128(GPUInt128);
+    GP_HIDDEN GP_CONST float gp_f32_convert_uint128(GPUInt128);
     return gp_f32_convert_uint128(u);
     #endif
 }
@@ -397,7 +397,7 @@ GP_NODISCARD GP_INLINE float gp_f32_int128(GPInt128 i)
     #ifdef GP_HAS_TETRA_INT
     return i.i128;
     #else
-    float gp_f32_convert_int128(GPInt128);
+    GP_HIDDEN GP_CONST float gp_f32_convert_int128(GPInt128);
     return gp_f32_convert_int128(i);
     #endif
 }
@@ -731,7 +731,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_mul64(uint64_t a, uint64_t b)
     lo = _umul128(a, b, &hi);
     return gp_uint128(hi, lo);
     #else
-    GPUInt128 gp_uint128_long_mul64(uint64_t a, uint64_t b);
+    GP_HIDDEN GP_CONST GPUInt128 gp_uint128_long_mul64(uint64_t a, uint64_t b);
     return gp_uint128_long_mul64(a, b);
     #endif
 }
@@ -779,6 +779,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_div(GPUInt128 a, GPUInt128 b)
     #ifdef GP_HAS_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 / b.u128);
     #else
+    GP_HIDDEN GP_CONST
     GPUInt128 gp_uint128_divmod(GPUInt128 a, GPUInt128 b, GPUInt128* optional_remainder);
     return gp_uint128_divmod(a, b, NULL);
     #endif
@@ -789,6 +790,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_div(GPInt128 a, GPInt128 b)
     #ifdef GP_HAS_TETRA_INT
     return gp_int128_tetra_int(a.i128 / b.i128);
     #else
+    GP_HIDDEN GP_CONST
     GPInt128 gp_int128_idiv(GPInt128 a, GPInt128 b);
     return gp_int128_idiv(a, b);
     #endif
@@ -800,6 +802,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_mod(GPUInt128 a, GPUInt128 b)
     #ifdef GP_HAS_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 % b.u128);
     #else
+    GP_HIDDEN GP_CONST
     GPUInt128 gp_uint128_divmod(GPUInt128 a, GPUInt128 b, GPUInt128* optional_remainder);
     GPUInt128 remainder;
     gp_uint128_divmod(a, b, &remainder);
@@ -812,7 +815,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_mod(GPInt128 a, GPInt128 b)
     #ifdef GP_HAS_TETRA_INT
     return gp_int128_tetra_int(a.i128 % b.i128);
     #else
-    GPInt128 gp_int128_imod(GPInt128 a, GPInt128 b);
+    GP_HIDDEN GP_CONST GPInt128 gp_int128_imod(GPInt128 a, GPInt128 b);
     return gp_int128_imod(a, b);
     #endif
 }

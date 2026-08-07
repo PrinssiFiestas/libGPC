@@ -54,7 +54,7 @@ extern "C" {
  * ```
  *
  * @{
- */ // TODO more docs for description.
+ */ // TODO detailed description/overview of this module. Focus on allocators.
 
 /** Maximum allocation size.
  *
@@ -67,8 +67,9 @@ extern "C" {
  *
  * If not defined by the user, then in 32-bit systems this will be defined to
  * `PTRDIFF_MAX`, which is the maximum that glibc `malloc()` accepts. Trying to
- * allocate more would anyway cause undefined behavior down the line, so it
- * makes no sense to have it larger even if user space is larger than 2 GB.
+ * allocate more would anyway cause undefined behavior down the line (pointer
+ * subtraction overflow), so it makes no sense to have it larger even if user
+ * space is larger than 2 GB.
  */
 #ifndef GP_ALLOC_MAX_SIZE
 #  if SIZE_MAX <= UINT32_MAX
@@ -82,14 +83,14 @@ extern "C" {
  *
  * All pointers allocated dynamically by this library can be assumed to have an
  * alignment of `2 * sizeof(size_t)` (8 on 32-bit systems, 16 on 64-bit systems).
- * Pointers may have some other alignments, but they are always explicitly
- * requested (most notably using @ref GPAllocator.alloc()).
+ * Dynamically allocated pointers may have some other alignments, but they are
+ * always explicitly requested (most notably using @ref GPAllocator.alloc()).
  *
  * For most common targets, this equals `alignof(max_align_t)`, but this is not
  * guaranteed and should not be relied upon. We intentionally simplified this to
  * always have the same value for the same architecture instead of using
  * `alignof(max_align_t)`, which depends not just on the target machine, but
- * sometimes also the capabilities of the compiler.
+ * sometimes also on the capabilities of the compiler.
  */
 #define GP_ALLOC_ALIGNMENT (2 * sizeof(size_t))
 
