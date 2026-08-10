@@ -36,10 +36,16 @@
 #  else
 #    include <limits.h>
 #  endif
-/** `__uint128_t` but more portable with Clang */
+// These are like __int128_t, but more often supported by Clang. Not as widely
+// supported by GCC (e.g. missing on ARMv7), so keep the incompatibility in mind!
 typedef unsigned gp_tetra_uint_t __attribute__((mode(TI)));
-/** `__int128_t` but more portable with Clang */
 typedef int      gp_tetra_int_t  __attribute__((mode(TI)));
+#endif
+
+// We do not want use tetra ints on 32-bit targets, this breaks compatibility
+// between Clang and GCC.
+#if defined(GP_HAS_TETRA_INT) && SIZE_MAX == UINT64_MAX
+#  define GP_USE_TETRA_INT 1
 #endif
 
 // ----------------------------------------------------------------------------
@@ -106,15 +112,19 @@ typedef union GPUInt128
         uint64_t lo; ///< Low 64 bits.
     } big_endian;    ///< 64-bit Parts in big endian machine.
 
-    #if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
-    gp_tetra_uint_t u128;
+    // Only align to 16 on 64-bit targets. GP_ALLOC_ALIGN is only 8, which would
+    // cause ultimate mayhem.
+    #if SIZE_MAX == UINT64_MAX
+    #  if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
+    gp_tetra_uint_t u128; // has alignment of 16
     // rest of the branches are for ABI consistency more than for performance.
-    #elif __STDC_VERSION__ >= 201112L || GP_HAS_INCLUDE(<stdalign.h>)
+    #  elif __STDC_VERSION__ >= 201112L || GP_HAS_INCLUDE(<stdalign.h>)
     alignas(16) int _align;
-    #elif defined(_MSC_VER)
+    #  elif defined(_MSC_VER)
     __declspec(align(16)) int _align;
-    #elif defined(GP_HAS_DIFFERENTIATED_LONG_DOUBLE)
+    #  elif defined(GP_HAS_DIFFERENTIATED_LONG_DOUBLE)
     long double _align; // not guaranteed to be 16, but our final hope!
+    #  endif
     #endif
 } GPUInt128;
 
@@ -170,14 +180,18 @@ typedef union GPInt128
         uint64_t lo; ///< Low 64 bits.
     } big_endian;    ///< 64-bit Parts in big endian machine.
 
-    #if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
-    gp_tetra_int_t i128;
-    #elif __STDC_VERSION__ >= 201112L || GP_HAS_INCLUDE(<stdalign.h>)
+    // Only align to 16 on 64-bit targets. GP_ALLOC_ALIGN is only 8, which would
+    // cause ultimate mayhem.
+    #if SIZE_MAX == UINT64_MAX
+    #  if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
+    gp_tetra_int_t i128; // has alignment of 16.
+    #  elif __STDC_VERSION__ >= 201112L || GP_HAS_INCLUDE(<stdalign.h>)
     alignas(16) int _align;
-    #elif defined(_MSC_VER)
+    #  elif defined(_MSC_VER)
     __declspec(align(16)) int _align;
-    #elif defined(GP_HAS_DIFFERENTIATED_LONG_DOUBLE)
+    #  elif defined(GP_HAS_DIFFERENTIATED_LONG_DOUBLE)
     long double _align; // not guaranteed to be 16, but our final hope!
+    #  endif
     #endif
 } GPInt128;
 
@@ -322,7 +336,7 @@ GP_INLINE int64_t* gp_int128_hi_addr(GPInt128* i)
     return gp_endian_is_little() ? &i->little_endian.hi : &i->big_endian.hi;
 }
 
-#if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
+#if defined(GP_USE_TETRA_INT) || defined(GP_TEST_INT128)
 GP_NODISCARD GP_INLINE
 GPUInt128 gp_uint128_tetra_uint(gp_tetra_uint_t _u)
 {
@@ -342,7 +356,7 @@ GPInt128 gp_int128_tetra_int(gp_tetra_int_t _i)
 /** Convert double precision floating point number to 128-bit unsigned integer. */
 GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_f64(double d)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint((gp_tetra_uint_t)d);
     #else
     GP_HIDDEN GP_CONST_FUNCTION GPUInt128 gp_uint128_convert_f64(double);
@@ -352,7 +366,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_f64(double d)
 /** Convert double precision floating point number to 128-bit signed integer. */
 GP_NODISCARD GP_INLINE GPInt128 gp_int128_f64(double d)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int((gp_tetra_uint_t)d);
     #else
     GP_HIDDEN GP_CONST_FUNCTION GPInt128 gp_int128_convert_f64(double);
@@ -362,7 +376,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_f64(double d)
 /** Convert single precision floating point number to 128-bit unsigned integer. */
 GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_f32(float f)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint((gp_tetra_uint_t)f);
     #else
     GP_HIDDEN GP_CONST_FUNCTION GPUInt128 gp_uint128_convert_f32(float);
@@ -372,7 +386,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_f32(float f)
 /** Convert single precision floating point number to 128-bit signed integer. */
 GP_NODISCARD GP_INLINE GPInt128 gp_int128_f32(float f)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int((gp_tetra_uint_t)f);
     #else
     GP_HIDDEN GP_CONST_FUNCTION GPInt128 gp_int128_convert_f32(float);
@@ -382,7 +396,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_f32(float f)
 /** Convert 128-bit unsigned integer to double precision floating point number. */
 GP_NODISCARD GP_INLINE double gp_f64_uint128(GPUInt128 u)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return u.u128;
     #else
     GP_HIDDEN GP_CONST_FUNCTION double gp_f64_convert_uint128(GPUInt128);
@@ -392,7 +406,7 @@ GP_NODISCARD GP_INLINE double gp_f64_uint128(GPUInt128 u)
 /** Convert 128-bit signed integer to double precision floating point number. */
 GP_NODISCARD GP_INLINE double gp_f64_int128(GPInt128 i)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return i.i128;
     #else
     GP_HIDDEN GP_CONST_FUNCTION double gp_f64_convert_int128(GPInt128);
@@ -402,7 +416,7 @@ GP_NODISCARD GP_INLINE double gp_f64_int128(GPInt128 i)
 /** Convert 128-bit unsigned integer to single precision floating point number. */
 GP_NODISCARD GP_INLINE float gp_f32_uint128(GPUInt128 u)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return u.u128;
     #else
     GP_HIDDEN GP_CONST_FUNCTION float gp_f32_convert_uint128(GPUInt128);
@@ -412,7 +426,7 @@ GP_NODISCARD GP_INLINE float gp_f32_uint128(GPUInt128 u)
 /** Convert 128-bit signed integer to single precision floating point number. */
 GP_NODISCARD GP_INLINE float gp_f32_int128(GPInt128 i)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return i.i128;
     #else
     GP_HIDDEN GP_CONST_FUNCTION float gp_f32_convert_int128(GPInt128);
@@ -447,7 +461,7 @@ template <typename T> GP_NODISCARD static inline constexpr
 typename std::enable_if<std::is_integral<T>::value, GPInt128>::type
 gp_i128(T i) { return gp_int128(-(i<0), i); }
 
-#  ifdef GP_HAS_TETRA_INT
+#  ifdef GP_USE_TETRA_INT
 GP_NODISCARD static inline constexpr GPUInt128 gp_u128(gp_tetra_uint_t u) {return gp_uint128_tetra_uint(u);}
 GP_NODISCARD static inline constexpr GPInt128  gp_i128(gp_tetra_int_t  i) {return gp_int128_tetra_int(i)  ;}
 #  endif
@@ -514,7 +528,7 @@ GP_NODISCARD static inline constexpr GPInt128  gp_i128(gp_tetra_int_t  i) {retur
 /** Unsigned bitwise NOT */
 GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_not(GPUInt128 a)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(~a.u128);
     #else
     return gp_uint128(~gp_uint128_hi(a), ~gp_uint128_lo(a));
@@ -523,7 +537,7 @@ GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_not(GPUInt128 a)
 /** Signed bitwise NOT */
 GP_NODISCARD GP_INLINE   GPInt128 gp_int128_not(GPInt128 a)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(~a.i128);
     #else
     return gp_int128(~gp_int128_hi(a), ~gp_int128_lo(a));
@@ -533,7 +547,7 @@ GP_NODISCARD GP_INLINE   GPInt128 gp_int128_not(GPInt128 a)
 /** Unsigned bitwise AND */
 GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_and(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 & b.u128);
     #else
     return gp_uint128(gp_uint128_hi(a) & gp_uint128_hi(b), gp_uint128_lo(a) & gp_uint128_lo(b));
@@ -542,7 +556,7 @@ GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_and(GPUInt128 a, GPUInt128 b)
 /** Signed bitwise AND */
 GP_NODISCARD GP_INLINE   GPInt128 gp_int128_and(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(a.i128 & b.i128);
     #else
     return gp_int128(gp_int128_hi(a) & gp_int128_hi(b), gp_int128_lo(a) & gp_int128_lo(b));
@@ -552,7 +566,7 @@ GP_NODISCARD GP_INLINE   GPInt128 gp_int128_and(GPInt128 a, GPInt128 b)
 /** Unsigned bitwise OR */
 GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_or(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 | b.u128);
     #else
     return gp_uint128(gp_uint128_hi(a) | gp_uint128_hi(b), gp_uint128_lo(a) | gp_uint128_lo(b));
@@ -561,7 +575,7 @@ GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_or(GPUInt128 a, GPUInt128 b)
 /** Signed bitwise OR */
 GP_NODISCARD GP_INLINE   GPInt128 gp_int128_or(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(a.i128 | b.i128);
     #else
     return gp_int128(gp_int128_hi(a) | gp_int128_hi(b), gp_int128_lo(a) | gp_int128_lo(b));
@@ -571,7 +585,7 @@ GP_NODISCARD GP_INLINE   GPInt128 gp_int128_or(GPInt128 a, GPInt128 b)
 /** Unsigned bitwise XOR */
 GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_xor(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 ^ b.u128);
     #else
     return gp_uint128(gp_uint128_hi(a) ^ gp_uint128_hi(b), gp_uint128_lo(a) ^ gp_uint128_lo(b));
@@ -580,7 +594,7 @@ GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_xor(GPUInt128 a, GPUInt128 b)
 /** Signed bitwise XOR */
 GP_NODISCARD GP_INLINE   GPInt128 gp_int128_xor(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(a.i128 ^ b.i128);
     #else
     return gp_int128(gp_int128_hi(a) ^ gp_int128_hi(b), gp_int128_lo(a) ^ gp_int128_lo(b));
@@ -592,7 +606,7 @@ GP_NODISCARD GP_INLINE   GPInt128 gp_int128_xor(GPInt128 a, GPInt128 b)
  */
 GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_shift_left(GPUInt128 a, uint8_t b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 << b);
     #else
     if (b == 0) // avoid UB in `<< (64-b)`
@@ -614,7 +628,7 @@ GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_shift_left(GPUInt128 a, uint8_t b)
  */
 GP_NODISCARD GP_INLINE   GPInt128 gp_int128_shift_left(GPInt128 a, uint8_t b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(a.i128 << b);
     #else
     if (b == 0) // avoid UB in `<< (64-b)`
@@ -632,7 +646,7 @@ GP_NODISCARD GP_INLINE   GPInt128 gp_int128_shift_left(GPInt128 a, uint8_t b)
  */
 GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_shift_right(GPUInt128 a, uint8_t b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 >> b);
     #else
     if (b == 0) // avoid UB in `>> (64-b)`
@@ -654,7 +668,7 @@ GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_shift_right(GPUInt128 a, uint8_t b
  */
 GP_NODISCARD GP_INLINE   GPInt128 gp_int128_shift_right(GPInt128 a, uint8_t b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(a.i128 >> b);
     #else
     if (b == 0) // avoid UB in `>> (64-b)`
@@ -673,7 +687,7 @@ GP_NODISCARD GP_INLINE   GPInt128 gp_int128_shift_right(GPInt128 a, uint8_t b)
 /** Add 128-bit unsigned integers.*/
 GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_add(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 + b.u128);
     #else
     return gp_uint128(
@@ -685,7 +699,7 @@ GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_add(GPUInt128 a, GPUInt128 b)
 /** Add 128-bit signed integers.*/
 GP_NODISCARD GP_INLINE   GPInt128 gp_int128_add(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(a.i128 + b.i128);
     #else
     return gp_int128(
@@ -698,7 +712,7 @@ GP_NODISCARD GP_INLINE   GPInt128 gp_int128_add(GPInt128 a, GPInt128 b)
 /** Subtract 128-bit unsigned integers.*/
 GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_sub(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 - b.u128);
     #else
     return gp_uint128(
@@ -710,7 +724,7 @@ GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_sub(GPUInt128 a, GPUInt128 b)
 /** Subtract 128-bit signed integers.*/
 GP_NODISCARD GP_INLINE   GPInt128 gp_int128_sub(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(a.i128 - b.i128);
     #else
     return gp_int128(
@@ -723,7 +737,7 @@ GP_NODISCARD GP_INLINE   GPInt128 gp_int128_sub(GPInt128 a, GPInt128 b)
 /** Negate 128-bit unsigned integer.*/
 GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_negate(GPUInt128 a)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(-a.u128);
     #else
     return gp_uint128(~gp_uint128_hi(a) + !gp_uint128_lo(a), ~gp_uint128_lo(a) + 1);
@@ -732,7 +746,7 @@ GP_NODISCARD GP_INLINE   GPUInt128 gp_uint128_negate(GPUInt128 a)
 /** Negate 128-bit signed integer.*/
 GP_NODISCARD GP_INLINE   GPInt128 gp_int128_negate(GPInt128 a)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(-a.i128);
     #else
     return gp_int128_u128(gp_uint128_negate(gp_uint128_i128(a)));
@@ -742,7 +756,7 @@ GP_NODISCARD GP_INLINE   GPInt128 gp_int128_negate(GPInt128 a)
 /** Multiply 64-bit unsigned integers to 128-bit unsigned integer.*/
 GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_mul64(uint64_t a, uint64_t b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint((gp_tetra_uint_t)a * b);
     #elif _MSC_VER && defined(_M_X64)
     uint64_t lo, hi;
@@ -756,7 +770,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_mul64(uint64_t a, uint64_t b)
 /** Multiply 128-bit unsigned integers.*/
 GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_mul(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 * b.u128);
     #else
     GPUInt128 y = gp_uint128_mul64(gp_uint128_lo(a), gp_uint128_lo(b));
@@ -767,7 +781,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_mul(GPUInt128 a, GPUInt128 b)
 /** Multiply 64-bit signed integers to 128-bit signed integer.*/
 GP_NODISCARD GP_INLINE GPInt128 gp_int128_mul64(int64_t a, int64_t b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int((gp_tetra_int_t)a * b);
     #elif _MSC_VER && defined(_M_X64)
     __int64 lo, hi;
@@ -781,7 +795,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_mul64(int64_t a, int64_t b)
 /** Multiply 128-bit signed integers.*/
 GP_NODISCARD GP_INLINE GPInt128 gp_int128_mul(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(a.i128 * b.i128);
     #else
     return gp_int128_u128(
@@ -794,7 +808,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_mul(GPInt128 a, GPInt128 b)
 /** Divide 128-bit unsigned integers.*/
 GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_div(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 / b.u128);
     #else
     GP_HIDDEN GP_PURE
@@ -805,7 +819,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_div(GPUInt128 a, GPUInt128 b)
 /** Divide 128-bit signed integers.*/
 GP_NODISCARD GP_INLINE GPInt128 gp_int128_div(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(a.i128 / b.i128);
     #else
     GP_HIDDEN GP_CONST_FUNCTION
@@ -817,7 +831,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_div(GPInt128 a, GPInt128 b)
 /** 128-bit unsigned integer modulus.*/
 GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_mod(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_uint128_tetra_uint(a.u128 % b.u128);
     #else
     GP_HIDDEN GP_PURE
@@ -830,7 +844,7 @@ GP_NODISCARD GP_INLINE GPUInt128 gp_uint128_mod(GPUInt128 a, GPUInt128 b)
 /** 128-bit signed integer modulus.*/
 GP_NODISCARD GP_INLINE GPInt128 gp_int128_mod(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return gp_int128_tetra_int(a.i128 % b.i128);
     #else
     GP_HIDDEN GP_CONST_FUNCTION GPInt128 gp_int128_imod(GPInt128 a, GPInt128 b);
@@ -844,7 +858,7 @@ GP_NODISCARD GP_INLINE GPInt128 gp_int128_mod(GPInt128 a, GPInt128 b)
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_equal(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.u128 == b.u128;
     #else
     return a.little_endian.lo == b.little_endian.lo && a.little_endian.hi == b.little_endian.hi;
@@ -853,7 +867,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_equal(GPUInt128 a, GPUInt128 b)
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_equal(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.i128 == b.i128;
     #else
     return a.little_endian.lo == b.little_endian.lo && a.little_endian.hi == b.little_endian.hi;
@@ -863,7 +877,7 @@ GP_NODISCARD GP_INLINE   bool gp_int128_equal(GPInt128 a, GPInt128 b)
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_not_equal(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.u128 != b.u128;
     #else
     return a.little_endian.lo != b.little_endian.lo || a.little_endian.hi != b.little_endian.hi;
@@ -872,7 +886,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_not_equal(GPUInt128 a, GPUInt128 b)
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_not_equal(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.i128 != b.i128;
     #else
     return a.little_endian.lo != b.little_endian.lo || a.little_endian.hi != b.little_endian.hi;
@@ -882,7 +896,7 @@ GP_NODISCARD GP_INLINE   bool gp_int128_not_equal(GPInt128 a, GPInt128 b)
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_greater_than(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.u128 > b.u128;
     #else
     if (gp_uint128_hi(a) == gp_uint128_hi(b))
@@ -893,7 +907,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_greater_than(GPUInt128 a, GPUInt128 b)
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_greater_than(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.i128 > b.i128;
     #else
     if (gp_int128_hi(a) == gp_int128_hi(b))
@@ -905,7 +919,7 @@ GP_NODISCARD GP_INLINE   bool gp_int128_greater_than(GPInt128 a, GPInt128 b)
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_less_than(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.u128 < b.u128;
     #else
     if (gp_uint128_hi(a) == gp_uint128_hi(b))
@@ -916,7 +930,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_less_than(GPUInt128 a, GPUInt128 b)
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_less_than(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.i128 < b.i128;
     #else
     if (gp_int128_hi(a) == gp_int128_hi(b))
@@ -928,7 +942,7 @@ GP_NODISCARD GP_INLINE   bool gp_int128_less_than(GPInt128 a, GPInt128 b)
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_greater_than_equal(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.u128 >= b.u128;
     #else
     if (gp_uint128_hi(a) == gp_uint128_hi(b))
@@ -939,7 +953,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_greater_than_equal(GPUInt128 a, GPUInt1
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_greater_than_equal(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.i128 >= b.i128;
     #else
     if (gp_int128_hi(a) == gp_int128_hi(b))
@@ -951,7 +965,7 @@ GP_NODISCARD GP_INLINE   bool gp_int128_greater_than_equal(GPInt128 a, GPInt128 
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_uint128_less_than_equal(GPUInt128 a, GPUInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.u128 <= b.u128;
     #else
     if (gp_uint128_hi(a) == gp_uint128_hi(b))
@@ -962,7 +976,7 @@ GP_NODISCARD GP_INLINE   bool gp_uint128_less_than_equal(GPUInt128 a, GPUInt128 
 /** @selfdocumenting */
 GP_NODISCARD GP_INLINE   bool gp_int128_less_than_equal(GPInt128 a, GPInt128 b)
 {
-    #ifdef GP_HAS_TETRA_INT
+    #ifdef GP_USE_TETRA_INT
     return a.i128 <= b.i128;
     #else
     if (gp_int128_hi(a) == gp_int128_hi(b))
@@ -1071,7 +1085,7 @@ GP_NODISCARD static inline constexpr gp_type_t gp_type(GPInt128  x) { (void)x; r
 GP_NODISCARD static inline constexpr gp_type_t gp_type(GPUInt128 x) { (void)x; return GP_TYPE_UINT128; }
 #endif
 
-#if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
+#if defined(GP_USE_TETRA_INT) || defined(GP_TEST_INT128)
 GP_NODISCARD static inline   gp_tetra_uint_t gp_mintu(gp_tetra_uint_t a, gp_tetra_uint_t b) { return a < b ? a : b; }
 GP_NODISCARD static inline   gp_tetra_uint_t gp_maxtu(gp_tetra_uint_t a, gp_tetra_uint_t b) { return a > b ? a : b; }
 GP_NODISCARD static inline   gp_tetra_int_t  gp_minti(gp_tetra_int_t a,  gp_tetra_int_t b)  { return a < b ? a : b; }
@@ -1084,7 +1098,7 @@ GP_NODISCARD static inline   gp_tetra_int_t  gp_maxti(gp_tetra_int_t a,  gp_tetr
 #endif
 #define GP_INT128_SELECTION(...)  GPInt128:  __VA_ARGS__
 #define GP_UINT128_SELECTION(...) GPUInt128: __VA_ARGS__
-#if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
+#if defined(GP_USE_TETRA_INT) || defined(GP_TEST_INT128)
 #  ifdef GP_TETRA_INT_SELECTION
 #    undef GP_TETRA_INT_SELECTION
 #    undef GP_TETRA_UINT_SELECTION
@@ -1096,7 +1110,7 @@ GP_NODISCARD static inline   gp_tetra_int_t  gp_maxti(gp_tetra_int_t a,  gp_tetr
 #ifdef GP_HAS_C11_GENERIC
 GP_NODISCARD static inline GPUInt128 gp_uint128_uint128(GPUInt128 u) { return u; }
 GP_NODISCARD static inline GPInt128  gp_int128_int128(GPInt128 i) { return i;    }
-#  if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128) // use implicit integer conversions
+#  if defined(GP_USE_TETRA_INT) || defined(GP_TEST_INT128) // use implicit integer conversions
 #    define GP_U128_CTOR(A) _Generic(A, GPUInt128: gp_uint128_uint128, GPInt128: gp_uint128_i128, default: gp_uint128_tetra_uint)(A)
 #    define GP_I128_CTOR(A) _Generic(A, GPUInt128: gp_int128_u128, GPInt128: gp_int128_int128, default: gp_int128_tetra_int)(A)
 #  else
