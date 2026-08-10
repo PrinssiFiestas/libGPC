@@ -7,6 +7,8 @@
 //   John Tsiombikas <nuclear@member.fsf.org> - original POSIX threads wrapper
 //   Oliver Old <oliver.old@outlook.com> - win32 implementation
 
+// TODO nproc like utility would be really really nice.
+
 #ifndef GP_THREAD_INCLUDED
 #define GP_THREAD_INCLUDED 1
 

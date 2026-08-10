@@ -84,6 +84,7 @@
  */
 
 /** All signed types.
+ *
  * Signed primitive integers, `GPInt128`, and plain `char` if signed.
  */
 #define GP_C11_GENERIC_SIGNED_TYPE(A) \
@@ -91,6 +92,7 @@
     long: (A), long long: (A), GPInt128: (A)
 
 /** All unsigned types.
+ *
  * Unsigned primitive integers, `GPUInt128`, `bool`, and plain `char` if
  * unsigned.
  */
@@ -99,11 +101,13 @@
     unsigned long: (A), unsigned long long: (A), GPUInt128: (A)
 
 /** All floats.
+ *
  * `float`, `double`, and `long double`.
  */
 #define GP_C11_GENERIC_FLOAT(A) float: (A), double: (A), long double: (A)
 
 /** All types that could be considered as numbers.
+ *
  * Primitive integers, floats, `bool`, plain `char`, and `GP[U]Int128`.
  */
 #define GP_C11_GENERIC_NUMBER(A) \
@@ -114,6 +118,7 @@
     float: (A), double: (A), long double: (A)
 
 /** All types that could be considered as integers.
+ *
  * Signed primitive integers, unsigned primitive integers, `GPInt128`,
  * `GPUInt128`, `bool` and plain `char`.
  */
@@ -124,6 +129,7 @@
     unsigned long: (A), unsigned long long: (A), GPUInt128: (A)
 
 /** Signed primitive integers.
+ *
  * Plain `char` is not considered as integer by this macro since it is mostly
  * commonly used to represent text or raw bytes.
  */
@@ -131,6 +137,7 @@
     signed char: (A), short: (A), int: (A), long: (A), long long: (A)
 
 /** Unsigned primitive integers.
+ *
  * Plain `char` is not considered as integer by this macro since it is most
  * commonly used to represent text or raw bytes. `bool` is also not considered
  * as integer since it is most commonly used to represent logic.
@@ -139,6 +146,7 @@
     unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A)
 
 /** All primitive integers.
+ *
  * Plain `char` is not considered as integer by this macro since it is most
  * commonly used to represent text or raw bytes. `bool` is also not considered
  * as integer since it is most commonly used to represent logic.
@@ -148,6 +156,7 @@
     unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A)
 
 /** All arithmetic types.
+ *
  * All primitive integers and floating point types. Plain `char` and `bool` are
  * excluded.
  */
@@ -157,34 +166,11 @@
     float: (A), double: (A), long double: (A)
 
 /** Null-terminated `char*` and `GPString`.*/
-#define GP_C11_GENERIC_STRING(A) char*: (A), const char*: (A), struct gp_char*: (A)
+#define GP_C11_GENERIC_STRING(A) \
+    char*: (A), const char*: (A), struct gp_char*: (A), const struct gp_char*: (A)
 
 /// @}
 #endif // GP_DOXYGEN
-
-#if CHAR_MAX == INT8_MAX // char is signed
-#define/* bool */gp_type_is_signed(gp_type_t_TYPE)           ((bool)(GP_TYPE_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128 ))
-#define/* bool */gp_type_is_unsigned(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UINT128))
-#else // char is unsigned
-#define/* bool */gp_type_is_signed(gp_type_t_TYPE)           ((bool)(GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128))
-#define/* bool */gp_type_is_unsigned(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL        <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_CHAR  ))
-#endif
-#define/* bool */gp_type_is_float(gp_type_t_TYPE)            ((bool)(GP_TYPE_FLOAT         <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_DOUBLE       ))
-#define/* bool */gp_type_is_number(gp_type_t_TYPE)           ((bool)(GP_TYPE_BOOL          <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_DOUBLE       ))
-#define/* bool */gp_type_is_integral(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL          <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128            ))
-#define/* bool */gp_type_is_signed_integer(gp_type_t_TYPE)   ((bool)(GP_TYPE_SIGNED_CHAR   <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG         ))
-#define/* bool */gp_type_is_unsigned_integer(gp_type_t_TYPE) ((bool)(GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG))
-
-#define/* bool */gp_type_is_integer(gp_type_t_TYPE)          ((bool)( \
-    (GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG) \
-    || (GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG)))
-
-#define/* bool */gp_type_is_arithmetic(gp_type_t_TYPE)       ((bool)( \
-    (GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG) \
-    || (GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG) \
-    || (GP_TYPE_FLOAT <= gp_type_t_TYPE && gp_type_t_TYPE <= GP_TYPE_LONG_DOUBLE)))
-
-#define/* bool */gp_type_is_string(gp_type_t_TYPE)           ((bool)(GP_TYPE_CHAR_PTR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_STRING))
 
 /// @}
 // ----------------------------------------------------------------------------
@@ -291,7 +277,8 @@
     signed char: (A), short: (A), int: (A), long: (A), long long: (A), \
     unsigned char: (A), unsigned short: (A), unsigned: (A), unsigned long: (A), unsigned long long: (A), \
     GP_C11_GENERIC_FLOAT(A)
-#define GP_C11_GENERIC_STRING(A) char*: (A), const char*: (A), struct gp_char*: (A)
+#define GP_C11_GENERIC_STRING(A) \
+    char*: (A), const char*: (A), struct gp_char*: (A), const struct gp_char*: (A)
 
 // ----------------------------------------------------------------------------
 

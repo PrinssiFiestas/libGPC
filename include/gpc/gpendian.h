@@ -30,8 +30,8 @@
 #  define GP_ENDIAN 0 // avoid preprocessing issues
 #endif
 
-#define GP_ENDIAN_LITTLE 1 ///< Value of @ref GP_ENDIAN if detected little endian machine.
-#define GP_ENDIAN_BIG    2 ///< Value of @ref GP_ENDIAN if detected big endian machine.
+#define GP_ENDIAN_LITTLE 1 ///< Possible value of @ref GP_ENDIAN if detected little endian machine.
+#define GP_ENDIAN_BIG    2 ///< Possible value of @ref GP_ENDIAN if detected big endian machine.
 
 // Preprocessor endianness check from RapidJSON with added check for C23
 // standard endianness macros.

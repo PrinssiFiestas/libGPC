@@ -24,12 +24,14 @@
 
 /** Type descriptor.
  *
+ * A type descriptor can be obtained from a value using @ref gp_type().
+ *
  * Only primitives, `char*`, @ref GPString, `GPUInt128`, and `GPInt128` have
  * distinct enumeration constants, everything else will be assumed to be `void*`.
- */
+ */ // TODO example?
 typedef enum gp_type_t
 {
-    GP_NO_TYPE                ,
+    GP_TYPE_NONE              ,
     GP_TYPE_BOOL              ,
     GP_TYPE_UNSIGNED_CHAR     ,
     GP_TYPE_UNSIGNED_SHORT    ,
@@ -53,7 +55,154 @@ typedef enum gp_type_t
     #define GP_TYPE_LENGTH 21 ///< Number of `enum gp_type_t` constants.
 } gp_type_t;
 
+/** Type descriptor string.
+ *
+ * Use @ref gp_type_str() to obtain a string describing the type from a value.
+ */
+static const char* gp_type_strs[GP_TYPE_LENGTH] =
+{
+    [GP_TYPE_NONE              ] = "(none)",
+    [GP_TYPE_BOOL              ] = "bool",
+    [GP_TYPE_UNSIGNED_CHAR     ] = "unsigned char",
+    [GP_TYPE_UNSIGNED_SHORT    ] = "unsigned short",
+    [GP_TYPE_UNSIGNED          ] = "unsigned",
+    [GP_TYPE_UNSIGNED_LONG     ] = "unsigned long",
+    [GP_TYPE_UNSIGNED_LONG_LONG] = "unsigned long long",
+    [GP_TYPE_UINT128           ] = "GPUInt128",
+    [GP_TYPE_CHAR              ] = "char",
+    [GP_TYPE_SIGNED_CHAR       ] = "signed char",
+    [GP_TYPE_SHORT             ] = "short",
+    [GP_TYPE_INT               ] = "int",
+    [GP_TYPE_LONG              ] = "long",
+    [GP_TYPE_LONG_LONG         ] = "long long",
+    [GP_TYPE_INT128            ] = "GPInt128",
+    [GP_TYPE_FLOAT             ] = "float",
+    [GP_TYPE_DOUBLE            ] = "double",
+    [GP_TYPE_LONG_DOUBLE       ] = "long double",
+    [GP_TYPE_CHAR_PTR          ] = "char*",
+    [GP_TYPE_STRING            ] = "GPString",
+    [GP_TYPE_PTR               ] = "void*",
+};
+
 #ifdef GP_DOXYGEN
+
+/** Get type descriptor enumeration constant of given value.
+ *
+ * Defined when using C11 or C++11.
+ *
+ * @return a @ref gp_type_t enumeration constant describing the type.
+ * Only primitives, `char*`, @ref GPString, `GPUInt128`, and `GPInt128` have
+ * distinct enumeration constants, everything else will be assumed to be
+ * `void*`.
+ */
+#define gp_type(__VA_ARGS__) (enum gp_type_t)_Generic((__VA_ARGS__), ...)
+
+/** Get type descriptor string from a value or a type descriptor.
+ *
+ * Defined when using C11 or C++11.
+ *
+ * @return a @ref gp_type_t enumeration constant as a C string describing the type.
+ * Only primitives, `char*`, @ref GPString, `GPUInt128`, and `GPInt128` have
+ * distinct enumeration constants, everything else will be assumed to be
+ * `void*`.
+ */
+#define gp_type_str(__VA_ARGS__) gp_type_strs \
+[ \
+    _Generic(__VA_ARGS__, gp_type_t: (__VA_ARGS__), default: gp_type(__VA_ARGS__)) \
+]
+
+/** Checks if given type descriptor indicates a signed type.
+ *
+ * @return `true` for
+ * signed primitive integers, `GPInt128`, and plain `char` if signed.
+ */
+#define gp_type_is_signed(gp_type_t__TYPE) ((bool)(GP_TYPE_CHAR <= (gp_type_t__TYPE) \
+    && (gp_type_t__TYPE) <= GP_TYPE_INT128 ))
+
+/** Checks if given type descriptor indicates an unsigned type.
+ *
+ * @return `true` for
+ * unsigned primitive integers, `GPUInt128`, `bool`, and plain `char` if
+ * unsigned.
+ */
+#define gp_type_is_unsigned(gp_type_t__TYPE) ((bool)(GP_TYPE_BOOL <= (gp_type_t__TYPE) \
+    && (gp_type_t__TYPE) <= GP_TYPE_UINT128))
+
+/** Checks if given type descriptor indicates a floating type.
+ *
+ * @return `true` for
+ * `float`, `double`, and `long double`.
+ */
+#define gp_type_is_float(gp_type_t__TYPE) ((bool)(GP_TYPE_FLOAT <= (gp_type_t__TYPE) \
+    && (gp_type_t__TYPE) <= GP_TYPE_LONG_DOUBLE ))
+
+/** Checks if given type descriptor indicates a type considered a number.
+ *
+ * @return `true` for
+ * Primitive integers, floats, `bool`, plain `char`, and `GP[U]Int128`.
+ */
+#define gp_type_is_number(gp_type_t__TYPE) ((bool)(GP_TYPE_BOOL <= (gp_type_t__TYPE) \
+    && (gp_type_t__TYPE) <= GP_TYPE_LONG_DOUBLE ))
+
+/** Checks if given type descriptor indicates a type considered an integer..
+ *
+ * @return `true` for
+ * Signed primitive integers, unsigned primitive integers, `GPInt128`,
+ * `GPUInt128`, `bool` and plain `char`.
+ */
+#define gp_type_is_integral(gp_type_t__TYPE) ((bool)(GP_TYPE_BOOL <= (gp_type_t__TYPE) \
+    && (gp_type_t__TYPE) <= GP_TYPE_INT128 ))
+
+/** Checks if given type descriptor indicates a signed primitive integer.
+ *
+ * @return `true` for all signed primitive integers.
+ *
+ * Plain `char` is not considered as integer by this macro since it is mostly
+ * commonly used to represent text or raw bytes.
+ */
+#define gp_type_is_signed_integer(gp_type_t__TYPE) ((bool)(GP_TYPE_SIGNED_CHAR <= (gp_type_t__TYPE) \
+    && (gp_type_t__TYPE) <= GP_TYPE_LONG_LONG ))
+
+/** Checks if given type descriptor indicates an unsigned primitive integer.
+ *
+ * @return `true` for all unsigned primitive integers.
+ *
+ * Plain `char` is not considered as integer by this macro since it is most
+ * commonly used to represent text or raw bytes. `bool` is also not considered
+ * as integer since it is most commonly used to represent logic.
+ */
+#define gp_type_is_unsigned_integer(gp_type_t__TYPE) ((bool)(GP_TYPE_UNSIGNED_CHAR <= (gp_type_t__TYPE) \
+    && (gp_type_t__TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG))
+
+/** Checks if given type descriptor indicates a primitive integer.
+ *
+ * @return `true` for all primitive integers.
+ *
+ * Plain `char` is not considered as integer by this macro since it is most
+ * commonly used to represent text or raw bytes. `bool` is also not considered
+ * as integer since it is most commonly used to represent logic.
+ */
+#define gp_type_is_integer(gp_type_t__TYPE) ((bool)( \
+    (GP_TYPE_SIGNED_CHAR <= (gp_type_t__TYPE) && (gp_type_t__TYPE) <= GP_TYPE_LONG_LONG) \
+    || (GP_TYPE_UNSIGNED_CHAR <= (gp_type_t__TYPE) && (gp_type_t__TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG)))
+
+/** Checks if given type descriptor indicates an arithmetic type.
+ *
+ * @return `true` for
+ * All primitive integers and floating point types. Plain `char` and `bool` are
+ * excluded.
+ */
+#define gp_type_is_arithmetic(gp_type_t__TYPE) ((bool)( \
+    (GP_TYPE_SIGNED_CHAR <= (gp_type_t__TYPE) && (gp_type_t__TYPE) <= GP_TYPE_LONG_LONG) \
+    || (GP_TYPE_UNSIGNED_CHAR <= (gp_type_t__TYPE) && (gp_type_t__TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG) \
+    || (GP_TYPE_FLOAT <= gp_type_t__TYPE && gp_type_t__TYPE <= GP_TYPE_LONG_DOUBLE)))
+
+/** Checks if given type descriptor indicates a string type.
+ *
+ * @return `true` for null-terminated `char*` and `GPString`.
+ */
+#define gp_type_is_string(gp_type_t__TYPE) ((bool)(GP_TYPE_CHAR_PTR <= (gp_type_t__TYPE) \
+    && (gp_type_t__TYPE) <= GP_TYPE_STRING))
 
 /** Portable `typeof` operator.
  *
@@ -67,26 +216,20 @@ typedef enum gp_type_t
  */
 #define GP_TYPEOF(...) typeof(__VA_ARGS__)
 
-/** Get type descriptor enumeration constant of given value.
- *
- * Defined when using C11 or C++11.
- * @return a @ref gp_type_t enumeration constant describing the type.
- * Only primitives, `char*`, @ref GPString, `GPUInt128`, and `GPInt128` have
- * distinct enumeration constants, everything else will be assumed to be
- * `void*`.
- */
-#define GP_TYPE(VALUE) (enum gp_type)_Generic((VALUE), ...)
-
 /** Pointer type without spiral rule.
  *
  * A pointer to given non `void` argument type. For example `GP_PTR_TO(int)` is
  * the same as `int*` and `int(**fptrs)(int);` is the same as
  * `GP_PTR_TO(int(*)(int) fptrs;`. This is mostly used for macros that take a
  * type argument to avoid spiral rule. Example use:
- * @code
- * #define PTR_CAST(T, X) ((T*)(X)) // wrong, breaks for function pointers
+ *
+ * ```c
+ * #define PTR_CAST(T, X) ((T*)(X)) // WRONG: breaks for function pointers
  * #define PTR_CAST(T, X) ((GP_PTR_TO(T))(X)) // correct
- * @endcode
+ * ```
+ *
+ * If no variant of @ref GP_TYPEOF is available, then just expands to `T*`,
+ * which will require typedefs for function pointers and pointers to arrays.
  */
 #define GP_PTR_TO(...) GP_TYPEOF(&(__VA_ARGS__){0})
 
@@ -96,10 +239,14 @@ typedef enum gp_type_t
  * same as `int` and `int(*fptr)(int);` is the same as
  * `GP_TYPEOF_TYPE(int(*)(int)) fptr;`. This is mostly used for macros that take
  * a type argument to avoid spiral rule. Example use:
- * @code
- * #define Container(T) struct { T elem; } // wrong, breaks with function pointers
+ *
+ * ```c
+ * #define Container(T) struct { T elem; } // WRONG: breaks with function pointers
  * #define Container(T) struct { GP_TYPEOF_TYPE(T) elem; } // correct
- * @endcode
+ * ```
+ *
+ * If no variant of @ref GP_TYPEOF is available, then just expands to `T*`,
+ * which will require typedefs for function pointers and pointers to arrays.
  */
 #define GP_TYPEOF_TYPE(...) GP_TYPEOF((__VA_ARGS__){0})
 
@@ -128,7 +275,7 @@ typedef enum gp_type_t
 
 /** Get size of type from type descriptor.
  *
- * @return value such that `sizeof(X) == gp_type_size(GP_TYPE(X))`.
+ * @return value such that `sizeof(X) == gp_type_size(gp_type(X))`.
  */
 GP_INLINE size_t gp_type_size(const gp_type_t T)
 {
@@ -158,7 +305,7 @@ GP_INLINE size_t gp_type_size(const gp_type_t T)
     case GP_TYPE_CHAR_PTR: case GP_TYPE_STRING: case GP_TYPE_PTR:
         return sizeof(char*);
 
-    case GP_NO_TYPE:;
+    case GP_TYPE_NONE:;
     }
     return 0;
 }
@@ -309,7 +456,7 @@ template <typename T> struct GPCPPType { T t; };
 // Note: we don't differentiate between gp_tetra_uint_t and GPUInt128 here. This
 // is because gp_tetra_uint_t is supposed to be internal implementation detail,
 // we only added it here so it can be printed for debugging purposes.
-#define GP_TYPE(...)                                   \
+#define gp_type(...)                                   \
 _Generic((__VA_ARGS__),                                \
     bool:                  GP_TYPE_BOOL,               \
     short:                 GP_TYPE_SHORT,              \
@@ -333,51 +480,86 @@ _Generic((__VA_ARGS__),                                \
     char*:                 GP_TYPE_CHAR_PTR,           \
     const char*:           GP_TYPE_CHAR_PTR,           \
     struct gp_char*:       GP_TYPE_STRING,             \
+    const struct gp_char*: GP_TYPE_STRING,             \
     default:               GP_TYPE_PTR)
 
-#define/* bool */GP_IS_SIGNED(...)           ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_SIGNED_TYPE(1)     , default: 0))
-#define/* bool */GP_IS_UNSIGNED(...)         ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_UNSIGNED_TYPE(1)   , default: 0))
-#define/* bool */GP_IS_FLOAT(...)            ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_FLOAT(1)           , default: 0))
-#define/* bool */GP_IS_NUMBER(...)           ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_NUMBER(1)          , default: 0))
-#define/* bool */GP_IS_INTEGRAL(...)         ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_INTEGRAL_TYPE(1)   , default: 0))
-#define/* bool */GP_IS_SIGNED_INTEGER(...)   ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_SIGNED_INTEGER(1)  , default: 0))
-#define/* bool */GP_IS_UNSIGNED_INTEGER(...) ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_UNSIGNED_INTEGER(1), default: 0))
-#define/* bool */GP_IS_INTEGER(...)          ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_INTEGER(1)         , default: 0))
-#define/* bool */GP_IS_ARITHMETIC(...)       ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_ARITHMETIC_TYPE(1) , default: 0))
-#define/* bool */GP_IS_STRING(...)           ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_STRING(1)          , default: 0))
-#elif __cplusplus >= 201103L // __cplusplus
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(bool               x) { (void)x; return GP_TYPE_BOOL;               }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(short              x) { (void)x; return GP_TYPE_SHORT;              }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(int                x) { (void)x; return GP_TYPE_INT;                }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(long               x) { (void)x; return GP_TYPE_LONG;               }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(long long          x) { (void)x; return GP_TYPE_LONG_LONG;          }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned short     x) { (void)x; return GP_TYPE_UNSIGNED_SHORT;     }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned           x) { (void)x; return GP_TYPE_UNSIGNED;           }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned long      x) { (void)x; return GP_TYPE_UNSIGNED_LONG;      }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned long long x) { (void)x; return GP_TYPE_UNSIGNED_LONG_LONG; }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(float              x) { (void)x; return GP_TYPE_FLOAT;              }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(double             x) { (void)x; return GP_TYPE_DOUBLE;             }
-#if !_MSC_VER
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(char               x) { (void)x; return GP_TYPE_CHAR;               }
-#endif
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(unsigned char      x) { (void)x; return GP_TYPE_UNSIGNED_CHAR;      }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(signed char        x) { (void)x; return GP_TYPE_SIGNED_CHAR;        }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(char*              x) { (void)x; return GP_TYPE_CHAR_PTR;           }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(const char*        x) { (void)x; return GP_TYPE_CHAR_PTR;           }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(struct gp_char*    x) { (void)x; return GP_TYPE_STRING;             }
-GP_NODISCARD static inline constexpr gp_type_t GP_TYPE(const void*        x) { (void)x; return GP_TYPE_PTR;                }
+#define gp_type_str(...) gp_type_strs \
+[ \
+    _Generic(__VA_ARGS__, gp_type_t: (__VA_ARGS__), default: gp_type(__VA_ARGS__)) \
+]
 
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_SIGNED(T X)           { return gp_type_is_signed(GP_TYPE(X))          ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_UNSIGNED(T X)         { return gp_type_is_unsigned(GP_TYPE(X))        ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_FLOAT(T X)            { return gp_type_is_float(GP_TYPE(X))           ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_NUMBER(T X)           { return gp_type_is_number(GP_TYPE(X))          ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_INTEGRAL(T X)         { return gp_type_is_integral(GP_TYPE(X))        ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_SIGNED_INTEGER(T X)   { return gp_type_is_signed_integer(GP_TYPE(X))  ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_UNSIGNED_INTEGER(T X) { return gp_type_is_unsigned_integer(GP_TYPE(X)); }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_INTEGER(T X)          { return gp_type_is_integer(GP_TYPE(X))         ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_ARITHMETIC(T X)       { return gp_type_is_arithmetic(GP_TYPE(X))      ; }
-template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_STRING(T X)           { return gp_type_is_string(GP_TYPE(X))          ; }
+#define GP_IS_SIGNED(...)           ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_SIGNED_TYPE(1)     , default: 0))
+#define GP_IS_UNSIGNED(...)         ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_UNSIGNED_TYPE(1)   , default: 0))
+#define GP_IS_FLOAT(...)            ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_FLOAT(1)           , default: 0))
+#define GP_IS_NUMBER(...)           ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_NUMBER(1)          , default: 0))
+#define GP_IS_INTEGRAL(...)         ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_INTEGRAL_TYPE(1)   , default: 0))
+#define GP_IS_SIGNED_INTEGER(...)   ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_SIGNED_INTEGER(1)  , default: 0))
+#define GP_IS_UNSIGNED_INTEGER(...) ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_UNSIGNED_INTEGER(1), default: 0))
+#define GP_IS_INTEGER(...)          ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_INTEGER(1)         , default: 0))
+#define GP_IS_ARITHMETIC(...)       ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_ARITHMETIC_TYPE(1) , default: 0))
+#define GP_IS_STRING(...)           ((bool)_Generic((__VA_ARGS__), GP_C11_GENERIC_STRING(1)          , default: 0))
+#elif __cplusplus >= 201103L // __cplusplus
+GP_NODISCARD static inline constexpr gp_type_t gp_type(bool               x) { (void)x; return GP_TYPE_BOOL;               }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(short              x) { (void)x; return GP_TYPE_SHORT;              }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(int                x) { (void)x; return GP_TYPE_INT;                }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(long               x) { (void)x; return GP_TYPE_LONG;               }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(long long          x) { (void)x; return GP_TYPE_LONG_LONG;          }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(unsigned short     x) { (void)x; return GP_TYPE_UNSIGNED_SHORT;     }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(unsigned           x) { (void)x; return GP_TYPE_UNSIGNED;           }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(unsigned long      x) { (void)x; return GP_TYPE_UNSIGNED_LONG;      }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(unsigned long long x) { (void)x; return GP_TYPE_UNSIGNED_LONG_LONG; }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(float              x) { (void)x; return GP_TYPE_FLOAT;              }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(double             x) { (void)x; return GP_TYPE_DOUBLE;             }
+#if !_MSC_VER
+GP_NODISCARD static inline constexpr gp_type_t gp_type(char               x) { (void)x; return GP_TYPE_CHAR;               }
 #endif
+GP_NODISCARD static inline constexpr gp_type_t gp_type(unsigned char      x) { (void)x; return GP_TYPE_UNSIGNED_CHAR;      }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(signed char        x) { (void)x; return GP_TYPE_SIGNED_CHAR;        }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(char*              x) { (void)x; return GP_TYPE_CHAR_PTR;           }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(const char*        x) { (void)x; return GP_TYPE_CHAR_PTR;           }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(struct gp_char*    x) { (void)x; return GP_TYPE_STRING;             }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(const struct gp_char*x){(void)x; return GP_TYPE_STRING;             }
+GP_NODISCARD static inline constexpr gp_type_t gp_type(const void*        x) { (void)x; return GP_TYPE_PTR;                }
+
+GP_NODISCARD static inline constexpr const char* gp_type_str(gp_type_t x) { return gp_type_strs[x]; }
+template <typename T> GP_NODISCARD static inline constexpr const char* gp_type_str(T x)
+{ return gp_type_strs[gp_type(x)]; }
+
+template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_SIGNED(T X)           { return gp_type_is_signed(gp_type(X))          ; }
+template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_UNSIGNED(T X)         { return gp_type_is_unsigned(gp_type(X))        ; }
+template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_FLOAT(T X)            { return gp_type_is_float(gp_type(X))           ; }
+template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_NUMBER(T X)           { return gp_type_is_number(gp_type(X))          ; }
+template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_INTEGRAL(T X)         { return gp_type_is_integral(gp_type(X))        ; }
+template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_SIGNED_INTEGER(T X)   { return gp_type_is_signed_integer(gp_type(X))  ; }
+template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_UNSIGNED_INTEGER(T X) { return gp_type_is_unsigned_integer(gp_type(X)); }
+template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_INTEGER(T X)          { return gp_type_is_integer(gp_type(X))         ; }
+template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_ARITHMETIC(T X)       { return gp_type_is_arithmetic(gp_type(X))      ; }
+template <typename T> GP_NODISCARD static inline constexpr bool GP_IS_STRING(T X)           { return gp_type_is_string(gp_type(X))          ; }
+#endif // __cplusplus
+
+#if CHAR_MAX == INT8_MAX // char is signed
+#define gp_type_is_signed(gp_type_t_TYPE)           ((bool)(GP_TYPE_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128 ))
+#define gp_type_is_unsigned(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UINT128))
+#else // char is unsigned
+#define gp_type_is_signed(gp_type_t_TYPE)           ((bool)(GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128))
+#define gp_type_is_unsigned(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL        <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_CHAR  ))
+#endif
+#define gp_type_is_float(gp_type_t_TYPE)            ((bool)(GP_TYPE_FLOAT         <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_DOUBLE       ))
+#define gp_type_is_number(gp_type_t_TYPE)           ((bool)(GP_TYPE_BOOL          <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_DOUBLE       ))
+#define gp_type_is_integral(gp_type_t_TYPE)         ((bool)(GP_TYPE_BOOL          <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_INT128            ))
+#define gp_type_is_signed_integer(gp_type_t_TYPE)   ((bool)(GP_TYPE_SIGNED_CHAR   <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG         ))
+#define gp_type_is_unsigned_integer(gp_type_t_TYPE) ((bool)(GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG))
+
+#define gp_type_is_integer(gp_type_t_TYPE)          ((bool)( \
+    (GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG) \
+    || (GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG)))
+
+#define gp_type_is_arithmetic(gp_type_t_TYPE)       ((bool)( \
+    (GP_TYPE_SIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_LONG_LONG) \
+    || (GP_TYPE_UNSIGNED_CHAR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_UNSIGNED_LONG_LONG) \
+    || (GP_TYPE_FLOAT <= gp_type_t_TYPE && gp_type_t_TYPE <= GP_TYPE_LONG_DOUBLE)))
+
+#define gp_type_is_string(gp_type_t_TYPE)           ((bool)(GP_TYPE_CHAR_PTR <= (gp_type_t_TYPE) && (gp_type_t_TYPE) <= GP_TYPE_STRING))
 
 ///@endcond
 #endif // GP_TYPES_INCLUDED

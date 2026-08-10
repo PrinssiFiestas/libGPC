@@ -174,7 +174,7 @@
 /** In/out annotation for pointer arguments.
  *
  * Function attribute used to specify which arguments will be in/out, or in
- * other words, which pointers will be read from *and* written to. This allows
+ * other words, which pointers will be read from _and_ written to. This allows
  * GCC to warn if an address to an uninitialized value is passed as an argument.
  *
  * First argument specifies which argument the attribute applies to. Second
@@ -510,6 +510,9 @@
  * arguments. This is because this attribute assumes that the function always
  * returns the same value for the same arguments, but data behind pointers may
  * change. Use @ref GP_PURE for pure functions with pointer arguments instead.
+ *
+ * This is often not needed for short functions, making a function inline is
+ * more than enough for the compiler to infer that the function is pure.
  */
 #if defined(__GNUC__)
 #  define GP_CONST_FUNCTION __attribute__((const))

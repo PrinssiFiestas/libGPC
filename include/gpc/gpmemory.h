@@ -53,8 +53,122 @@ extern "C" {
  * #include <gpc/gpmemory.h>
  * ```
  *
+ * This documentation refers to allocators provided by us as "built in
+ * allocators" or "our allocators" and allocators written by user as "custom
+ * allocators", so to be clear, when we say "custom allocator", we do _not_
+ * refer to any of our allocators.
+ *
  * @{
  */ // TODO detailed description/overview of this module. Focus on allocators.
+
+/** Possible value of @ref GP_ALLOC_FAIL_MODE.
+ *
+ * Indicates that allocation functions may return `NULL` on allocation failure.
+ * This is the default for functions exported to binary, because for FFI, the
+ * other options would be limiting, the FFI has to give full control to the user.
+ *
+ * This does make code more complex: The non-null pointer contract is weakened,
+ * which may not play nice with static analyzers and just generally makes
+ * failure points harder to reason about.
+ *
+ * The purpose of this is to make writing custom allocators more convenient to
+ * write and to use, especially when composing composing allocators. For example,
+ * a custom allocator might ask memory from a backing allocator that might simply
+ * fail not even necessarily due to out-of-memory, but the allocation would just
+ * be suboptimal. The custom allocator can then detect the failure and use a more
+ * optimal allocator instead.
+ *
+ * The recommended practice is to write allocators that do not fail in practice
+ * (like ours) and only use this for translation units implementing more
+ * complex custom allocators that may be composing custom failing allocators.
+ * You can also always explicitly opt in to allocation failure by directly
+ * calling @ref GPAllocator.alloc().
+ */
+ #define GP_ALLOC_ERROR_RETURN 0
+
+/** Possible value of @ref GP_ALLOC_FAIL_MODE.
+ *
+ * Indicates that allocation functions abort execution on allocation failure.
+ * This is the default for C/C++ code.
+ *
+ * Many programmers assume that `malloc()` will not fail and often wrap it
+ * functions like `xmalloc()` that terminates program on allocation failure. The
+ * assumption is reasonable in modern desktop development (which is our main
+ * target): your program may be already aborted by OOM killer before `malloc()`
+ * even gets a change to fail, and even if not, a potential out-of-memory error
+ * only ever happens due to a massive memory leak (which fundamentally cannot be
+ * recovered from) or horrible memory management. Either way, those are bugs that
+ * should be fixed where they happen, trying to handle the error by checking
+ * `malloc()` return value is futile.
+ *
+ * Due to these considerations, our default allocation failure policy for C/C++
+ * code is to abort execution. Given the assumption that `malloc()` wont fail,
+ * our allocators will also not fail. Most of our allocators implement a
+ * fallback mechanism when they run out of memory like simply outsourcing the
+ * allocation to @ref gp_heap.
+ *
+ * This might sound like it limits control, but this is not true: You can always
+ * call @ref GPAllocator.alloc() to opt in for potential failure. Also, aborting
+ * execution on failure gives stronger guarantees about pointer validity and
+ * makes it easier to reason about program failure points. It can also prevent
+ * potential undefined behavior, which is better for the end user.
+ */
+#define GP_ALLOC_ERROR_ABORT 1
+
+/** Possible value of @ref GP_ALLOC_FAIL_UNDEFINED.
+ *
+ * Indicates that allocation functions invoke undefined behavior on allocation
+ * failure.
+ *
+ * This practically for the most part just omits a couple of instructions in
+ * release builds that check if the pointer returned by an allocator is `NULL`.
+ * It also allows the compiler to remove all checks by the user. However, UB is
+ * UB, so anything can happen, which might cause undeterministic mayhem in
+ * production if an allocation error actually happens. Therefore, using this is
+ * generally speaking discouraged.
+ *
+ * The purpose for this is to be used for maximally performance critical
+ * applications. Usually the performance critical code is a small part of the
+ * program, so only use this for the translation units that contain the
+ * performance critical code.
+ */
+#define GP_ALLOC_ERROR_UNDEFINED 2
+
+/** Determines behavior on allocation failure.
+ *
+ * Can be defined per header file inclusion to control allocation failure policy
+ * for each translation unit separately. If defined when compiling this library,
+ * then affects foreign function interface, which is probably not what you want,
+ * the exported functions should use @ref GP_ALLOC_ERROR_ERTURN, which is the
+ * default when exporting.
+ *
+ * These only has an effect for the functions we provide that wraps @ref GPAllocator.alloc()
+ * like @ref gp_mem_alloc(), so @ref GPAllocator.alloc() is not affected, so
+ * @ref GPAllocator.alloc() can always be used to check errors regardless of the
+ * value of this macro, which is useful for custom allocators that might fail.
+ *
+ * This will not have an effect on argument validation. Arguments should always
+ * be validated before calling an allocation function when needed. We provide
+ * dedicated functions for this and encourage implementors of custom allocators
+ * to do the same.
+ *
+ * Possible values:
+ *
+ * - @ref GP_ALLOC_ERROR_RETURN: Allocation functions can fail and return `NULL`. Default when exporting.
+ * - @ref GP_ALLOC_ERROR_ABORT: Allocation functions abort on failure. Default for C/C++.
+ * - @ref GP_ALLOC_ERROR_UNDEFINED: Allocation functions invoke undefined behavior on failure.
+ *
+ * See the documentation for those macros for more details about their meanings.
+ */
+#ifndef GP_ALLOC_FAIL_MODE
+#  if !defined(GPC_IMPLEMENTATION)
+#    define GP_ALLOC_FAIL_MODE GP_ALLOC_ERROR_ABORT
+#  else
+#    define GP_ALLOC_FAIL_MODE GP_ALLOC_ERROR_RETURN
+#  endif
+#elif GP_ALLOC_FAIL_MODE < 0 || 2 < GP_ALLOC_FAIL_MODE
+#  error Invalid GP_ALLOC_FAIL_MODE.
+#endif
 
 /** Maximum allocation size.
  *
@@ -190,11 +304,11 @@ GP_INLINE GP_NODISCARD bool gp_size_mul(size_t* result, size_t n, size_t m)
  * Calling the member functions directly gives maximum control and may allow
  * some error handling for some allocators. However, these are somewhat
  * difficult to use and have strict requirements, so it is generally recommended
- * to use @ref gp_mem_alloc(), @ref gp_mem_alloc_array(), @ref gp_realloc(), and
- * @ref gp_dealloc() instead. Those functions are used to pass some default
- * parameters and do some basic checks that makes them easier to use. However,
- * calling these member functions directly is currently the only way of handling
- * errors and allocating memory with non-default alignment.
+ * to use @ref gp_mem_alloc(), @ref gp_mem_alloc_array(), @ref gp_mem_realloc(),
+ * and @ref gp_mem_dealloc() instead. Those functions are used to pass some
+ * default parameters and do some basic checks that makes them easier to use.
+ * However, calling these member functions directly is currently the only way of
+ * handling errors and allocating memory with non-default alignment.
  *
  * Custom memory allocators can be written by inheriting from this structure by
  * having this as the first member of the custom allocator structure. See the
@@ -241,6 +355,10 @@ typedef struct GPAllocator
      *     If `NULL`, then the operation is basic memory allocation. Otherwise,
      *     the operation is a reallocation and this parameter must be a pointer
      *     previously returned by this function that has not been deallocated.
+     *
+     *     If allocators fail to reallocate, then allocators must keep the old
+     *     block unchanged. The old block must not be freed, this would break
+     *     shrink to fit operations.
      *
      * @param optional_old_block_size
      *     If not reallocating, then this parameter is ignored. Otherwise, this
@@ -466,7 +584,7 @@ GP_GNU_ATTRIB(section("rodata"))
 #endif
 extern GPAllocator gp_mallocator;
 
-//-------------------------------------
+//------------------------------------------------------------------------------
 /** @defgroup sized_ptr Sized Pointers
  *
  * Pointers with size and allocator information.
@@ -493,11 +611,11 @@ extern GPAllocator gp_mallocator;
  * @{
  */
 
-typedef struct GPSizePtrHeader
+typedef struct GPSizedPtrHeader
 {
     GPAllocator* allocator; ///< Allocator used to allocate the sized pointer.
     size_t size;            ///< Requested allocation size in bytes.
-} GPSizePtrHeader;
+} GPSizedPtrHeader;
 
 /** Get requested allocation size of a sized pointer.
  *
@@ -505,7 +623,7 @@ typedef struct GPSizePtrHeader
  */
 GP_NODISCARD GP_INLINE size_t gp_sptr_size(const void* sptr)
 {
-    return ((GPSizePtrHeader*)sptr - 1)->size;
+    return ((GPSizedPtrHeader*)sptr - 1)->size;
 }
 
 /** Get number of allocated elements pointed by a sized pointer.
@@ -520,7 +638,7 @@ GP_NODISCARD GP_INLINE size_t gp_sptr_size(const void* sptr)
  */
 GP_NODISCARD GP_INLINE GPAllocator* gp_sptr_allocator(const void* sptr)
 {
-    return ((GPSizePtrHeader*)sptr - 1)->allocator;
+    return ((GPSizedPtrHeader*)sptr - 1)->allocator;
 }
 
 /** Allocate a sized pointer.
@@ -532,11 +650,11 @@ void* gp_sptr_alloc(GPAllocator* alc, size_t size)
 {
     size_t ignore_out_size;
     char* memory = alc->alloc(
-        alc, NULL, 0, size + sizeof(GPSizePtrHeader), GP_ALLOC_ALIGNMENT, true, &ignore_out_size);
+        alc, NULL, 0, size + sizeof(GPSizedPtrHeader), GP_ALLOC_ALIGNMENT, true, &ignore_out_size);
     gp_assume(memory != NULL);
-    ((GPSizePtrHeader*)memory)->size = size;
-    ((GPSizePtrHeader*)memory)->allocator = alc;
-    return memory + sizeof(GPSizePtrHeader);
+    ((GPSizedPtrHeader*)memory)->size = size;
+    ((GPSizedPtrHeader*)memory)->allocator = alc;
+    return memory + sizeof(GPSizedPtrHeader);
 }
 
 /** Allocate an array as a sized pointer.
@@ -549,13 +667,13 @@ void* gp_sptr_alloc_array(GPAllocator* alc, size_t n, size_t m, bool uninitializ
     size_t size;
     size_t ignore_out_size;
     gp_assume(gp_size_mul(&size, n, m), "Multiplication exceeded GP_ALLOC_MAX_SIZE.");
-    gp_assume(size + sizeof(GPSizePtrHeader) < GP_ALLOC_MAX_SIZE);
+    gp_assume(size + sizeof(GPSizedPtrHeader) < GP_ALLOC_MAX_SIZE);
     char* memory = alc->alloc(
-        alc, NULL, 0, size + sizeof(GPSizePtrHeader), GP_ALLOC_ALIGNMENT, uninitialized, &ignore_out_size);
+        alc, NULL, 0, size + sizeof(GPSizedPtrHeader), GP_ALLOC_ALIGNMENT, uninitialized, &ignore_out_size);
     gp_assert(memory != NULL);
-    ((GPSizePtrHeader*)memory)->size = size;
-    ((GPSizePtrHeader*)memory)->allocator = alc;
-    return memory + sizeof(GPSizePtrHeader);
+    ((GPSizedPtrHeader*)memory)->size = size;
+    ((GPSizedPtrHeader*)memory)->allocator = alc;
+    return memory + sizeof(GPSizedPtrHeader);
 }
 
 /** Reallocate a sized pointer.
@@ -573,8 +691,8 @@ void* gp_sptr_alloc_array(GPAllocator* alc, size_t n, size_t m, bool uninitializ
 GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD GP_INLINE
 void* gp_sptr_realloc(void* old_block, size_t new_size)
 {
-    gp_assume(new_size < GP_ALLOC_MAX_SIZE - sizeof(GPSizePtrHeader));
-    GPSizePtrHeader* header = ((GPSizePtrHeader*)old_block - 1);
+    gp_assume(new_size < GP_ALLOC_MAX_SIZE - sizeof(GPSizedPtrHeader));
+    GPSizedPtrHeader* header = ((GPSizedPtrHeader*)old_block - 1);
     size_t ignore_out_size;
     char* memory = header->allocator->alloc(
         header->allocator,
@@ -585,7 +703,7 @@ void* gp_sptr_realloc(void* old_block, size_t new_size)
         true,
         &ignore_out_size);
     gp_assert(memory != NULL);
-    ((GPSizePtrHeader*)memory)->size = new_size;
+    ((GPSizedPtrHeader*)memory)->size = new_size;
     return memory + sizeof *header;
 }
 
@@ -603,9 +721,9 @@ GP_INLINE void gp_sptr_dealloc(void* optional_block)
     if (optional_block == NULL)
         return;
 
-    GPSizePtrHeader* header = ((GPSizePtrHeader*)optional_block - 1);
+    GPSizedPtrHeader* header = ((GPSizedPtrHeader*)optional_block - 1);
     bool success = header->allocator->dealloc(
-        header->allocator, header, header->size + sizeof(GPSizePtrHeader), GP_ALLOC_ALIGNMENT);
+        header->allocator, header, header->size + sizeof(GPSizedPtrHeader), GP_ALLOC_ALIGNMENT);
     gp_assert(success);
 }
 

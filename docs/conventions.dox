@@ -24,12 +24,8 @@ Raw pointers that are not supposed to mutate the data are appropriately marked
 as `const` for the most part. However, we have a few typedefs for some pointer
 types like @ref GPString. We generally avoid typedeffing pointers away, because
 it prevents using `const` and often decreases readability, but it is appropriate
-for some abstractions when the "pointerness" is not important and "constness" is
-obvious or not important. For example, functions accepting @ref GPString as
-output arguments almost always may reallocate, which is only possible if the
-string is passed as `GPString*`, so in case of @ref GPString and @ref GPArray,
-the "constness" is implied using pointers: `GPString` arguments will not mutate,
-`GPString*` will.
+for some abstractions when the "pointerness" is not important. We might provide
+additional `const` typedefs like @ref GPStringConst when appropriate.
 
 ## Naming Conventions
 
@@ -58,7 +54,7 @@ conflicts between standard `string.h` and our `gpstring.h`.
 ### Macros and Enumeration Constants
 
 Macros and enumeration constants are `SCREAMING_SNAKE_CASE`. Exception to this
-are macro functions that behave like regular functions like @ref gp_println(),
+are public macro functions that behave like regular functions like @ref gp_println(),
 these use `snake_case` instead to indicate that they don't evaluate their
 arguments multiple times during runtime and that they will evaluate to an
 expression, not a statement like `do {...} while(0)`.

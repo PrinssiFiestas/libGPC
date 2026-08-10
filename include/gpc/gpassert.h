@@ -100,23 +100,25 @@ extern "C" {
 /// @{
 
 /** Fatal assertion.
- * If condition is false prints fail message, marks current test and suite (if
- * running tests) as failed, and exits program. Unlike standard assert(), this
- * macro cannot be disabled. Use @ref gp_assume() instead if performance is an
- * issue.
  *
- * @return true if condition is true, will not return otherwise.
+ * If condition is false, prints fail message, marks current test and suite (if
+ * running tests) as failed, and exits program. Unlike standard `assert()`, this
+ * macro cannot be disabled. Use an explicit `#if` block or @ref gp_assume()
+ * instead if performance is an issue.
+ *
+ * @return `true` if condition is true, will not return otherwise.
  */
 #define gp_assert(/* bool condition, variables */...) \
     (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
         (GP_FAIL_MESSAGE(__VA_ARGS__), GP_DEBUG_BREAKPOINT_TRAP, exit(1), false))
 
 /** Non-fatal assertion.
- * If condition is false prints fail message, marks current test and suite (if
+ *
+ * If condition is false, prints fail message, marks current test and suite (if
  * running tests) as failed without ending execution. This is mostly useful when
  * unit testing, application code will rarely use this.
  *
- * @return condition casted to bool.
+ * @return condition casted to `bool`.
  */
 #define gp_expect(/* bool condition, variables */...) \
     (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
@@ -130,10 +132,11 @@ extern "C" {
  * practice, this means that this assertion is often optimized away completely
  * in optimized builds. This may include the condition itself when there is no
  * side effects, however, calling functions with side effects in condition is
- * safe. Optimizing compilers and static analyzers may use the condition for
- * symbolic analysis to produce better output.
+ * safe when condition is true. Optimizing compilers and static analyzers may
+ * use the condition for symbolic analysis to produce better output.
  *
- * @return true if condition is true, undefined otherwise.
+ * @return `true` if condition is true, undefined behavior invoked otherwise
+ * potentially optimizing the call out completely.
  */
 #define gp_assume(/* bool condition, variables */...) \
     (gp_pass_bool(GP_1ST_ARG(__VA_ARGS__)) ? true :  \
@@ -206,7 +209,7 @@ extern "C" {
  * ignored with @ref GP_STATIC_ASSERT, which is why it is recommended to use it
  * instead when applicable.
  *
- * @return true if @a CONDITION is true, otherwise will not compile.
+ * @return `true` if @a CONDITION is true, otherwise will not compile.
  */
 #ifdef GP_DOXYGEN
 #  define gp_static_assert(CONDITION, MESSAGE) ({_Static_assert(CONDITION, MESSAGE); true})
@@ -276,7 +279,7 @@ typedef struct gp_internal_reflection_data
 } GPInternalReflectionData;
 
 #if GP_HAS_C11_GENERIC
-#define GP_PRINTABLE(X) { #X, GP_TYPE(X) } // TODO test if this would work in C++ too
+#define GP_PRINTABLE(X) { #X, gp_type(X) }
 #else
 #define GP_PRINTABLE(X) { #X, INT_MAX - (int)(sizeof(X)) }
 #endif

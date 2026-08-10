@@ -2,6 +2,11 @@
 # Copyright (c) 2023 Lauri Lorenzo Fiestas
 # https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
+# TODO we should document somewhere (other than the docs in GP_EXPORT and similar macros)
+# that all functions are exported to binary to be used in FFI and that of course
+# all macros will be excluded. However, it is not yet clear where. Certainly not
+# here, but I'll leave the comment here just as a reminder that it has to be done.
+
 # -----------------------------------------------------------------------------
 #
 #          PUBLIC TARGETS
@@ -65,7 +70,7 @@ endif
 
 CC = # will be set below to Clang if MacOS or MSYS2 CLANG64, GCC otherwise.
 
-CFLAGS = -Wall -Wextra -Wswitch-enum -Wundef -Iinclude -D_GNU_SOURCE
+CFLAGS = -Wall -Wextra -Wswitch-enum -Wundef -Iinclude -D_GNU_SOURCE -DGPC_IMPLEMENTATION
 LDFLAGS = -lm # only relevant for test executables
 
 DEBUG_CFLAGS   = -ggdb3 -gdwarf
