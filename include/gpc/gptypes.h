@@ -24,11 +24,40 @@
 
 /** Type descriptor.
  *
- * A type descriptor can be obtained from a value using @ref gp_type().
+ * A type descriptor can be obtained from a value using @ref gp_type(). A
+ * string describing the type can be obtained using @ref gp_type_str().
  *
  * Only primitives, `char*`, @ref GPString, `GPUInt128`, and `GPInt128` have
  * distinct enumeration constants, everything else will be assumed to be `void*`.
- */ // TODO example?
+ *
+ * Example demonstrating three ways to print type information:
+ *
+ * ```c
+ * void print_types(void)
+ * {
+ *     int i;
+ *     short hi;
+ *     long li;
+ *
+ *     puts(gp_type_str(i));            // prints "int".
+ *     puts(gp_type_strs[gp_type(hi)]); // prints "short".
+ *
+ *     switch (gp_type(li)) {
+ *     case GP_TYPE_LONG:
+ *         puts("long"); // this gets printed.
+ *         break;
+ *
+ *     default:
+ *         puts("unknown"); // this does not get printed.
+ *         break;
+ *     }
+ * }
+ * ```
+ *
+ * You obviously would only need @ref gp_type_str() for printing, but the
+ * point is just to hone in the point that you can extract an enumeration
+ * constant from any arbitrary value.
+ */
 typedef enum gp_type_t
 {
     GP_TYPE_NONE              ,

@@ -12,9 +12,14 @@
 #include <gpc/gptypes.h>
 #include <gpc/gpoverload.h>
 #include <gpc/gpendian.h>
+#include <gpc/gppreprocessor.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+
+#if __STDC_VERSION__ >= 201112L || GP_HAS_INCLUDE(<stdalign.h>)
+#include <stdalign.h>
+#endif
 
 #if defined(_MSC_VER) && defined(_M_X64)
 #include <intrin.h>
@@ -103,6 +108,13 @@ typedef union GPUInt128
 
     #if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
     gp_tetra_uint_t u128;
+    // rest of the branches are for ABI consistency more than for performance.
+    #elif __STDC_VERSION__ >= 201112L || GP_HAS_INCLUDE(<stdalign.h>)
+    alignas(16) int _align;
+    #elif defined(_MSC_VER)
+    __declspec(align(16)) int _align;
+    #elif defined(GP_HAS_DIFFERENTIATED_LONG_DOUBLE)
+    long double _align; // not guaranteed to be 16, but our final hope!
     #endif
 } GPUInt128;
 
@@ -160,6 +172,12 @@ typedef union GPInt128
 
     #if defined(GP_HAS_TETRA_INT) || defined(GP_TEST_INT128)
     gp_tetra_int_t i128;
+    #elif __STDC_VERSION__ >= 201112L || GP_HAS_INCLUDE(<stdalign.h>)
+    alignas(16) int _align;
+    #elif defined(_MSC_VER)
+    __declspec(align(16)) int _align;
+    #elif defined(GP_HAS_DIFFERENTIATED_LONG_DOUBLE)
+    long double _align; // not guaranteed to be 16, but our final hope!
     #endif
 } GPInt128;
 
