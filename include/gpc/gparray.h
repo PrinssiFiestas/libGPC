@@ -354,9 +354,18 @@ GPArrayHeader* gp_arr_set(GPArrayAny arr)
 //-------------------------------------
 // Memory
 
-GP_INLINE size_t gp_arr_reserve(GPArrayAny* arr, size_t size)
+GP_NONNULL_ARGS() GP_INLINE
+GPArrayAny gp_arr_new(
+    GPAllocator* alc,
+    size_t init_capacity,
+    size_t element_size)
 {
-    return gp_arr_reserve_sized(arr, size, gp_arr_element_size(*arr));
+
+}
+
+GP_INLINE size_t gp_arr_reserve(GPArrayAny* arr, size_t capacity)
+{
+    return gp_arr_reserve_sized(arr, capacity, gp_arr_element_size(*arr));
 }
 
 GP_INLINE size_t gp_arr_reallocate(GPArrayAny* arr, size_t capacity)
@@ -400,7 +409,7 @@ GP_INLINE GPArrayAny gp_arr_recycle(GPArrayAny arr, size_t element_size)
 
 GP_INLINE void* gp_arr_finalize(GPArrayAny arr)
 {
-    gp_arr_finalize_sized(arr, gp_arr_element_size(arr));
+    return gp_arr_finalize_sized(arr, gp_arr_element_size(arr));
 }
 
 //-------------------------------------
@@ -420,9 +429,9 @@ static inline size_t gp_arr_reserve_sized(
     GPArrayAny* arr, size_t capacity, size_t element_size)
 {
     #ifdef GP_STATIC_ANALYSIS // GCC static analyzer can't keep up with
-    gp_launder(arr);          // conditional reallocations, which causes a lot
+    gp_launder(arr);          // conditional reallocations, which caused a lot
     #endif                    // of buffer overflow false positives.
-    if (capacity <= gp_arr_capacity(*arr))
+    if (GP_LIKELY(capacity <= gp_arr_capacity(*arr)))
         return 0;
     #if GP_ARR_FAIL_MODE == GP_ARR_ERROR_RETURN
     if (gp_arr_allocator(*arr) == NULL)
@@ -447,9 +456,18 @@ static inline bool gp_arr_push_sized(
     return trunced;
 }
 
-// TODO overload gp_arr_reserve() and gp_arr_reallocate() to take an optional
-// size argument for type checking since they don't have input argument to check
-// against.
+//------------------------------------------------------------------------------
+//
+//
+//          MACRO SHADOWING
+//
+//
+//------------------------------------------------------------------------------
+
+#if !defined(GP_NO_MACRO_SHADOWING) && !defined(GPC_IMPLEMENTATION)
+
+
+#endif // MACRO SHADOWING
 
 #ifdef __cplusplus
 } // extern "C"

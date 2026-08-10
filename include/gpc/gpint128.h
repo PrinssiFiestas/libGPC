@@ -123,7 +123,7 @@ typedef union GPUInt128
     #  elif defined(_MSC_VER)
     __declspec(align(16)) int _align;
     #  elif defined(GP_HAS_DIFFERENTIATED_LONG_DOUBLE)
-    long double _align; // not guaranteed to be 16, but our final hope!
+    long double _align; // not guaranteed to be 16, but our only hope!
     #  endif
     #endif
 } GPUInt128;
@@ -190,7 +190,7 @@ typedef union GPInt128
     #  elif defined(_MSC_VER)
     __declspec(align(16)) int _align;
     #  elif defined(GP_HAS_DIFFERENTIATED_LONG_DOUBLE)
-    long double _align; // not guaranteed to be 16, but our final hope!
+    long double _align; // not guaranteed to be 16, but our only hope!
     #  endif
     #endif
 } GPInt128;
