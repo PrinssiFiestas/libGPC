@@ -221,6 +221,16 @@ extern "C" {
  */
 #define GP_ALLOC_ALIGNMENT (2 * sizeof(size_t))
 
+/** Allocation alignment bit index.
+ *
+ * `(1 << GP_ALLOC_ALIGNMENT_BIT_INDEX) == GP_ALLOC_ALIGNMENT`.
+ */
+#if SIZE_MAX == UINT32_MAX
+#  define GP_ALLOC_ALIGNMENT_BIT_INDEX 3
+#else
+#  define GP_ALLOC_ALIGNMENT_BIT_INDEX 4
+#endif
+
 /** Check if compiling with address sanitizer.
  *
  * Defined to 1 if compiling with `-fsanitize=address`, 0 otherwise. Tested with
@@ -325,7 +335,38 @@ GP_INLINE GP_NODISCARD bool gp_size_mul(size_t* result, size_t n, size_t m)
  *
  * Custom memory allocators can be written by inheriting from this structure by
  * having this as the first member of the custom allocator structure. See the
- * definition of any of our other allocators for examples of this.
+ * definition of any of our other allocators for examples of this. Allocators
+ * are almost always used trough a pointer. You can use any structure that
+ * inherits this by either casting the pointer to `GPAllocator*` or by taking
+ * the address of the allocator. Example of using a custom allocator (skip
+ * custom allocator implementation details for now):
+ *
+ * ```c
+ * typedef struct MyAllocator
+ * {
+ *     // Inherit from GPAllocator. Name "base" by convention.
+ *     GPAllocator base;
+ *
+ *     // Custom data.
+ *     void* my_allocator_data;
+ * } MyAllocator;
+ *
+ * extern MyAllocator* my_alc;
+ *
+ * void alloc_two_blocks(void** block1, void** block2, size_t size)
+ * {
+ *     // Using base pointer
+ *     *block1 = gp_mem_alloc(&my_alc->base, size);
+ *
+ *     // Casting to base class (upcasting)
+ *     *block2 = gp_mem_alloc((GPAllocator*)my_alc, size);
+ * }
+ * ```
+ *
+ * We recommend always taking address of base instead of casting when possible.
+ * However, opaque allocators won't have base exposed, so upcasting is necessary
+ * in that case. If opaque allocators are needed, consider using `GPAllocator*`
+ * as the type exposed to user to avoid casts.
  *
  * Allocator implementations are free to loosen up some requirements documented
  * for the member functions (e.g. requiring matching size and alignment for
@@ -391,9 +432,10 @@ typedef struct GPAllocator
      *     @ref GP_ALLOC_ALIGNMENT.
      *
      *     Allocators must return a memory block whose address is a multiple of
-     *     this value. Allocators must not assume that @ref GP_ALLOC_ALIGNMENT,
-     *     `alignof(max_align_t)`, or whatever the system heap allocator uses
-     *     is the minimum alignment: allocators must be able to handle smaller
+     *     this value. The easiest way of doing this is using @ref gp_round_to_aligned().
+     *     Allocators must not assume that @ref GP_ALLOC_ALIGNMENT, `alignof(max_align_t)`,
+     *     or whatever the system heap allocator uses is the minimum alignment
+     *     passed by this parameter: allocators must be able to handle smaller
      *     alignments as well, although simply rounding up the requested value
      *     to whatever the allocator requires is a valid implementation.
      *
@@ -454,6 +496,8 @@ typedef struct GPAllocator
         size_t size,
         size_t alignment);
 } GPAllocator;
+// TODO document how to write custom allocators somewhere. We might want to move
+// parts of GPAllocator docs there as well.
 
 /** Allocate memory.
  *
@@ -627,7 +671,6 @@ extern GPAllocator gp_mallocator;
  * If other alignments are needed, use @ref GPArray instead.
  * @{
  */
-
 typedef struct GPSizedPtrHeader
 {
     GPAllocator* allocator; ///< Allocator used to allocate the sized pointer.

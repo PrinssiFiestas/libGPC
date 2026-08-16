@@ -40,7 +40,8 @@
  * arguments. Maximum value for `N` is 64.
  *
  * Example use for maximum of three arguments:
- * @code
+ *
+ * ```c
  * void func1(int arg1);
  * #define MACRO2(arg1, arg2) somefunc(arg1, arg2)
  * int func3(char arg1, void* arg2, const char* arg3);
@@ -54,7 +55,7 @@
  *     func(1, 2);
  *     func('1', (void*)2, "3");
  * }
- * @endcode
+ * ```
  */
 #define GP_OVERLOADN(...)
 

@@ -397,13 +397,13 @@ GP_INLINE size_t gp_type_size(const gp_type_t T)
  *
  * ### Example
  *
- * @code
+ * ```c
  * struct GP_ANONYMOUS_STRUCT
  * {
  *     void* data;
  *     void* more_data;
  * } my_global_data;
- * @endcode
+ * ```
  */
 #if defined(GP_HAS_ANONYMOUS_STRUCT) || defined(GP_DOXYGEN)
 #  define GP_ANONYMOUS_STRUCT

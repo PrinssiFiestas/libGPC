@@ -8,9 +8,10 @@ Coding conventions used by this library.
 
 ## Pointers
 
-This library mostly assumes that pointers are not `NULL`. Functions will not
-return `NULL` if not documented otherwise and passing `NULL` as arguments is
-undefined if not documented otherwise.
+This library mostly assumes that pointers are not `NULL`. Passing `NULL` to any
+function that does not document that it accepts `NULL` leads to undefined
+behavior. We also do not return `NULL` if not documented otherwise. The contract
+is simple: if you don't give us `NULL`, then we don't give you `NULL` either.
 
 Function parameters that accept `NULL` have their names prefixed with `optional_`.
 Non-null return values and arguments are attributed with @ref GP_NONNULL_ARGS,
@@ -18,14 +19,18 @@ Non-null return values and arguments are attributed with @ref GP_NONNULL_ARGS,
 applicable for some enforcement from the compiler, although the attributes will
 be omitted from the HTML documentation.
 
-## Const Correctness
+## Foreign Function Interface
 
-Raw pointers that are not supposed to mutate the data are appropriately marked
-as `const` for the most part. However, we have a few typedefs for some pointer
-types like @ref GPString. We generally avoid typedeffing pointers away, because
-it prevents using `const` and often decreases readability, but it is appropriate
-for some abstractions when the "pointerness" is not important. We might provide
-additional `const` typedefs like @ref GPStringConst when appropriate.
+All global variables and functions (even if internally annotated as @ref GP_INLINE)
+are exported to binary to be used for bindings. No symbols documented as macros
+are exported to binary. However, some symbols that are exported to the binary
+and are documented as functions might be implemented as macros that shadow the
+functions in C/C++. This is usually to enhance programming experience (improved
+type checking, some additional features, etc.) for C/C++ programmers.
+
+The basic semantics of the shadowing macros do not significantly differ from the
+exported functions. We usually use wording like "C/C++ code" to refer to
+behavior that is specific to C/C++ and differs from the exported functions.
 
 ## Naming Conventions
 
