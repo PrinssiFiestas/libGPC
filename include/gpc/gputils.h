@@ -44,7 +44,7 @@ GP_NODISCARD GP_INLINE
 uint32_t gp_next_power_of_two_32(uint32_t x)
 {
     #if __GNUC__ && INT_MAX == INT32_MAX // pedantic size check due to clzg() not always available
-    return x == 0 ? 1 : 1 << (64 - __builtin_clz(x));
+    return x == 0 ? 1 : 1u << (64 - __builtin_clz(x));
     #else
     x |= x >> 1;
     x |= x >> 2;
@@ -88,8 +88,8 @@ size_t gp_next_power_of_two(size_t x)
 
 /** Round number up to alignment boundary.
  *
- * @p boundary must be a power of 2.
- * @return @p x if already aligned.
+ * @a boundary must be a power of 2.
+ * @return @a x if already aligned.
  */
 GP_NODISCARD GP_INLINE
 uintptr_t gp_round_to_aligned(uintptr_t x, uintptr_t boundary)

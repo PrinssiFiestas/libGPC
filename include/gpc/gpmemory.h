@@ -61,7 +61,7 @@ extern "C" {
  * @{
  */ // TODO detailed description/overview of this module. Focus on allocators.
 
-/** Possible value of @ref GP_ALLOC_FAIL_MODE.
+/** Possible value of @ref GP_ALLOC_ERROR_MODE.
  *
  * Indicates that allocation functions may return `NULL` on allocation failure.
  * This is the default for functions exported to binary, because for FFI, the
@@ -86,7 +86,7 @@ extern "C" {
  */
  #define GP_ALLOC_ERROR_RETURN 0
 
-/** Possible value of @ref GP_ALLOC_FAIL_MODE.
+/** Possible value of @ref GP_ALLOC_ERROR_MODE.
  *
  * Indicates that allocation functions abort execution on allocation failure.
  * This is the default for C/C++ code.
@@ -160,21 +160,21 @@ extern "C" {
  *
  * See the documentation for those macros for more details about their meanings.
  */
-#ifndef GP_ALLOC_FAIL_MODE
+#ifndef GP_ALLOC_ERROR_MODE
 #  if !defined(GPC_IMPLEMENTATION)
-#    define GP_ALLOC_FAIL_MODE GP_ALLOC_ERROR_ABORT
+#    define GP_ALLOC_ERROR_MODE GP_ALLOC_ERROR_ABORT
 #  else
-#    define GP_ALLOC_FAIL_MODE GP_ALLOC_ERROR_RETURN
+#    define GP_ALLOC_ERROR_MODE GP_ALLOC_ERROR_RETURN
 #  endif
-#elif GP_ALLOC_FAIL_MODE < 0 || 2 < GP_ALLOC_FAIL_MODE
-#  error Invalid GP_ALLOC_FAIL_MODE.
+#elif GP_ALLOC_ERROR_MODE < 0 || 2 < GP_ALLOC_ERROR_MODE
+#  error Invalid GP_ALLOC_ERROR_MODE.
 #endif
 
 /// @cond
-#if GP_ALLOC_FAIL_MODE == GP_ALLOC_ERROR_RETURN
+#if GP_ALLOC_ERROR_MODE == GP_ALLOC_ERROR_RETURN
 #  define GP_ALLOC_PTR_RETURN
 #  define GP_ALLOC_CHECK(...) ((void)0) // about to return
-#elif GP_ALLOC_FAIL_MODE == GP_ALLOC_ERROR_ABORT
+#elif GP_ALLOC_ERROR_MODE == GP_ALLOC_ERROR_ABORT
 #  define GP_ALLOC_PTR_RETURN GP_NONNULL_RETURN
 #  define GP_ALLOC_CHECK(...) gp_assert(__VA_ARGS__)
 #else

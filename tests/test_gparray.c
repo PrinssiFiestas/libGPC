@@ -3,7 +3,7 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include <gpc/gpassert.h>
-#include <gpc/gparray.h> // source included after the tests so we can get access to shadowing macros
+#include <gpc/gparray.h>
 
 int main(void)
 {
@@ -15,5 +15,3 @@ int main(void)
         }
     }
 }
-
-#include "../src/gparray.c"

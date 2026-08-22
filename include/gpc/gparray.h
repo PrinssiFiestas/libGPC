@@ -30,24 +30,27 @@ extern "C" {
 // the source file, but macro shadowing makes that difficult considering single
 // header users, so we'll just define them here as GP_INLINE.
 
-GP_HIDDEN GP_NONNULL_ARGS()
-static inline size_t gp_arr_reallocate_sized(void** arr, size_t capacity, size_t element_size);
+static inline bool gp_arr_reserve_sized(void**, size_t, size_t);
 
-GP_NONNULL_ARGS()
-static inline size_t gp_arr_reserve_sized(void** arr, size_t capacity, size_t element_size);
+static inline bool gp_arr_reallocate_sized(void**, size_t, size_t);
 
-GP_NONNULL_ARGS()
-static inline void* gp_arr_recycle_sized(
-    void* arr, size_t new_element_size, size_t old_element_size);
+static inline void* gp_arr_finalize_sized(void*, size_t);
 
-GP_NONNULL_ARGS_AND_RETURN GP_HIDDEN
-static inline void* gp_arr_finalize_sized(void* arr, size_t element_size);
+static inline void* gp_arr_recycle_sized(void*, size_t, size_t);
 
-GP_NONNULL_ARGS()
 static inline void* gp_arr_push_sized(void**, size_t);
 
-GP_NONNULL_ARGS()
 static inline void* gp_arr_pop_sized(void**, size_t);
+
+static inline void* gp_arr_copy_sized(void**, const void*GP_RESTRICT, size_t, size_t);
+
+static inline void* gp_arr_slice_sized(void**, const void*GP_RESTRICT, size_t, size_t, size_t);
+
+static inline void* gp_arr_append_sized(void**, const void*, size_t, size_t);
+
+static inline void* gp_arr_insert_sized(void**, size_t, const void*GP_RESTRICT, size_t, size_t);
+
+static inline void* gp_arr_erase_sized(void**, size_t, size_t, size_t);
 
 /// @endcond
 //------------------------------------------------------------------------------
@@ -90,7 +93,7 @@ static inline void* gp_arr_pop_sized(void**, size_t);
  * but you can get started immediately by simply passing @ref gp_heap as an
  * argument to all parameters of type `GPAllocator*`. We strongly encourage
  * users to learn to use allocators to break free from the shackles of the evil
- * heap.
+ * default heap.
  *
  * We implement bounds checking in debug builds for our arrays using address
  * sanitizer poisoning (requires compiling with `-fsanitize=address`. Most
@@ -148,7 +151,7 @@ static inline void* gp_arr_pop_sized(void**, size_t);
  */
 #define GPArray(...) GP_PTR_TO(__VA_ARGS__)
 
-/** Possible value of @ref GP_ARR_FAIL_MODE.
+/** Possible value of @ref GP_ARR_ERROR_MODE.
  *
  * Indicates that array functions may return the number of truncated elements
  * when passing a fixed capacity array to array functions. This is the default
@@ -163,7 +166,7 @@ static inline void* gp_arr_pop_sized(void**, size_t);
  */
 #define GP_ARR_ERROR_RETURN 0
 
-/** Possible value of @ref GP_ARR_FAIL_MODE.
+/** Possible value of @ref GP_ARR_ERROR_MODE.
  *
  * Indicates that array functions abort execution when exceeding fixed capacity
  * array's capacity. This is the default for C/C++ code.
@@ -208,7 +211,7 @@ static inline void* gp_arr_pop_sized(void**, size_t);
  *
  * This only has an effect to fixed capacity arrays when they exceed array
  * capacity. This will not have an effect to dynamic arrays. To control error
- * policy when an allocator might fail to reallocate a dynamic array, see @ref GP_ALLOC_FAIL_MODE.
+ * policy when an allocator might fail to reallocate a dynamic array, see @ref GP_ALLOC_ERROR_MODE.
  *
  * Possible values:
  *
@@ -218,14 +221,14 @@ static inline void* gp_arr_pop_sized(void**, size_t);
  *
  * See the documentation for those macros for more details about their meanings.
  */
-#ifndef GP_ARR_FAIL_MODE
+#ifndef GP_ARR_ERROR_MODE
 #  if !defined(GPC_IMPLEMENTATION)
-#    define GP_ARR_FAIL_MODE GP_ARR_ERROR_ABORT
+#    define GP_ARR_ERROR_MODE GP_ARR_ERROR_ABORT
 #  else
-#    define GP_ARR_FAIL_MODE GP_ARR_ERROR_RETURN
+#    define GP_ARR_ERROR_MODE GP_ARR_ERROR_RETURN
 #  endif
-#elif GP_ARR_FAIL_MODE < 0 || 2 < GP_ARR_FAIL_MODE
-#  error Invalid GP_ARR_FAIL_MODE.
+#elif GP_ARR_ERROR_MODE < 0 || 2 < GP_ARR_ERROR_MODE
+#  error Invalid GP_ARR_ERROR_MODE.
 #endif
 
 /** Array of any type.
@@ -278,11 +281,7 @@ typedef struct // tagless for effective type compatibility with GPStringHeader.
      * Alignment takes six bits in 64-bit systems, five bits in 32-bit systems.
      * On 64-bit systems, the address space is only 48 bits, so both size and
      * alignment fit just fine, but on 32-bit systems, this restricts the
-     * maximum element size to 128 MB. This restriction only affects exported
-     * functions, C/C++ macros uses compile time size using `sizeof`.
-     *
-     * Any alignments below @ref GP_ALLOC_ALIGNMENT are internally rounded up
-     * to @ref GP_ALLOC_ALIGNMENT, so it is acceptable to leave all bits as zero.
+     * maximum element size to 128 MB.
      *
      * Alignment is used to find the start of the allocation, which is obviously
      * very important for reallocations and deallocation, so alignment should
@@ -488,7 +487,7 @@ void* gp_arr_allocation(GPArrayConstAny arr)
 {
     size_t alignment = gp_arr_alignment(arr);
     if (alignment <= GP_ALLOC_ALIGNMENT)
-        return (void*)((GPArrayHeader*)arr - 1);
+        return (GPArrayHeader*)arr - 1;
     return (char*)arr - alignment;
 }
 
@@ -520,12 +519,17 @@ GPArrayHeader* gp_arr_set(GPArrayAny arr)
  *
  * @return the newly created array.
  */
-GP_NONNULL_ARGS() GP_INLINE
+#if GP_ALLOC_ERROR_MODE != GP_ALLOC_ERROR_RETURN
+GP_NONNULL_RETURN
+#endif
+GP_NONNULL_ARGS() GP_NODISCARD GP_INLINE
 GPArrayAny gp_arr_new(
     GPAllocator* alc,
     size_t init_capacity,
     size_t element_size)
 {
+    gp_assume(element_size <= GP_ARR_ELEMENT_SIZE_MASK,
+              "Can't fit element size in element_info bit field.");
     size_t full_size;
     gp_assume(gp_size_mul(&full_size, init_capacity, element_size),
               "Multiplication exceeded GP_ALLOC_MAX_SIZE.");
@@ -537,7 +541,7 @@ GPArrayAny gp_arr_new(
         GP_ALLOC_ALIGNMENT,
         true,
         &full_size);
-    #if GP_ALLOC_FAIL_MODE == GP_ALLOC_ERROR_RETURN
+    #if GP_ALLOC_ERROR_MODE == GP_ALLOC_ERROR_RETURN
     if (header == NULL)
         return NULL;
     #else
@@ -564,13 +568,18 @@ GPArrayAny gp_arr_new(
  * which enough for most use cases. However, some data (like SIMD) might require
  * larger alignments, which is why this function is important.
  */
-GP_NONNULL_ARGS() GP_INLINE
+#if GP_ALLOC_ERROR_MODE != GP_ALLOC_ERROR_RETURN
+GP_NONNULL_RETURN
+#endif
+GP_NONNULL_ARGS() GP_NODISCARD GP_INLINE
 GPArrayAny gp_arr_new_aligned(
     GPAllocator* alc,
     size_t init_capacity,
     size_t element_size,
     size_t alignment)
 {
+    gp_assume(element_size <= GP_ARR_ELEMENT_SIZE_MASK,
+              "Can't fit element size in element_info bit field.");
     gp_assume((alignment & (alignment - 1)) == 0, "Alignment must be a power of two.");
     if (alignment < GP_ALLOC_ALIGNMENT)
         alignment = GP_ALLOC_ALIGNMENT;
@@ -590,7 +599,7 @@ GPArrayAny gp_arr_new_aligned(
         alignment,
         true,
         &full_size);
-    #if GP_ALLOC_FAIL_MODE == GP_ALLOC_ERROR_RETURN
+    #if GP_ALLOC_ERROR_MODE == GP_ALLOC_ERROR_RETURN
     if (memory == NULL)
         return NULL;
     #else
@@ -608,7 +617,7 @@ GPArrayAny gp_arr_new_aligned(
     #if SIZE_MAX == UINT32_MAX
     size_t bit_index = 31 - gp_leading_zeros_32(alignment);
     #else
-    size_t bit_index = 63 - gp_trailing_zeros_64(alignment);
+    size_t bit_index = 63 - gp_leading_zeros_64(alignment);
     #endif
     header->element_info |= bit_index << GP_ARR_ALIGNMENT_BIT_INDEX;
     gp_asan_poison(header + 1, full_size - header_size);
@@ -634,7 +643,7 @@ GP_INLINE void gp_arr_delete(GPArrayAny optional_array)
     bool success = alc->dealloc(alc, start, end - start, gp_arr_alignment(arr));
     gp_assert(success);
 }
-// delete() should not be macro shadowed, it is a common destructor, so users
+// delete() is not be macro shadowed, it is a common destructor, so users
 // should be able to take function pointers of it.
 
 /** Reserve capacity.
@@ -665,10 +674,10 @@ GP_INLINE void gp_arr_delete(GPArrayAny optional_array)
  * ```
  *
  * @return 0 if capacity will be large enough to hold @a capacity elements
- * (success). Otherwise, returns the difference between @a capacity and current
- * capacity, which is conceptually the number of elements to be truncated.
+ * (success). Otherwise, returns @a capacity to conceptually indicate that
+ * truncation will happen.
  */
-GP_INLINE size_t gp_arr_reserve(GPArrayAny* arr, size_t capacity)
+GP_INLINE bool gp_arr_reserve(GPArrayAny* arr, size_t capacity)
 {
     return gp_arr_reserve_sized(arr, capacity, gp_arr_element_size(*arr));
 }
@@ -680,11 +689,11 @@ GP_INLINE size_t gp_arr_reserve(GPArrayAny* arr, size_t capacity)
  * this can be useful for shrink-to-fit (release unused elements) operation.
  *
  * Unlike @ref gp_arr_reserve(), passing a fixed capacity array is undefined.
- * Therefore, @ref GP_ARR_FAIL_MODE will not affect the behavior of this function.
+ * Therefore, @ref GP_ARR_ERROR_MODE will not affect the behavior of this function.
  *
  * @return 0 if capacity will be large enough to hold @a capacity elements
- * (success). Otherwise, returns the difference between @a capacity and current
- * capacity, which is conceptually the number of elements to be truncated.
+ * (success). Otherwise, returns @a capacity to conceptually indicate that
+ * truncation will happen.
  *
  * ### Example
  *
@@ -694,8 +703,11 @@ GP_INLINE size_t gp_arr_reserve(GPArrayAny* arr, size_t capacity)
  *     gp_arr_reallocate(arr, gp_arr_length(*arr));
  * }
  * ```
+ *
+ * @return 0 if capacity will be large enough to hold @a capacity elements
+ * (success). Otherwise, returns @a capacity.
  */
-GP_INLINE size_t gp_arr_reallocate(GPArrayAny* arr, size_t capacity)
+GP_INLINE bool gp_arr_reallocate(GPArrayAny* arr, size_t capacity)
 {
     return gp_arr_reallocate_sized(arr, capacity, gp_arr_element_size(*arr));
 }
@@ -715,6 +727,8 @@ GP_INLINE size_t gp_arr_reallocate(GPArrayAny* arr, size_t capacity)
 
  * @return pointer to the conceptually new array, which has the same address as
  * @a arr.
+ *
+ * @warning EXPERIMENTAL: This API is subject to change or removal.
  */
 GP_INLINE GPArrayAny gp_arr_recycle(GPArrayAny arr, size_t new_element_size)
 {
@@ -733,11 +747,13 @@ GP_INLINE GPArrayAny gp_arr_recycle(GPArrayAny arr, size_t new_element_size)
  * It is safe to call this for fixed capacity arrays, although there is no
  * memory savings for fixed capacity arrays.
  *
- * This function never fails regardless of values of @ref GP_ARR_FAIL_MODE and
- * @ref GP_ALLOC_FAIL_MODE. If reallocation fails, then old memory is used.
+ * This function never fails regardless of values of @ref GP_ARR_ERROR_MODE and
+ * @ref GP_ALLOC_ERROR_MODE. If reallocation fails, then old memory is used.
  * Fixed capacity arrays won't even try to reallocate.
  *
  * @return the array converted to a sized pointer.
+ *
+ * @warning EXPERIMENTAL: This API is subject to change or removal.
  */
 GP_INLINE void* gp_arr_finalize(GPArrayAny arr)
 {
@@ -763,8 +779,8 @@ GP_INLINE void* gp_arr_finalize(GPArrayAny arr)
  * ```
  *
  * The example above ignores `NULL` caused by potential reallocation failure,
- * which may be reasonable depending on the values of @ref GP_ARR_FAIL_MODE and
- * @ref GP_ALLOC_FAIL_MODE.
+ * which may be reasonable depending on the values of @ref GP_ARR_ERROR_MODE and
+ * @ref GP_ALLOC_ERROR_MODE.
  *
  * C/C++ code accepts an additional element argument to be assigned to the new
  * element. For example, the expression `*gp_arr_push(&fds) = fd` is equivalent
@@ -789,7 +805,7 @@ GP_INLINE void* gp_arr_push(GPArrayAny* arr)
 
 /** Remove element from the end of an array.
  *
- * The array must not be empty if @ref GP_ARR_FAIL_MODE is not defined to
+ * The array must not be empty if @ref GP_ARR_ERROR_MODE is not defined to
  * @ref GP_ARR_ERROR_RETURN.
  *
  * This will never reallocate. The array is only passed by address to signal
@@ -799,7 +815,7 @@ GP_INLINE void* gp_arr_push(GPArrayAny* arr)
  * returned pointer cast (example: `int i = *gp_arr_pop(&int_array, int);`).
  *
  * @return a pointer to the removed element, which is valid as long as no new
- * elements are added to @a arr. If the array is empty and @ref GP_ARR_FAIL_MODE
+ * elements are added to @a arr. If the array is empty and @ref GP_ARR_ERROR_MODE
  * is defined to @ref GP_ARR_ERROR_RETURN, then returns `NULL`. The returned
  * pointer is casted to a pointer of element type in C/C++ code if @ref GP_TYPEOF
  * is defined or if type checking argument is passed.
@@ -807,6 +823,93 @@ GP_INLINE void* gp_arr_push(GPArrayAny* arr)
 GP_INLINE void* gp_arr_pop(GPArrayAny* arr)
 {
     return gp_arr_pop_sized(arr, gp_arr_element_size(*arr));
+}
+
+/** Copy elements.
+ *
+ * Copy @a src_length elements from @a src to the array pointed by @a dest.
+ *
+ * @return `*dest` on success, `NULL` otherwise.
+ */
+GP_INLINE void* gp_arr_copy(GPArrayAny* dest, const void*GP_RESTRICT src, size_t src_length)
+{
+    return gp_arr_copy_sized(dest, src, src_length, gp_arr_element_size(*dest));
+}
+
+/** Copy or remove elements.
+ *
+ * Copy elements from @a optional_src starting from @a start_index to @a end_index
+ * excluding @a end_index to the array pointed by @a dest.
+ *
+ * If @a optional_src is `NULL`, then removes elements outside of @a start_index
+ * and @a end_index including the element at @a end_index are removed and the
+ * remaining elements are moved to the beginning of the array.
+ *
+ * @return `*dest` on success, `NULL` otherwise.
+ */
+GP_INLINE void* gp_arr_slice(
+    GPArrayAny* dest,
+    const void*GP_RESTRICT optional_src,
+    size_t start_index,
+    size_t end_index)
+{
+    return gp_arr_slice_sized(
+        dest, optional_src, start_index, end_index, gp_arr_element_size(*dest));
+}
+
+/** Add elements to the end.
+ *
+ * Copy @a src_length elements from @a src to the end of the array pointed by
+ * @a dest.
+ *
+ * @return pointer to the first appended element on success, `NULL` otherwise.
+ */
+GP_INLINE void* gp_arr_append(GPArrayAny* dest, const void* src, size_t src_length)
+{
+    return gp_arr_append_sized(dest, src, src_length, gp_arr_element_size(*dest));
+}
+
+/** Add elements to the specified position.
+ *
+ * Copy @a src_length elements from @a src to the index specified by @a position.
+ * The existing elements starting from @a position to the end of the array are
+ * moved to the end of the array.
+ *
+ * @a position must be less than or equal to the length of the array. The error
+ * behavior for this condition is determined by @ref GP_ARR_ERROR_MODE.
+ *
+ * @return pointer to the first inserted element on success, `NULL` otherwise.
+ */
+GP_INLINE void* gp_arr_insert(
+    GPArrayAny* dest, size_t position, const void*GP_RESTRICT src, size_t src_length)
+{
+    return gp_arr_insert_sized(dest, position, src, src_length, gp_arr_element_size(*dest));
+}
+
+/** Remove elements
+ *
+ * Removes @a count elements starting from @a position moving the rest of the
+ * elements over. If @a count is zero, then does nothing. Will not reallocate.
+ *
+ * @a position and @a count specify a range of elements to be removed. If @a count
+ * is non-zero, then it is an error for the start of the range to be out of
+ * bounds. The error behavior is determined by @ref GP_ARR_ERROR_MODE. However,
+ * it is not an error for the end of the range to be out of bounds. In such case,
+ * the range will be truncated. This allows to easily remove all elements after
+ * @a position by setting @a count to `SIZE_MAX` or `(size_t)-1`. This is
+ * equivalent to `gp_arr_set(arr)->length = position`, except that using this
+ * function instead handles address sanitizer poisoning properly.
+ *
+ * @return pointer to the element following the last removed element or `NULL`
+ * if @a position is out of bounds and @ref GP_ARR_ERROR_MODE is defined to
+ * @ref GP_ARR_ERROR_RETURN. The returned pointer will be out of bounds
+ * (`*dest + gp_arr_length(*dest)`) if the last removed element is also the last
+ * element of the array.
+ */
+GP_INLINE void* gp_arr_erase(
+    GPArrayAny* dest, size_t position, size_t count)
+{
+    return gp_arr_erase_sized(dest, position, count, gp_arr_element_size(*dest));
 }
 
 /// @}
@@ -822,38 +925,45 @@ GP_INLINE void* gp_arr_pop(GPArrayAny* arr)
 //-------------------------------------
 // Memory
 
-static inline size_t gp_arr_reserve_sized(
+GP_NONNULL_ARGS()
+static inline bool gp_arr_reserve_sized(
     GPArrayAny* arr, size_t capacity, size_t element_size)
 {
     #ifdef GP_STATIC_ANALYSIS // GCC static analyzer can't keep up with
     gp_launder(arr);          // conditional reallocations, which caused a lot
     #endif                    // of buffer overflow false positives.
     if (capacity <= gp_arr_capacity(*arr)) {
-        gp_asan_unpoison(
-            (char*)*arr + gp_arr_length(*arr) * element_size,
-            (capacity - gp_arr_length(*arr)) * element_size);
-        return 0;
+        if (capacity > gp_arr_length(*arr))
+            gp_asan_unpoison(
+                (char*)*arr + gp_arr_length(*arr) * element_size,
+                (capacity - gp_arr_length(*arr)) * element_size);
+        return true;
     }
-    #if GP_ARR_FAIL_MODE == GP_ARR_ERROR_RETURN
+    #if GP_ARR_ERROR_MODE == GP_ARR_ERROR_RETURN
     if (gp_arr_allocator(*arr) == NULL)
-        return capacity - gp_arr_capacity(*arr);
-    #elif GP_ARR_FAIL_MODE == GP_ARR_ERROR_ABORT
+        return false;
+    #elif GP_ARR_ERROR_MODE == GP_ARR_ERROR_ABORT
     gp_assert(gp_arr_allocator(*arr) != NULL, "Exceeding fixed size array capacity.");
     #else
     gp_assume(gp_arr_allocator(*arr) != NULL, "Exceeding fixed size array capacity.");
     #endif
-    size_t trunced = gp_arr_reallocate_sized(arr, capacity << 1, element_size);
-    if ( ! trunced)
+    size_t success = gp_arr_reallocate_sized(
+        arr, gp_next_power_of_two(capacity), element_size);
+    if (success && capacity > gp_arr_length(*arr))
         gp_asan_unpoison(
             (char*)*arr + gp_arr_length(*arr) * element_size,
             (capacity - gp_arr_length(*arr)) * element_size);
-    return trunced;
+    return success;
 }
 
-static inline size_t gp_arr_reallocate_sized(
+GP_HIDDEN GP_NONNULL_ARGS()
+static inline bool gp_arr_reallocate_sized(
     GPArrayAny* arrptr, size_t capacity, size_t element_size)
 {
     gp_assume(gp_arr_allocator(*arrptr) != NULL, "Cannot reallocate fixed capacity array.");
+
+    if (capacity < gp_arr_length(*arrptr))
+        capacity = gp_arr_length(*arrptr);
 
     char* arr = (char*)*arrptr;
     size_t old_capacity = gp_arr_capacity(arr);
@@ -864,7 +974,9 @@ static inline size_t gp_arr_reallocate_sized(
     size_t length = gp_arr_length(arr);
 
     size_t full_size;
-    size_t new_size = capacity * element_size;
+    size_t new_size;
+    gp_assume(gp_size_mul(&new_size, capacity, element_size),
+              "Multiplication exceeded GP_ALLOC_MAX_SIZE.");
     size_t header_size = arr - start;
 
     char* memory = (char*)alc->alloc(
@@ -878,10 +990,10 @@ static inline size_t gp_arr_reallocate_sized(
 
     if (memory == NULL) {
         if (capacity <= old_capacity)
-            return 0;
+            return true;
         else
-            #if GP_ALLOC_FAIL_MODE == GP_ALLOC_ERROR_RETURN
-            return capacity - old_capacity;
+            #if GP_ALLOC_ERROR_MODE == GP_ALLOC_ERROR_RETURN
+            return false;
             #else
             GP_ALLOC_CHECK(memory != NULL);
             #endif
@@ -897,9 +1009,10 @@ static inline size_t gp_arr_reallocate_sized(
         full_size - header_size - length * element_size);
 
     *arrptr = header + 1;
-    return 0;
+    return true;
 }
 
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 static inline void* gp_arr_finalize_sized(GPArrayAny arr, size_t element_size)
 {
     gp_assume(gp_arr_alignment(arr) <= GP_ALLOC_ALIGNMENT,
@@ -935,10 +1048,19 @@ static inline void* gp_arr_finalize_sized(GPArrayAny arr, size_t element_size)
             true,
             &ignore_out_size);
 
+        // If shrink to fit failed, then deallocation will fail for any
+        // allocator that requires matching size. However, some allocators may
+        // ignore size and some allocations do not need deallocation to begin
+        // with, so failing is not reasonable. Anyway any reasonable allocator
+        // would not fail on shrink to fit, but warn the user in debug builds
+        // just in case.
+        #ifdef GP_TARGET_DEBUG
+        gp_expect(new != NULL,
+                  "Warning: Shrink to fit failed when converting array to sized pointer. "
+                  "Deallocating the sized pointer may fail.");
+        #endif
         if (new != NULL)
             header = new;
-        // else reallocation failed, but doesn't matter for shrink to fit, we'll
-        // just use the old memory.
     }
     // else array is fixed, shrink to fit would be meaningless.
 
@@ -946,6 +1068,7 @@ static inline void* gp_arr_finalize_sized(GPArrayAny arr, size_t element_size)
     return header + 1;
 }
 
+GP_NONNULL_ARGS_AND_RETURN GP_NODISCARD
 static inline GPArrayAny gp_arr_recycle_sized(
     GPArrayAny arr, size_t new_element_size, size_t old_element_size)
 {
@@ -960,11 +1083,24 @@ static inline GPArrayAny gp_arr_recycle_sized(
     // allocator to avoid UB. We first check if old_element_size is a multiple
     // of new_element_size, these are usually obtained using sizeof, so the
     // compiler might have a chance to get rid of the branch completely.
-    if (old_element_size % new_element_size && gp_arr_capacity(arr) % new_element_size)
-        gp_arr_reallocate_sized(
+    if (gp_arr_allocator(arr) != NULL
+        && old_element_size % new_element_size
+        && gp_arr_capacity(arr) % new_element_size)
+    {
+        bool reallocated = gp_arr_reallocate_sized(
             &arr,
             gp_arr_capacity(arr) - gp_arr_capacity(arr) % new_element_size,
             sizeof(char));
+
+        // Check comment in gp_arr_finalize_sized() for explanation of this.
+        #ifdef GP_TARGET_DEBUG
+        gp_expect(reallocated,
+                  "Warning: Truncating extra array capacity failed when recycling array. "
+                  "Deallocating the array may fail.");
+        #else
+        (void)reallocated;
+        #endif
+    }
 
     gp_arr_set(arr)->capacity /= new_element_size;
     gp_arr_set(arr)->element_info &= ~GP_ARR_ELEMENT_SIZE_MASK;
@@ -980,29 +1116,177 @@ static inline GPArrayAny gp_arr_recycle_sized(
 //-------------------------------------
 // Modifiers
 
+#if GP_ARR_ERROR_MODE != GP_ARR_ERROR_RETURN && GP_ALLOC_ERROR_MODE != GP_ALLOC_ERROR_RETURN
+#  define GP_ARR_NONNULL_RETURN GP_NONNULL_RETURN
+#  define GP_ARR_CHECK_RESERVE(RESERVED) gp_assume(RESERVED)
+#else
+#  define GP_ARR_NONNULL_RETURN
+#  define GP_ARR_CHECK_RESERVE(RESERVED) if ( ! (RESERVED)) return NULL
+#endif
+
+GP_ARR_NONNULL_RETURN GP_NONNULL_ARGS()
 static inline void* gp_arr_push_sized(GPArrayAny* dest, size_t element_size)
 {
-    size_t trunced = gp_arr_reserve_sized(dest, gp_arr_length(*dest) + 1, element_size);
-    if (trunced)
-        return NULL;
+    bool reserved = gp_arr_reserve_sized(dest, gp_arr_length(*dest) + 1, element_size);
+    GP_ARR_CHECK_RESERVE(reserved);
     return (char*)*dest + gp_arr_set(*dest)->length++ * element_size;
 }
 
-#if GP_ARR_FAIL_MODE != GP_ARR_ERROR_RETURN
+#if GP_ARR_ERROR_MODE != GP_ARR_ERROR_RETURN
 GP_NONNULL_RETURN
 #endif
+GP_NONNULL_ARGS()
 static inline void* gp_arr_pop_sized(GPArrayAny* a, size_t element_size)
 {
     GPArray(unsigned char) arr = (GPArray(unsigned char))*a;
-    #if GP_ARR_FAIL_MODE == GP_ARR_ERROR_RETURN
+    #if GP_ARR_ERROR_MODE == GP_ARR_ERROR_RETURN
     if (gp_arr_length(arr) == 0)
         return NULL;
-    #elif GP_ARR_FAIL_MODE == GP_ARR_ERROR_ABORT
+    #elif GP_ARR_ERROR_MODE == GP_ARR_ERROR_ABORT
     gp_assert(gp_arr_length(arr) > 0, "Array must not be empty.");
     #else
     gp_assume(gp_arr_length(arr) > 0, "Array must not be empty.");
     #endif
     return arr + --gp_arr_set(arr)->length * element_size;
+}
+
+GP_ARR_NONNULL_RETURN GP_NONNULL_ARGS()
+static inline void* gp_arr_copy_sized(
+    GPArrayAny* arrptr, const void*GP_RESTRICT src, size_t src_length, size_t element_size)
+{
+    bool reserved = gp_arr_reserve_sized(arrptr, src_length, element_size);
+    GP_ARR_CHECK_RESERVE(reserved);
+
+    #ifdef GP_STATIC_ANALYSIS // analyzer false positive
+    gp_assume(gp_arr_capacity(*arrptr) >= src_length);
+    #endif
+    size_t old_length = gp_arr_length(*arrptr);
+    gp_arr_set(*arrptr)->length = src_length;
+    memcpy(*arrptr, src, src_length * element_size);
+
+    if (src_length < old_length)
+        gp_asan_poison(
+            (char*)*arrptr + src_length * element_size,
+            (old_length - src_length) * element_size);
+
+    return *arrptr;
+}
+
+GP_ARR_NONNULL_RETURN GP_NONNULL_ARGS(1)
+static inline void* gp_arr_slice_sized(
+    GPArrayAny* pdest,
+    const void*GP_RESTRICT optional_src,
+    size_t start_index,
+    size_t end_index_exclusive,
+    size_t element_size)
+{
+    gp_assume(start_index <= end_index_exclusive, "Invalid range.");
+
+    size_t length = end_index_exclusive - start_index;
+
+    if (optional_src == NULL) {
+        if (length != 0) {
+            #if GP_ARR_ERROR_MODE == GP_ARR_ERROR_RETURN
+            if (start_index >= gp_arr_length(*pdest)
+                || end_index_exclusive > gp_arr_length(*pdest))
+                return length;
+            #elif GP_ARR_ERROR_MODE == GP_ARR_ERROR_ABORT
+            gp_assert(start_index < gp_arr_length(*pdest));
+            gp_assert(end_index_exclusive <= gp_arr_length(*pdest));
+            #else
+            gp_assume(start_index < gp_arr_length(*pdest));
+            gp_assume(end_index_exclusive <= gp_arr_length(*pdest));
+            #endif
+        }
+        memmove(*pdest, (char*)*pdest + start_index*element_size, length*element_size);
+    } else {
+        bool reserved = gp_arr_reserve_sized(pdest, length, element_size);
+        GP_ARR_CHECK_RESERVE(reserved);
+        memcpy(*pdest, (char*)optional_src + start_index*element_size, length*element_size);
+    }
+
+    size_t old_length = gp_arr_length(*pdest);
+    gp_arr_set(*pdest)->length = length;
+    if (length < old_length)
+        gp_asan_poison(
+            (char*)*pdest + length * element_size,
+            (old_length - length) * element_size);
+
+    return *pdest;
+}
+
+GP_ARR_NONNULL_RETURN GP_NONNULL_ARGS()
+static inline void* gp_arr_append_sized(
+    GPArrayAny* parr,
+    const void* src, // note: it's ok to pass *parr as src
+    size_t src_length,
+    size_t element_size)
+{
+    size_t length = gp_arr_length(*parr);
+    bool reserved = gp_arr_reserve_sized(parr, length + src_length, element_size);
+    GP_ARR_CHECK_RESERVE(reserved);
+
+    gp_arr_set(*parr)->length += src_length;
+    return memcpy((char*)*parr + length*element_size, src, src_length*element_size);
+}
+
+GP_ARR_NONNULL_RETURN GP_NONNULL_ARGS()
+static inline void* gp_arr_insert_sized(
+    GPArrayAny* parr,
+    size_t position,
+    const void*GP_RESTRICT src,
+    size_t src_length,
+    size_t element_size)
+{
+    size_t length = gp_arr_length(*parr);
+    #if GP_ARR_ERROR_MODE == GP_ARR_ERROR_RETURN
+    if (position > length)
+        return NULL;
+    #elif GP_ARR_ERROR_MODE == GP_ARR_ERROR_ABORT
+    gp_assert(position <= length, "Index out of bounds.");
+    #else
+    gp_assume(position <= length, "Index out of bounds.");
+    #endif
+
+    bool reserved = gp_arr_reserve_sized(parr, length + src_length, element_size);
+    GP_ARR_CHECK_RESERVE(reserved);
+
+    size_t tail_length = length - position;
+
+    gp_arr_set(*parr)->length += src_length;
+    memmove(
+        (char*)*parr + (position + src_length) * element_size,
+        (char*)*parr +  position               * element_size,
+        tail_length                            * element_size);
+    return memcpy(
+        (char*)*parr + position*element_size, src, src_length*element_size);
+}
+
+static inline void* gp_arr_erase_sized(
+    GPArrayAny* parr, size_t position, size_t count, size_t element_size)
+{
+    GPArrayAny arr = *parr;
+    if (count != 0)
+        #if GP_ARR_ERROR_MODE == GP_ARR_ERROR_RETURN
+        if (position >= gp_arr_length(arr))
+            return NULL;
+        #elif GP_ARR_ERROR_MODE == GP_ARR_ERROR_ABORT
+        gp_assert(position < gp_arr_length(arr), "Index out of bounds.");
+        #else
+        gp_assume(position < gp_arr_length(arr), "Index out of bounds.");
+        #endif
+    else if (position + count > gp_arr_length(arr))
+        count = gp_arr_length(arr) - position;
+
+    size_t tail_length = gp_arr_length(arr) - (position + count);
+    gp_arr_set(arr)->length -= count;
+
+    void* p = memmove(
+        (char*)arr +  position          * element_size,
+        (char*)arr + (position + count) * element_size,
+        tail_length                     * element_size);
+    gp_asan_poison((char*)arr + gp_arr_length(arr)*element_size, count*element_size);
+    return p;
 }
 
 //------------------------------------------------------------------------------
@@ -1201,6 +1485,44 @@ template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr;
 // The first argument is a pointer to an array. The second optional argument is
 // type used for type checking and to cast the returned pointer to an appropriate type.
 #define gp_arr_pop(...) GP_OVERLOAD2(__VA_ARGS__, GP_ARR_POP_WITH_TYPE_CHECK, GP_ARR_POP)(__VA_ARGS__)
+
+#ifdef GP_TYPEOF
+// Check for double pointer first for best error message (it is very common to
+// forget to take the address of output arrays).
+#  define GP_ARR_TYPEOF_CAST(ARRPTR) (GP_TYPEOF(**(ARRPTR))*)
+#else
+#  define GP_ARR_TYPEOF_CAST(ARRPTR)
+#endif
+
+#define GP_ARR_CHECK_ARGS(OUT, IN) sizeof((*(OUT) = (IN))[0])
+
+#if __STDC_VERSION__ >= 201112L
+// Accept int and void* so that the user may use NULL or 0 constants.
+#  define GP_ARR_CHECK_ARGS_OPTIONAL(OUT, IN) sizeof(**(OUT) = _Generic( \
+    (IN), void*: **(OUT), int: **(OUT), default: *(IN)))
+// #elif defined(__cplusplus) // TODO
+#else
+// Can't do anything, ((void*)0) breaks sizeof.
+#  define GP_ARR_CHECK_ARGS_OPTIONAL(OUT, IN)
+#endif
+
+// Copy SRC_LEN elements from SRC to array pointed by DEST.
+#define gp_arr_copy(DEST, SRC, SRC_LEN) \
+    (GP_ARR_TYPEOF_CAST(*(DEST))gp_arr_copy_sized( \
+        DEST, SRC, SRC_LEN, GP_ARR_CHECK_ARGS(DEST, SRC)))
+
+// Copy elements from SRC beginning from index START to index END to array
+// array pointed by DEST. If SRC is NULL, then elements of array pointed by DEST
+// before index START and after index END will be removed moving the remaining
+// elements to the beginning of the array.
+#define gp_arr_slice(DEST, SRC, START, END) \
+    (GP_ARR_TYPEOF_CAST(*(DEST))gp_arr_slice_sized( \
+        DEST, SRC, START, END, GP_ARR_CHECK_ARGS_OPTIONAL(DEST, SRC)))
+
+// Copy SRC_LEN elements from SRC to the end of the array pointed by DEST.
+#define gp_arr_append(DEST, SRC, SRC_LEN) \
+    (GP_ARR_TYPEOF_CAST(*(DEST))gp_arr_append_sized( \
+        DEST, SRC, SRC_LEN, GP_ARR_CHECK_ARGS(DEST, SRC)))
 
 #endif // MACRO SHADOWING
 
