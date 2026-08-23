@@ -250,10 +250,10 @@ size_t gp_leading_zeros_32(uint32_t u)
     uint32_t v = u;
     uint32_t r;
     uint32_t shift;
-    r     = (v > 0xFFFF    ) << 4; v >>= r;
-    shift = (v > 0xFF      ) << 3; v >>= shift; r |= shift;
-    shift = (v > 0xF       ) << 2; v >>= shift; r |= shift;
-    shift = (v > 0x3       ) << 1; v >>= shift; r |= shift;
+    r     = (v > 0xFFFF) << 4; v >>= r;
+    shift = (v > 0xFF  ) << 3; v >>= shift; r |= shift;
+    shift = (v > 0xF   ) << 2; v >>= shift; r |= shift;
+    shift = (v > 0x3   ) << 1; v >>= shift; r |= shift;
                                                 r |= (v >> 1);
     return 31 - r;
     #endif

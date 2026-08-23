@@ -220,6 +220,57 @@ extern "C" {
 #  define gp_static_assert(E, ...) gp_pass_bool(sizeof(char[(E) ? 1 : -1]))
 #endif
 
+/** Assert that program will crash.
+ *
+ * Assert that the following statement (which could be a block statement like in
+ * if-statements) terminates execution either by exiting with non-zero exit
+ * status or by a signal. The assertion fails if the statement calls `exit(0)`
+ * or finishes execution.
+ *
+ * This is implemented using `fork()`, `waitpid()`, and `cleanup` attribute.
+ * Therefore, it requires GNUC and POSIX to actually run the test. On targets
+ * where these are not available, this macro expands to `for (; false; )`, so
+ * the following statement (and thus the assertion) simply gets ignored.
+ *
+ * ### Example
+ *
+ * ```c
+ * int main(void)
+ * {
+ *     gp_test("Crashes");
+ *
+ *     // main points to read only machine code,
+ *     // therefore crashes and assertion passes.
+ *     GP_ASSERT_CRASH
+ *         *(int*)main = 0;
+ *
+ *     // stack buffer overflow, assertion passes
+ *     GP_ASSERT_CRASH {
+ *         size_t buf[4];
+ *         for (size_t i = 0; ; i++) // infinite loop
+ *             buf[i] = i;
+ *     }
+ *
+ *     // assertion fails, no crash
+ *     GP_ASSERT_CRASH {
+ *         int i = 0;
+ *         i++;
+ *     }
+ * }
+ * ```
+ */
+#if (defined(GP_TARGET_POSIX) && defined(__GNUC__)) || defined(GP_DOXYGEN)
+#  define GP_ASSERT_CRASH \
+for (__attribute__((cleanup(gp_assert_crash_check))) pid_t _gp_pid = gp_fork(); _gp_pid == 0; exit(0))
+
+/// @cond
+GP_API pid_t gp_fork(void);
+GP_API void gp_assert_crash_check(pid_t* pidptr);
+/// @endcond
+#else
+#  define GP_ASSERT_CRASH for (; false; )
+#endif
+
 /** Start suite and unit testing.
  *
  * First call starts unit testing. Subsequent calls starts a new suite ending

@@ -932,6 +932,7 @@ static inline bool gp_arr_reserve_sized(
     #ifdef GP_STATIC_ANALYSIS // GCC static analyzer can't keep up with
     gp_launder(arr);          // conditional reallocations, which caused a lot
     #endif                    // of buffer overflow false positives.
+
     if (capacity <= gp_arr_capacity(*arr)) {
         if (capacity > gp_arr_length(*arr))
             gp_asan_unpoison(
@@ -939,6 +940,7 @@ static inline bool gp_arr_reserve_sized(
                 (capacity - gp_arr_length(*arr)) * element_size);
         return true;
     }
+
     #if GP_ARR_ERROR_MODE == GP_ARR_ERROR_RETURN
     if (gp_arr_allocator(*arr) == NULL)
         return false;
@@ -947,8 +949,10 @@ static inline bool gp_arr_reserve_sized(
     #else
     gp_assume(gp_arr_allocator(*arr) != NULL, "Exceeding fixed size array capacity.");
     #endif
+
     size_t success = gp_arr_reallocate_sized(
         arr, gp_next_power_of_two(capacity), element_size);
+
     if (success && capacity > gp_arr_length(*arr))
         gp_asan_unpoison(
             (char*)*arr + gp_arr_length(*arr) * element_size,
