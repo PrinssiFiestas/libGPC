@@ -22,4 +22,6 @@ int main(void)
             gp_arr_delete(arr);
         }
     }
+
+    // TODO rest of the missing tests
 }

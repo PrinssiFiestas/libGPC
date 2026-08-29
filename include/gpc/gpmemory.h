@@ -27,21 +27,25 @@
 #    define GP_TRY_POISON_MEMORY_REGION(A, S)   ASAN_POISON_MEMORY_REGION(A, S)
 #    define GP_TRY_UNPOISON_MEMORY_REGION(A, S) ASAN_UNPOISON_MEMORY_REGION(A, S)
 #  else
-#    define GP_HAS_SANITIZER 0
 #    define GP_TRY_POISON_MEMORY_REGION(A, S)   ((void)(A), (void)(S))
 #    define GP_TRY_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
 #  endif
 #else
-#  define GP_HAS_SANITIZER 0
 #  define GP_TRY_POISON_MEMORY_REGION(A, S)   ((void)(A), (void)(S))
 #  define GP_TRY_UNPOISON_MEMORY_REGION(A, S) ((void)(A), (void)(S))
 #endif
-/// @endcond
+
+#ifdef GP_HAS_SANITIZER
+#  define GP_POISON_BOUNDARY_SIZE GP_ALLOC_ALIGNMENT
+#else
+#  define GP_POISON_BOUNDARY_SIZE 0
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/// @endcond
 //------------------------------------------------------------------------------
 //
 //          API REFERENCE
@@ -486,11 +490,8 @@ typedef struct GPAllocator
      * @param alignment
      *     This must be the `alignment` parameter passed to @ref GPAllocator.alloc().
      *     Any other value invokes undefined behavior.
-     *
-     * @return `true` if deallocation succeeded, `false` otherwise. Most
-     * allocators never return `false`.
      */
-    bool (*dealloc)(
+    void (*dealloc)(
         struct GPAllocator* me,
         void* block,
         size_t size,
@@ -592,14 +593,7 @@ void gp_mem_dealloc(
 {
     if (optional_block == NULL)
         return;
-
-    bool success = alc->dealloc(
-        alc, optional_block, optional_block_size, GP_ALLOC_ALIGNMENT);
-
-    // GP_ALLOC_CHECK is no use here, destructors must return void by convention.
-    // Most of our allocators (most notably gp_heap) crash anyway for invalid
-    // pointers and it is impossible to implement them in any other way.
-    gp_assert(success);
+    alc->dealloc(alc, optional_block, optional_block_size, GP_ALLOC_ALIGNMENT);
 }
 
 /** Pointer to the heap allocator.
@@ -621,7 +615,7 @@ extern GPAllocator* gp_heap;
  *
  * Allocator used for standard heap allocations. You generally should use this
  * trough the @ref gp_heap pointer instead of directly using this to ensure that
- * the global heap is in fact globally overridable.
+ * the global heap is globally overridable.
  *
  * Unlike C11 `aligned_alloc()`, this allocator accepts any power of two
  * alignment (meaning also less than what would be accepted by the
@@ -711,12 +705,12 @@ GP_ALLOC_PTR_RETURN GP_NONNULL_ARGS() GP_NODISCARD GP_INLINE
 void* gp_sptr_alloc(GPAllocator* alc, size_t size)
 {
     size_t ignore_out_size;
-    char* memory = alc->alloc(
+    GPSizedPtrHeader* header = alc->alloc(
         alc, NULL, 0, size + sizeof(GPSizedPtrHeader), GP_ALLOC_ALIGNMENT, true, &ignore_out_size);
-    GP_ALLOC_CHECK(memory != NULL);
-    ((GPSizedPtrHeader*)memory)->size = size;
-    ((GPSizedPtrHeader*)memory)->allocator = alc;
-    return memory + sizeof(GPSizedPtrHeader);
+    GP_ALLOC_CHECK(header != NULL);
+    header->size = size;
+    header->allocator = alc;
+    return header + 1;
 }
 
 /** Allocate an array as a sized pointer.
@@ -784,13 +778,213 @@ GP_INLINE void gp_sptr_dealloc(void* optional_block)
         return;
 
     GPSizedPtrHeader* header = ((GPSizedPtrHeader*)optional_block - 1);
-    bool success = header->allocator->dealloc(
+    header->allocator->dealloc(
         header->allocator, header, header->size + sizeof(GPSizedPtrHeader), GP_ALLOC_ALIGNMENT);
-
-    gp_assert(success); // see comment in gp_mem_alloc()
 }
 
 /// @}
+
+//------------------------------------------------------------------------------
+// Arena Allocator
+
+/** Arena that does not run out of memory.
+ *
+ * If the current arena runs out of memory, then a new arena will be allocated.
+ * This means that an arena object really contains multiple arenas (which we
+ * call _arena nodes_), so the objects allocated by the arena cannot be assumed
+ * to be allocated in the same contiguous block.
+ *
+ * Create arena using @ref gp_arena_new(). Delete arena using @ref gp_arena_delete().
+ *
+ * Allocate memory using @ref gp_mem_alloc() or @ref gp_mem_alloc_array().
+ * The last allocated object can be deallocated using @ref gp_mem_dealloc().
+ * The last allocated object can be resized in place using @ref gp_mem_realloc()
+ * although the object may have to be moved if the allocation is at the very end
+ * of the arena.
+ *
+ * Multiple objects can be deallocated using @ref gp_arena_rewind() and
+ * @ref gp_arena_clear(). Deallocating the arena itself also deallocates all the
+ * allocated objects.
+ *
+ * If address sanitizer is used, then unused memory, freed memory, and
+ * allocation boundaries are poisoned to catch memory bugs.
+ *
+ * The members of this structure (excluding @ref GPArena.base) should only be
+ * set when using this arena as an initializer for @ref gp_arena_new(). They
+ * will be copied to the newly created arena and can be read afterwards but not
+ * should not be mutated. Zeroed members will be replaced with default values by
+ * @ref gp_arena_new().
+ */
+typedef struct GPArena
+{
+    /** Base class.
+     *
+     * Pass the address of this to anything that requests a `GPAllocator*`. Set
+     * by @ref gp_arena_new().
+     */
+    GPAllocator base;
+
+    /** Determines where arena gets its memory from.
+     *
+     * Default is @ref gp_heap. If backing buffer is provided, then this will
+     * only determine how additional buffers are allocated.
+     */
+    GPAllocator* backing_allocator;
+
+    /** Determines initial arena memory.
+     *
+     * Useful for recycling large buffers or using static memory. If not
+     * provided, then backing allocator will allocate the initial block instead.
+     * If provided, then capacity argument of @ref gp_arena_new() must match
+     * the buffer size. If the buffer cannot fit arena metadata, then it won't
+     * be used.
+     *
+     * @ref gp_arena_delete() will not deallocate the backing buffer.
+     */
+    void* backing_buffer;
+
+    /** Determines how much arenas grow when extending.
+     *
+     * Use this to determine the size of new arena node when old gets full.
+     * Negative values, infinity, and NAN are invalid. Default is 1.5.
+     *
+     * A value of 1.0 means that the new node will have exactly the size of the
+     * previous node. A value larger than 1.0 means that the new node grows and
+     * smaller than 1.0 means that the new node shrinks.
+     *
+     * A value larger than 1.0 is useful for arenas that have small initial
+     * size. A value smaller than 1.0 is useful for arenas that start out huge
+     * to not waste virtual address space on 32-bit targets.
+     */
+    double growth_factor;
+
+    /** Maximum size of an arena node.
+     *
+     * Arena nodes will not grow past this value. Useful when @ref GPArena.growth_factor
+     * is larger than 1.0. Default is 32768.
+     */
+    size_t max_size;
+
+    void*                _position; ///< @private
+    struct GPArenaNode*  _head;     ///< @private
+    struct GPArenaNode*  _cache;    ///< @private
+    struct GPArenaDefer* _defers;   ///< @private
+} GPArena;
+
+/** Create an arena.
+ *
+ * Creates an arena initialized with an arena node with size of @a capacity.
+ *
+ * If @a optional_initializer is not `NULL`, then it's public members are used
+ * to create the new arena accordingly. See documentation for @ref GPArena
+ * members for details about the initializer.
+ *
+ * @return a pointer to a newly created arena object. This is _not_ a pointer to
+ * the initializer if passed.
+ *
+ * ### Example
+ *
+ * ```c
+ * GPArena* create_custom_arena(void)
+ * {
+ *     const size_t NODE_SIZE = 1u << 30;
+ *     GPArena initializer = {
+ *         .growth_factor = 1.0,
+ *         .max_size = NODE_SIZE
+ *     };
+ *     return gp_arena_new(&initializer, NODE_SIZE);
+ * }
+ * ```
+ */
+GP_ALLOC_PTR_RETURN GP_INLINE
+GPArena* gp_arena_new(const GPArena* optional_initializer, size_t capacity)
+{
+    GP_HIDDEN GPArena* gp_internal_arena_new(const GPArena*, size_t);
+
+    gp_assume(capacity <= GP_ALLOC_MAX_SIZE - GP_POISON_BOUNDARY_SIZE);
+    GPArena empty_init = {0};
+    if (optional_initializer == NULL)
+        optional_initializer = &empty_init;
+
+    GPArena* arena = gp_internal_arena_new(optional_initializer, capacity);
+    GP_ALLOC_CHECK(arena != NULL);
+    return arena;
+}
+
+/** Deallocate all arena memory including the arena itself.
+ *
+ * Deallocates all arena nodes and runs all callbacks registered by @ref gp_arena_defer().
+ * @ref GPArena.backing_buffer (if provided) will not be deallocated.
+ *
+ * Does nothing if the argument is `NULL`.
+ */
+GP_API void gp_arena_delete(GPArena* optional);
+
+/** Register a cleanup function to be ran when arena deallocates.
+ *
+ * Sets @a destructor to be called when arena deallocates memory. In case of
+ * @ref gp_arena_clear() and @ref gp_arena_delete(), all deferred functions will
+ * be called. In case of @ref gp_arena_rewind(), only the deferred functions
+ * registered after allocating the pointer passed to @ref gp_arena_rewind() will
+ * be called.
+ *
+ * The deferred functions will be called in Last In First Out order. Once
+ * called, the function will be unregistered.
+ *
+ * @return a pointer to the small memory block allocated by the arena for the
+ * defer data. This can be passed to @ref gp_arena_rewind() to deallocate all
+ * memory allocated after registering this defer and run all deferred functions
+ * registered after this defer including this defer. The returned pointer should
+ * not be used for anything else.
+ */
+GP_ALLOC_PTR_RETURN GP_NONNULL_ARGS(1) GP_INLINE
+void* gp_arena_defer(void (*func)(void* arg), void* arg)
+{
+    GP_HIDDEN void* gp_internal_arena_defer(void (*)(void*), void*);
+    void* deferred = gp_internal_arena_defer(func, arg);
+    GP_ALLOC_CHECK(deferred != NULL);
+    return deferred;
+}
+
+/** Deallocate some memory allocated by arena.
+ *
+ * Use this to free everything allocated by the arena after allocating the
+ * memory pointed by @a ptr including @a ptr. The passed pointer must
+ * be a pointer returned by the arena.
+ *
+ * This will deallocate all unused arena nodes except one. One unused node will
+ * remain allocated to avoid repeated allocations on node boundaries.
+ *
+ * All callbacks registered by @ref gp_arena_defer() after allocating @a ptr
+ * will be called and unregistered.
+ *
+ * ### Example
+ *
+ * ```c
+ * void foo(GPArena* arena)
+ * {
+ *     int*      is = gp_mem_alloc(&arena->base, 16 * sizeof is[0]);
+ *     unsigned* us = gp_mem_alloc(&arena->base, 16 * sizeof us[0]);
+ *
+ *     // Work with is and us...
+ *
+ *     // Deallocate is and us
+ *     gp_arena_rewind(arena, is);
+ * }
+ * ```
+ */
+GP_NONNULL_ARGS() GP_API
+void gp_arena_rewind(GPArena*, void* ptr);
+
+/** Deallocate all memory allocated by arena.
+ *
+ * All unused nodes will be deallocated as well. All functions registered by
+ * @ref gp_arena_defer() will be called and unregistered.
+ *
+ * @return combined size of all arena nodes before deallocation.
+ */
+GP_NONNULL_ARGS() GP_API
+size_t gp_arena_clear(GPArena*);
 
 /// @}
 //------------------------------------------------------------------------------

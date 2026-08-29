@@ -640,8 +640,7 @@ GP_INLINE void gp_arr_delete(GPArrayAny optional_array)
     char* start = (char*)gp_arr_allocation(arr);
     GPAllocator* alc = gp_arr_allocator(arr);
 
-    bool success = alc->dealloc(alc, start, end - start, gp_arr_alignment(arr));
-    gp_assert(success);
+    alc->dealloc(alc, start, end - start, gp_arr_alignment(arr));
 }
 // delete() is not be macro shadowed, it is a common destructor, so users
 // should be able to take function pointers of it.
