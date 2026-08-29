@@ -1423,13 +1423,15 @@ template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr;
 // Memory
 
 // Request capacity of CAP.
-#define gp_arr_reserve(ARRPTR, CAP) gp_arr_reserve(ARRPTR, CAP, GP_SIZEOF_VALUE(**(ARRPTR)))
+#define gp_arr_reserve(ARRPTR, CAP) gp_arr_reserve_sized( \
+    (void**)(ARRPTR), CAP, GP_SIZEOF_VALUE(**(ARRPTR)))
 
 // Request exact capacity of CAP.
-#define gp_arr_reallocate(ARRPTR, CAP) gp_arr_reallocate(ARRPTR, CAP, GP_SIZEOF_VALUE(**(ARRPTR)))
+#define gp_arr_reallocate(ARRPTR, CAP) gp_arr_reallocate_sized( \
+    (void**)(ARRPTR), CAP, GP_SIZEOF_VALUE(**(ARRPTR)))
 
 // Use array memory for an array of another type.
-#define gp_arr_recycle(ARR, NEW_SIZE) gp_arr_recycle(ARR, NEW_SIZE, GP_SIZEOF_VALUE(*(ARR)))
+#define gp_arr_recycle(ARR, NEW_SIZE) gp_arr_recycle_sized(ARR, NEW_SIZE, GP_SIZEOF_VALUE(*(ARR)))
 
 // Convert array to a sized pointer releasing unused memory.
 #define gp_arr_finalize(ARR) GP_TYPEOF_CAST(ARR)gp_arr_finalize(ARR)
@@ -1440,14 +1442,14 @@ template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr;
 // Modification
 
 #define GP_ARR_PUSH(ARRPTR) \
-    (GP_TYPEOF_CAST(*(ARRPTR))gp_arr_push_sized(ARRPTR, GP_SIZEOF_VALUE(**(ARRPTR))))
+    (GP_TYPEOF_CAST(*(ARRPTR))gp_arr_push_sized((void**)(ARRPTR), GP_SIZEOF_VALUE(**(ARRPTR))))
 
 #ifdef GP_TYPEOF
 #  define GP_ARR_PUSH_ELEM(ARRPTR, ...) (*GP_ARR_PUSH(ARRPTR) = (__VA_ARGS__))
 #else
 #  define GP_ARR_PUSH_ELEM(ARRPTR, ...) \
 ( \
-    gp_arr_reserve(ARRPTR, gp_arr_length(*(ARRPTR)) + 1), \
+    gp_arr_reserve((void**)(ARRPTR), gp_arr_length(*(ARRPTR)) + 1), \
     (*(ARRPTR))[gp_arr_set(ARRPTR)->length++] = (__VA_ARGS__) \
 )
 #endif
@@ -1476,12 +1478,12 @@ template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr;
 // The crazy overload enables using compound literals containing commas as the element argument.
 
 #define GP_ARR_POP(ARRPTR) \
-    (GP_TYPEOF_CAST(*(ARRPTR))gp_arr_pop_sized(ARRPTR, GP_SIZEOF_VALUE(**(ARRPTR))))
+    (GP_TYPEOF_CAST(*(ARRPTR))gp_arr_pop_sized((void**)(ARRPTR), GP_SIZEOF_VALUE(**(ARRPTR))))
 
 #define GP_ARR_POP_WITH_TYPE_CHECK(ARRPTR, T) \
 ( \
     GP_ARRH_CHECK(*(ARRPTR), T), \
-    (GP_PTR_TO(T))gp_arr_pop_sized(ARRPTR, GP_SIZEOF_VALUE(**(ARRPTR)))) \
+    (GP_PTR_TO(T))gp_arr_pop_sized((void**)(ARRPTR), GP_SIZEOF_VALUE(**(ARRPTR)))) \
 )
 
 // Remove element at the end of the array. Returns pointer to the removed element.
@@ -1512,7 +1514,7 @@ template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr;
 // Copy SRC_LEN elements from SRC to array pointed by DEST.
 #define gp_arr_copy(DEST, SRC, SRC_LEN) \
     (GP_ARR_TYPEOF_CAST(*(DEST))gp_arr_copy_sized( \
-        DEST, SRC, SRC_LEN, GP_ARR_CHECK_ARGS(DEST, SRC)))
+        (void**)(DEST), SRC, SRC_LEN, GP_ARR_CHECK_ARGS(DEST, SRC)))
 
 // Copy elements from SRC beginning from index START to index END to array
 // array pointed by DEST. If SRC is NULL, then elements of array pointed by DEST
@@ -1520,12 +1522,23 @@ template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr;
 // elements to the beginning of the array.
 #define gp_arr_slice(DEST, SRC, START, END) \
     (GP_ARR_TYPEOF_CAST(*(DEST))gp_arr_slice_sized( \
-        DEST, SRC, START, END, GP_ARR_CHECK_ARGS_OPTIONAL(DEST, SRC)))
+        (void**)(DEST), SRC, START, END, GP_ARR_CHECK_ARGS_OPTIONAL(DEST, SRC)))
 
 // Copy SRC_LEN elements from SRC to the end of the array pointed by DEST.
 #define gp_arr_append(DEST, SRC, SRC_LEN) \
     (GP_ARR_TYPEOF_CAST(*(DEST))gp_arr_append_sized( \
-        DEST, SRC, SRC_LEN, GP_ARR_CHECK_ARGS(DEST, SRC)))
+        (void**)(DEST), SRC, SRC_LEN, GP_ARR_CHECK_ARGS(DEST, SRC)))
+
+// Copy SRC_LEN elements from SRC to the index POS moving the rest of the
+// elements to the end of the array.
+#define gp_arr_insert(DEST, POS, SRC, SRC_LEN) \
+    (GP_ARR_TYPEOF_CAST(*(DEST))gp_arr_insert_sized( \
+        (void**)(DEST), POS, SRC, SRC_LEN, GP_ARR_CHECK_ARGS(DEST, SRC)))
+
+// Remove COUNT elements at index POS.
+#define gp_arr_erase(DEST, POS, COUNT) \
+    (GP_ARR_TYPEOF_CAST(*(DEST))gp_arr_erase_sized( \
+        (void**)(DEST), POS, COUNT, GP_SIZEOF_VALUE(**(DEST))))
 
 #endif // MACRO SHADOWING
 

@@ -5,6 +5,8 @@
 #include <gpc/gpassert.h>
 #include <gpc/gpmemory.h>
 
+// TODO migrate the old tests (or rewrite them as well).
+
 int main(void)
 {
     #ifdef GP_HAS_SANITIZER

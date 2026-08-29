@@ -427,6 +427,10 @@ void gp_arena_delete(GPArena* arena)
             arena,
             sizeof *arena + sizeof(GPArenaNode) + arena->_head->capacity,
             sizeof(double));
+    #ifdef GP_TARGET_DEBUG
+    else for (size_t i = 0; i < sizeof *arena / sizeof(uint16_t); i++)
+        memcpy((uint16_t*)arena + i, &(uint16_t){0xFEEE}, sizeof(uint16_t));
+    #endif
 }
 
 void* gp_internal_arena_defer(GPArena* arena, void (*func)(void*), void* arg)
