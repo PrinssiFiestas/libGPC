@@ -453,6 +453,14 @@ template <typename T> GP_NODISCARD static inline constexpr T GP_AS_SIGNED(T x) {
 )
 #endif
 
+#if __STDC_VERSION__ >= 202311L || defined(__TINYC__)
+#  define GP_TYPEOF(...) typeof(__VA_ARGS__)
+#elif defined(_MSC_VER) || defined(__GNUC__)
+#  define GP_TYPEOF(...) __typeof__(__VA_ARGS__)
+#elif __cplusplus >= 201103L
+#  define GP_TYPEOF(...) decltype(__VA_ARGS__)
+#endif
+
 #ifdef __cplusplus
 #define GP_PTR_TO(...) decltype(new(__VA_ARGS__))
  // decltype(*new(__VA_ARGS__)) is a reference for some reason?? Which is why we
@@ -465,14 +473,6 @@ template <typename T> struct GPCPPType { T t; };
 #else // typedefs may be required for function pointers and such
 #define GP_PTR_TO(...) __VA_ARGS__*
 #define GP_TYPEOF_TYPE(...) __VA_ARGS__
-#endif
-
-#if __STDC_VERSION__ >= 202311L || defined(__TINYC__)
-#  define GP_TYPEOF(...) typeof(__VA_ARGS__)
-#elif defined(_MSC_VER) || defined(__GNUC__)
-#  define GP_TYPEOF(...) __typeof__(__VA_ARGS__)
-#elif __cplusplus >= 201103L
-#  define GP_TYPEOF(...) decltype(__VA_ARGS__)
 #endif
 
 #ifdef GP_TYPEOF

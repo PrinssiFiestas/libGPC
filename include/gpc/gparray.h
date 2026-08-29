@@ -1482,8 +1482,8 @@ template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr;
 
 #define GP_ARR_POP_WITH_TYPE_CHECK(ARRPTR, T) \
 ( \
-    GP_ARRH_CHECK(*(ARRPTR), T), \
-    (GP_PTR_TO(T))gp_arr_pop_sized((void**)(ARRPTR), GP_SIZEOF_VALUE(**(ARRPTR)))) \
+    GP_ARRH_CHECK(*(ARRPTR), T),\
+    (GP_PTR_TO(T))gp_arr_pop_sized((void**)(ARRPTR), GP_SIZEOF_VALUE(**(ARRPTR))) \
 )
 
 // Remove element at the end of the array. Returns pointer to the removed element.
@@ -1494,17 +1494,26 @@ template <typename T> static inline void gp_arrh_check_type(T* arr) { (void)arr;
 #ifdef GP_TYPEOF
 // Check for double pointer first for best error message (it is very common to
 // forget to take the address of output arrays).
-#  define GP_ARR_TYPEOF_CAST(ARRPTR) (GP_TYPEOF(**(ARRPTR))*)
+#  define GP_ARR_TYPEOF_CAST(ARRPTR) (GP_TYPEOF(*(ARRPTR))*)
 #else
 #  define GP_ARR_TYPEOF_CAST(ARRPTR)
 #endif
 
-#define GP_ARR_CHECK_ARGS(OUT, IN) sizeof((*(OUT) = (IN))[0])
+#if defined(GP_TYPEOF) // type check pointers. Use typeof to accept const pointers.
+#  define GP_ARR_CHECK_ARGS(OUT, IN) sizeof((* (const GP_TYPEOF(**(OUT))**) (OUT) = (IN))[0])
+#else // have to check values. Not as effective due to implicit conversions, but better than nothing.
+#  define GP_ARR_CHECK_ARGS(OUT, IN) sizeof(**(OUT) = *(IN))
+#endif
 
-#if __STDC_VERSION__ >= 201112L
+#if GP_HAS_C11_GENERIC
 // Accept int and void* so that the user may use NULL or 0 constants.
-#  define GP_ARR_CHECK_ARGS_OPTIONAL(OUT, IN) sizeof(**(OUT) = _Generic( \
-    (IN), void*: **(OUT), int: **(OUT), default: *(IN)))
+#  if defined(GP_TYPEOF)
+#    define GP_ARR_CHECK_ARGS_OPTIONAL(OUT, IN) sizeof((* (const GP_TYPEOF(**(OUT))**) (OUT) = \
+        _Generic((IN), GP_TYPEOF(NULL): *(OUT), default: (IN)))[0])
+#  else
+#    define GP_ARR_CHECK_ARGS_OPTIONAL(OUT, IN) sizeof(**(OUT) = _Generic( \
+        *(IN), void*: **(OUT), int: **(OUT), default: *(IN)))
+#  endif
 // #elif defined(__cplusplus) // TODO
 #else
 // Can't do anything, ((void*)0) breaks sizeof.
