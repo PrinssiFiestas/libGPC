@@ -87,7 +87,6 @@ int main(void)
             GPArena* arena = gp_arena_new(NULL, 1 << 16);
             const size_t BLOCK_SIZE = 1 << 8;
 
-            // Align arena pointer.
             char* align = arena->base.alloc(
                 &arena->base,
                 NULL, 0,

@@ -2,11 +2,6 @@
 # Copyright (c) 2023 Lauri Lorenzo Fiestas
 # https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
-# TODO we should document somewhere (other than the docs in GP_EXPORT and similar macros)
-# that all functions are exported to binary to be used in FFI and that of course
-# all macros will be excluded. However, it is not yet clear where. Certainly not
-# here, but I'll leave the comment here just as a reminder that it has to be done.
-
 # -----------------------------------------------------------------------------
 #
 #          PUBLIC TARGETS
@@ -56,8 +51,8 @@ GPC_VERSION = 0.3.0-dev
 SRCS      = $(wildcard src/*.c)
 TEST_SRCS = $(wildcard tests/test_*.c)
 
-RELEASE_OBJS        = $(patsubst src/%.c, build/junk/%.o,        $(SRCS))
-DEBUG_OBJS          = $(patsubst src/%.c, build/junk/%d.o,       $(SRCS))
+RELEASE_OBJS        = $(patsubst src/%.c, build/junk/%.o,         $(SRCS))
+DEBUG_OBJS          = $(patsubst src/%.c, build/junk/%d.o,        $(SRCS))
 SHARED_RELEASE_OBJS = $(patsubst src/%.c, build/junk/shared_%.o,  $(SRCS))
 SHARED_DEBUG_OBJS   = $(patsubst src/%.c, build/junk/shared_%d.o, $(SRCS))
 

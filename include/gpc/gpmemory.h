@@ -10,6 +10,7 @@
 #include <gpc/gpthread.h>
 #include <gpc/gputils.h>
 #include <gpc/gpint128.h>
+#include <gpc/gpatomic.h>
 #include <stddef.h>
 
 /// @cond
@@ -928,6 +929,8 @@ GP_API void gp_arena_delete(GPArena* optional);
  * registered after allocating the pointer passed to @ref gp_arena_rewind() will
  * be called.
  *
+ * @a optional_arg will be passed to @a func when called.
+ *
  * The deferred functions will be called in Last In First Out order. Once
  * called, the function will be unregistered.
  *
@@ -938,10 +941,10 @@ GP_API void gp_arena_delete(GPArena* optional);
  * not be used for anything else.
  */
 GP_ALLOC_PTR_RETURN GP_NONNULL_ARGS(1) GP_INLINE
-void* gp_arena_defer(void (*func)(void* arg), void* arg)
+void* gp_arena_defer(void (*func)(void*), void* optional_arg)
 {
     GP_HIDDEN void* gp_internal_arena_defer(void (*)(void*), void*);
-    void* deferred = gp_internal_arena_defer(func, arg);
+    void* deferred = gp_internal_arena_defer(func, optional_arg);
     GP_ALLOC_CHECK(deferred != NULL);
     return deferred;
 }
@@ -985,6 +988,73 @@ void gp_arena_rewind(GPArena*, void* ptr);
  */
 GP_NONNULL_ARGS() GP_API
 size_t gp_arena_clear(GPArena*);
+
+//------------------------------------------------------------------------------
+/** @defgroup virtual Virtual Memory and File Mapping
+ *
+ * Low-level memory management, shared memory, and file mapping.
+ *
+ *
+ * @{
+ */ // TODO overview of this interface and other docs
+
+GPAllocator*const gp_pages;
+
+#define GP_PROT_NONE  0x0
+#define GP_PROT_READ  0x1
+#define GP_PROT_WRITE 0x2
+#define GP_PROT_EXEC  0x4
+
+#define GP_MEM_OVERCOMMIT  0x00000800
+#define GP_MEM_COMMIT      0x00001000
+#define GP_MEM_RESERVE     0x00002000
+
+#define GP_MEM_RESET       0x00080000
+#define GP_MEM_LARGE_PAGES 0x20000000
+#define GP_MEM_FIXED       0x00000010
+
+#define GP_MEM_DECOMMIT    0x00004000
+#define GP_MEM_RELEASE     0x00008000
+
+GP_API
+size_t gp_page_size(void);
+
+GP_API
+size_t gp_large_page_size(void);
+
+GP_API
+bool gp_got_large_pages(void);
+
+GP_API
+void* gp_virtual_alloc(
+    void*    optional_address,
+    size_t   size,
+    unsigned alloc_type,
+    unsigned prot);
+
+GP_API
+bool gp_virtual_free(
+    void*    address,
+    size_t   size,
+    unsigned free_type);
+
+GP_API
+bool gp_virtual_protect(
+    void*    address,
+    size_t   size,
+    unsigned prot);
+
+GP_API
+bool gp_virtual_lock(
+    void*  address,
+    size_t size);
+
+GP_API
+bool gp_virtual_unlock(
+    void*  address,
+    size_t size);
+
+/// @}
 
 /// @}
 //------------------------------------------------------------------------------

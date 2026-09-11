@@ -111,7 +111,7 @@ static inline void* gp_arr_erase_sized(void**, size_t, size_t, size_t);
  *
  * This documentation documents the exported functions instead of the macros.
  * The macros are semantically close enough to the functions that they don't
- * need dedicated documentation, any significant differences are documented for
+ * need dedicated documentation, most significant differences are documented for
  * each function. However, there are a couple of significant differences shared
  * between all functions and macros:
  *
@@ -124,6 +124,7 @@ static inline void* gp_arr_erase_sized(void**, size_t, size_t, size_t);
  *   output argument of type `GPArray(short)*`, you cannot use an input argument
  *   of type `int*`, the input must be `short*`. Incompatible pointers would
  *   cause aliasing violations anyway, but regular `void*` wouldn't warn about it.
+ * - Compound literals arguments may have to be wrapped in parenthesis.
  * @{
  */ // TODO Examples.
     // TODO Documenting failure modes for each function would be too repetitive.
