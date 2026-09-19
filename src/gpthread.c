@@ -219,21 +219,20 @@ bool gp_thread_create(GPThread *thr, int(*func)(void*), void *arg)
     gp_call_once(&initialized, gp_s_thread_init_exit_cleanup); // shut up sanitizers
 
     int old_errno = errno;
+    int old_doserrno = _doserrno;
     thread_start_params = malloc(sizeof(*thread_start_params));
-    if (!thread_start_params) {
-        errno = old_errno;
+    errno = old_errno;
+    _doserrno = old_doserrno;
+    if (!thread_start_params)
         return false;
-    }
 
     thread_start_params->func = func;
     thread_start_params->arg = arg;
 
     thread_entry = malloc(sizeof(*thread_entry));
-    if (!thread_entry) {
-        errno = old_errno;
+    if (!thread_entry)
         free(thread_start_params);
         return false;
-    }
 
     AcquireSRWLockExclusive(&_c11threads_win32_thrd_list_srw_lock);
     h = CreateThread(
@@ -597,8 +596,10 @@ static void* gp_s_thread_thunk(void*_thunk_args)
 bool gp_thread_create(GPThread* thr, int(*func)(void*), void *arg)
 {
     int old_errno = errno;
+    int old_doserrno = _doserrno;
     GPThreadThunkArgs* thunk_args = malloc(sizeof *thunk_args);
     errno = old_errno;
+    _doserrno = old_doserrno;
     if (thunk_args == NULL)
         return false;
     thunk_args->routine = func;

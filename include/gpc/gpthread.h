@@ -701,39 +701,49 @@ void gp_cond_broadcast(GPCond* cond)
  * ### Example
  *
  * This example demonstrates how to implement a function similar to `strerror()`.
- * @code
+ *
+ * ```c
  * static GPThreadKey error_str_key;
  * static GPOnce error_str_once = GP_ONCE_INIT;
  * #define BUF_SIZE 64
  *
  * static void error_str_init(void)
  * {
- *     if ( ! gp_thread_local_create(&error_str_key, free))
- *         return; // gp_thread_local_get() will return NULL, handle later.
- *     char* buf = malloc(BUF_SIZE); // may return NULL, handle later.
- *     gp_thread_local_set(error_str_key, buf);
- *     // Note: free() was set as our destructor, it will deallocate buf when
- *     // thread exits.
+ *     // Setting free() as our destructor for automatic
+ *     // memory management at thread exit.
+ *     gp_thread_local_create(&error_str_key, free);
  * }
  *
  * char* error_str(enum my_error error_code)
  * {
- *     static char backup_buf[BUF_SIZE]; // in case of failures
- *
  *     gp_call_once(&error_str_once, error_str_init);
  *     char* buf = gp_thread_local_get(error_str_key);
- *     if (buf == NULL) // either gp_thread_local_create() or malloc() failed.
- *         buf = backup_buf; // not thread safe, but will do for debugging.
- *
+ *     if (buf == NULL) {
+ *         buf = malloc(BUF_SIZE);
+ *         if (buf == NULL)
+ *             return NULL;
+ *         gp_thread_local_set(error_str_key, buf);
+ *     }
  *     switch (error_code) {
- *     case NO_ERROR:              strcpy(buf, "No error."); break;
- *     case BAD_THINGS_HAPPENED:   strcpy(buf, "Bad things happened."); break;
- *     case WORSE_THINGS_HAPPENED: strcpy(buf, "Worse things happened."); break;
- *     case WE_ARE_ALL_DOOMED:     strcpy(buf, "We are all doomed."); break;
+ *     case NO_ERROR:
+ *         strcpy(buf, "No error.");
+ *         break;
+ *     case BAD_THINGS_HAPPENED:
+ *         strcpy(buf, "Bad things happened.");
+ *         break;
+ *     case WORSE_THINGS_HAPPENED:
+ *         strcpy(buf, "Worse things happened.");
+ *         break;
+ *     case WE_ARE_ALL_DOOMED:
+ *         strcpy(buf, "We are all doomed.");
+ *         break;
+ *     default:
+ *          strcpy(buf, "Unknown error.");
+ *          break;
  *     }
  *     return buf;
  * }
- * @endcode
+ * ```
  */
 #ifdef GP_DOXYGEN
 typedef __unspecified__ GPThreadKey;

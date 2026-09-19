@@ -239,7 +239,7 @@ static inline void* gp_arr_erase_sized(void**, size_t, size_t, size_t);
  */
 typedef void* GPArrayAny;
 
-/** Constant array of any type.
+/** Immutable array of any type.
  *
  * @ref GPArray requires a complete type, `GPArray(const void)` will not compile,
  * so this is needed for generic constant arrays.
@@ -983,6 +983,8 @@ static inline bool gp_arr_reallocate_sized(
               "Multiplication exceeded GP_ALLOC_MAX_SIZE.");
     size_t header_size = arr - start;
 
+    // FIXME should unpoison here. This fix has to be taken into account in
+    // gp_arr_reserve_sized() too.
     char* memory = (char*)alc->alloc(
         alc,
         start,

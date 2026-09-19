@@ -629,6 +629,9 @@ extern GPAllocator* gp_heap;
  * requirements for some of our other allocators, but may be inconvenient
  * sometimes. If this is an issue, use @ref sized_ptr or @ref GPArray.
  *
+ * This allocator will not set `errno` on failed allocations, it will keep
+ * `errno` unmodified.
+ *
  * Attempting to mutate this is undefined behavior and may trap on some targets.
  * This is to ensure that there the global heap can always be accessed even if
  * @ref gp_heap is reassigned to some other allocator. The main purpose of this
@@ -1015,6 +1018,9 @@ GPAllocator*const gp_pages;
 
 #define GP_MEM_DECOMMIT    0x00004000
 #define GP_MEM_RELEASE     0x00008000
+
+GP_API
+size_t gp_alloc_granularity(void);
 
 GP_API
 size_t gp_page_size(void);

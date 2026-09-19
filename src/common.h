@@ -48,6 +48,20 @@ static inline GPInternalTimespec gp_internal_timespec_from_time_ns(uint64_t nano
     return ts;
 }
 
+typedef enum gp_internal_thread_local_slot_t
+{
+    GP_INTERNAL_THREAD_LOCAL_ARENA,
+    #ifndef GP_TARGET_OS_WINDOWS
+    #define GP_INTERNAL_THREAD_LOCAL_SLOTS_LENGTH 1
+    #else
+    GP_INTERNAL_THREAD_LOCAL_DOSERRNO_STR_BUFFER,
+    #define GP_INTERNAL_THREAD_LOCAL_SLOTS_LENGTH 2
+    #endif
+} gp_internal_thread_local_slot_t;
+
+GP_HIDDEN void* gp_internal_thread_local_get(gp_internal_thread_local_slot_t);
+GP_HIDDEN void gp_internal_thread_local_set(gp_internal_thread_local_slot_t, const void*);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

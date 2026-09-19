@@ -15,8 +15,11 @@
 .PHONY: all
 
 # Install libGPC, GDB pretty printer for GPString, gprun, and single header
-# library.
+# library. May require root privileges.
 .PHONY: install # TODO
+
+# Remove all installed files. May require root privileges.
+.PHONY: uninstall # TODO
 
 # Build optimized static library.
 .PHONY: release
@@ -30,7 +33,7 @@
 # Build debug shared library. Linux only.
 .PHONY: shared_debug
 
-# Build gprun # TODO rewrite
+# Build gprun # TODO rewrite. Don't forget proper signal handling!
 .PHONY: gprun
 
 # Build documentation. Requires Doxygen.

@@ -3,7 +3,8 @@
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
 
 #include <gpc/gpmemory.h>
-#include <gpc/thread.h>
+#include <gpc/gpthread.h>
+#include <gpc/gperrno.h>
 
 #if __STDC_VERSION__ >= 201112L
 #include <stdalign.h>
@@ -22,7 +23,7 @@
 // C23 implementations, so have to use regular free() instead.
 
 static void* gp_s_global_heap_alloc(
-    struct GPAllocator* unused,
+    GPAllocator* unused,
     void*   optional_old_block,
     size_t  optional_old_block_size,
     size_t  block_size,
@@ -32,6 +33,8 @@ static void* gp_s_global_heap_alloc(
 {
     (void)unused;
     (void)optional_old_block_size;
+
+    GPErrno errs = gp_errno_set(NULL);
 
     // Standard aligned_alloc() and posix_memalign() require size to be a
     // multiple of alignment, but _aligned_realloc() and our manual alignment
@@ -102,6 +105,7 @@ static void* gp_s_global_heap_alloc(
                 block_size - optional_old_block_size);
     }
     *actual_size = block_size;
+    gp_errno_set(&errs);
     return mem;
 }
 
@@ -509,41 +513,6 @@ bool gp_got_large_pages(void)
     #endif
 }
 
-#ifdef GP_TARGET_OS_WINDOWS
-
-PVOID (*gp_VirtualAlloc2)(
-    HANDLE                 Process,
-    PVOID                  BaseAddress,
-    SIZE_T                 Size,
-    ULONG                  AllocationType,
-    ULONG                  PageProtection,
-    MEM_EXTENDED_PARAMETER *ExtendedParameters,
-    ULONG                  ParameterCount
-);
-
-PVOID (*gp_MapViewOfFile3)(
-    HANDLE                 FileMapping,
-    HANDLE                 Process,
-    PVOID                  BaseAddress,
-    ULONG64                Offset,
-    SIZE_T                 ViewSize,
-    ULONG                  AllocationType,
-    ULONG                  PageProtection,
-    MEM_EXTENDED_PARAMETER *ExtendedParameters,
-    ULONG                  ParameterCount
-);
-
-static GPOnce gp_s_virtualalloc2_initialized = GP_ONCE_INIT;
-
-static void gp_s_get_virtualalloc2(void)
-{
-    HMODULE kernelbase = LoadLibraryA("kernelbase.dll");
-    gp_VirtualAlloc2  = GetProcAddress(kernelbase, "VirtualAlloc2");
-    gp_MapViewOfFile3 = GetProcAddress(kernelbase, "MapViewOfFile3");
-}
-
-#endif // GP_TARGET_OS_WINDOWS
-
 #ifdef MAP_ANONYMOUS
 #  define GP_MAP_ANONYMOUS MAP_ANONYMOUS
 #elif defined(MAP_ANON)
@@ -599,8 +568,6 @@ void* gp_virtual_alloc(
 
     #ifdef GP_TARGET_OS_WINDOWS
 
-    gp_call_once(&gp_s_virtualalloc2_initialized, gp_s_get_virtualalloc2);
-
     if ((alloc_type & GP_MEM_RESERVE) && !(alloc_type & GP_MEM_FIXED))
         addr = NULL;
     alloc_type &= ~GP_MEM_FIXED;
@@ -609,16 +576,11 @@ void* gp_virtual_alloc(
         alloc_type |= GP_MEM_COMMIT;
     alloc_type &= ~GP_MEM_OVERCOMMIT;
 
-    if (gp_VirtualAlloc2 != NULL)
-        addr = gp_VirtualAlloc2(NULL, addr, size, alloc_type, prot, NULL, 0);
-    else {
-        alloc_type &= ~GP_MEM_RESERVE_PLACEHOLDER;
-        alloc_type &= ~GP_MEM_REPLACE_PLACEHOLDER;
-        addr = VirtualAlloc(addr, size, alloc_type, prot);
+    addr = VirtualAlloc(addr, size, alloc_type, prot);
+    if (addr == NULL) {
+        _doserrno = GetLastError();
+        errno = gp_errno_from_win32_error(_doserrno);
     }
-
-    if (addr == NULL)
-        ; // TODO translate error to errno and _doserrno
     return addr;
 
     #else // POSIX
@@ -658,7 +620,6 @@ void* gp_virtual_alloc(
             return NULL;
         #endif
 
-        prot = gp_s_prot_translate(prot);
         void* p = mmap(addr, size, prot, flags, fd, 0);
         if (fd != -1)
             close(fd);
@@ -680,11 +641,10 @@ void* gp_virtual_alloc(
             #endif
         }
     } else if (alloc_type & GP_MEM_COMMIT) { // TODO should we accept GP_MEM_OVERCOMMIT?
-        // TODO again, should we accept unaligned addr?
+        // TODO again, should we accept unaligned addr or round ourselves?
         if (mprotect(addr, size, prot) == -1)
             return NULL;
 
-        // Failing madvise() is not critical.
         int old_errno = errno;
         posix_madvise(addr, size, POSIX_MADV_WILLNEED);
         errno = old_errno;

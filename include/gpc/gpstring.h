@@ -5,6 +5,7 @@
 #ifndef GP_STRING_INCLUDED
 #define GP_STRING_INCLUDED 1
 
+#include <gpc/gpattributes.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -30,8 +31,9 @@ typedef struct gp_char { uint8_t c; /**< UTF-8 code unit. */ } GPChar;
 
 /** String type.*/
 typedef GPChar* GPString;
-// TODO once we have array
-// typedef GPArray(GPChar) GPString;
+
+/** Immutable string type.*/
+typedef const GPChar* GPStringConst;
 
 // TODO the rest
 
