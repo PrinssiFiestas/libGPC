@@ -4,6 +4,7 @@
 
 #include "common.h"
 #include <gpc/gpthread.h>
+#include <gpc/gperrno.h>
 #ifdef GP_TARGET_OS_WINDOWS
 #include <windows.h>
 #endif
@@ -51,7 +52,9 @@ void gp_internal_thread_local_set(gp_internal_thread_local_slot_t index, const v
     gp_call_once(&gp_s_internal_thread_local_initialized, gp_s_internal_thread_local_init);
     const void** internal_slots = gp_thread_local_get(gp_s_internal_thread_local_key);
     if (internal_slots == NULL) {
+        GPErrno errs = gp_errno_set(NULL);
         internal_slots = calloc(GP_INTERNAL_THREAD_LOCAL_SLOTS_LENGTH, sizeof internal_slots[0]);
+        gp_errno_set(&errs);
         if (internal_slots == NULL)
             return;
         gp_thread_local_set(gp_s_internal_thread_local_key, internal_slots);
