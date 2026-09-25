@@ -983,8 +983,11 @@ static inline bool gp_arr_reallocate_sized(
               "Multiplication exceeded GP_ALLOC_MAX_SIZE.");
     size_t header_size = arr - start;
 
-    // FIXME should unpoison here. This fix has to be taken into account in
-    // gp_arr_reserve_sized() too.
+    // Unpoison in case of reallocation moving memory. This is not only for the
+    // copying of the memory block, but also because the allocator must be able
+    // to recycle the memory.
+    gp_asan_unpoison(*arrptr, (old_capacity - length) * element_size);
+
     char* memory = (char*)alc->alloc(
         alc,
         start,
@@ -995,6 +998,8 @@ static inline bool gp_arr_reallocate_sized(
         &full_size);
 
     if (memory == NULL) {
+        gp_asan_poison(*arrptr, (old_capacity - length) * element_size);
+
         if (capacity <= old_capacity)
             return true;
         else

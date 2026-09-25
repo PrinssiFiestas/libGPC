@@ -14,13 +14,14 @@ static GPOnce gp_s_internal_thread_local_initialized = GP_ONCE_INIT;
 
 static void gp_s_internal_thread_local_destructor(void* p)
 {
+    if (p == NULL)
+        return;
+
     void** internal_slots = p;
-    if (internal_slots != NULL) {
-        // TODO delete scratch arena
-        #ifdef GP_TARGET_OS_WINDOWS
-        LocalFree(internal_slots[GP_INTERNAL_THREAD_LOCAL_DOSERRNO_STR_BUFFER]);
-        #endif
-    }
+    // TODO delete scratch arena
+    #ifdef GP_TARGET_OS_WINDOWS
+    LocalFree(internal_slots[GP_INTERNAL_THREAD_LOCAL_DOSERRNO_STR_BUFFER]);
+    #endif
     free(internal_slots);
 }
 
@@ -50,6 +51,7 @@ void* gp_internal_thread_local_get(gp_internal_thread_local_slot_t index)
 void gp_internal_thread_local_set(gp_internal_thread_local_slot_t index, const void* p)
 {
     gp_call_once(&gp_s_internal_thread_local_initialized, gp_s_internal_thread_local_init);
+
     const void** internal_slots = gp_thread_local_get(gp_s_internal_thread_local_key);
     if (internal_slots == NULL) {
         GPErrno errs = gp_errno_set(NULL);
