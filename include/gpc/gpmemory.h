@@ -993,43 +993,36 @@ GP_NONNULL_ARGS() GP_API
 size_t gp_arena_clear(GPArena*);
 
 //------------------------------------------------------------------------------
-/** @defgroup virtual Virtual Memory and File Mapping
+/** @defgroup virtual Virtual Memory
  *
- * Low-level memory management, shared memory, and file mapping.
+ * Low-level memory management.
  *
  *
  * @{
  */ // TODO overview of this interface and other docs
 
-GPAllocator*const gp_pages;
+GPAllocator*const gp_page_allocator;
 
 #define GP_PROT_NONE  0x0
 #define GP_PROT_READ  0x1
 #define GP_PROT_WRITE 0x2
 #define GP_PROT_EXEC  0x4
 
-#define GP_MEM_OVERCOMMIT  0x00000800
-#define GP_MEM_COMMIT      0x00001000
-#define GP_MEM_RESERVE     0x00002000
+#define GP_MEM_COMMIT          0x00001000
+#define GP_MEM_RESERVE         0x00002000
 
-#define GP_MEM_RESET       0x00080000
-#define GP_MEM_LARGE_PAGES 0x20000000
-#define GP_MEM_FIXED       0x00000010
+#define GP_MEM_NATIVE_SIZE     0x00000200
+#define GP_MEM_ADDRESS_HINT    0x00000400
+#define GP_MEM_NO_SWAP_RESERVE 0x00000800
 
-#define GP_MEM_DECOMMIT    0x00004000
-#define GP_MEM_RELEASE     0x00008000
+#define GP_MEM_DECOMMIT        0x00004000
+#define GP_MEM_RELEASE         0x00008000
 
 GP_API
-size_t gp_alloc_granularity(void);
+size_t gp_page_alloc_granularity(void);
 
 GP_API
 size_t gp_page_size(void);
-
-GP_API
-size_t gp_large_page_size(void);
-
-GP_API
-bool gp_got_large_pages(void);
 
 GP_API
 void* gp_virtual_alloc(
@@ -1049,6 +1042,11 @@ bool gp_virtual_protect(
     void*    address,
     size_t   size,
     unsigned prot);
+
+GP_API
+bool gp_virtual_discrard(
+    void*  address,
+    size_t size);
 
 GP_API
 bool gp_virtual_lock(

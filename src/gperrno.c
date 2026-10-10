@@ -97,7 +97,6 @@ const char* gp_errno_str(GPString* optional_dest, const GPErrno* optional_errno)
     return str;
 }
 
-#ifdef GP_TARGET_OS_WINDOWS
 static const uint8_t gp_s_error_table[] =
 {
     0,
@@ -600,8 +599,110 @@ static const uint8_t gp_s_error_table[] =
     (uint8_t)-1,  /*                                              497 */
     (uint8_t)-1,  /*                                              498 */
     (uint8_t)-1,  /*                                              499 */
+    EIO,          /* ERROR_USER_PROFILE_LOAD                      500 */
+    (uint8_t)-1,  /*                                              501 */
+    (uint8_t)-1,  /*                                              502 */
+    (uint8_t)-1,  /*                                              503 */
+    (uint8_t)-1,  /*                                              504 */
+    (uint8_t)-1,  /*                                              505 */
+    (uint8_t)-1,  /*                                              506 */
+    (uint8_t)-1,  /*                                              507 */
+    (uint8_t)-1,  /*                                              508 */
+    (uint8_t)-1,  /*                                              509 */
+    (uint8_t)-1,  /*                                              510 */
+    (uint8_t)-1,  /*                                              511 */
+    (uint8_t)-1,  /*                                              512 */
+    (uint8_t)-1,  /*                                              513 */
+    (uint8_t)-1,  /*                                              514 */
+    (uint8_t)-1,  /*                                              515 */
+    (uint8_t)-1,  /*                                              516 */
+    (uint8_t)-1,  /*                                              517 */
+    (uint8_t)-1,  /*                                              518 */
+    (uint8_t)-1,  /*                                              519 */
+    (uint8_t)-1,  /*                                              520 */
+    (uint8_t)-1,  /*                                              521 */
+    (uint8_t)-1,  /*                                              522 */
+    (uint8_t)-1,  /*                                              523 */
+    (uint8_t)-1,  /*                                              524 */
+    (uint8_t)-1,  /*                                              525 */
+    (uint8_t)-1,  /*                                              526 */
+    (uint8_t)-1,  /*                                              527 */
+    (uint8_t)-1,  /*                                              528 */
+    (uint8_t)-1,  /*                                              529 */
+    (uint8_t)-1,  /*                                              530 */
+    (uint8_t)-1,  /*                                              531 */
+    (uint8_t)-1,  /*                                              532 */
+    (uint8_t)-1,  /*                                              533 */
+    EOVERFLOW,    /* ERROR_ARITHMETIC_OVERFLOW                    534 */
+    EISCONN,      /* ERROR_PIPE_CONNECTED                         535 */
+    ENOTCONN,     /* ERROR_PIPE_LISTENING                         536 */
+    EFAULT,       /* ERROR_VERIFIER_STOP                          537 */
+    EIO,          /* ERROR_ABIOS_ERROR                            538 */
+    EIO,          /* ERROR_WX86_WARNING                           539 */
+    EIO,          /* ERROR_WX86_ERROR                             540 */
+    EPERM,        /* ERROR_TIMER_NOT_CANCELED                     541 */
+    EIO,          /* ERROR_UNWIND                                 542 */
+    EFAULT,       /* ERROR_BAD_STACK                              543 */
+    EFAULT,       /* ERROR_INVALID_UNWIND_TARGET                  544 */
+    EINVAL,       /* ERROR_INVALID_PORT_ATTRIBUTES                545 */
+    EMSGSIZE,     /* ERROR_PORT_MESSAGE_TOO_LONG                  546 */
+    EINVAL,       /* ERROR_INVALID_QUOTA_LOWER                    547 */
+    EBUSY,        /* ERROR_DEVICE_ALREADY_ATTACHED                548 */
+    EFAULT,       /* ERROR_INSTRUCTION_MISALIGNMENT               549 */
+    EIO,          /* ERROR_PROFILING_NOT_STARTED                  550 */
+    EIO,          /* ERROR_PROFILING_NOT_STOPPED                  551 */
+    EIO,          /* ERROR_COULD_NOT_INTERPRET                    552 */
+    EIO,          /* ERROR_PROFILING_AT_LIMIT                     553 */
+    EIO,          /* ERROR_CANT_WAIT                              554 */
+    EPERM,        /* ERROR_CANT_TERMINATE_SELF                    555 */
+    EIO,          /* ERROR_UNEXPECTED_MM_CREATE_ERR               556 */
+    EIO,          /* ERROR_UNEXPECTED_MM_MAP_ERROR                557 */
+    EIO,          /* ERROR_UNEXPECTED_MM_EXTEDN_ERR               558 */
+    EFAULT,       /* ERROR_BAD_FUNCTION_TABLE                     559 */
+    EIO,          /* ERROR_NO_GUID_TRANSLATION                    560 */
+    EIO,          /* ERROR_INVALID_LDT_SIZE                       561 */
+    (uint8_t)-1,  /*                                              562 */
+    EIO,          /* ERROR_INVALID_LDT_OFFSET                     563 */
+    EIO,          /* ERROR_INVALID_LDT_DESCRIPTOR                 564 */
+    EAGAIN,       /* ERROR_TOO_MANY_THREADS                       565 */
+    ESRCH,        /* ERROR_THREAD_NOT_IN_PROCESS                  566 */
+    ENOSPC,       /* ERROR_PAGEFILE_QUOTA_EXCEEDED                567 */
+    EADDRINUSE,   /* ERROR_LOGON_SERVER_CONFLICT                  568 */
+    EAGAIN,       /* ERROR_SYNCHRONIZATION_REQUIRED               569 */
+    EACCES,       /* ERROR_NET_OPEN_FAILED                        570 */
+    EPERM,        /* ERROR_IO_PRIVILEGE_FAILED                    571 */
+    EINTR,        /* ERROR_CONTROL_C_EXIT                         572 */
+    ENOENT,       /* ERROR_MISSING_SYSTEMFILE                     573 */
+    EFAULT,       /* ERROR_UNHANDLED_EXCEPTION                    574 */
+    EIO,          /* ERROR_APP_INIT_FAILURE                       575 */
+    ENOSPC,       /* ERROR_PAGEFILE_CREATE_FAILED                 576 */
+    ENOEXEC,      /* ERROR_INVALID_IMAGE_HASH                     577 */
+    ENOSPC,       /* ERROR_NO_PAGEFILE                            578 */
+    ENODEV,       /* ERROR_ILLEGAL_FLOAT_CONTEXT                  579 */
+    EIO,          /* ERROR_NO_EVENT_PAIR                          580 */
+    EIO,          /* ERROR_DOMAIN_CTRLR_CONFIG_ERROR              581 */
+    EILSEQ,       /* ERROR_ILLEGAL_CHARACTER                      582 */
+    EILSEQ,       /* ERROR_UNDEFINED_CHARACTER                    583 */
+    ENOSPC,       /* ERROR_FLOPPY_VOLUME                          584 */
+    EIO,          /* ERROR_BIOS_FAILED_TO_CONNECT_INTERRUPT       585 */
+    EACCES,       /* ERROR_BACKUP_CONTROLLER                      586 */
+    EAGAIN,       /* ERROR_MUTANT_LIMIT_EXCEEDED                  587 */
+    ENOTSUP,      /* ERROR_FS_DRIVER_REQUIRED                     588 */
+    EIO,          /* ERROR_CANNOT_LOAD_REGISTRY_FILE              589 */
+    EPERM,        /* ERROR_DEBUG_ATTACH_FAILED                    590 */
+    EIO,          /* ERROR_SYSTEM_PROCESS_TERMINATED              591 */
+    EAGAIN,       /* ERROR_DATA_NOT_ACCEPTED                      592 */
+    EIO,          /* ERROR_VDM_HARD_ERROR                         593 */
+    ETIMEDOUT,    /* ERROR_DRIVER_CANCEL_TIMEOUT                  594 */
+    EPROTO,       /* ERROR_REPLY_MESSAGE_MISMATCH                 595 */
+    EIO,          /* ERROR_LOST_WRITEBEHIND_DATA                  596 */
+    EIO,          /* ERROR_CLIENT_SERVER_PARAMETERS_INVALID       597 */
+    EMSGSIZE,     /* ERROR_NOT_TINY_STREAM                        598 */
+    EOVERFLOW,    /* ERROR_STACK_OVERFLOW_READ                    599 */
     // TODO the rest, there are still important errors that needs to be translated.
 };
+
+GP_STATIC_ASSERT(sizeof gp_s_error_table == 600);
 
 int gp_errno_from_win32_error(uint32_t error)
 {
@@ -612,4 +713,3 @@ int gp_errno_from_win32_error(uint32_t error)
         return -1;
     return error;
 }
-#endif // GP_TARGET_OS_WINDOWS

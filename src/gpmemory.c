@@ -467,49 +467,14 @@ size_t gp_page_size(void)
     #endif
 }
 
-static size_t gp_s_get_meminfo(const char* key)
-{
-    FILE* meminfo = fopen("/proc/meminfo", "r");
-    if (meminfo == NULL)
-        return false;
-
-    size_t value;
-    char line[128];
-    while (fgets(line, sizeof line, meminfo)) {
-        if (strncmp(line, key, strlen(key)) == 0) {
-            value = atol(line + strlen(key) - sizeof"");
-            break;
-        }
-    }
-    fclose(meminfo);
-    return value;
-}
-
-static size_t gp_s_hugepagesize;
-
-void gp_s_get_hugepagesize(void)
-{
-    if (gp_s_get_meminfo("HugePages_Total:") > 0)
-        gp_s_hugepagesize = gp_s_get_meminfo("Hugepagesize:") * 1024;
-}
-
-size_t gp_large_page_size(void)
+size_t gp_page_alloc_granularity(void)
 {
     #ifdef GP_TARGET_OS_WINDOWS
-    return GetLargePageMinumum();
+    SYSTEM_INFO sys_info;
+    GetSystemInfo(&sys_info);
+    return sys_info.dwAllocationGranularity;
     #else
-    static GPOnce hugepagesize_initialized = GP_ONCE_INIT;
-    gp_call_once(&hugepagesize_initialized, gp_s_get_hugepagesize);
-    return gp_s_hugepagesize;
-    #endif
-}
-
-bool gp_got_large_pages(void)
-{
-    #ifdef GP_TARGET_OS_WINDOWS
-    return GetLargePageMinumum();
-    #else
-    return gp_s_get_meminfo("HugePages_Free:");
+    return sysconf(_SC_PAGE_SIZE);
     #endif
 }
 
@@ -526,36 +491,61 @@ static unsigned gp_s_prot_translate(unsigned prot)
         && GP_PROT_READ  == PROT_READ  \
         && GP_PROT_WRITE == PROT_WRITE \
         && GP_PROT_EXEC  == PROT_EXEC
-    gp_assume(prot <= (PROT_READ | PROT_WRITE | PROT_EXEC),
-              "Invalid protection flags.");
     return prot;
     #elif defined(GP_TARGET_OS_WINDOWS)
     switch (prot) {
-    case GP_PROT_NONE : return PAGE_NOACCESS;
-    case GP_PROT_READ : return PAGE_READONLY;
-    case GP_PROT_WRITE: return PAGE_READWRITE;
-    case GP_PROT_EXEC : return PAGE_EXECUTE;
-    case GP_PROT_READ | GP_PROT_WRITE : return PAGE_READWRITE;
-    case GP_PROT_READ | GP_PROT_EXEC  : return PAGE_EXECUTE_READ;
-    case GP_PROT_WRITE| GP_PROT_EXEC  : return PAGE_EXECUTE_READWRITE;
-    case GP_PROT_READ | GP_PROT_WRITE | GP_PROT_EXEC: return PAGE_EXECUTE_READWRITE;
-    default: GP_UNREACHABLE("Invalid protection flags.");
+    case GP_PROT_NONE  : return PAGE_NOACCESS;
+    case GP_PROT_READ  : return PAGE_READONLY;
+    case GP_PROT_WRITE : return PAGE_READWRITE;
+    case GP_PROT_EXEC  : return PAGE_EXECUTE;
+    case GP_PROT_READ  | GP_PROT_WRITE : return PAGE_READWRITE;
+    case GP_PROT_READ  | GP_PROT_EXEC  : return PAGE_EXECUTE_READ;
+    case GP_PROT_WRITE | GP_PROT_EXEC  : return PAGE_EXECUTE_READWRITE;
+    case GP_PROT_READ  | GP_PROT_WRITE | GP_PROT_EXEC: return PAGE_EXECUTE_READWRITE;
     }
     #else
     switch (prot) {
-    case GP_PROT_NONE : return PROT_NONE;
-    case GP_PROT_READ : return PROT_READ;
-    case GP_PROT_WRITE: return PROT_WRITE;
-    case GP_PROT_EXEC : return PROT_EXEC;
-    case GP_PROT_READ | GP_PROT_WRITE : return PROT_READ  | PROT_WRITE;
-    case GP_PROT_READ | GP_PROT_EXEC  : return PROT_READ  | PROT_EXEC ;
-    case GP_PROT_WRITE| GP_PROT_EXEC  : return PROT_WRITE | PROT_EXEC ;
-    case GP_PROT_READ | GP_PROT_WRITE | GP_PROT_EXEC: return PROT_READ | PROT_WRITE | PROT_EXEC;
-    default: GP_UNREACHABLE("Invalid protection flags.");
+    case GP_PROT_NONE  : return PROT_NONE;
+    case GP_PROT_READ  : return PROT_READ;
+    case GP_PROT_WRITE : return PROT_WRITE;
+    case GP_PROT_EXEC  : return PROT_EXEC;
+    case GP_PROT_READ  | GP_PROT_WRITE : return PROT_READ  | PROT_WRITE;
+    case GP_PROT_READ  | GP_PROT_EXEC  : return PROT_READ  | PROT_EXEC ;
+    case GP_PROT_WRITE | GP_PROT_EXEC  : return PROT_WRITE | PROT_EXEC ;
+    case GP_PROT_READ  | GP_PROT_WRITE | GP_PROT_EXEC: return PROT_READ | PROT_WRITE | PROT_EXEC;
     }
     #endif
-    return 0;
+    return (unsigned)-1;
 }
+
+static size_t gp_s_set_virtual_alloc_size(void* addr, size_t size)
+{
+    (void)addr;
+    (void)size;
+    return gp_assert(0, "TODO implementation");
+}
+
+static size_t gp_s_get_virtual_alloc_size(void* addr)
+{
+    (void)addr;
+    return gp_assert(0, "TODO implementation");
+}
+
+#ifdef GP_TARGET_OS_WINDOWS
+static GPOnce gp_s_new_winapi_initialized = GP_ONCE_INIT;
+static DWORD(*gp_s_discard_virtual_memory)(PVOID, SIZE_T);
+static PVOID(*gp_s_virtual_alloc2)(HANDLE, PVOID, SIZE_T, ULONG, ULONG, MEM_EXTENDED_PARAMETER, ULONG);
+static PVOID(*gp_s_map_view_of_file3)(
+    HANDLE, HANDLE, PVOID, ULONG64, SIZE_T, ULONG, ULONG, MEM_EXTENDED_PARAMETER, ULONG);
+
+static void gp_s_init_new_winapi(void)
+{
+    HMODULE kernelbase = LoadLibraryA("kernelbase.dll");
+    gp_s_virtual_alloc2         = GetProcAddress(kernelbase, "VirtualAlloc2");
+    gp_s_map_view_of_file3      = GetProcAddress(kernelbase, "MapViewOfFile3");
+    gp_s_discard_virtual_memory = GetProcAddress(kernelbase, "DiscardVirtualMemory");
+}
+#endif // GP_TARGET_OS_WINDOWS
 
 void* gp_virtual_alloc(
     void*    addr,
@@ -568,16 +558,18 @@ void* gp_virtual_alloc(
 
     #ifdef GP_TARGET_OS_WINDOWS
 
-    if ((alloc_type & GP_MEM_RESERVE) && !(alloc_type & GP_MEM_FIXED))
+    if (alloc_type & GP_MEM_ADDRESS_HINT)
         addr = NULL;
-    alloc_type &= ~GP_MEM_FIXED;
 
-    if (alloc_type & GP_MEM_OVERCOMMIT)
-        alloc_type |= GP_MEM_COMMIT;
-    alloc_type &= ~GP_MEM_OVERCOMMIT;
+    alloc_type &= ~GP_MEM_NO_SWAP_RESERVE;
 
-    addr = VirtualAlloc(addr, size, alloc_type, prot);
+    addr = VirtualAlloc(addr, size, alloc_type & ~GP_MEM_ADDRESS_HINT, prot);
     if (addr == NULL) {
+        if ((alloc_type & GP_MEM_RESERVE) && (alloc_type & GP_MEM_ADDRESS_HINT)) {
+            addr = VirtualAlloc(NULL, size, alloc_type, prot);
+            if (addr != NULL)
+                return addr;
+        }
         _doserrno = GetLastError();
         errno = gp_errno_from_win32_error(_doserrno);
     }
@@ -586,69 +578,182 @@ void* gp_virtual_alloc(
     #else // POSIX
 
     int flags = 0;
-    if (alloc_type & GP_MEM_RESERVE) { // allocate memory using mmap().
-        if (!(alloc_type & GP_MEM_COMMIT) && !(alloc_type & GP_MEM_OVERCOMMIT)) {
-            // Only reserve virtual address space
+    if (alloc_type & GP_MEM_RESERVE) {
+        // In release builds it is less error prone to not crash the program if
+        // user forgot to commit memory before access. Debug builds should crash
+        // to enforce portability though.
+        #ifdef GP_TARGET_DEBUG
+        if ( ! (alloc_type & GP_MEM_COMMIT))
             prot = PROT_NONE;
-            #ifdef MAP_NORESERVE
-            flags |= MAP_NORESERVE;
-            #endif
-        }
+        #endif
+
         #ifdef MAP_NORESERVE
-        else if (alloc_type & GP_MEM_OVERCOMMIT)
+        if (alloc_type & GP_MEM_NO_SWAP_RESERVE)
             flags |= MAP_NORESERVE;
         #endif
 
-        // TODO should we round addr and size as VirtualAlloc() does? Or require
-        // page alignment in documentation?
-        if (alloc_type & GP_MEM_FIXED)
-            flags |= MAP_FIXED;
-
-        #ifdef MAP_HUGETLB
-        if (alloc_type & GP_MEM_LARGE_PAGES) {
-            // TODO we probably should check here if huge pages supported
-            flags |= MAP_HUGETLB;
-        }
+        // Plain MAP_FIXED is useless, we have to fail in case of overlapping
+        // mappings instead of replacing them.
+        #ifdef MAP_FIXED_NOREPLACE
+        if (addr != NULL && !(alloc_type & GP_MEM_ADDRESS_HINT))
+            flags |= MAP_FIXED_NOREPLACE;
         #endif
 
         #ifdef GP_MAP_ANONYMOUS
         flags |= GP_MAP_ANONYMOUS;
         int fd = -1;
         #else
-        int fd = open("/dev/null", O_RDONLY);
+        int fd = open("/dev/zero", O_RDWR);
         if (fd == -1)
             return NULL;
         #endif
 
-        void* p = mmap(addr, size, prot, flags, fd, 0);
+        void* mapped = mmap(addr, size, prot, flags, fd, 0);
         if (fd != -1)
             close(fd);
-        if (p == MAP_FAILED) {
-            #ifndef MAP_HUGETLB
-            return NULL;
-            #else
-            // We documented that huge pages may be ignored if not supported.
-            // Huge pages are only used for optimizations and any program should
-            // work unmodified without them, so the only sensible handling for
-            // failing huge page allocation is to try again without them.
-            if (!(flags & MAP_HUGETLB))
-                return NULL;
-            flags &= ~MAP_HUGETLB;
-            p = mmap(addr, size, prot, flags, fd, 0);
-            if (p == MAP_FAILED)
-                return NULL;
-            addr = p;
-            #endif
-        }
-    } else if (alloc_type & GP_MEM_COMMIT) { // TODO should we accept GP_MEM_OVERCOMMIT?
-        // TODO again, should we accept unaligned addr or round ourselves?
-        if (mprotect(addr, size, prot) == -1)
+        if (mapped == MAP_FAILED)
             return NULL;
 
-        int old_errno = errno;
-        posix_madvise(addr, size, POSIX_MADV_WILLNEED);
-        errno = old_errno;
+        // This check is necessary even if MAP_FIXED_NOREPLACE is defined, older
+        // Linux kernels don't recognize the flag ignoring it completely instead
+        // of treating it as MAP_FIXED.
+        if (addr != NULL
+            && !(alloc_type & GP_MEM_ADDRESS_HINT)
+            && (uintptr_t)mapped != (uintptr_t)addr)
+        {
+            munmap(mapped, size);
+            errno = EEXIST;
+            return NULL;
+        }
+        addr = mapped;
+        if ( ! (alloc_type & GP_MEM_NATIVE_SIZE)) {
+            if ( ! gp_s_set_virtual_alloc_size(addr, size)) {
+                munmap(mapped, size);
+                // TODO errno?
+                return NULL;
+            }
+        }
+    } else if (alloc_type & GP_MEM_COMMIT) {
+        if (mprotect(addr, size, prot) == -1)
+            return NULL;
+    } else {
+        errno = EINVAL;
+        return NULL;
     }
     return addr;
+    #endif
+}
+
+bool gp_virtual_free(
+    void*    address,
+    size_t   size,
+    unsigned free_type)
+{
+    #ifdef GP_TARGET_OS_WINDOWS
+
+    if (free_type & GP_MEM_RELEASE)
+        size = 0;
+
+    BOOL success = VirtualFree(address, size, free_type);
+    if ( ! success) {
+        _doserrno = GetLastError();
+        errno = gp_errno_from_win32_error(_doserrno);
+    }
+    return success;
+
+    #else // POSIX
+
+    if (size == 0)
+        size = gp_s_get_virtual_alloc_size(address);
+
+    if (free_type & GP_MEM_RELEASE)
+        return munmap(address, size) != -1;
+    else if (free_type & GP_MEM_DECOMMIT) {
+        #ifdef MADV_DONTNEED
+        #  ifdef GP_TARGET_DEBUG
+        mprotect(address, size, PROT_NONE);
+        #  else // avoid unnecessary system call, user not supposed to access address.
+        #  endif
+        return madvise(address, size, MADV_DONTNEED) != -1;
+        #else
+        errno = ENOTSUP;
+        #  endif
+    } else
+        errno = EINVAL;
+    return false;
+    #endif
+}
+
+bool gp_virtual_protect(
+    void*    address,
+    size_t   size,
+    unsigned prot)
+{
+    #ifdef GP_TARGET_OS_WINDOWS
+    BOOL success = VirtualProtect(address, size, gp_s_prot_translate(prot), &(DWORD){0});
+    if ( ! success) {
+        _doserrno = GetLastError();
+        errno = gp_errno_from_win32_error(_doserrno);
+    }
+    return success;
+    #else // POSIX
+    return mprotect(address, size, gp_s_prot_translate(prot)) != -1;
+    #endif
+}
+
+bool gp_virtual_discrard(
+    void*  address,
+    size_t size)
+{
+    #ifdef GP_TARGET_OS_WINDOWS
+    gp_call_once(&gp_s_new_winapi_initialized, gp_s_init_new_winapi);
+    if (gp_s_discard_virtual_memory == NULL) {
+        _doserrno = ERROR_PROC_NOT_FOUND;
+        errno = ENOSYS;
+        return false;
+    }
+    DWORD result = gp_s_discard_virtual_memory(address, size);
+    if (result != ERROR_SUCCESS) {
+        _doserrno = result;
+        errno = gp_errno_from_win32_error(result);
+    }
+    return result == ERROR_SUCCESS;
+    #elif defined(MADV_DONTNEED)
+    return madvise(address, size, MADV_DONTNEED) != -1;
+    #else
+    errno = ENOSYS;
+    return false;
+    #endif
+}
+
+bool gp_virtual_lock(
+    void*  address,
+    size_t size)
+{
+    #ifdef GP_TARGET_OS_WINDOWS
+    BOOL success = VirtualLock(address, size);
+    if ( ! success) {
+        _doserrno = GetLastError();
+        errno = gp_errno_from_win32_error(_doserrno);
+    }
+    return success;
+    #else // POSIX
+    return mlock(address, size) != -1;
+    #endif
+}
+
+bool gp_virtual_unlock(
+    void*  address,
+    size_t size)
+{
+    #ifdef GP_TARGET_OS_WINDOWS
+    BOOL success = VirtualUnlock(address, size);
+    if ( ! success) {
+        _doserrno = GetLastError();
+        errno = gp_errno_from_win32_error(_doserrno);
+    }
+    return success;
+    #else // POSIX
+    return munlock(address, size) != -1;
     #endif
 }
