@@ -649,21 +649,21 @@ static const uint8_t gp_s_error_table[] =
     EINVAL,       /* ERROR_INVALID_QUOTA_LOWER                    547 */
     EBUSY,        /* ERROR_DEVICE_ALREADY_ATTACHED                548 */
     EFAULT,       /* ERROR_INSTRUCTION_MISALIGNMENT               549 */
-    EIO,          /* ERROR_PROFILING_NOT_STARTED                  550 */
-    EIO,          /* ERROR_PROFILING_NOT_STOPPED                  551 */
-    EIO,          /* ERROR_COULD_NOT_INTERPRET                    552 */
-    EIO,          /* ERROR_PROFILING_AT_LIMIT                     553 */
-    EIO,          /* ERROR_CANT_WAIT                              554 */
+    EPERM,        /* ERROR_PROFILING_NOT_STARTED                  550 */
+    EPERM,        /* ERROR_PROFILING_NOT_STOPPED                  551 */
+    EBADMSG,      /* ERROR_COULD_NOT_INTERPRET                    552 */
+    EAGAIN,       /* ERROR_PROFILING_AT_LIMIT                     553 */
+    EAGAIN,       /* ERROR_CANT_WAIT                              554 */
     EPERM,        /* ERROR_CANT_TERMINATE_SELF                    555 */
     EIO,          /* ERROR_UNEXPECTED_MM_CREATE_ERR               556 */
     EIO,          /* ERROR_UNEXPECTED_MM_MAP_ERROR                557 */
     EIO,          /* ERROR_UNEXPECTED_MM_EXTEDN_ERR               558 */
     EFAULT,       /* ERROR_BAD_FUNCTION_TABLE                     559 */
     EIO,          /* ERROR_NO_GUID_TRANSLATION                    560 */
-    EIO,          /* ERROR_INVALID_LDT_SIZE                       561 */
+    EINVAL,       /* ERROR_INVALID_LDT_SIZE                       561 */
     (uint8_t)-1,  /*                                              562 */
-    EIO,          /* ERROR_INVALID_LDT_OFFSET                     563 */
-    EIO,          /* ERROR_INVALID_LDT_DESCRIPTOR                 564 */
+    EINVAL,       /* ERROR_INVALID_LDT_OFFSET                     563 */
+    EINVAL,       /* ERROR_INVALID_LDT_DESCRIPTOR                 564 */
     EAGAIN,       /* ERROR_TOO_MANY_THREADS                       565 */
     ESRCH,        /* ERROR_THREAD_NOT_IN_PROCESS                  566 */
     ENOSPC,       /* ERROR_PAGEFILE_QUOTA_EXCEEDED                567 */
@@ -674,16 +674,16 @@ static const uint8_t gp_s_error_table[] =
     EINTR,        /* ERROR_CONTROL_C_EXIT                         572 */
     ENOENT,       /* ERROR_MISSING_SYSTEMFILE                     573 */
     EFAULT,       /* ERROR_UNHANDLED_EXCEPTION                    574 */
-    EIO,          /* ERROR_APP_INIT_FAILURE                       575 */
+    EAGAIN,       /* ERROR_APP_INIT_FAILURE                       575 */
     ENOSPC,       /* ERROR_PAGEFILE_CREATE_FAILED                 576 */
     ENOEXEC,      /* ERROR_INVALID_IMAGE_HASH                     577 */
-    ENOSPC,       /* ERROR_NO_PAGEFILE                            578 */
+    ENOENT,       /* ERROR_NO_PAGEFILE                            578 */
     ENODEV,       /* ERROR_ILLEGAL_FLOAT_CONTEXT                  579 */
     EIO,          /* ERROR_NO_EVENT_PAIR                          580 */
-    EIO,          /* ERROR_DOMAIN_CTRLR_CONFIG_ERROR              581 */
+    EINVAL,       /* ERROR_DOMAIN_CTRLR_CONFIG_ERROR              581 */
     EILSEQ,       /* ERROR_ILLEGAL_CHARACTER                      582 */
     EILSEQ,       /* ERROR_UNDEFINED_CHARACTER                    583 */
-    ENOSPC,       /* ERROR_FLOPPY_VOLUME                          584 */
+    ENODEV,       /* ERROR_FLOPPY_VOLUME                          584 */
     EIO,          /* ERROR_BIOS_FAILED_TO_CONNECT_INTERRUPT       585 */
     EACCES,       /* ERROR_BACKUP_CONTROLLER                      586 */
     EAGAIN,       /* ERROR_MUTANT_LIMIT_EXCEEDED                  587 */
@@ -696,13 +696,113 @@ static const uint8_t gp_s_error_table[] =
     ETIMEDOUT,    /* ERROR_DRIVER_CANCEL_TIMEOUT                  594 */
     EPROTO,       /* ERROR_REPLY_MESSAGE_MISMATCH                 595 */
     EIO,          /* ERROR_LOST_WRITEBEHIND_DATA                  596 */
-    EIO,          /* ERROR_CLIENT_SERVER_PARAMETERS_INVALID       597 */
+    EINVAL,       /* ERROR_CLIENT_SERVER_PARAMETERS_INVALID       597 */
     EMSGSIZE,     /* ERROR_NOT_TINY_STREAM                        598 */
     EOVERFLOW,    /* ERROR_STACK_OVERFLOW_READ                    599 */
+    EOVERFLOW,    /* ERROR_CONVERT_TO_LARGE                       600 */
+    EACCES,       /* ERROR_FOUND_OUT_OF_SCOPE                     601 */
+    EAGAIN,       /* ERROR_ALLOCATE_BUCKET                        602 */
+    EMSGSIZE,     /* ERROR_MARSHALL_OVERFLOW                      603 */
+    EINVAL,       /* ERROR_INVALID_VARIANT                        604 */
+    EBADMSG,      /* ERROR_BAD_COMPRESSION_BUFFER                 605 */
+    EACCES,       /* ERROR_AUDIT_FAILED                           606 */
+    EPERM,        /* ERROR_TIMER_RESOLUTION_NOT_SET               607 */
+    ENODATA,      /* ERROR_INSUFFICIENT_LOGON_INFO                608 */
+    ENOEXEC,      /* ERROR_BAD_DLL_ENTRYPOINT                     609 */
+    ENOEXEC,      /* ERROR_BAD_SERVICE_ENTRYPOINT                 610 */
+    EADDRINUSE,   /* ERROR_IP_ADDRESS_CONFLICT1                   611 */
+    EADDRINUSE,   /* ERROR_IP_ADDRESS_CONFLICT2                   612 */
+    ENOSPC,       /* ERROR_REGISTRY_QUOTA_LIMIT                   613 */
+    EINVAL,       /* ERROR_NO_CALLBACK_ACTIVE                     614 */
+    EINVAL,       /* ERROR_PWD_TOO_SHORT                          615 */
+    EINVAL,       /* ERROR_PWD_TOO_RECENT                         616 */
+    EINVAL,       /* ERROR_PWD_HISTORY_CONFLICT                   617 */
+    ENOTSUP,      /* ERROR_UNSUPPORTED_COMPRESSION                618 */
+    EINVAL,       /* ERROR_INVALID_HW_PROFILE                     619 */
+    EINVAL,       /* ERROR_INVALID_PLUGPLAY_DEVICE_PATH           620 */
+    EBADMSG,      /* ERROR_QUOTA_LIST_INCONSISTENT                621 */
+    ETIMEDOUT,    /* ERROR_EVALUATION_EXPIRATION                  622 */
+    ENOEXEC,      /* ERROR_ILLEGAL_DLL_RELOCATION                 623 */
+    ENOEXEC,      /* ERROR_DLL_INIT_FAILED_LOGOFF                 624 */
+    EINPROGRESS,  /* ERROR_VALIDATE_CONTINUE                      625 */
+    ENODATA,      /* ERROR_NO_MORE_MATCHES                        626 */
+    EEXIST,       /* ERROR_RANGE_LIST_CONFLICT                    627 */
+    EACCES,       /* ERROR_SERVER_SID_MISMATCH                    628 */
+    EPERM,        /* ERROR_CANT_ENABLE_DENY_ONLY                  629 */
+    ERANGE,       /* ERROR_FLOAT_MULTIPLE_FAULTS                  630 */
+    EDOM,         /* ERROR_FLOAT_MULTIPLE_TRAPS                   631 */
+    ENOTSUP,      /* ERROR_NOINTERFACE                            632 */
+    ENOTSUP,      /* ERROR_DRIVER_FAILED_SLEEP                    633 */
+    EBADMSG,      /* ERROR_CORRUPT_SYSTEM_FILE                    634 */
+    EAGAIN,       /* ERROR_COMMITMENT_MINIMUM                     635 */ // TODO document for gp_virtual_alloc
+    EAGAIN,       /* ERROR_PNP_RESTART_ENUMERATION                636 */
+    ENOEXEC,      /* ERROR_SYSTEM_IMAGE_BAD_SIGNATURE             637 */
+    EAGAIN,       /* ERROR_PNP_REBOOT_REQUIRED                    638 */
+    EAGAIN,       /* ERROR_INSUFFICIENT_POWER                     639 */
+    EFAULT,       /* ERROR_MULTIPLE_FAULT_VIOLATION               640 */
+    EPERM,        /* ERROR_SYSTEM_SHUTDOWN                        641 */
+    EINVAL,       /* ERROR_PORT_NOT_SET                           642 */
+    ENOTSUP,      /* ERROR_DS_VERSION_CHECK_FAILURE               643 */
+    ENOENT,       /* ERROR_RANGE_NOT_FOUND                        644 */
+    (uint8_t)-1,  /*                                              645 */
+    EPERM,        /* ERROR_NOT_SAFE_MODE_DRIVER                   646 */
+    ENODEV,       /* ERROR_FAILED_DRIVER_ENTRY                    647 */
+    EIO,          /* ERROR_DEVICE_ENUMERATION_ERROR               648 */
+    EXDEV,        /* ERROR_MOUNT_POINT_NOT_RESOLVED               649 */
+    EINVAL,       /* ERROR_INVALID_DEVICE_OBJECT_PARAMETER        650 */
+    EIO,          /* ERROR_MCA_OCCURED                            651 */
+    EBADMSG,      /* ERROR_DRIVER_DATABASE_ERROR                  652 */
+    EFBIG,        /* ERROR_SYSTEM_HIVE_TOO_LARGE                  653 */
+    EBUSY,        /* ERROR_DRIVER_FAILED_PRIOR_UNLOAD             654 */
+    EINPROGRESS,  /* ERROR_VOLSNAP_PREPARE_HIBERNATE              655 */
+    EIO,          /* ERROR_HIBERNATION_FAILURE                    656 */
+    ERANGE,       /* ERROR_PWD_TOO_LONG                           657 */
+    (uint8_t)-1,  /*                                              658 */
+    (uint8_t)-1,  /*                                              659 */
+    (uint8_t)-1,  /*                                              660 */
+    (uint8_t)-1,  /*                                              661 */
+    (uint8_t)-1,  /*                                              662 */
+    (uint8_t)-1,  /*                                              663 */
+    (uint8_t)-1,  /*                                              664 */
+    EFBIG,        /* ERROR_FILE_SYSTEM_LIMITATION                 665 */
+    (uint8_t)-1,  /*                                              666 */
+    (uint8_t)-1,  /*                                              667 */
+    EIO,          /* ERROR_ASSERTION_FAILURE                      668 */
+    EIO,          /* ERROR_ACPI_ERROR                             669 */
+    EIO,          /* ERROR_WOW_ASSERTION                          670 */
+    ENODEV,       /* ERROR_PNP_BAD_MPS_TABLE                      671 */
+    ENXIO,        /* ERROR_PNP_TRANSLATION_FAILED                 672 */
+    ENXIO,        /* ERROR_PNP_IRQ_TRANSLATION_FAILED             673 */
+    EINVAL,       /* ERROR_PNP_INVALID_ID                         674 */
+    EINTR,        /* ERROR_WAKE_SYSTEM_DEBUGGER                   675 */
+    EBADF,        /* ERROR_HANDLES_CLOSED                         676 */
+    E2BIG,        /* ERROR_EXTRANEOUS_INFORMATION                 677 */
+    EINPROGRESS,  /* ERROR_RXACT_COMMIT_NECESSARY                 678 */
+    EAGAIN,       /* ERROR_MEDIA_CHECK                            679 */
+    ENOENT,       /* ERROR_GUID_SUBSTITUTION_MADE                 680 */
+    ELOOP,        /* ERROR_STOPPED_ON_SYMLINK                     681 */
+    EINTR,        /* ERROR_LONGJUMP                               682 */
+    EACCES,       /* ERROR_PLUGPLAY_QUERY_VETOED                  683 */
+    EINTR,        /* ERROR_UNWIND_CONSOLIDATE                     684 */
+    ENODATA,      /* ERROR_REGISTRY_HIVE_RECOVERED                685 */
+    EACCES,       /* ERROR_DLL_MIGHT_BE_INSECURE                  686 */
+    ENOTSUP,      /* ERROR_DLL_MIGHT_BE_INCOMPATIBLE              687 */
+    ENOSYS,       /* ERROR_DBG_EXCEPTION_NOT_HANDLED              688 */
+    EAGAIN,       /* ERROR_DBG_REPLY_LATER                        689 */
+    EBADF,        /* ERROR_DBG_UNABLE_TO_PROVIDE_HANDLE           690 */
+    EPERM,        /* ERROR_DBG_TERMINATE_THREAD                   691 */
+    EPERM,        /* ERROR_DBG_TERMINATE_PROCESS                  692 */
+    EINTR,        /* ERROR_DBG_CONTROL_C                          693 */
+    EINTR,        /* ERROR_DBG_PRINTEXCEPTION_C                   694 */
+    EFAULT,       /* ERROR_DBG_RIPEXCEPTION                       695 */
+    EINTR,        /* ERROR_DBG_CONTROL_BREAK                      696 */
+    EPROTO,       /* ERROR_DBG_COMMAND_EXCEPTION                  697 */
+    EEXIST,       /* ERROR_OBJECT_NAME_EXISTS                     698 */
+    EAGAIN,       /* ERROR_THREAD_WAS_SUSPENDED                   699 */
     // TODO the rest, there are still important errors that needs to be translated.
 };
 
-GP_STATIC_ASSERT(sizeof gp_s_error_table == 600);
+GP_STATIC_ASSERT(sizeof gp_s_error_table == 700);
 
 int gp_errno_from_win32_error(uint32_t error)
 {

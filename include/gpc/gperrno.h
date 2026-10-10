@@ -131,9 +131,12 @@ const char* gp_errno_str(GPString* optional_dest, const GPErrno* optional_errno)
  * This function is only available in Windows.
  *
  * Translates the return value of `GetLastError()` or the value of `_doserrno`
- * to an `errno` value. At the time of writing, only the first 600 of Windows
- * system error codes are translated. Any unknown error code returns -1. Zero
- * returns zero.
+ * to an `errno` value. Due to the specificity of Windows error codes and
+ * limited `errno` constants, this translation most often loses information and
+ * in many cases may be inaccurate.
+ *
+ * At the time of writing, only the first 700 of Windows system error codes are
+ * translated. Any unknown error code returns -1. Zero returns zero.
  */
 #if defined(GP_TARGET_OS_WINDOWS) || defined(GP_DOXYGEN)
 GP_API

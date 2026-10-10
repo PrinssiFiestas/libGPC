@@ -993,7 +993,7 @@ GP_NONNULL_ARGS() GP_API
 size_t gp_arena_clear(GPArena*);
 
 //------------------------------------------------------------------------------
-/** @defgroup virtual Virtual Memory
+/** @defgroup virtual Virtual Memory, File Mapping, and Shared Memory
  *
  * Low-level memory management.
  *
@@ -1001,7 +1001,10 @@ size_t gp_arena_clear(GPArena*);
  * @{
  */ // TODO overview of this interface and other docs
 
-GPAllocator*const gp_page_allocator;
+GPAllocator*const gp_page_allocator; // TODO implementation
+
+/// @cond
+// gp_virtual_alloc() and gp_virtual_dealloc() flags.
 
 #define GP_PROT_NONE  0x0
 #define GP_PROT_READ  0x1
@@ -1017,13 +1020,32 @@ GPAllocator*const gp_page_allocator;
 
 #define GP_MEM_DECOMMIT        0x00004000
 #define GP_MEM_RELEASE         0x00008000
+/// @endcond
 
+/** Allocation granularity.
+ *
+ * Allocation sizes of @ref gp_virtual_alloc() are multiples of this value and
+ * the returned pointer of @ref gp_virtual_alloc() is aligned to multiples of
+ * this value.
+ *
+ * In POSIX this equals @ref gp_page_size().
+ */
 GP_API
 size_t gp_page_alloc_granularity(void);
 
+/** Page size. */
 GP_API
 size_t gp_page_size(void);
 
+/** Reserve and/or commit virtual address space.
+ *
+ * TODO rest of docs
+ *
+ * @return
+ *
+ * the base address of the allocated region or `NULL` on failure in which case
+ * @ref errno will be set to indicate the error.
+ */
 GP_API
 void* gp_virtual_alloc(
     void*    optional_address,
