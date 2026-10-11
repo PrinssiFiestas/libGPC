@@ -997,9 +997,82 @@ size_t gp_arena_clear(GPArena*);
  *
  * Low-level memory management.
  *
+ * This API unifies `VirtualAlloc()`, `mmap()` and relevant to a single
+ * unified portable interface to work with virtual memory and file mappings in
+ * an OS agnostic manner. The primary goal is to retain as much functionality
+ * from the functionality provided by the OS as it is sensible while retaining
+ * portability. Some functionality that might've been available in one OS but
+ * not another is emulated and may be controllable trough flags. Some OS
+ * specific behavior is ignored if it doesn't break the behavior in other OSs.
+ * We tried to only drop functionality that is fundamentally impossible or
+ * insensibly difficult/inefficient to implement portably.
  *
+ * The secondary goal is familiarity to at least some of the developers. We
+ * achieved this by making our API closely model Win32 API (`VirtualAlloc()`,
+ * `MapViewOfFile()`, etc.). We don't necessarily prefer the Windows API over
+ * POSIX APIs (or the other way around), Windows functionality just happens to
+ * be easier to implement using POSIX functionality than the other way around.
+ * This does not mean that we prioritized Windows functionality over POSIX, you
+ * can expect to be able to do most things that you could with `mmap()` using
+ * our API.
+ *
+ * ## About Virtual Memory
+ * @anchor about_virtual_memory
+ *
+ * A pointer in C is said to be an integer representing a memory address.
+ * Specifically, a pointer is a memory address in _virtual address space_, which
+ * does not necessarily represent physical memory. The OS maps virtual addresses
+ * to physical addresses using an internal _page table_. Memory pages are chunks
+ * of memory of size @ref gp_page_size(), which is often (but not always!) four
+ * kilobytes. This means that an array that looks contiguous for the user (like
+ * `char cstr[8192]`) may not be contiguous in physical memory meaning that
+ * `cstr[0]` and `cstr[4096]` may be accessing pages that are not adjacent in
+ * physical memory.
+ *
+ * There are multiple benefits of this indirection between virtual and physical
+ * memory. Most notably for us as programmers, this allows the OS to keep track
+ * of various properties for each page (is the page read-only, is it allocated,
+ * is it used, etc.), which can be controlled by the user to varying extent.
+ *
+ * ### Page State
+ *
+ * Each page in the virtual address space can be conceptually either _free_,
+ * _reserved_, or _committed_. If a page is free, then it is not accessible to
+ * the user and access attempt will most likely crash. Free pages can be
+ * reserved and committed and returned by future memory allocation functions
+ * like `malloc()` or @ref gp_virtual_alloc(). Reserved and committed pages can
+ * be made free using @ref gp_virtual_dealloc().
+ *
+ * Pages that are reserved reserve the virtual address space, but not physical
+ * address space. This memory is still inaccessible to the user and will likely
+ * crash on access, but this address also cannot be returned by future memory
+ * allocation functions. Reserved pages should be committed using @ref gp_virtual_alloc()
+ * to gain access.
+ *
+ * Pages that are committed are available for the user to access. Being
+ * committed means that the OS guarantees that a physical page is allocated when
+ * user accesses the page. The allowed accesses are controlled using protection
+ * flags (`GP_PROT_READ`, `GP_PROT_WRITE`, and `GP_PROT_EXEC`, or any bitwise OR
+ * combination of these), for that given page. Invalid accesses (e.g. write
+ * operation for pages with only `GP_PROT_READ` access) will usually crash the
+ * program.
+ *
+ * This description of page states so far is mostly accurate on Windows.
+ * However, other OSs may not give full control over commitment for the user.
+ * For example, a Linux machine may lazily commit pages on use (this is called
+ * _overcommitment_) instead of giving the user precise control over commitment.
+ * That being said, the mental model of freed, reserved, and committed pages is
+ * still useful when working with our API.
+ *
+ * Page being committed still does not mean that a physical page from RAM is
+ * actually used. It is only on first read or write operation on that page that
+ * triggers a _page fault_, which causes the OS to finally assign a physical
+ * page to that virtual page. This first access is a fairly expensive operation.
+ * All pages will be freed automatically when the process exits.
+ *
+ * For more details, see @ref gp_virtual_alloc() and @ref gp_virtual_free().
  * @{
- */ // TODO overview of this interface and other docs
+ */ // TODO overview of file mapping
 
 GPAllocator*const gp_page_allocator; // TODO implementation
 
@@ -1039,12 +1112,119 @@ size_t gp_page_size(void);
 
 /** Reserve and/or commit virtual address space.
  *
- * TODO rest of docs
+ * This function can be used to reserve or commit memory pages or reserve and
+ * commit pages simultaneously. See @ref about_virtual_memory for virtual
+ * memory basics.
+ *
+ * @param optional_address
+ *     When reserving (or simultaneously reserving and committing) memory, this
+ *     can be used to request an allocation of a specific address. The specified
+ *     address will be rounded down to the nearest multiple of allocation granularity
+ *     (see @ref gp_alloc_granularity()). If the memory region specified by this
+ *     and @a size overlaps already reserved memory, then the allocation will
+ *     fail, unless `GP_MEM_ADDRESS_HINT` flag is passed. If `NULL`, then the
+ *     operating system picks any address.
+ *
+ *     When committing already reserved memory, then this parameter must be the
+ *     base address of the to-be-committed region. The specified address will be
+ *     rounded down to the nearest page boundary. The region can overlap to an
+ *     already committed region without failure, however the full region must
+ *     be reserved for this to succeed.
+ *
+ * @param size
+ *     Size of the allocated region in bytes. This will be rounded up in such
+ *     way that the full size of the region specified by @a optional_address
+ *     (_after_ rounding) and this will be a multiple of page size.
+ *
+ * @param alloc_type
+ *     Specifies allocation type (reserve or commit) and optionally additional
+ *     flags combined by bitwise OR operator. This must contain at least one of
+ *     the following values:
+ *
+ *     | Value          | Description                                          |
+ *     | -------------- | ---------------------------------------------------- |
+ *     | GP_MEM_RESERVE | Reserve virtual address space. No physical memory    |
+ *     |                | will be allocated or committed, however memory       |
+ *     |                | allocation functions like `malloc()` cannot use this |
+ *     |                | memory either.                                       |
+ *     |                |                                                      |
+ *     | GP_MEM_COMMIT  | Commit physical memory to a reserved allocation. The |
+ *     |                | memory will be zero-initialized. The physical pages  |
+ *     |                | will only used after first access to each committed  |
+ *     |                | pages.                                               |
+ *
+ *     Memory can be reserved and committed simultaneously by passing
+ *     `GP_MEM_RESERVE | GP_MEM_COMMIT`.
+ *
+ *     Note that some systems may already commit on reserve (e.g. Linux that has
+ *     been set up to not overcommit) or only commit on use (e.g. Linux that has
+ *     been set up to overcommit). In such case commit operation has no other
+ *     effect than set the protection flags (@a prot) to the given pages.
+ *     Nonetheless accessing reserved memory that has not been committed is
+ *     undefined.
+ *
+ *     These flags can be combined with the following optional additional flags:
+ *
+ *     | Value                  | Description                                  |
+ *     | ---------------------- | -------------------------------------------- |
+ *     | GP_MEM_NATIVE_SIZE     | By default you can pass 0 to @ref gp_virtual_free() |
+ *     |                        | to free the fully allocated block. This      |
+ *     |                        | requires us to keep track of allocation size |
+ *     |                        | internally, which can be inefficient. Passing|
+ *     |                        | this flag skips allocation size bookkeeping  |
+ *     |                        | greatly improving POSIX performance, but     |
+ *     |                        | requires passing full allocation size to     |
+ *     |                        | @ref gp_virtual_free() on deallocation.      |
+ *     |                        |                                              |
+ *     | GP_MEM_ADDRESS_HINT    | Interpret a non-`NULL` @a optional_address as|
+ *     |                        | a weak hint on reserve operation. If         |
+ *     |                        | reserving fails, then the OS will pick some  |
+ *     |                        | other address, which may be some nearby pages|
+ *     |                        | in POSIX systems, but portable applications  |
+ *     |                        | cannot make any assumptions about the        |
+ *     |                        | returned address.                            |
+ *     |                        |                                              |
+ *     | GP_MEM_NO_SWAP_RESERVE | Request overcommitting swap space. If swap   |
+ *     |                        | space is not available on write to           |
+ *     |                        | overcommitted pages, then `SIGSEGV` may be   |
+ *     |                        | raised.                                      |
+ *     |                        |                                              |
+ *     |                        | This flag is only effective on systems that  |
+ *     |                        | commit on reserve. Therefore, it should be   |
+ *     |                        | passed with `GP_MEM_RESERVE`. This flag is   |
+ *     |                        | ignored in any other systems.                |
+ *
+ * @param prot
+ *     Protection flags. This must be either `GP_PROT_NONE` or one or more of
+ *     `GP_PROT_READ`, `GP_PROT_WRITE`, and `GP_PROT_EXEC` combined using
+ *     bitwise OR operator. The flags give self-explanatory access rights to the
+ *     allocated pages (e.g. `GP_PROT_READ | GP_PROT_WRITE` for read-write access).
+ *
+ *     Not all combinations of protection flags are necessarily supported by the
+ *     system. If the system cannot provide all requested access rights
+ *     simultaneously, then this function may fail. However, the system may
+ *     grant additional access rights to satisfy the request. For example,
+ *     write-only protection is not supported by x86, so passing `GP_PROT_WRITE`
+ *     alone in that case will be equivalent to `GP_PROT_READ | GP_PROT_WRITE`.
  *
  * @return
  *
  * the base address of the allocated region or `NULL` on failure in which case
  * @ref errno will be set to indicate the error.
+ *
+ * ### Errors
+ *
+ * | `errno`  | Cause                                                       |
+ * | -------- | ----------------------------------------------------------- |
+ * | `EINVAL` | @a alloc_type or @a prot is invalid, or @a size is zero.    |
+ * |          |                                                             |
+ * | `EFAULT` | Memory region to be reserved overlaps with already reserved |
+ * |          | region or memory to be committed is not reserved.           |
+ * |          |                                                             |
+ * | `ENOMEM` | No more memory.                                             |
+ * |          |                                                             |
+ * | `EAGAIN` | System is low on virtual memory. Paging file is currently   |
+ * |          | being increased. Allocation may succeed on a later time.    |
  */
 GP_API
 void* gp_virtual_alloc(

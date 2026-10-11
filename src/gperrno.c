@@ -586,7 +586,7 @@ static const uint8_t gp_s_error_table[] =
     (uint8_t)-1,  /*                                              484 */
     (uint8_t)-1,  /*                                              485 */
     (uint8_t)-1,  /*                                              486 */
-    EINVAL,       /* ERROR_INVALID_ADDRESS                        487 */
+    EFAULT,       /* ERROR_INVALID_ADDRESS                        487 */
     (uint8_t)-1,  /*                                              488 */
     (uint8_t)-1,  /*                                              489 */
     (uint8_t)-1,  /*                                              490 */

@@ -577,6 +577,12 @@ void* gp_virtual_alloc(
 
     #else // POSIX
 
+    size_t page_size = gp_page_size();
+    uintptr_t end = gp_round_to_aligned((uintptr_t)addr + size, page_size);
+    uintptr_t start = (uintptr_t)addr & ~(page_size - 1);
+    addr = (void*)start;
+    size = end - start;
+
     int flags = 0;
     if (alloc_type & GP_MEM_RESERVE) {
         // In release builds it is less error prone to not crash the program if
@@ -622,7 +628,10 @@ void* gp_virtual_alloc(
             && (uintptr_t)mapped != (uintptr_t)addr)
         {
             munmap(mapped, size);
-            errno = EEXIST;
+            // EEXIST would be what mmap() sets and much more appropriate, but
+            // VirtualAlloc() sets system error code to ERROR_INVALID_ADDRESS
+            // on both overlapped reserve and attempt to commit unreserved memory.
+            errno = EFAULT;
             return NULL;
         }
         addr = mapped;
@@ -634,8 +643,17 @@ void* gp_virtual_alloc(
             }
         }
     } else if (alloc_type & GP_MEM_COMMIT) {
-        if (mprotect(addr, size, prot) == -1)
+        if (mprotect(addr, size, prot) == -1) {
+            // For some reason POSIX requires setting errno to ENOMEM if addr is
+            // not mapped. ENOMEM may be also set if internal kernel structures
+            // cannot be allocated but this seems extremely unlikely for any
+            // well behaving system, so we'll just ignore it to match
+            // ERROR_INVALID_ADDRESS that is set by VirtualAlloc() when trying
+            // to commit unreserved pages.
+            if (errno == ENOMEM)
+                errno = EFAULT;
             return NULL;
+        }
     } else {
         errno = EINVAL;
         return NULL;
