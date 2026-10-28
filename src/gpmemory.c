@@ -681,21 +681,40 @@ bool gp_virtual_free(
 
     #else // POSIX
 
+    // TODO should we check the address ourselves to manually set EFAULT?
+    // does VirtualFree() set ERROR_INVALID_ADDRESS?
+
+    if ((free_type & GP_MEM_RELEASE) && (free_type & GP_MEM_DECOMMIT)) {
+        errno = EINVAL;
+        return false;
+    }
+
     if (size == 0)
         size = gp_s_get_virtual_alloc_size(address);
+    if (size == 0) {
+        errno = EFAULT;
+        return false;
+    }
 
     if (free_type & GP_MEM_RELEASE)
         return munmap(address, size) != -1;
     else if (free_type & GP_MEM_DECOMMIT) {
         #ifdef MADV_DONTNEED
+        size_t page_size = gp_page_size();
+        uintptr_t end = gp_round_to_aligned((uintptr_t)address + size, page_size);
+        uintptr_t start = (uintptr_t)address & ~(page_size - 1);
+        address = (void*)start;
+        size = end - start;
         #  ifdef GP_TARGET_DEBUG
+        int err = errno;
         mprotect(address, size, PROT_NONE);
-        #  else // avoid unnecessary system call, user not supposed to access address.
+        errno = err;
+        // avoid unnecessary syscall in release, user not supposed to access address.
         #  endif
         return madvise(address, size, MADV_DONTNEED) != -1;
         #else
-        errno = ENOTSUP;
-        #  endif
+        errno = ENOTSUP; // TODO should this be ENOSYS for missing madvise()?
+        #endif
     } else
         errno = EINVAL;
     return false;
