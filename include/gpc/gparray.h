@@ -1,7 +1,6 @@
 // MIT License
 // Copyright (c) 2023 Lauri Lorenzo Fiestas
 // https://github.com/PrinssiFiestas/libGPC/blob/main/LICENSE.md
-/// @cond
 
 #ifndef GP_ARRAY_INCLUDED
 #define GP_ARRAY_INCLUDED 1
@@ -12,6 +11,7 @@
 extern "C" {
 #endif
 
+/// @cond
 // We implement all functions here as inline functions. This feels a bit nasty
 // for larger functions, but there are a few of reasons to do this:
 //
@@ -81,7 +81,7 @@ static inline void* gp_arr_erase_sized(void**, size_t, size_t, size_t);
  * - True generality without requiring the user to instantiate macro templates.
  * - No need to allocate the structure separately. This also improves cache
  *   coherency.
- * - Functions that take a generic `void*' argument like @ref gp_thread_create
+ * - Functions that take a generic `void*` argument like @ref gp_thread_create
  *   accept arrays without separate allocation.
  * - Semantics somewhat familiar to regular C arrays in the sense that our arrays
  *   seemingly decay to pointers (not really, they already are) and can be used
@@ -184,7 +184,7 @@ static inline void* gp_arr_erase_sized(void**, size_t, size_t, size_t);
  */
 #define GP_ARR_ERROR_ABORT 1
 
-/** Possible value of @ref GP_ARR_FAIL_UNDEFINED.
+/** Possible value of @ref GP_ARR_ERROR_UNDEFINED.
  *
  * Indicates that array functions invoke undefined behavior when exceeding fixed
  * capacity array's capacity.
@@ -216,9 +216,9 @@ static inline void* gp_arr_erase_sized(void**, size_t, size_t, size_t);
  *
  * Possible values:
  *
- * - @ref GP_ARR_ERROR_RETURN: Array functions can fail and return the number of truncated elements.
- * - @ref GP_ARR_ERROR_ABORT: Array functions abort on failure. Default for C/C++.
- * - @ref GP_ARR_ERROR_UNDEFINED: Array functions invoke undefined behavior on failure.
+ * - @ref GP_ARR_ERROR_RETURN : Array functions can fail and return the number of truncated elements.
+ * - @ref GP_ARR_ERROR_ABORT : Array functions abort on failure. Default for C/C++.
+ * - @ref GP_ARR_ERROR_UNDEFINED : Array functions invoke undefined behavior on failure.
  *
  * See the documentation for those macros for more details about their meanings.
  */
@@ -391,7 +391,7 @@ struct GP_ANONYMOUS_STRUCT \
  *     gp_assert(gp_arr_capacity(array) == 16);
  * ```
  */
-#define/* GPArray(T) */gp_arr_buffered( \
+#define gp_arr_buffered( \
     T,                                  \
     /* GPArrayBuffer(T, N)* BUFFER, */  \
     /* optional initial values */...)   \

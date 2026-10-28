@@ -120,7 +120,7 @@ extern "C" {
  */
 #define GP_ALLOC_ERROR_ABORT 1
 
-/** Possible value of @ref GP_ALLOC_FAIL_UNDEFINED.
+/** Possible value of @ref GP_ALLOC_ERROR_UNDEFINED.
  *
  * Indicates that allocation functions invoke undefined behavior on allocation
  * failure.
@@ -144,7 +144,7 @@ extern "C" {
  * Can be defined per header file inclusion to control allocation failure policy
  * for each translation unit separately. If defined when compiling this library,
  * then affects foreign function interface, which is probably not what you want,
- * the exported functions should use @ref GP_ALLOC_ERROR_ERTURN, which is the
+ * the exported functions should use @ref GP_ALLOC_ERROR_RETURN, which is the
  * default when exporting.
  *
  * These only has an effect for the functions we provide that wraps @ref GPAllocator.alloc()
@@ -159,9 +159,9 @@ extern "C" {
  *
  * Possible values:
  *
- * - @ref GP_ALLOC_ERROR_RETURN: Allocation functions can fail and return `NULL`. Default when exporting.
- * - @ref GP_ALLOC_ERROR_ABORT: Allocation functions abort on failure. Default for C/C++.
- * - @ref GP_ALLOC_ERROR_UNDEFINED: Allocation functions invoke undefined behavior on failure.
+ * - @ref GP_ALLOC_ERROR_RETURN : Allocation functions can fail and return `NULL`. Default when exporting.
+ * - @ref GP_ALLOC_ERROR_ABORT : Allocation functions abort on failure. Default for C/C++.
+ * - @ref GP_ALLOC_ERROR_UNDEFINED : Allocation functions invoke undefined behavior on failure.
  *
  * See the documentation for those macros for more details about their meanings.
  */
@@ -260,7 +260,7 @@ extern "C" {
  *
  * Requires compiling with `-fsanitize=address` make any effect. Does nothing
  * otherwise. For limiting access of memory pages regardless of sanitizer
- * settings, see @ref gp_mem_advice().
+ * settings, see @ref gp_virtual_protect().
  *
  * This function is _not_ thread safe: two threads trying to poison the same
  * memory simultaneously is a data race.
@@ -669,11 +669,14 @@ extern GPAllocator gp_mallocator;
  * If other alignments are needed, use @ref GPArray instead.
  * @{
  */
+
+/// @cond
 typedef struct GPSizedPtrHeader
 {
     GPAllocator* allocator; ///< Allocator used to allocate the sized pointer.
     size_t size;            ///< Requested allocation size in bytes.
 } GPSizedPtrHeader;
+/// @endcond
 
 /** Get requested allocation size of a sized pointer.
  *
@@ -1121,9 +1124,9 @@ size_t gp_page_size(void);
  *     When reserving (or simultaneously reserving and committing) memory, this
  *     can be used to request an allocation of a specific address. The specified
  *     address will be rounded down to the nearest multiple of allocation granularity
- *     (see @ref gp_alloc_granularity()). If the memory region specified by this
- *     and @a size overlaps already reserved memory, then the allocation will
- *     fail, unless `GP_MEM_ADDRESS_HINT` flag is passed in which case this
+ *     (see @ref gp_page_alloc_granularity()). If the memory region specified by
+ *     this and @a size overlaps already reserved memory, then the allocation
+ *     will fail, unless `GP_MEM_ADDRESS_HINT` flag is passed in which case this
  *     address may be ignored if the request cannot be fulfilled. If `NULL`,
  *     then the operating system picks any address.
  *

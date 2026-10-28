@@ -173,7 +173,7 @@ static const char* gp_type_strs[GP_TYPE_LENGTH] =
 #define gp_type_is_number(gp_type_t__TYPE) ((bool)(GP_TYPE_BOOL <= (gp_type_t__TYPE) \
     && (gp_type_t__TYPE) <= GP_TYPE_LONG_DOUBLE ))
 
-/** Checks if given type descriptor indicates a type considered an integer..
+/** Checks if given type descriptor indicates a type considered an integer.
  *
  * @return `true` for
  * Signed primitive integers, unsigned primitive integers, `GPInt128`,

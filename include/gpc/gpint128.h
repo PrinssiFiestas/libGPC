@@ -112,6 +112,7 @@ typedef union GPUInt128
         uint64_t lo; ///< Low 64 bits.
     } big_endian;    ///< 64-bit Parts in big endian machine.
 
+    /// @cond
     // Only align to 16 on 64-bit targets. GP_ALLOC_ALIGN is only 8, which would
     // cause ultimate mayhem.
     #if SIZE_MAX == UINT64_MAX
@@ -126,6 +127,7 @@ typedef union GPUInt128
     long double _align; // not guaranteed to be 16, but our only hope!
     #  endif
     #endif
+    /// @endcond
 } GPUInt128;
 
 /** 128-bit signed integer.
@@ -180,6 +182,7 @@ typedef union GPInt128
         uint64_t lo; ///< Low 64 bits.
     } big_endian;    ///< 64-bit Parts in big endian machine.
 
+    /// @cond
     // Only align to 16 on 64-bit targets. GP_ALLOC_ALIGN is only 8, which would
     // cause ultimate mayhem.
     #if SIZE_MAX == UINT64_MAX
@@ -193,6 +196,7 @@ typedef union GPInt128
     long double _align; // not guaranteed to be 16, but our only hope!
     #  endif
     #endif
+    /// @endcond
 } GPInt128;
 
 // ----------------------------------------------------------------------------

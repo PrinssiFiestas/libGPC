@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-/** @defgroup errno System Error Codes and `errno`
+/** @defgroup errno System Error Codes and errno
  *
  * ```c
  * #include <gpc/gperrno.h>
